@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
+import { DocumentImage } from '@/components/DocumentImage';
 import { SiteHeader } from '@/components/SiteHeader';
 import {
   DOCUMENT_CATEGORY_OPTIONS,
@@ -15,6 +16,7 @@ import {
   type DocumentCategory,
   type ProjectDocument,
 } from '@/lib/documents';
+import { isImageDocument } from '@/lib/document-images';
 import {
   fetchProject,
   formatDateTime,
@@ -157,6 +159,8 @@ export default function ProjectDetailPage() {
 
   const clientTags = project?.tags.filter((t) => t.source === 'client') ?? [];
   const aiTags = project?.tags.filter((t) => t.source === 'ai') ?? [];
+  const imageDocuments = documents.filter(isImageDocument);
+  const fileDocuments = documents.filter((d) => !isImageDocument(d));
 
   return (
     <>
@@ -286,30 +290,52 @@ export default function ProjectDetailPage() {
               {documents.length === 0 ? (
                 <p className="muted">No documents uploaded yet.</p>
               ) : (
-                <ul className="doc-list">
-                  {documents.map((doc) => (
-                    <li key={doc.id} className="doc-item">
-                      <div>
-                        <button
-                          type="button"
-                          className="doc-link"
-                          onClick={() => void handleDownload(doc)}
-                        >
-                          {doc.originalName}
-                        </button>
-                        <p className="muted doc-meta">
-                          {DOCUMENT_CATEGORY_OPTIONS.find(
-                            (o) => o.value === doc.category,
-                          )?.label ?? doc.category}
-                          {' · '}
-                          {formatFileSize(doc.sizeBytes)}
-                          {doc.uploadedAt &&
-                            ` · ${formatDateTime(doc.uploadedAt)}`}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  {imageDocuments.length > 0 && (
+                    <div className="doc-gallery">
+                      {imageDocuments.map((doc) => (
+                        <figure key={doc.id} className="doc-gallery-item">
+                          <DocumentImage
+                            projectId={projectId}
+                            document={doc}
+                            variant="gallery"
+                            onOpen={() => void handleDownload(doc)}
+                          />
+                          <figcaption className="doc-gallery-caption">
+                            {doc.originalName}
+                          </figcaption>
+                        </figure>
+                      ))}
+                    </div>
+                  )}
+
+                  {fileDocuments.length > 0 && (
+                    <ul className="doc-list">
+                      {fileDocuments.map((doc) => (
+                        <li key={doc.id} className="doc-item">
+                          <div>
+                            <button
+                              type="button"
+                              className="doc-link"
+                              onClick={() => void handleDownload(doc)}
+                            >
+                              {doc.originalName}
+                            </button>
+                            <p className="muted doc-meta">
+                              {DOCUMENT_CATEGORY_OPTIONS.find(
+                                (o) => o.value === doc.category,
+                              )?.label ?? doc.category}
+                              {' · '}
+                              {formatFileSize(doc.sizeBytes)}
+                              {doc.uploadedAt &&
+                                ` · ${formatDateTime(doc.uploadedAt)}`}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
               )}
             </section>
 
