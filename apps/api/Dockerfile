@@ -7,7 +7,6 @@ RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-ENV NODE_ENV=production
 ENV PORT=3000
 
 COPY package.json package-lock.json ./
@@ -19,6 +18,8 @@ RUN npx prisma generate
 COPY tsconfig.json nest-cli.json ./
 COPY src ./src
 RUN npm run build && npm prune --omit=dev
+
+ENV NODE_ENV=production
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
