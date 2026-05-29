@@ -395,6 +395,84 @@ pre {
   margin-top: 0.75rem;
 }
 
+.doc-hint {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.doc-upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.doc-upload-row label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.doc-upload-row select {
+  border: 1px solid #2a3647;
+  border-radius: 8px;
+  background: #0f1419;
+  color: #e7ecf3;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.95rem;
+  min-width: 180px;
+}
+
+.doc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.doc-item {
+  padding: 0.65rem 0;
+  border-top: 1px solid #2a3647;
+}
+
+.doc-item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.doc-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #93c5fd;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+
+.doc-link:hover {
+  text-decoration: underline;
+}
+
+.doc-meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
 .project-list {
   list-style: none;
   margin: 0;

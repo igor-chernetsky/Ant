@@ -22,6 +22,9 @@ docker ps -q --filter "name=construction-platform-api-run" | xargs -r docker sto
 log "Ensure Postgres is up"
 docker compose -f "$COMPOSE_FILE" up -d postgres
 
+log "Start MinIO if full profile is enabled in .env (COMPOSE_PROFILES=full)"
+docker compose -f "$COMPOSE_FILE" --profile full up -d minio minio-init 2>/dev/null || true
+
 log "Build API image (this is the slow step on EC2)"
 docker compose -f "$COMPOSE_FILE" build api
 

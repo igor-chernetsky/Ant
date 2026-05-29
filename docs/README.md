@@ -15,6 +15,7 @@ Documentation for implementing the Construction Marketplace Platform.
 | [CI/CD — EC2](./cicd-ec2.md) | GitHub Actions deploy on push to main |
 | [Domain State Machines](./domain-state-machines.md) | Project, tender, bid, contract lifecycles |
 | [Project brief and tags](./project-brief-and-tags.md) | Hybrid brief schema, tag catalog, AI assignment |
+| [Storage — S3 setup](./storage-s3-setup.md) | MinIO on EC2, AWS S3, presigned uploads |
 
 ## Recommended stack (summary)
 
