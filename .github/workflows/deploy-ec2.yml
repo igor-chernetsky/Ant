@@ -37,20 +37,23 @@ jobs:
             export DEPLOY_BRANCH="${{ github.ref_name }}"
             bash "$REPO_DIR/infra/scripts/deploy.sh"
 
-      - name: Verify public health endpoint
+      - name: Verify public health endpoint (optional)
+        continue-on-error: true
+        timeout-minutes: 2
         run: |
           URL="${{ secrets.EC2_HEALTH_URL }}"
           if [ -z "$URL" ]; then
             echo "EC2_HEALTH_URL not set — skipping external check"
             exit 0
           fi
+          echo "Checking $URL from GitHub runner (may fail if SG blocks unknown IPs)"
           for i in 1 2 3 4 5; do
-            if curl -sf "$URL" | grep -q '"status":"ok"'; then
-              echo "Health OK: $URL"
+            if curl -sf --connect-timeout 5 --max-time 10 "$URL" | grep -q '"status":"ok"'; then
+              echo "Public health OK: $URL"
               exit 0
             fi
-            echo "Waiting for API... ($i/5)"
-            sleep 5
+            echo "Retry $i/5..."
+            sleep 3
           done
-          echo "Health check failed: $URL"
+          echo "::warning::Public health check failed from GitHub runner. Deploy may still be OK — verify on EC2: curl http://127.0.0.1/api/health"
           exit 1

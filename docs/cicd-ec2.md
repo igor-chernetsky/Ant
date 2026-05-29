@@ -133,7 +133,8 @@ To deploy web only: push to `apps/web` → Vercel rebuild (no EC2 workflow unles
 | `Permission denied (publickey)` in Actions | Wrong `EC2_SSH_PRIVATE_KEY` or SG blocks port 22 |
 | Build OOM | Ensure disk ≥ 20 GB; `docker builder prune -af` |
 | Migrate fails | Check `DATABASE_URL` / Postgres password in `infra/.env` |
-| Health check fails in workflow | Set `EC2_HEALTH_URL` or increase sleep in workflow |
+| Health check hangs in Actions | `curl` without timeout — fixed in workflow; or remove `EC2_HEALTH_URL` secret to skip |
+| Public check fails but deploy OK | Normal if SG/network blocks GitHub IPs; rely on local check in `deploy.sh` |
 
 ---
 
