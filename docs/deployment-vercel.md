@@ -10,10 +10,16 @@ Minimal Next.js frontend that signs in via Keycloak and calls `GET /api/v1/me` o
 
 | Setting | Value |
 |---------|--------|
-| Framework | Next.js |
+| Framework Preset | **Next.js** (not Other / Static) |
 | Root Directory | `apps/web` |
-| Build Command | `npm run build` (default) |
-| Output | default |
+| Build Command | *(leave default)* `npm run build` |
+| Output Directory | **leave empty** — do NOT set `public` |
+| Install Command | *(default)* `npm install` |
+
+> **Important:** If Output Directory is set to `public`, the deploy fails with  
+> `No Output Directory named "public" found`. Clear that field — Next.js uses `.next`, not `public` as build output.
+
+The repo includes `apps/web/vercel.json` with `"framework": "nextjs"`.
 
 ## 2. Environment variables
 
@@ -67,6 +73,7 @@ Save.
 
 | Issue | Fix |
 |-------|-----|
+| `No Output Directory named "public" found` | Vercel → Settings → Build → **clear Output Directory**; Framework = **Next.js**; Root = `apps/web` |
 | Redirect URI mismatch | Add exact Vercel URL to Keycloak redirect URIs |
 | CORS / blocked fetch | API uses `origin: true`; check browser network tab |
 | 401 on `/v1/me` | Token issue — same as [api-smoke-test.md](./api-smoke-test.md) |
