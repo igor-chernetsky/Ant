@@ -1,0 +1,15 @@
+# Production-like Keycloak on EC2 (requires ~4GB RAM or 2GB RAM + swap).
+# Usage:
+#   docker compose -f docker-compose.ec2.yml -f docker-compose.ec2.prod.yml up -d
+#
+# Do NOT use on t2.micro / t3.small without swap — Java will be OOM-killed during "Updating the server image".
+
+services:
+  keycloak:
+    command: start --import-realm
+    environment:
+      JAVA_OPTS_APPEND: "-Xms256m -Xmx1024m -XX:MaxMetaspaceSize=256m"
+    deploy:
+      resources:
+        limits:
+          memory: 1536M

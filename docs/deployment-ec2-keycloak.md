@@ -51,7 +51,13 @@ flowchart TB
 | `t3.medium` (4 GB) | **Recommended** | Keycloak + Postgres + Redis + MinIO + API |
 | `t3.large` | Comfortable | Add worker + light traffic |
 
-Enable **swap** (2 GB) on small instances to avoid OOM during Keycloak startup.
+Enable **swap** (2 GB) on small instances to avoid OOM during Keycloak startup:
+
+```bash
+bash scripts/setup-swap.sh
+```
+
+**Default compose uses `start-dev`** (no heavy image rebuild). Do not use `docker-compose.ec2.prod.yml` on instances with less than ~4 GB RAM unless swap is enabled.
 
 ---
 
@@ -98,12 +104,15 @@ Replace `YOUR_EC2_PUBLIC_IP` in:
 
 ```bash
 cd infra
+bash scripts/setup-swap.sh          # strongly recommended on t3.small and smaller
 docker compose -f docker-compose.ec2.yml up -d
 docker compose -f docker-compose.ec2.yml ps
 docker compose -f docker-compose.ec2.yml logs -f keycloak
 ```
 
-Wait until Keycloak is healthy (~1–2 minutes on first boot).
+First boot may take **2–4 minutes** on small instances. You should see `Running the server in development mode` — not repeated `Updating the server image` / `Killed`.
+
+Optional (more RAM): enable MinIO with `COMPOSE_PROFILES=full docker compose -f docker-compose.ec2.yml up -d`.
 
 ### 3.5 Verify
 
@@ -232,12 +241,37 @@ Realm export from Keycloak makes migration to another host or Auth0-compatible f
 
 ## 10. Troubleshooting
 
+### Keycloak loop: `Updating the server image` → `Killed`
+
+This is **Linux OOM** during Keycloak's production `start` build phase. Java is killed while RAM is exhausted (common on **t2.micro / t3.small** with Postgres + Redis + MinIO all running).
+
+**Fix (in order):**
+
+1. Pull latest `infra/docker-compose.ec2.yml` (uses `start-dev --import-realm` by default).
+2. Add swap: `bash scripts/setup-swap.sh`
+3. Restart clean:
+   ```bash
+   docker compose -f docker-compose.ec2.yml down
+   docker compose -f docker-compose.ec2.yml up -d
+   docker compose -f docker-compose.ec2.yml logs -f keycloak
+   ```
+4. Start only core services if still tight:
+   ```bash
+   docker compose -f docker-compose.ec2.yml up -d postgres redis keycloak caddy
+   ```
+5. Check memory: `free -h` — available should be > 500 MB before Keycloak starts.
+6. Upsize to **t3.medium (4 GB)** for full stack + `docker-compose.ec2.prod.yml`.
+
+**Do not use** `docker-compose.ec2.prod.yml` until the instance has enough RAM or swap.
+
+Expected healthy log line: `Listening on: http://0.0.0.0:8080` (development mode).
+
 | Symptom | Fix |
 |---------|-----|
-| Keycloak OOM | Upsize instance or add swap |
+| Keycloak OOM / Killed | swap + `start-dev` compose; disable MinIO profile; upsize instance |
 | Redirect URI mismatch | Update `platform-web` client URIs in Keycloak |
 | JWT invalid issuer | `KEYCLOAK_ISSUER` must match token `iss` claim exactly |
-| 502 on `/auth` | Wait for Keycloak health; check `docker logs keycloak` |
+| 502 on `/auth` | Wait 3–4 min; check `docker compose logs keycloak` |
 | Postgres init failed | Remove volume only on fresh install: `docker compose down -v` (destroys data) |
 
 ---
