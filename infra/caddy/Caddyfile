@@ -13,19 +13,16 @@ iabuilding.duckdns.org {
 		reverse_proxy minio:9001
 	}
 
-	# API (uncomment when api service is enabled)
-	# handle /api/* {
-	# 	reverse_proxy api:3000
-	# }
+	# API — strip /api prefix before forwarding to NestJS
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy api:3000
+	}
 
-	# WebSocket (uncomment when api service is enabled)
+	# WebSocket (enable when API adds WS)
 	# handle /ws/* {
 	# 	reverse_proxy api:3000
 	# }
-
-	handle /health {
-		respond "ok" 200
-	}
 
 	handle {
 		respond "Construction Marketplace — EC2 MVP stack is running. Keycloak: /auth" 200

@@ -1,0 +1,24 @@
+# Dependencies (any package in monorepo)
+**/node_modules/
+
+# Build output
+**/dist/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma
+apps/api/prisma/*.db
