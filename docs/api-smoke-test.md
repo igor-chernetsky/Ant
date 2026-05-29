@@ -55,8 +55,35 @@ Expected: user object with `id`, `email`, `roles`.
 
 ## Troubleshooting
 
+### Docker build: `ENOSPC: no space left on device`
+
+EC2 trial disks fill up quickly (images, build cache, old containers).
+
+```bash
+df -h
+docker system df
+
+# Free space (safe for rebuild; does not remove named volumes like postgres_data)
+docker builder prune -af
+docker image prune -af
+docker container prune -f
+```
+
+If still full, increase EBS volume in AWS or remove unused volumes manually (`docker volume ls`).
+
+Then rebuild:
+
+```bash
+cd ~/construction-platform/infra
+docker compose -f docker-compose.ec2.yml build --no-cache api
+docker compose -f docker-compose.ec2.yml up -d api caddy
+```
+
+Ensure `apps/api/package-lock.json` is committed — the Dockerfile uses `npm ci`, not `npm install`.
+
 | Issue | Fix |
 |-------|-----|
 | 502 on `/api/*` | `docker compose logs api` — migration or startup error |
 | 401 Unauthorized | Token expired; check `KEYCLOAK_ISSUER` in api env matches token `iss` |
 | Connection refused | `docker compose ps` — api container must be Up |
+| ERESOLVE during build | Usually disk full; free space and use `npm ci` via updated Dockerfile |
