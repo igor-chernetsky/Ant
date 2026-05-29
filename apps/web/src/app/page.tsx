@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
+import { SiteHeader } from '@/components/SiteHeader';
 import {
   fetchSessionProfile,
   logoutSession,
@@ -44,33 +45,11 @@ export default function HomePage() {
 
   return (
     <>
-      <header className="site-header">
-        <div className="brand">Construction Marketplace</div>
-        <div className="row">
-          {authState === 'authenticated' && me ? (
-            <>
-              <span className="user-chip">
-                {me.displayName ?? me.email ?? 'Signed in'}
-              </span>
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleLogout}
-              >
-                Sign out
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="primary"
-              onClick={() => setLoginOpen(true)}
-            >
-              Sign in
-            </button>
-          )}
-        </div>
-      </header>
+      <SiteHeader
+        me={me}
+        onSignIn={() => setLoginOpen(true)}
+        onSignOut={handleLogout}
+      />
 
       <main>
         <section className="hero card">

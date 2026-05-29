@@ -7,13 +7,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ProjectStatus {
+  draft
+  intake
+  ready_for_estimate
+  estimated
+  tender_ready
+  in_tender
+  contractor_selected
+  active
+  completed
+}
+
 model User {
-  id          String   @id @default(uuid())
-  keycloakSub String   @unique @map("keycloak_sub")
+  id          String    @id @default(uuid())
+  keycloakSub String    @unique @map("keycloak_sub")
   email       String?
-  displayName String?  @map("display_name")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  displayName String?   @map("display_name")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  projects    Project[]
 
   @@map("users")
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  clientId    String        @map("client_id")
+  client      User          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  regionCode  String        @default("TH") @map("region_code")
+  status      ProjectStatus @default(draft)
+  briefJson   Json?         @map("brief_json")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  @@index([clientId])
+  @@map("projects")
 }
