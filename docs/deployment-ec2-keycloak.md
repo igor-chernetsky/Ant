@@ -126,7 +126,9 @@ curl -I http://localhost/auth/
 
 Open in browser: `http://<EC2_IP>/auth/` → Keycloak admin console.
 
-Admin login: values from `.env` (`KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD`).
+Admin login: values from `.env` (`KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD`, mapped to `KC_BOOTSTRAP_ADMIN_*` in compose).
+
+On first boot Keycloak may log `Created temporary admin user with username admin` — use the password from `.env`.
 
 ---
 
