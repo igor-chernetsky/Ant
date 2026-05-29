@@ -1,10 +1,14 @@
-# Single npm ci in builder, then copy pruned node_modules — saves disk during build on small EC2.
+# Single-stage build — lower peak disk use on small EC2 (no COPY node_modules between stages).
+# For CI/production with more disk, a multi-stage variant can be used later.
 
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 
 RUN apk add --no-cache openssl
 
 WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
 
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -14,22 +18,7 @@ RUN npx prisma generate
 
 COPY tsconfig.json nest-cli.json ./
 COPY src ./src
-RUN npm run build
-RUN npm prune --omit=dev
-
-FROM node:20-alpine AS runner
-
-RUN apk add --no-cache openssl
-
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV PORT=3000
-
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
+RUN npm run build && npm prune --omit=dev
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh

@@ -81,6 +81,8 @@ docker compose -f docker-compose.ec2.yml up -d api caddy
 
 Ensure `apps/api/package-lock.json` is committed — the Dockerfile uses `npm ci`, not `npm install`.
 
+The API image uses a **single-stage** Dockerfile to avoid running out of disk when copying `node_modules` between build stages on 8 GB EC2 instances. If build still fails with `no space left on device`, expand the EBS volume to 20 GB.
+
 | Issue | Fix |
 |-------|-----|
 | 502 on `/api/*` | `docker compose logs api` — migration or startup error |
