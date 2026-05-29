@@ -8,8 +8,6 @@ export class HealthController {
   @Get('health')
   async health() {
     await this.prisma.$queryRaw`SELECT 1`;
-    // Ensures Prisma migrations created app tables (not only DB connectivity).
-    await this.prisma.user.count();
     return { status: 'ok' };
   }
 }

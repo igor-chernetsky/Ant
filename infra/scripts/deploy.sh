@@ -28,18 +28,36 @@ docker compose -f "$COMPOSE_FILE" build api
 log "Start API (entrypoint runs migrate + node)"
 docker compose -f "$COMPOSE_FILE" up -d --force-recreate api
 
-log "Restart edge services if needed"
+log "Restart Caddy (refresh upstream to new API container)"
 docker compose -f "$COMPOSE_FILE" up -d caddy keycloak
+docker compose -f "$COMPOSE_FILE" restart caddy
 
-log "Wait for API"
-for i in 1 2 3 4 5 6 7 8 9 10; do
-  if curl -sf --connect-timeout 3 --max-time 5 "http://127.0.0.1/api/health" | grep -q '"status":"ok"'; then
-    log "Deploy finished — health OK"
+api_health_ok() {
+  docker compose -f "$COMPOSE_FILE" exec -T caddy \
+    wget -qO- http://api:3000/health 2>/dev/null | grep -q '"status":"ok"'
+}
+
+public_health_ok() {
+  curl -sf --connect-timeout 3 --max-time 5 "http://127.0.0.1/api/health" 2>/dev/null | grep -q '"status":"ok"'
+}
+
+log "Wait for API health"
+for i in $(seq 1 15); do
+  if api_health_ok; then
+    log "API health OK (direct)"
+    if public_health_ok; then
+      log "Public /api/health OK via Caddy"
+    else
+      log "WARNING: API is up but Caddy route check failed — verify Caddyfile"
+    fi
+    log "Deploy finished successfully"
     exit 0
   fi
   sleep 2
 done
 
-log "ERROR: health check failed"
-docker compose -f "$COMPOSE_FILE" logs api --tail=40
+log "ERROR: health check failed after 30s"
+docker compose -f "$COMPOSE_FILE" ps
+docker compose -f "$COMPOSE_FILE" logs api --tail=30
+docker compose -f "$COMPOSE_FILE" logs caddy --tail=20
 exit 1
