@@ -1,7 +1,7 @@
-# MVP reverse proxy on EC2.
-# Replace :80 block with your domain when DNS is ready, e.g. app.example.com
+# HTTPS endpoint for your DuckDNS domain.
+# Caddy will automatically manage TLS certificates via Let's Encrypt.
 
-:80 {
+iabuilding.duckdns.org {
 	# Keycloak (OIDC) — must keep /auth prefix (KC_HTTP_RELATIVE_PATH=/auth)
 	handle /auth* {
 		reverse_proxy keycloak:8080
@@ -23,7 +23,6 @@
 	# 	reverse_proxy api:3000
 	# }
 
-	# Default: simple health page until web app is deployed
 	handle /health {
 		respond "ok" 200
 	}
@@ -32,9 +31,3 @@
 		respond "Construction Marketplace — EC2 MVP stack is running. Keycloak: /auth" 200
 	}
 }
-
-# TLS example (after you point DNS to EC2):
-# app.example.com {
-# 	reverse_proxy /auth/* keycloak:8080
-# 	reverse_proxy /api/* api:3000
-# }
