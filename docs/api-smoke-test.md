@@ -85,7 +85,9 @@ The API image uses a **single-stage** Dockerfile to avoid running out of disk wh
 
 | Issue | Fix |
 |-------|-----|
-| 502 on `/api/*` | `docker compose logs api` — migration or startup error |
+| 502 on `/api/*` | API container down or restarting — `docker compose logs api --tail=80` |
+| API `Restarting (1)` | Usually bad `DATABASE_URL`, failed Prisma migrate, or missing `KEYCLOAK_*` env — see below |
 | 401 Unauthorized | Token expired; check `KEYCLOAK_ISSUER` in api env matches token `iss` |
+| 500 on `/v1/me` | `docker compose logs api` — often missing `users` table: `docker compose exec api npx prisma migrate deploy` |
 | Connection refused | `docker compose ps` — api container must be Up |
 | ERESOLVE during build | Usually disk full; free space and use `npm ci` via updated Dockerfile |
