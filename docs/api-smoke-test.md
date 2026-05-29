@@ -39,8 +39,11 @@ curl -s -X POST "https://iabuilding.duckdns.org/auth/realms/construction-marketp
   -d "grant_type=password" \
   -d "client_id=platform-api" \
   -d "username=testuser" \
-  -d "password=YOUR_PASSWORD"
+  -d "password=YOUR_PASSWORD" \
+  -d "scope=openid profile email"
 ```
+
+`scope=openid` is required so the access token includes the **`sub`** claim (user id).
 
 Copy `access_token` from JSON.
 
@@ -54,6 +57,44 @@ curl -s https://iabuilding.duckdns.org/api/v1/me \
 Expected: user object with `id`, `email`, `roles`.
 
 ## Troubleshooting
+
+### 401 Unauthorized
+
+1. Use **`access_token`** from the token response (not `refresh_token`).
+
+2. Request token with scope:
+   ```bash
+   -d "scope=openid profile email"
+   ```
+
+3. Compare token `iss` with API config:
+   ```bash
+   # decode payload (middle segment of JWT)
+   TOKEN="paste_access_token_here"
+   echo "$TOKEN" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null; echo
+
+   docker compose -f docker-compose.ec2.yml exec api env | grep KEYCLOAK
+   ```
+
+   These must match **exactly** (including `https` and `/auth`):
+   - Token `iss`: `https://iabuilding.duckdns.org/auth/realms/construction-marketplace`
+   - `KEYCLOAK_ISSUER`: same string
+
+4. In `infra/.env`:
+   ```env
+   KEYCLOAK_PUBLIC_URL=https://iabuilding.duckdns.org/auth
+   KEYCLOAK_REALM=construction-marketplace
+   ```
+
+5. Curl header (no angle brackets, no quotes around token):
+   ```bash
+   curl -s https://iabuilding.duckdns.org/api/v1/me \
+     -H "Authorization: Bearer ${TOKEN}"
+   ```
+
+6. Get a **fresh** token if older than 5–15 minutes (`exp` claim).
+
+After redeploying API, 401 responses may include a more specific message (e.g. `jwt issuer invalid`).
 
 ### Docker build: `ENOSPC: no space left on device`
 
@@ -87,7 +128,8 @@ The API image uses a **single-stage** Dockerfile to avoid running out of disk wh
 |-------|-----|
 | 502 on `/api/*` | API container down or restarting — `docker compose logs api --tail=80` |
 | API `Restarting (1)` | Usually bad `DATABASE_URL`, failed Prisma migrate, or missing `KEYCLOAK_*` env — see below |
-| 401 Unauthorized | Token expired; check `KEYCLOAK_ISSUER` in api env matches token `iss` |
+| 401 Unauthorized | See [401 troubleshooting](#401-unauthorized) below |
 | 500 on `/v1/me` | `docker compose logs api` — often missing `users` table: `docker compose exec api npx prisma migrate deploy` |
+| 500 `keycloakSub: undefined` | Token missing `sub` — add `scope=openid profile email` to token request |
 | Connection refused | `docker compose ps` — api container must be Up |
 | ERESOLVE during build | Usually disk full; free space and use `npm ci` via updated Dockerfile |

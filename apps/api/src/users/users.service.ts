@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
-import { JwtPayload } from '../auth/jwt-payload';
+import { extractKeycloakSub, JwtPayload } from '../auth/jwt-payload';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -15,9 +15,11 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findOrCreateFromJwt(payload: JwtPayload): Promise<User> {
-    const keycloakSub = payload.sub;
+    const keycloakSub = extractKeycloakSub(payload);
     if (!keycloakSub) {
-      throw new BadRequestException('JWT is missing the sub claim');
+      throw new BadRequestException(
+        'JWT is missing sub. Request token with scope=openid profile email',
+      );
     }
 
     const email = payload.email ?? null;
