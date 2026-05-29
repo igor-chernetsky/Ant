@@ -59,17 +59,22 @@ export class StorageService {
       return;
     }
 
-    this.internalClient = new S3Client({
+    const clientConfig = {
       region,
       credentials,
       forcePathStyle,
+      // Browser PUT cannot send SDK checksum headers; default breaks presigned uploads.
+      requestChecksumCalculation: 'WHEN_REQUIRED' as const,
+      responseChecksumValidation: 'WHEN_REQUIRED' as const,
+    };
+
+    this.internalClient = new S3Client({
+      ...clientConfig,
       ...(internalEndpoint ? { endpoint: internalEndpoint } : {}),
     });
 
     this.publicClient = new S3Client({
-      region,
-      credentials,
-      forcePathStyle,
+      ...clientConfig,
       ...(publicEndpoint ? { endpoint: publicEndpoint } : {}),
     });
   }

@@ -167,7 +167,10 @@ export async function uploadProjectDocument(
   });
 
   if (!putResponse.ok) {
-    throw new Error('Upload to storage failed');
+    const detail = await putResponse.text().catch(() => '');
+    throw new Error(
+      `Upload to storage failed (${putResponse.status}). Check S3 CORS and bucket name. ${detail.slice(0, 120)}`,
+    );
   }
 
   return completeDocumentUpload(projectId, presigned.documentId);
