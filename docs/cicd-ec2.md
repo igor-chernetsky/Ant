@@ -83,8 +83,9 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 | `EC2_HOST` | `54.85.77.112` or `iabuilding.duckdns.org` | Yes |
 | `EC2_USER` | `ubuntu` | Yes |
 | `EC2_SSH_PRIVATE_KEY` | Full private key used to SSH **into** EC2 (PEM contents) | Yes |
-| `EC2_REPO_DIR` | `/home/ubuntu/construction-platform` | Optional (default in workflow) |
-| `EC2_HEALTH_URL` | `https://iabuilding.duckdns.org/api/health` | Optional (post-deploy check) |
+| `EC2_REPO_DIR` | `/home/ubuntu/construction-platform` | Optional |
+
+**Note:** External health check from GitHub was removed — deploy verifies `http://127.0.0.1/api/health` on EC2 only.
 
 **Important:** `EC2_SSH_PRIVATE_KEY` is the key pair for EC2 login (`.pem` from AWS), **not** the GitHub deploy key.
 
@@ -133,8 +134,22 @@ To deploy web only: push to `apps/web` → Vercel rebuild (no EC2 workflow unles
 | `Permission denied (publickey)` in Actions | Wrong `EC2_SSH_PRIVATE_KEY` or SG blocks port 22 |
 | Build OOM | Ensure disk ≥ 20 GB; `docker builder prune -af` |
 | Migrate fails | Check `DATABASE_URL` / Postgres password in `infra/.env` |
-| Health check hangs in Actions | `curl` without timeout — fixed in workflow; or remove `EC2_HEALTH_URL` secret to skip |
-| Public check fails but deploy OK | Normal if SG/network blocks GitHub IPs; rely on local check in `deploy.sh` |
+| Step | Typical duration |
+|------|------------------|
+| SSH + `git pull` | ~10 s |
+| `docker compose build api` | **3–10 min** (npm ci inside Docker on EC2) |
+| migrate + restart | ~30 s |
+| Local health in `deploy.sh` | ~5 s |
+
+There is **no separate health-check step** in GitHub Actions anymore — verification runs on EC2 inside `deploy.sh`.
+
+If the workflow shows one long step **Deploy over SSH**, that is normal: logs stream only when the SSH script prints (timestamps like `[12:34:56]` in deploy.sh).
+
+| Issue | Fix |
+|-------|-----|
+| Workflow runs 7–15 min | Expected while `build api` runs on EC2 |
+| Workflow hangs 20+ min | Cancel run; SSH to EC2 and run `deploy.sh` manually to see where it stops |
+| Build OOM on EC2 | `docker builder prune -af`; ensure disk ≥ 20 GB |
 
 ---
 
