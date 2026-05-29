@@ -10,6 +10,7 @@ Documentation for implementing the Construction Marketplace Platform.
 | [Deployment — EC2 + Keycloak](./deployment-ec2-keycloak.md) | Single EC2 trial setup with Docker Compose |
 | [Auth — Keycloak](./auth-keycloak.md) | OIDC flows, roles, NestJS JWT validation |
 | [API Smoke Test](./api-smoke-test.md) | Verify `/api/health` and `/api/v1/me` on EC2 |
+| [Deploy Web to Vercel](./deployment-vercel.md) | Next.js + Keycloak PKCE + `/v1/me` |
 | [Domain State Machines](./domain-state-machines.md) | Project, tender, bid, contract lifecycles |
 
 ## Recommended stack (summary)
