@@ -148,7 +148,7 @@ If the workflow shows one long step **Deploy over SSH**, that is normal: logs st
 | Issue | Fix |
 |-------|-----|
 | Workflow runs 7–15 min | Expected while `build api` runs on EC2 |
-| Workflow hangs 20+ min | Cancel run; SSH to EC2 and run `deploy.sh` manually to see where it stops |
+| Workflow hangs after `Nest application successfully started` | Old deploy used `docker compose run api` — entrypoint started Nest in a one-off container and never exited. Pull latest `deploy.sh` + `docker-entrypoint.sh`, stop stuck containers: `docker ps \| grep api-run` → `docker stop <id>` |
 | Build OOM on EC2 | `docker builder prune -af`; ensure disk ≥ 20 GB |
 
 ---

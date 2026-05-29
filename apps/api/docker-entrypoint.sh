@@ -11,6 +11,11 @@ if [ -z "${KEYCLOAK_ISSUER:-}" ] || [ -z "${KEYCLOAK_JWKS_URI:-}" ]; then
   exit 1
 fi
 
+# Allow one-off commands, e.g. docker compose run api npx prisma migrate deploy
+if [ "$#" -gt 0 ]; then
+  exec "$@"
+fi
+
 echo "Running database migrations..."
 npx prisma migrate deploy
 
