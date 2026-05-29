@@ -1,0 +1,40 @@
+# MVP reverse proxy on EC2.
+# Replace :80 block with your domain when DNS is ready, e.g. app.example.com
+
+:80 {
+	# Keycloak (OIDC) — must keep /auth prefix (KC_HTTP_RELATIVE_PATH=/auth)
+	handle /auth* {
+		reverse_proxy keycloak:8080
+	}
+
+	# MinIO console (optional; restrict by IP in Security Group for trial)
+	handle_path /minio-console/* {
+		uri strip_prefix /minio-console
+		reverse_proxy minio:9001
+	}
+
+	# API (uncomment when api service is enabled)
+	# handle /api/* {
+	# 	reverse_proxy api:3000
+	# }
+
+	# WebSocket (uncomment when api service is enabled)
+	# handle /ws/* {
+	# 	reverse_proxy api:3000
+	# }
+
+	# Default: simple health page until web app is deployed
+	handle /health {
+		respond "ok" 200
+	}
+
+	handle {
+		respond "Construction Marketplace — EC2 MVP stack is running. Keycloak: /auth" 200
+	}
+}
+
+# TLS example (after you point DNS to EC2):
+# app.example.com {
+# 	reverse_proxy /auth/* keycloak:8080
+# 	reverse_proxy /api/* api:3000
+# }
