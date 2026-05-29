@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iabuilding.duckdns.org/schemas/brief.v1.json",
+  "title": "ProjectBriefV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "summary": { "type": "string", "maxLength": 4000 },
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["trade", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "trade": { "type": "string", "maxLength": 64 },
+          "description": { "type": "string", "maxLength": 2000 },
+          "quantity": { "type": "number", "minimum": 0 },
+          "unit": { "type": "string", "maxLength": 32 },
+          "areaSqm": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "property": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["apartment", "house", "commercial", "land", "other"]
+        },
+        "areaSqm": { "type": "number", "minimum": 0 },
+        "floors": { "type": "integer", "minimum": 0 },
+        "rooms": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "materials": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "suppliedBy": {
+          "type": "string",
+          "enum": ["client", "contractor", "mixed"]
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["economy", "standard", "premium"]
+        }
+      }
+    },
+    "timeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "desiredStart": { "type": "string", "format": "date" },
+        "flexibility": {
+          "type": "string",
+          "enum": ["flexible", "fixed"]
+        }
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hasPlans": { "type": "boolean" },
+        "needsDesignTender": { "type": "boolean" }
+      }
+    },
+    "constraints": { "type": "string", "maxLength": 2000 },
+    "ai": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "missingFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "originalNarrative": { "type": "string", "maxLength": 8000 }
+      }
+    }
+  }
+}

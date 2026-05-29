@@ -19,6 +19,28 @@ enum ProjectStatus {
   completed
 }
 
+enum ProjectType {
+  renovation
+  new_build
+  extension
+  commercial_fitout
+  repair
+  other
+}
+
+enum PropertyType {
+  apartment
+  house
+  commercial
+  land
+  other
+}
+
+enum TagSource {
+  client
+  ai
+}
+
 model User {
   id          String    @id @default(uuid())
   keycloakSub String    @unique @map("keycloak_sub")
@@ -31,18 +53,60 @@ model User {
   @@map("users")
 }
 
+model TagGroup {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  label     String
+  sortOrder Int      @default(0) @map("sort_order")
+  tags      Tag[]
+
+  @@map("tag_groups")
+}
+
+model Tag {
+  id        String       @id @default(uuid())
+  slug      String       @unique
+  label     String
+  groupId   String?      @map("group_id")
+  group     TagGroup?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  isSystem  Boolean      @default(true) @map("is_system")
+  createdAt DateTime     @default(now()) @map("created_at")
+  projects  ProjectTag[]
+
+  @@index([groupId])
+  @@map("tags")
+}
+
 model Project {
-  id          String        @id @default(uuid())
-  clientId    String        @map("client_id")
-  client      User          @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  title       String
-  description String?
-  regionCode  String        @default("TH") @map("region_code")
-  status      ProjectStatus @default(draft)
-  briefJson   Json?         @map("brief_json")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  id             String        @id @default(uuid())
+  clientId       String        @map("client_id")
+  client         User          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  projectType    ProjectType   @default(other) @map("project_type")
+  propertyType   PropertyType? @map("property_type")
+  district       String?
+  regionCode     String        @default("TH") @map("region_code")
+  status         ProjectStatus @default(draft)
+  readinessScore Int           @default(0) @map("readiness_score")
+  briefJson      Json?         @map("brief_json")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  tags           ProjectTag[]
 
   @@index([clientId])
+  @@index([projectType])
   @@map("projects")
+}
+
+model ProjectTag {
+  projectId String    @map("project_id")
+  tagId     String    @map("tag_id")
+  source    TagSource @default(client)
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tag       Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, tagId])
+  @@index([tagId])
+  @@map("project_tags")
 }
