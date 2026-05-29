@@ -8,31 +8,31 @@ The MVP uses **self-hosted Keycloak** on EC2. The NestJS API validates JWT acces
 
 ```mermaid
 sequenceDiagram
-  participant Web as Web App
+  participant Browser
+  participant BFF as Next.js BFF
   participant KC as Keycloak
   participant API as NestJS API
 
-  Web->>KC: Authorization Code + PKCE
-  KC->>Web: access_token + refresh_token
-  Web->>API: Bearer access_token
-  API->>API: Validate JWT (JWKS, iss, aud, exp)
-  API->>API: Map sub → local user record
-  API->>Web: Protected resource
+  Browser->>BFF: POST /api/auth/login (modal)
+  BFF->>KC: password grant (platform-bff + secret)
+  KC->>BFF: access_token
+  BFF->>Browser: httpOnly cookie
+  Browser->>BFF: GET /api/auth/me
+  BFF->>API: Bearer token
+  API->>Browser: profile JSON
 ```
 
 ---
 
 ## 2. Realm and Clients
 
-| Item | Value |
-|------|-------|
-| Realm | `construction-marketplace` |
-| Web client | `platform-web` (public, PKCE) |
-| API audience | `platform-api` (optional aud check) |
+| Client | Type | Direct access | Purpose |
+|--------|------|---------------|---------|
+| `platform-bff` | Confidential | ON | Vercel server login only |
+| `platform-web` | Public | OFF | Future OIDC / PKCE |
+| `platform-api` | Public | OFF | JWT audience reference |
 
-**Web (Next.js):** use `keycloak-js` or `@react-keycloak/web`, or OIDC library with PKCE (e.g. `openid-client`).
-
-**Mobile:** public client + PKCE, custom URL scheme redirect.
+See [auth-bff-client.md](./auth-bff-client.md) for setup.
 
 ---
 

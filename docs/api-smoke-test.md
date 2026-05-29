@@ -29,21 +29,22 @@ docker compose -f docker-compose.ec2.yml exec keycloak \
 # Set password (replace USER_ID from previous command output or users list)
 ```
 
-### Option B — Enable password grant on client (trial only)
+### Option B — Password grant via confidential BFF client (ops / curl only)
 
-In Keycloak Admin → realm `construction-marketplace` → Clients → `platform-api` → enable **Direct access grants**.
+Use client **`platform-bff`** with secret from Keycloak Admin (not in browser, not public clients).
 
 ```bash
 curl -s -X POST "https://iabuilding.duckdns.org/auth/realms/construction-marketplace/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password" \
-  -d "client_id=platform-api" \
+  -d "client_id=platform-bff" \
+  -d "client_secret=YOUR_BFF_SECRET" \
   -d "username=testuser" \
   -d "password=YOUR_PASSWORD" \
   -d "scope=openid profile email"
 ```
 
-`scope=openid` is required so the access token includes the **`sub`** claim (user id).
+Public clients (`platform-web`, `platform-api`) must **not** allow Direct access grants. See [auth-bff-client.md](./auth-bff-client.md).
 
 Copy `access_token` from JSON.
 

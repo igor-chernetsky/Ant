@@ -9,6 +9,7 @@ Documentation for implementing the Construction Marketplace Platform.
 | [Deployment — MVP](./deployment-mvp.md) | Vercel vs AWS, ECS/Fargate, environments, CI/CD |
 | [Deployment — EC2 + Keycloak](./deployment-ec2-keycloak.md) | Single EC2 trial setup with Docker Compose |
 | [Auth — Keycloak](./auth-keycloak.md) | OIDC flows, roles, NestJS JWT validation |
+| [Auth — BFF client hardening](./auth-bff-client.md) | Confidential `platform-bff`, disable public password grant |
 | [API Smoke Test](./api-smoke-test.md) | Verify `/api/health` and `/api/v1/me` on EC2 |
 | [Deploy Web to Vercel](./deployment-vercel.md) | Next.js + Keycloak modal login |
 | [CI/CD — EC2](./cicd-ec2.md) | GitHub Actions deploy on push to main |

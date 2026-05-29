@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   ACCESS_TOKEN_COOKIE,
-  getKeycloakClientId,
+  getKeycloakBffCredentials,
   getKeycloakTokenUrl,
 } from '@/lib/auth-server';
 
@@ -35,12 +35,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const tokenUrl = getKeycloakTokenUrl();
-  const clientId = getKeycloakClientId();
+  let bff: { clientId: string; clientSecret: string };
+  try {
+    bff = getKeycloakBffCredentials();
+  } catch {
+    return NextResponse.json(
+      { message: 'Authentication service is not configured' },
+      { status: 503 },
+    );
+  }
 
   const params = new URLSearchParams({
     grant_type: 'password',
-    client_id: clientId,
+    client_id: bff.clientId,
+    client_secret: bff.clientSecret,
     username,
     password,
     scope: 'openid profile email',
@@ -48,7 +56,7 @@ export async function POST(request: Request) {
 
   let keycloakResponse: Response;
   try {
-    keycloakResponse = await fetch(tokenUrl, {
+    keycloakResponse = await fetch(getKeycloakTokenUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),

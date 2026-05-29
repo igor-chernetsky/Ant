@@ -23,7 +23,7 @@
       "name": "Platform Web",
       "enabled": true,
       "publicClient": true,
-      "directAccessGrantsEnabled": true,
+      "directAccessGrantsEnabled": false,
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
@@ -42,6 +42,27 @@
       "attributes": {
         "pkce.code.challenge.method": "S256"
       },
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ]
+    },
+    {
+      "clientId": "platform-bff",
+      "name": "Platform BFF (Vercel server)",
+      "description": "Confidential client for server-side modal login only. Set secret in Admin → Credentials after import.",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
       "protocol": "openid-connect",
       "fullScopeAllowed": true,
       "defaultClientScopes": [

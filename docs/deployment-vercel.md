@@ -28,33 +28,29 @@ Add in Vercel → Project → Settings → Environment Variables (Production **a
 ```env
 NEXT_PUBLIC_KEYCLOAK_URL=https://iabuilding.duckdns.org/auth
 NEXT_PUBLIC_KEYCLOAK_REALM=construction-marketplace
-NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=platform-web
 NEXT_PUBLIC_API_URL=https://iabuilding.duckdns.org/api
+
+KEYCLOAK_BFF_CLIENT_ID=platform-bff
+KEYCLOAK_BFF_CLIENT_SECRET=<from Keycloak platform-bff Credentials tab>
 ```
 
-Redeploy after changing env vars.
+Redeploy after changing env vars. **Never** put `KEYCLOAK_BFF_CLIENT_SECRET` in a `NEXT_PUBLIC_*` variable.
 
 ---
 
-## 3. Keycloak client `platform-web`
+## 3. Keycloak — confidential BFF client
 
-Modal login uses **Direct access grants** (password flow) via Next.js BFF — not browser redirect.
+Modal login uses **password grant only on the server** via client `platform-bff` (confidential).
 
-Keycloak Admin → realm `construction-marketplace` → **Clients** → `platform-web`:
+Full steps: [auth-bff-client.md](./auth-bff-client.md)
 
-| Setting | Value |
-|---------|--------|
-| Direct access grants | **ON** |
-| Client authentication | Off (public) |
+Summary:
 
-Redirect URIs are optional for modal login. Add Vercel URL only if you enable OIDC redirect later:
-
-```
-http://localhost:3000/*
-https://ant-eta-seven.vercel.app/*
-```
-
-Save.
+| Client | Direct access grants |
+|--------|----------------------|
+| `platform-bff` | **ON** (confidential + secret on Vercel) |
+| `platform-web` | **OFF** |
+| `platform-api` | **OFF** |
 
 ---
 
@@ -72,12 +68,11 @@ Save.
 | Issue | Fix |
 |-------|-----|
 | `No Output Directory named "public" found` | Vercel → Settings → Build → **clear Output Directory**; Framework = **Next.js**; Root = `apps/web` |
-| Redirect URI mismatch | Only needed for OIDC redirect login; modal login uses Direct access grants |
-| `Invalid username or password` | Enable **Direct access grants** on `platform-web` in Keycloak |
+| `Authentication service is not configured` | Set `KEYCLOAK_BFF_CLIENT_SECRET` on Vercel and redeploy |
+| `Invalid username or password` | Check user password; verify `platform-bff` secret and Direct access grants on BFF only |
 | CORS / blocked fetch | API uses `origin: true`; check browser network tab |
-| 401 on `/v1/me` | Token issue — same as [api-smoke-test.md](./api-smoke-test.md) |
-| Invalid parameter `redirect_uri` | Web origin / redirect URI must match Vercel URL exactly |
-| Blank page / config error | Set all `NEXT_PUBLIC_*` on Vercel and redeploy |
+| 401 on `/v1/me` | Token issue — [api-smoke-test.md](./api-smoke-test.md) |
+| Blank page / config error | Set `NEXT_PUBLIC_*` and BFF secrets; see [auth-bff-client.md](./auth-bff-client.md) |
 
 ---
 
@@ -88,6 +83,7 @@ flowchart LR
   Browser --> Vercel[Next.js on Vercel]
   Browser --> KC[Keycloak EC2 /auth]
   Browser --> API[NestJS EC2 /api]
-  Vercel -.->|OIDC redirect| KC
-  Browser -->|Bearer JWT| API
+  Vercel -->|platform-bff + secret| KC
+  Browser -->|cookie session| Vercel
+  Vercel -->|Bearer JWT| API
 ```
