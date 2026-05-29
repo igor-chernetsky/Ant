@@ -1,113 +1,142 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { fetchMe, type MeResponse } from '@/lib/api';
-import { ensureFreshToken, getKeycloak } from '@/lib/keycloak';
+import { LoginModal } from '@/components/LoginModal';
+import {
+  fetchSessionProfile,
+  logoutSession,
+  type MeResponse,
+} from '@/lib/session';
 
-type AuthState = 'loading' | 'anonymous' | 'authenticated';
+type AuthState = 'loading' | 'guest' | 'authenticated';
 
 export default function HomePage() {
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [me, setMe] = useState<MeResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
 
-  const loadProfile = useCallback(async () => {
-    const keycloak = getKeycloak();
-    const token = await ensureFreshToken(keycloak);
-    if (!token) {
+  const refreshSession = useCallback(async () => {
+    setError(null);
+    const profile = await fetchSessionProfile();
+    if (profile) {
+      setMe(profile);
+      setAuthState('authenticated');
+    } else {
       setMe(null);
-      return;
+      setAuthState('guest');
     }
-    const profile = await fetchMe(token);
-    setMe(profile);
   }, []);
 
   useEffect(() => {
-    const keycloak = getKeycloak();
+    refreshSession().catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : 'Failed to load session');
+      setAuthState('guest');
+    });
+  }, [refreshSession]);
 
-    keycloak
-      .init({
-        onLoad: 'check-sso',
-        pkceMethod: 'S256',
-        checkLoginIframe: false,
-      })
-      .then((authenticated) => {
-        setAuthState(authenticated ? 'authenticated' : 'anonymous');
-        if (authenticated) {
-          return loadProfile();
-        }
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Keycloak init failed');
-        setAuthState('anonymous');
-      });
-  }, [loadProfile]);
-
-  const handleLogin = () => {
+  const handleLogout = async () => {
     setError(null);
-    getKeycloak().login();
-  };
-
-  const handleLogout = () => {
+    await logoutSession();
     setMe(null);
-    getKeycloak().logout({ redirectUri: window.location.origin });
-  };
-
-  const handleRefresh = async () => {
-    setError(null);
-    try {
-      await loadProfile();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load profile');
-    }
+    setAuthState('guest');
   };
 
   return (
-    <main>
-      <h1>Construction Marketplace</h1>
-      <p className="muted">MVP — Keycloak login and API profile</p>
-
-      <div className="card">
-        {authState === 'loading' && <p>Loading…</p>}
-
-        {authState === 'anonymous' && (
-          <>
-            <p>You are not signed in.</p>
-            <div className="row">
-              <button type="button" className="primary" onClick={handleLogin}>
-                Sign in with Keycloak
-              </button>
-            </div>
-          </>
-        )}
-
-        {authState === 'authenticated' && (
-          <>
-            <p>Signed in.</p>
-            <div className="row">
-              <button type="button" className="secondary" onClick={handleRefresh}>
-                Refresh profile
-              </button>
-              <button type="button" className="secondary" onClick={handleLogout}>
+    <>
+      <header className="site-header">
+        <div className="brand">Construction Marketplace</div>
+        <div className="row">
+          {authState === 'authenticated' && me ? (
+            <>
+              <span className="user-chip">
+                {me.displayName ?? me.email ?? 'Signed in'}
+              </span>
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleLogout}
+              >
                 Sign out
               </button>
-            </div>
-          </>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="primary"
+              onClick={() => setLoginOpen(true)}
+            >
+              Sign in
+            </button>
+          )}
+        </div>
+      </header>
+
+      <main>
+        <section className="hero card">
+          <h1>Plan and manage construction projects in one place</h1>
+          <p className="muted">
+            Browse how the platform works as a guest. Sign in to create
+            projects, request estimates, and manage tenders.
+          </p>
+        </section>
+
+        <section className="card">
+          <h2 className="section-title">For homeowners</h2>
+          <ul className="feature-list">
+            <li>Describe your renovation or build with AI-assisted intake</li>
+            <li>Get preliminary cost estimates from local market data</li>
+            <li>Compare contractor bids in a structured format</li>
+          </ul>
+        </section>
+
+        <section className="card">
+          <h2 className="section-title">For contractors</h2>
+          <ul className="feature-list">
+            <li>Receive pre-screened tender invitations</li>
+            <li>Ask clarifying questions before submitting a bid</li>
+            <li>Track project updates and communication in one workspace</li>
+          </ul>
+        </section>
+
+        {authState === 'guest' && (
+          <section className="card cta">
+            <p>Ready to start a project?</p>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => setLoginOpen(true)}
+            >
+              Sign in to continue
+            </button>
+          </section>
         )}
-      </div>
 
-      {error && (
-        <div className="card error">
-          <pre>{error}</pre>
-        </div>
-      )}
+        {authState === 'loading' && (
+          <section className="card">
+            <p className="muted">Checking session…</p>
+          </section>
+        )}
 
-      {me && (
-        <div className="card">
-          <h2 style={{ marginTop: 0, fontSize: '1.1rem' }}>GET /v1/me</h2>
-          <pre>{JSON.stringify(me, null, 2)}</pre>
-        </div>
-      )}
-    </main>
+        {error && (
+          <section className="card error">
+            <pre>{error}</pre>
+          </section>
+        )}
+
+        {authState === 'authenticated' && me && (
+          <section className="card">
+            <h2 className="section-title">Your account</h2>
+            <pre>{JSON.stringify(me, null, 2)}</pre>
+          </section>
+        )}
+      </main>
+
+      <LoginModal
+        isOpen={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        onSuccess={refreshSession}
+      />
+    </>
   );
 }

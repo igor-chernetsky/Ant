@@ -38,23 +38,20 @@ Redeploy after changing env vars.
 
 ## 3. Keycloak client `platform-web`
 
-After first deploy, copy your Vercel URL (e.g. `https://construction-platform-abc.vercel.app`).
+Modal login uses **Direct access grants** (password flow) via Next.js BFF — not browser redirect.
 
 Keycloak Admin → realm `construction-marketplace` → **Clients** → `platform-web`:
 
-### Valid redirect URIs
+| Setting | Value |
+|---------|--------|
+| Direct access grants | **ON** |
+| Client authentication | Off (public) |
+
+Redirect URIs are optional for modal login. Add Vercel URL only if you enable OIDC redirect later:
 
 ```
 http://localhost:3000/*
-https://your-app.vercel.app/*
-https://your-app-*.vercel.app/*
-```
-
-### Web origins
-
-```
-http://localhost:3000
-https://your-app.vercel.app
+https://ant-eta-seven.vercel.app/*
 ```
 
 Save.
@@ -64,8 +61,9 @@ Save.
 ## 4. Verify
 
 1. Open Vercel URL in browser.
-2. **Sign in with Keycloak** → login form on your domain.
-3. After redirect, page shows JSON from `/v1/me`.
+2. Guest content loads without sign-in.
+3. Click **Sign in** → modal → enter Keycloak user credentials.
+4. Profile block appears (JSON from `/v1/me` via BFF).
 
 ---
 
@@ -74,7 +72,8 @@ Save.
 | Issue | Fix |
 |-------|-----|
 | `No Output Directory named "public" found` | Vercel → Settings → Build → **clear Output Directory**; Framework = **Next.js**; Root = `apps/web` |
-| Redirect URI mismatch | Add exact Vercel URL to Keycloak redirect URIs |
+| Redirect URI mismatch | Only needed for OIDC redirect login; modal login uses Direct access grants |
+| `Invalid username or password` | Enable **Direct access grants** on `platform-web` in Keycloak |
 | CORS / blocked fetch | API uses `origin: true`; check browser network tab |
 | 401 on `/v1/me` | Token issue — same as [api-smoke-test.md](./api-smoke-test.md) |
 | Invalid parameter `redirect_uri` | Web origin / redirect URI must match Vercel URL exactly |

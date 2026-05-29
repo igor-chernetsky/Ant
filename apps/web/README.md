@@ -1,6 +1,7 @@
 # Platform Web (MVP)
 
-Next.js client for Keycloak login (PKCE) and `GET /api/v1/me`.
+Next.js client with **in-app login modal** (no redirect to Keycloak).  
+Auth flow uses Vercel Route Handlers (BFF) + httpOnly cookie.
 
 ## Local development
 
@@ -11,7 +12,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000
+Open http://localhost:3000 — guest content is visible; **Sign in** opens a modal.
 
 ## Environment variables
 
@@ -22,33 +23,46 @@ Open http://localhost:3000
 | `NEXT_PUBLIC_KEYCLOAK_CLIENT_ID` | `platform-web` |
 | `NEXT_PUBLIC_API_URL` | `https://iabuilding.duckdns.org/api` |
 
-## Keycloak setup (required before login works)
+Set the same values on Vercel (Production + Preview).
+
+## Keycloak setup
 
 Realm: `construction-marketplace`  
 Client: `platform-web`
 
-1. **Valid redirect URIs** — add:
-   - `http://localhost:3000/*`
-   - `https://YOUR-APP.vercel.app/*`
-   - `https://YOUR-APP-*.vercel.app/*` (preview deployments, if supported by your Keycloak version)
+Required for modal login (password grant via BFF):
 
-2. **Web origins** — add the same origins (without `/*`):
-   - `http://localhost:3000`
-   - `https://YOUR-APP.vercel.app`
-
+1. **Direct access grants**: **ON** (trial/MVP only)
+2. **Standard flow**: can stay ON for future SSO
 3. **Client authentication**: Off (public client)
 
-4. **Standard flow**: Enabled
+Existing realm on EC2: update manually in Admin Console if already imported.
 
-5. **PKCE**: S256 (already in realm import)
+## Auth flow
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant Vercel as Next.js BFF
+  participant KC as Keycloak
+  participant API as NestJS API
+
+  Browser->>Vercel: POST /api/auth/login (modal form)
+  Vercel->>KC: password grant + scope=openid
+  KC->>Vercel: access_token
+  Vercel->>Browser: Set httpOnly cookie
+  Browser->>Vercel: GET /api/auth/me
+  Vercel->>API: GET /v1/me (Bearer token)
+  API->>Vercel: user profile
+  Vercel->>Browser: JSON profile
+```
 
 ## Deploy to Vercel
 
-1. Push repo to GitHub.
-2. Vercel → **Add Project** → import repo.
-3. Set **Root Directory** to `apps/web`.
-4. Add the four `NEXT_PUBLIC_*` environment variables (Production + Preview).
-5. Deploy.
-6. Add the Vercel URL to Keycloak `platform-web` redirect URIs and web origins.
-
 See [docs/deployment-vercel.md](../../docs/deployment-vercel.md).
+
+**Note:** Redirect URIs for `platform-web` are no longer required for modal login, but keep localhost/Vercel origins if you add OIDC redirect later.
+
+## Security note
+
+Password grant via BFF is acceptable for MVP. For production, prefer a confidential server client with secret stored only on Vercel, or return to Authorization Code + PKCE when redirect UX is acceptable.
