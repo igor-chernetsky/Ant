@@ -13,8 +13,8 @@ iabuilding.duckdns.org {
 		reverse_proxy minio:9001
 	}
 
-	# API — strip /api prefix before forwarding to NestJS
-	handle /api/* {
+	# API — strip /api prefix before forwarding to NestJS (/api/health, /api/v1/...)
+	handle /api* {
 		uri strip_prefix /api
 		reverse_proxy api:3000
 	}
