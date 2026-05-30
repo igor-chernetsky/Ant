@@ -144,6 +144,42 @@ export async function getDocumentDownloadUrl(
   return data;
 }
 
+export async function fetchPublicProjectDocuments(
+  projectId: string,
+): Promise<ProjectDocument[]> {
+  const response = await fetch(
+    `/api/public/projects/${encodeURIComponent(projectId)}/documents`,
+    { cache: 'no-store' },
+  );
+  if (response.status === 404) {
+    throw new Error('NOT_FOUND');
+  }
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to load documents');
+  }
+  return response.json() as Promise<ProjectDocument[]>;
+}
+
+export async function getPublicDocumentDownloadUrl(
+  projectId: string,
+  documentId: string,
+): Promise<{ downloadUrl: string; originalName: string }> {
+  const response = await fetch(
+    `/api/public/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download-url`,
+    { cache: 'no-store' },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to get download link');
+  }
+  return response.json() as Promise<{ downloadUrl: string; originalName: string }>;
+}
+
 export async function uploadProjectDocument(
   projectId: string,
   file: File,

@@ -19,6 +19,7 @@ import { IntakeService } from '../intake/intake.service';
 import { EstimatesService } from '../estimation/estimates.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { isPubliclyViewable, PUBLIC_VIEW_STATUSES } from './projects.constants';
 
 import {
 
@@ -39,16 +40,6 @@ import {
   PublicProjectCard,
 
 } from './projects.types';
-
-const PUBLIC_LIST_STATUSES: ProjectStatus[] = [
-  ProjectStatus.ready_for_estimate,
-  ProjectStatus.estimated,
-  ProjectStatus.tender_ready,
-  ProjectStatus.in_tender,
-  ProjectStatus.contractor_selected,
-  ProjectStatus.active,
-  ProjectStatus.completed,
-];
 
 const DELETABLE_STATUSES: ProjectStatus[] = [
   ProjectStatus.draft,
@@ -185,7 +176,7 @@ export class ProjectsService {
 
   async listPublic(tagSlugs: string[] = []): Promise<PublicProjectCard[]> {
     const where: Prisma.ProjectWhereInput = {
-      status: { in: PUBLIC_LIST_STATUSES },
+      status: { in: PUBLIC_VIEW_STATUSES },
     };
 
     if (tagSlugs.length > 0) {
@@ -255,6 +246,46 @@ export class ProjectsService {
     }
 
     return result;
+  }
+
+  private sanitizeBriefForPublic(
+    brief: ProjectResponse['brief'],
+  ): ProjectResponse['brief'] {
+    if (!brief?.ai) {
+      return brief;
+    }
+
+    const { intake: _intake, ...aiPublic } = brief.ai;
+    return {
+      ...brief,
+      ai: aiPublic,
+    };
+  }
+
+  async getPublicById(projectId: string): Promise<ProjectResponse> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: this.includeTags(),
+    });
+
+    if (!project || !isPubliclyViewable(project.status)) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const estimate = await this.prisma.estimate.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const response = this.toResponse(
+      project,
+      estimate ? this.estimatesService.toResponse(estimate) : null,
+    );
+
+    return {
+      ...response,
+      brief: this.sanitizeBriefForPublic(response.brief),
+    };
   }
 
 

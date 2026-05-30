@@ -187,6 +187,9 @@ export async function fetchProject(id: string): Promise<Project> {
   if (response.status === 401) {
     throw new Error('NOT_AUTHENTICATED');
   }
+  if (response.status === 403) {
+    throw new Error('FORBIDDEN');
+  }
   if (response.status === 404) {
     throw new Error('NOT_FOUND');
   }

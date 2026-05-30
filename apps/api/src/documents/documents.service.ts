@@ -7,6 +7,7 @@ import {
 import { randomUUID } from 'crypto';
 import { Document, DocumentStatus } from '@prisma/client';
 import { DocumentAnalysisService } from '../ai/document-analysis.service';
+import { isPubliclyViewable } from '../projects/projects.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import {
@@ -54,6 +55,16 @@ export class DocumentsService {
     return project;
   }
 
+  private async assertPublicProjectView(projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project || !isPubliclyViewable(project.status)) {
+      throw new NotFoundException('Project not found');
+    }
+    return project;
+  }
+
   private validateUploadInput(dto: PresignUploadDto) {
     const fileName = dto.fileName?.trim();
     if (!fileName || fileName.length < 1) {
@@ -88,6 +99,20 @@ export class DocumentsService {
       where: {
         projectId,
         status: { not: DocumentStatus.deleted },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return docs.map((doc) => this.toResponse(doc));
+  }
+
+  async listForPublicProject(projectId: string): Promise<DocumentResponse[]> {
+    await this.assertPublicProjectView(projectId);
+
+    const docs = await this.prisma.document.findMany({
+      where: {
+        projectId,
+        status: DocumentStatus.uploaded,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -181,6 +206,34 @@ export class DocumentsService {
     userId: string,
   ): Promise<DownloadUrlResponse> {
     await this.assertProjectOwner(projectId, userId);
+
+    const doc = await this.prisma.document.findFirst({
+      where: {
+        id: documentId,
+        projectId,
+        status: DocumentStatus.uploaded,
+      },
+    });
+
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+
+    const presigned = await this.storage.createPresignedDownload(doc.storageKey);
+
+    return {
+      downloadUrl: presigned.downloadUrl,
+      expiresInSeconds: presigned.expiresInSeconds,
+      originalName: doc.originalName,
+      contentType: doc.contentType,
+    };
+  }
+
+  async getPublicDownloadUrl(
+    projectId: string,
+    documentId: string,
+  ): Promise<DownloadUrlResponse> {
+    await this.assertPublicProjectView(projectId);
 
     const doc = await this.prisma.document.findFirst({
       where: {

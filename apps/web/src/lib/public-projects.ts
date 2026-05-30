@@ -42,6 +42,27 @@ export async function fetchPublicProjects(
   return response.json() as Promise<PublicProjectCard[]>;
 }
 
+import type { Project } from '@/lib/projects';
+
+export async function fetchPublicProject(id: string): Promise<Project> {
+  const response = await fetch(
+    `/api/public/projects/${encodeURIComponent(id)}`,
+    { cache: 'no-store' },
+  );
+
+  if (response.status === 404) {
+    throw new Error('NOT_FOUND');
+  }
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to load project');
+  }
+
+  return response.json() as Promise<Project>;
+}
+
 export async function fetchPublicTags(): Promise<
   Array<{
     slug: string;

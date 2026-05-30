@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { getDocumentDownloadUrl, type ProjectDocument } from '@/lib/documents';
+import { getDocumentDownloadUrl, getPublicDocumentDownloadUrl, type ProjectDocument } from '@/lib/documents';
 
 interface DocumentImageProps {
   projectId: string;
   document: ProjectDocument;
   variant?: 'gallery' | 'thumb';
   onOpen?: () => void;
+  publicView?: boolean;
 }
 
 export function DocumentImage({
@@ -15,6 +16,7 @@ export function DocumentImage({
   document,
   variant = 'gallery',
   onOpen,
+  publicView = false,
 }: DocumentImageProps) {
   const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -22,13 +24,15 @@ export function DocumentImage({
   const loadUrl = useCallback(async () => {
     setFailed(false);
     try {
-      const { downloadUrl } = await getDocumentDownloadUrl(projectId, document.id);
+      const { downloadUrl } = publicView
+        ? await getPublicDocumentDownloadUrl(projectId, document.id)
+        : await getDocumentDownloadUrl(projectId, document.id);
       setSrc(downloadUrl);
     } catch {
       setFailed(true);
       setSrc(null);
     }
-  }, [projectId, document.id]);
+  }, [projectId, document.id, publicView]);
 
   useEffect(() => {
     void loadUrl();

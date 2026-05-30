@@ -12,8 +12,10 @@ import { SiteHeader } from '@/components/SiteHeader';
 import {
   DOCUMENT_CATEGORY_OPTIONS,
   fetchProjectDocuments,
+  fetchPublicProjectDocuments,
   formatFileSize,
   getDocumentDownloadUrl,
+  getPublicDocumentDownloadUrl,
   MAX_UPLOAD_BYTES,
   uploadProjectDocument,
   type DocumentCategory,
@@ -32,6 +34,9 @@ import {
   formatPropertyType,
   type Project,
 } from '@/lib/projects';
+import {
+  fetchPublicProject,
+} from '@/lib/public-projects';
 import {
   fetchSessionProfile,
   logoutSession,
@@ -75,49 +80,75 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [pageReady, setPageReady] = useState(false);
 
-  const loadProject = useCallback(async () => {
+  const loadDocuments = useCallback(
+    async (owner: boolean) => {
+      if (!projectId) return;
+      const list = owner
+        ? await fetchProjectDocuments(projectId)
+        : await fetchPublicProjectDocuments(projectId);
+      setDocuments(list.filter((d) => d.status === 'uploaded'));
+    },
+    [projectId],
+  );
+
+  const loadProjectView = useCallback(async () => {
     if (!projectId) return;
-    const data = await fetchProject(projectId);
-    setProject(data);
-  }, [projectId]);
 
-  const loadDocuments = useCallback(async () => {
-    if (!projectId) return;
-    const list = await fetchProjectDocuments(projectId);
-    setDocuments(list.filter((d) => d.status === 'uploaded'));
-  }, [projectId]);
-
-  const refreshSession = useCallback(async () => {
     setError(null);
     setProject(null);
     setDocuments([]);
+    setIsOwner(false);
+    setPageReady(false);
+
     const profile = await fetchSessionProfile();
-    if (profile) {
-      setMe(profile);
-      setAuthState('authenticated');
-      await Promise.all([loadProject(), loadDocuments()]);
-    } else {
-      setMe(null);
-      setAuthState('guest');
+    setMe(profile);
+    setAuthState(profile ? 'authenticated' : 'guest');
+
+    try {
+      if (profile) {
+        try {
+          const data = await fetchProject(projectId);
+          setProject(data);
+          setIsOwner(true);
+          await loadDocuments(true);
+          setPageReady(true);
+          return;
+        } catch (err: unknown) {
+          if (
+            err instanceof Error &&
+            err.message !== 'FORBIDDEN' &&
+            err.message !== 'NOT_FOUND'
+          ) {
+            throw err;
+          }
+        }
+      }
+
+      const data = await fetchPublicProject(projectId);
+      setProject(data);
+      setIsOwner(false);
+      await loadDocuments(false);
+      setPageReady(true);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'NOT_FOUND') {
+        setError('Project not found or not available for public viewing.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load project');
+      }
+      setPageReady(true);
     }
-  }, [loadProject, loadDocuments]);
+  }, [projectId, loadDocuments]);
 
   useEffect(() => {
-    refreshSession().catch((err: unknown) => {
-      if (err instanceof Error && err.message === 'NOT_AUTHENTICATED') {
-        setAuthState('guest');
-        return;
-      }
-      if (err instanceof Error && err.message === 'NOT_FOUND') {
-        setError('Project not found or you do not have access.');
-        setAuthState('authenticated');
-        return;
-      }
+    loadProjectView().catch((err: unknown) => {
       setError(err instanceof Error ? err.message : 'Failed to load project');
       setAuthState('guest');
+      setPageReady(true);
     });
-  }, [refreshSession]);
+  }, [loadProjectView]);
 
   const handleLogout = async () => {
     await logoutSession();
@@ -148,11 +179,12 @@ export default function ProjectDetailPage() {
     try {
       const patched = new File([file], file.name, { type: contentType });
       await uploadProjectDocument(projectId, patched, docCategory);
-      await loadDocuments();
+      await loadDocuments(true);
       if (!project || !isIntakeActive(project)) {
-        await loadProject();
+        const data = await fetchProject(projectId);
+        setProject(data);
         window.setTimeout(() => {
-          void loadProject();
+          void fetchProject(projectId).then(setProject);
         }, 4000);
       }
     } catch (err: unknown) {
@@ -166,7 +198,9 @@ export default function ProjectDetailPage() {
     if (!projectId) return;
     setError(null);
     try {
-      const { downloadUrl } = await getDocumentDownloadUrl(projectId, doc.id);
+      const { downloadUrl } = isOwner
+        ? await getDocumentDownloadUrl(projectId, doc.id)
+        : await getPublicDocumentDownloadUrl(projectId, doc.id);
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Download failed');
@@ -180,8 +214,8 @@ export default function ProjectDetailPage() {
   const estimate = project?.estimate ?? null;
   const imageDocuments = documents.filter(isImageDocument);
   const fileDocuments = documents.filter((d) => !isImageDocument(d));
-  const intakeActive = project ? isIntakeActive(project) : false;
-  const showDelete = project ? canDeleteProject(project) : false;
+  const intakeActive = isOwner && project ? isIntakeActive(project) : false;
+  const showDelete = isOwner && project ? canDeleteProject(project) : false;
 
   const handleDelete = async () => {
     if (!projectId || !project) return;
@@ -218,26 +252,13 @@ export default function ProjectDetailPage() {
           <Link href="/">← Back to projects</Link>
         </p>
 
-        {authState === 'loading' && (
+        {authState === 'loading' || !pageReady ? (
           <section className="card">
             <p className="muted">Loading…</p>
           </section>
-        )}
+        ) : null}
 
-        {authState === 'guest' && (
-          <section className="card cta">
-            <p>Sign in to view this project.</p>
-            <button
-              type="button"
-              className="primary"
-              onClick={() => setLoginOpen(true)}
-            >
-              Sign in
-            </button>
-          </section>
-        )}
-
-        {authState === 'authenticated' && project && (
+        {pageReady && project && (
           <>
             <section className="hero card">
               <div className="detail-header">
@@ -288,54 +309,49 @@ export default function ProjectDetailPage() {
               </dl>
             </section>
 
-            {intakeActive && (
-              <IntakeWizard
-                project={project}
-                onUpdated={(updated) => setProject(updated)}
-              />
-            )}
-
             <section className="card">
               <h2 className="section-title">Documents</h2>
               <p className="muted doc-hint">
-                Upload blueprints, photos, and specifications (max{' '}
-                {MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Files are stored in private
-                object storage.
+                {isOwner
+                  ? `Upload blueprints, photos, and specifications (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Files are stored in private object storage.`
+                  : 'Plans, photos, and specifications attached to this project.'}
               </p>
-              <div className="doc-upload-row">
-                <label>
-                  Category
-                  <select
-                    value={docCategory}
-                    onChange={(e) =>
-                      setDocCategory(e.target.value as DocumentCategory)
-                    }
+              {isOwner && (
+                <div className="doc-upload-row">
+                  <label>
+                    Category
+                    <select
+                      value={docCategory}
+                      onChange={(e) =>
+                        setDocCategory(e.target.value as DocumentCategory)
+                      }
+                      disabled={uploading}
+                    >
+                      {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="sr-only"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                    onChange={handleFileChange}
                     disabled={uploading}
+                  />
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="sr-only"
-                  accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.zip"
-                  onChange={handleFileChange}
-                  disabled={uploading}
-                />
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={uploading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploading ? 'Uploading…' : 'Upload file'}
-                </button>
-              </div>
+                    {uploading ? 'Uploading…' : 'Upload file'}
+                  </button>
+                </div>
+              )}
 
               {documents.length === 0 ? (
                 <p className="muted">No documents uploaded yet.</p>
@@ -349,6 +365,7 @@ export default function ProjectDetailPage() {
                             projectId={projectId}
                             document={doc}
                             variant="gallery"
+                            publicView={!isOwner}
                             onOpen={() => void handleDownload(doc)}
                           />
                           <figcaption className="doc-gallery-caption">
@@ -388,6 +405,13 @@ export default function ProjectDetailPage() {
                 </>
               )}
             </section>
+
+            {intakeActive && (
+              <IntakeWizard
+                project={project}
+                onUpdated={(updated) => setProject(updated)}
+              />
+            )}
 
             {!intakeActive && project.tags.length > 0 && (
               <section className="card">
@@ -526,10 +550,12 @@ export default function ProjectDetailPage() {
               <h2 className="section-title">Next steps</h2>
               <p className="muted">
                 {intakeActive
-                  ? 'Upload plans and photos in Documents, then complete the intake questions above.'
-                  : estimate
-                    ? 'Review the ballpark estimate above. Contractor matching and detailed quotes will follow in a future release.'
-                    : 'Submit intake to receive a ballpark cost estimate.'}
+                  ? 'Upload plans and photos above, then complete the intake questions below.'
+                  : !isOwner
+                    ? 'Interested in this scope? Contractor matching and detailed quotes will be available in a future release.'
+                    : estimate
+                      ? 'Review the ballpark estimate above. Contractor matching and detailed quotes will follow in a future release.'
+                      : 'Submit intake to receive a ballpark cost estimate.'}
               </p>
             </section>
 
@@ -553,7 +579,7 @@ export default function ProjectDetailPage() {
           </>
         )}
 
-        {authState === 'authenticated' && !project && error && (
+        {pageReady && !project && error && (
           <section className="card error">
             <p>{error}</p>
             <Link href="/" className="text-link">
@@ -572,7 +598,7 @@ export default function ProjectDetailPage() {
       <LoginModal
         isOpen={loginOpen}
         onClose={() => setLoginOpen(false)}
-        onSuccess={refreshSession}
+        onSuccess={() => void loadProjectView()}
       />
       <CreateProjectModal
         isOpen={createOpen}
