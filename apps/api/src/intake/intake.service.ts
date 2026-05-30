@@ -1,0 +1,386 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  forwardRef,
+} from '@nestjs/common';
+import { Prisma, ProjectStatus, TagSource } from '@prisma/client';
+import { IntakeFallbackService } from '../ai/intake-fallback.service';
+import {
+  InitialIntakeResult,
+  IntakeQuestion,
+  IntakeState,
+  ProjectIntakeContext,
+  SubmitAnswerDto,
+} from '../ai/intake.types';
+import { OpenAiIntakeService } from '../ai/openai-intake.service';
+import { PrismaService } from '../prisma/prisma.service';
+import {
+  ProjectBriefV1,
+  buildInitialBrief,
+  computeReadinessScore,
+} from '../projects/project-brief';
+import { ProjectResponse } from '../projects/projects.types';
+import { ProjectsService } from '../projects/projects.service';
+
+@Injectable()
+export class IntakeService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly openAi: OpenAiIntakeService,
+    private readonly fallback: IntakeFallbackService,
+    @Inject(forwardRef(() => ProjectsService))
+    private readonly projectsService: ProjectsService,
+  ) {}
+
+  async runInitialIntakeForProject(projectId: string): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) return;
+
+    const context = await this.buildContext(project);
+    let result: InitialIntakeResult | null = null;
+
+    if (this.openAi.isConfigured()) {
+      result = await this.openAi.runInitialIntake(context);
+    }
+    if (!result) {
+      result = this.fallback.runInitialIntake(context);
+    }
+
+    const tagSlugs = this.filterTagSlugs(
+      result.tagSlugs,
+      context.availableTagSlugs,
+    );
+    await this.replaceAiTags(projectId, tagSlugs);
+
+    const brief = this.mergeBrief(project.briefJson, {
+      summary: result.improvedDescription,
+      ai: {
+        originalNarrative: project.description ?? '',
+        improvedDescription: result.improvedDescription,
+        confidence: result.confidence,
+        intake: result.intake,
+      },
+    });
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        description: result.improvedDescription,
+        status: ProjectStatus.intake,
+        briefJson: brief as unknown as Prisma.InputJsonValue,
+        readinessScore: computeReadinessScore({
+          title: project.title,
+          description: result.improvedDescription,
+          projectType: project.projectType,
+          propertyType: project.propertyType,
+          district: project.district,
+          tagCount: tagSlugs.length,
+          brief,
+        }),
+      },
+    });
+  }
+
+  async submitAnswer(
+    clientId: string,
+    projectId: string,
+    dto: SubmitAnswerDto,
+  ): Promise<ProjectResponse> {
+    const project = await this.loadOwnedProject(clientId, projectId);
+    const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
+    const intake = brief.ai?.intake;
+
+    if (
+      !intake ||
+      intake.status === 'completed' ||
+      intake.status === 'processing'
+    ) {
+      throw new BadRequestException('Intake is not accepting answers');
+    }
+
+    const current = intake.currentQuestion;
+    if (!current) {
+      throw new BadRequestException('No active question');
+    }
+
+    if (dto.questionId !== current.id) {
+      throw new BadRequestException('Answer does not match the current question');
+    }
+
+    const value = this.validateAnswer(current, dto.value);
+
+    const answers = [
+      ...intake.answers.filter((a) => a.questionId !== current.id),
+      {
+        questionId: current.id,
+        value,
+        answeredAt: new Date().toISOString(),
+      },
+    ];
+
+    const context = await this.buildContext({
+      ...project,
+      description: brief.ai?.improvedDescription ?? project.description,
+    });
+    context.improvedDescription =
+      brief.ai?.improvedDescription ?? project.description ?? undefined;
+    context.answers = answers;
+
+    let nextQuestion: IntakeQuestion | null = null;
+    let improvedDescription = brief.ai?.improvedDescription;
+
+    if (this.openAi.isConfigured()) {
+      const next = await this.openAi.getNextQuestion(context, {
+        questionId: current.id,
+        value,
+      });
+      if (next) {
+        nextQuestion = next.nextQuestion;
+        if (next.improvedDescription) {
+          improvedDescription = next.improvedDescription;
+        }
+      }
+    } else {
+      const next = this.fallback.getNextQuestion(context);
+      nextQuestion = next.nextQuestion;
+    }
+
+    const askedQuestionIds = [...intake.askedQuestionIds];
+    if (nextQuestion && !askedQuestionIds.includes(nextQuestion.id)) {
+      askedQuestionIds.push(nextQuestion.id);
+    }
+
+    const updatedIntake: IntakeState = {
+      ...intake,
+      status: nextQuestion ? 'awaiting_answers' : 'ready_to_submit',
+      answers,
+      currentQuestion: nextQuestion,
+      improvedDescription,
+      askedQuestionIds,
+    };
+
+    const updatedBrief = this.mergeBrief(project.briefJson, {
+      summary: improvedDescription ?? brief.summary,
+      ai: {
+        ...brief.ai,
+        improvedDescription,
+        intake: updatedIntake,
+      },
+    });
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        description: improvedDescription ?? project.description,
+        briefJson: updatedBrief as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    return this.projectsService.getForClient(clientId, projectId);
+  }
+
+  async submitForProcessing(
+    clientId: string,
+    projectId: string,
+  ): Promise<ProjectResponse> {
+    const project = await this.loadOwnedProject(clientId, projectId);
+    const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
+    const intake = brief.ai?.intake;
+
+    if (!intake) {
+      throw new BadRequestException('Intake not started');
+    }
+
+    if (intake.status === 'completed') {
+      return this.projectsService.getForClient(clientId, projectId);
+    }
+
+    if (intake.status === 'awaiting_answers' && intake.currentQuestion) {
+      throw new BadRequestException('Please answer the current question first');
+    }
+
+    const context = await this.buildContext(project);
+    context.improvedDescription =
+      brief.ai?.improvedDescription ?? project.description ?? undefined;
+    context.answers = intake.answers;
+
+    let final = this.openAi.isConfigured()
+      ? await this.openAi.finalizeIntake(context)
+      : null;
+    if (!final) {
+      final = this.fallback.finalizeIntake(context);
+    }
+
+    const tagSlugs = this.filterTagSlugs(
+      final.tagSlugs,
+      context.availableTagSlugs,
+    );
+    await this.replaceAiTags(projectId, tagSlugs);
+
+    const completedIntake: IntakeState = {
+      ...intake,
+      status: 'completed',
+      currentQuestion: null,
+      improvedDescription: final.finalDescription,
+    };
+
+    const updatedBrief = this.mergeBrief(project.briefJson, {
+      summary: final.summary,
+      ai: {
+        ...brief.ai,
+        improvedDescription: final.finalDescription,
+        confidence: final.confidence,
+        intake: completedIntake,
+      },
+    });
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        description: final.finalDescription,
+        status: ProjectStatus.ready_for_estimate,
+        briefJson: updatedBrief as unknown as Prisma.InputJsonValue,
+        readinessScore: computeReadinessScore({
+          title: project.title,
+          description: final.finalDescription,
+          projectType: project.projectType,
+          propertyType: project.propertyType,
+          district: project.district,
+          tagCount: tagSlugs.length,
+          brief: updatedBrief,
+        }),
+      },
+    });
+
+    return this.projectsService.getForClient(clientId, projectId);
+  }
+
+  private async loadOwnedProject(clientId: string, projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.clientId !== clientId) {
+      throw new ForbiddenException('Access denied');
+    }
+    return project;
+  }
+
+  private async buildContext(project: {
+    title: string;
+    description: string | null;
+    projectType: string;
+    propertyType: string | null;
+    district: string | null;
+  }): Promise<ProjectIntakeContext> {
+    const tags = await this.prisma.tag.findMany({ select: { slug: true } });
+    return {
+      title: project.title,
+      description: project.description,
+      projectType: project.projectType,
+      propertyType: project.propertyType,
+      district: project.district,
+      answers: [],
+      availableTagSlugs: tags.map((t) => t.slug),
+    };
+  }
+
+  private filterTagSlugs(slugs: string[], allowed: string[]): string[] {
+    const allowedSet = new Set(allowed);
+    return [...new Set(slugs.filter((s) => allowedSet.has(s)))];
+  }
+
+  private async replaceAiTags(projectId: string, slugs: string[]) {
+    await this.prisma.projectTag.deleteMany({
+      where: { projectId, source: TagSource.ai },
+    });
+
+    if (slugs.length === 0) return;
+
+    const tags = await this.prisma.tag.findMany({
+      where: { slug: { in: slugs } },
+    });
+
+    await this.prisma.projectTag.createMany({
+      data: tags.map((tag) => ({
+        projectId,
+        tagId: tag.id,
+        source: TagSource.ai,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  private validateAnswer(
+    question: IntakeQuestion,
+    raw: string | string[] | undefined,
+  ): string | string[] {
+    if (question.type === 'info') {
+      return '';
+    }
+
+    if (question.type === 'text') {
+      const value = typeof raw === 'string' ? raw.trim() : '';
+      if (question.required && !value) {
+        throw new BadRequestException('An answer is required');
+      }
+      return value;
+    }
+
+    if (question.type === 'single') {
+      const value = typeof raw === 'string' ? raw : '';
+      if (question.required && !value) {
+        throw new BadRequestException('Please select an option');
+      }
+      if (value && !question.options?.some((o) => o.id === value)) {
+        throw new BadRequestException('Invalid option');
+      }
+      return value;
+    }
+
+    const values = Array.isArray(raw)
+      ? raw.filter((v) => typeof v === 'string')
+      : typeof raw === 'string' && raw
+        ? [raw]
+        : [];
+
+    if (question.required && values.length === 0) {
+      throw new BadRequestException('Select at least one option');
+    }
+
+    for (const value of values) {
+      if (!question.options?.some((o) => o.id === value)) {
+        throw new BadRequestException('Invalid option selected');
+      }
+    }
+
+    return values;
+  }
+
+  private mergeBrief(
+    existing: unknown,
+    patch: Partial<ProjectBriefV1> & { ai?: ProjectBriefV1['ai'] },
+  ): ProjectBriefV1 {
+    const base =
+      existing && typeof existing === 'object'
+        ? (existing as ProjectBriefV1)
+        : buildInitialBrief({});
+
+    return {
+      ...base,
+      ...patch,
+      ai: {
+        ...base.ai,
+        ...patch.ai,
+        intake: patch.ai?.intake ?? base.ai?.intake,
+      },
+    };
+  }
+}

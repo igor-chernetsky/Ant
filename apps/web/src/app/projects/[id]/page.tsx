@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { DocumentImage } from '@/components/DocumentImage';
+import { IntakeWizard } from '@/components/IntakeWizard';
 import { SiteHeader } from '@/components/SiteHeader';
 import {
   DOCUMENT_CATEGORY_OPTIONS,
@@ -17,6 +18,7 @@ import {
   type ProjectDocument,
 } from '@/lib/documents';
 import { isImageDocument } from '@/lib/document-images';
+import { isIntakeActive } from '@/lib/intake';
 import {
   fetchProject,
   formatDateTime,
@@ -161,6 +163,7 @@ export default function ProjectDetailPage() {
   const aiTags = project?.tags.filter((t) => t.source === 'ai') ?? [];
   const imageDocuments = documents.filter(isImageDocument);
   const fileDocuments = documents.filter((d) => !isImageDocument(d));
+  const intakeActive = project ? isIntakeActive(project) : false;
 
   return (
     <>
@@ -244,6 +247,13 @@ export default function ProjectDetailPage() {
                 </div>
               </dl>
             </section>
+
+            {intakeActive && (
+              <IntakeWizard
+                project={project}
+                onUpdated={(updated) => setProject(updated)}
+              />
+            )}
 
             <section className="card">
               <h2 className="section-title">Documents</h2>
@@ -339,7 +349,7 @@ export default function ProjectDetailPage() {
               )}
             </section>
 
-            {project.tags.length > 0 && (
+            {!intakeActive && project.tags.length > 0 && (
               <section className="card">
                 <h2 className="section-title">Tags</h2>
                 {clientTags.length > 0 && (
@@ -402,8 +412,9 @@ export default function ProjectDetailPage() {
             <section className="card">
               <h2 className="section-title">Next steps</h2>
               <p className="muted">
-                AI-assisted intake will parse uploaded documents and expand the
-                project brief automatically.
+                {intakeActive
+                  ? 'Complete the intake questions above, then upload plans and photos in Documents.'
+                  : 'Cost estimation and contractor matching will be available in the next release.'}
               </p>
             </section>
           </>

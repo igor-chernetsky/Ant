@@ -15,6 +15,23 @@ export type PropertyType =
 
 export type TagSource = 'client' | 'ai';
 
+export type IntakeQuestionType = 'single' | 'multi' | 'text' | 'info';
+
+export type IntakeStatus =
+  | 'awaiting_answers'
+  | 'ready_to_submit'
+  | 'processing'
+  | 'completed';
+
+export interface IntakeQuestion {
+  id: string;
+  type: IntakeQuestionType;
+  prompt: string;
+  options?: Array<{ id: string; label: string }>;
+  required: boolean;
+  placeholder?: string;
+}
+
 export interface ProjectTag {
   slug: string;
   label: string;
@@ -44,6 +61,19 @@ export interface ProjectBriefV1 {
     missingFields?: string[];
     confidence?: number;
     originalNarrative?: string;
+    improvedDescription?: string;
+    intake?: {
+      status: IntakeStatus;
+      improvedDescription?: string;
+      answers: Array<{
+        questionId: string;
+        value: string | string[];
+        answeredAt: string;
+      }>;
+      currentQuestion: IntakeQuestion | null;
+      askedQuestionIds: string[];
+      provider: 'openai' | 'fallback';
+    };
   };
 }
 
@@ -70,8 +100,6 @@ export interface CreateProjectInput {
   projectType?: ProjectType;
   propertyType?: PropertyType;
   district?: string;
-  tagSlugs?: string[];
-  newTagLabels?: string[];
 }
 
 export const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> =

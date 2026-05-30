@@ -16,6 +16,7 @@ Documentation for implementing the Construction Marketplace Platform.
 | [Domain State Machines](./domain-state-machines.md) | Project, tender, bid, contract lifecycles |
 | [Project brief and tags](./project-brief-and-tags.md) | Hybrid brief schema, tag catalog, AI assignment |
 | [Storage — S3 setup](./storage-s3-setup.md) | MinIO on EC2, AWS S3, presigned uploads |
+| [AI intake — OpenAI](./ai-intake-openai.md) | Description improvement, tags, Q&A wizard |
 
 ## Recommended stack (summary)
 

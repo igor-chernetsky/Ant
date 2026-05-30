@@ -19,8 +19,6 @@ export interface CreateProjectDto {
   projectType?: ProjectType;
   propertyType?: PropertyType;
   district?: string;
-  tagSlugs?: string[];
-  newTagLabels?: string[];
 }
 
 export interface ProjectResponse {

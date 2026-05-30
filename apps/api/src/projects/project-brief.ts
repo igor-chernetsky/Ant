@@ -37,6 +37,30 @@ export interface ProjectBriefV1 {
     missingFields?: string[];
     confidence?: number;
     originalNarrative?: string;
+    improvedDescription?: string;
+    intake?: {
+      status:
+        | 'awaiting_answers'
+        | 'ready_to_submit'
+        | 'processing'
+        | 'completed';
+      improvedDescription?: string;
+      answers: Array<{
+        questionId: string;
+        value: string | string[];
+        answeredAt: string;
+      }>;
+      currentQuestion: {
+        id: string;
+        type: 'single' | 'multi' | 'text' | 'info';
+        prompt: string;
+        options?: Array<{ id: string; label: string }>;
+        required: boolean;
+        placeholder?: string;
+      } | null;
+      askedQuestionIds: string[];
+      provider: 'openai' | 'fallback';
+    };
   };
 }
 
