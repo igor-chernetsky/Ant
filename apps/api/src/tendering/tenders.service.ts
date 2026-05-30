@@ -16,6 +16,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
+import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
 import {
   BidResponse,
@@ -46,6 +47,7 @@ export class TendersService {
     private readonly prisma: PrismaService,
     private readonly matching: TenderMatchingService,
     private readonly contractorProfiles: ContractorProfilesService,
+    private readonly autoClose: TenderAutoCloseService,
   ) {}
 
   private mapBid(bid: Bid & { contractor: ContractorProfile }): BidResponse {
@@ -118,6 +120,8 @@ export class TendersService {
   }
 
   private async loadTender(tenderId: string): Promise<TenderWithRelations> {
+    await this.autoClose.closeTenderIfExpired(tenderId);
+
     const tender = await this.prisma.tender.findUnique({
       where: { id: tenderId },
       include: this.includeTenderRelations(),
@@ -148,9 +152,12 @@ export class TendersService {
     await this.assertProjectOwner(projectId, clientId);
     const tender = await this.prisma.tender.findUnique({
       where: { projectId },
-      include: this.includeTenderRelations(),
+      select: { id: true },
     });
-    return tender ? this.mapTender(tender) : null;
+    if (!tender) {
+      return null;
+    }
+    return this.mapTender(await this.loadTender(tender.id));
   }
 
   async createTender(clientId: string, projectId: string): Promise<TenderResponse> {
@@ -159,10 +166,10 @@ export class TendersService {
 
     const existing = await this.prisma.tender.findUnique({
       where: { projectId },
-      include: this.includeTenderRelations(),
+      select: { id: true },
     });
     if (existing) {
-      return this.mapTender(existing);
+      return this.mapTender(await this.loadTender(existing.id));
     }
 
     const contractorIds = await this.matching.findInvitees(project, clientId);
@@ -265,14 +272,16 @@ export class TendersService {
   ): Promise<TenderResponse> {
     await this.assertProjectOwner(projectId, clientId);
 
-    const tender = await this.prisma.tender.findUnique({
+    const tenderRef = await this.prisma.tender.findUnique({
       where: { projectId },
-      include: this.includeTenderRelations(),
+      select: { id: true },
     });
 
-    if (!tender) {
+    if (!tenderRef) {
       throw new NotFoundException('Tender not found');
     }
+
+    const tender = await this.loadTender(tenderRef.id);
 
     if (
       tender.status !== TenderStatus.open &&
@@ -412,11 +421,11 @@ export class TendersService {
     const tender = await this.loadTender(tenderId);
 
     if (tender.status !== TenderStatus.open) {
-      throw new BadRequestException('Tender is not open for bids');
-    }
-
-    if (tender.closesAt && tender.closesAt.getTime() < Date.now()) {
-      throw new BadRequestException('Tender deadline has passed');
+      throw new BadRequestException(
+        tender.status === TenderStatus.closed
+          ? 'Tender is closed for new bids'
+          : 'Tender is not open for bids',
+      );
     }
 
     const invitation = tender.invitations.find(

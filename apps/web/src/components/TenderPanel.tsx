@@ -195,6 +195,15 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
             </>
           )}
 
+          {(tender.status === 'open' ||
+            tender.status === 'closed') && (
+            <p className="muted tender-hint">
+              {tender.status === 'open'
+                ? 'Bidding is open. New bids are accepted until the deadline.'
+                : 'Bidding closed. Compare bids below and select a winner.'}
+            </p>
+          )}
+
           {tender.bids.length > 0 && (
             <>
               <h3 className="tag-section-label">Bids</h3>
