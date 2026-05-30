@@ -1,20 +1,9 @@
 import { NextResponse } from 'next/server';
-import {
-  ACCESS_TOKEN_COOKIE,
-  getKeycloakBffCredentials,
-  getKeycloakTokenUrl,
-} from '@/lib/auth-server';
+import { exchangeKeycloakTokens, applyAuthCookies } from '@/lib/auth-tokens';
 
 interface LoginBody {
   username?: string;
   password?: string;
-}
-
-interface KeycloakTokenResponse {
-  access_token?: string;
-  expires_in?: number;
-  error?: string;
-  error_description?: string;
 }
 
 export async function POST(request: Request) {
@@ -35,64 +24,23 @@ export async function POST(request: Request) {
     );
   }
 
-  let bff: { clientId: string; clientSecret: string };
-  try {
-    bff = getKeycloakBffCredentials();
-  } catch {
-    return NextResponse.json(
-      { message: 'Authentication service is not configured' },
-      { status: 503 },
-    );
-  }
-
   const params = new URLSearchParams({
     grant_type: 'password',
-    client_id: bff.clientId,
-    client_secret: bff.clientSecret,
     username,
     password,
-    scope: 'openid profile email',
+    scope: 'openid profile email offline_access',
   });
 
-  let keycloakResponse: Response;
-  try {
-    keycloakResponse = await fetch(getKeycloakTokenUrl(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-      cache: 'no-store',
-    });
-  } catch {
-    return NextResponse.json(
-      { message: 'Unable to reach authentication server' },
-      { status: 502 },
-    );
-  }
+  const tokenData = await exchangeKeycloakTokens(params);
 
-  const tokenData = (await keycloakResponse.json()) as KeycloakTokenResponse;
-
-  if (!keycloakResponse.ok || !tokenData.access_token) {
+  if (!tokenData?.access_token) {
     return NextResponse.json(
-      {
-        message:
-          tokenData.error_description ??
-          tokenData.error ??
-          'Invalid username or password',
-      },
+      { message: 'Invalid username or password' },
       { status: 401 },
     );
   }
 
   const response = NextResponse.json({ ok: true });
-  const maxAge = tokenData.expires_in ?? 300;
-
-  response.cookies.set(ACCESS_TOKEN_COOKIE, tokenData.access_token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge,
-  });
-
+  applyAuthCookies(response, tokenData);
   return response;
 }

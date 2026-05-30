@@ -6,10 +6,30 @@ export interface MeResponse {
   roles: string[];
 }
 
+export async function refreshSessionTokens(): Promise<boolean> {
+  const response = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    credentials: 'include',
+  });
+  return response.ok;
+}
+
 export async function fetchSessionProfile(): Promise<MeResponse | null> {
   const response = await fetch('/api/auth/me', { credentials: 'include' });
   if (response.status === 401) {
-    return null;
+    const refreshed = await refreshSessionTokens();
+    if (!refreshed) {
+      return null;
+    }
+    const retry = await fetch('/api/auth/me', { credentials: 'include' });
+    if (retry.status === 401) {
+      return null;
+    }
+    if (!retry.ok) {
+      const text = await retry.text();
+      throw new Error(text || `Session check failed (${retry.status})`);
+    }
+    return retry.json() as Promise<MeResponse>;
   }
   if (!response.ok) {
     const text = await response.text();
