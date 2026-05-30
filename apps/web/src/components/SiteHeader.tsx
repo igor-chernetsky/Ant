@@ -41,6 +41,9 @@ export function SiteHeader({
           )}
           {me ? (
             <>
+              <Link href="/contractor" className="text-link header-link">
+                Contractor
+              </Link>
               <span className="user-chip">
                 {me.displayName ?? me.email ?? 'Signed in'}
               </span>

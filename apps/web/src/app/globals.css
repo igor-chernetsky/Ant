@@ -1223,3 +1223,64 @@ textarea,
 select {
   color-scheme: light;
 }
+
+.header-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.tender-card {
+  border-color: #bfdbfe;
+}
+
+.tender-meta {
+  margin-bottom: 1rem;
+}
+
+.tender-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.tender-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+.tender-invite-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.tender-invite-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.tender-invite-item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.bid-line-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.bid-list {
+  margin-top: 0.5rem;
+}

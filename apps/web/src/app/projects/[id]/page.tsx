@@ -9,6 +9,8 @@ import { PageShell } from '@/components/PageShell';
 import { DocumentImage } from '@/components/DocumentImage';
 import { IntakeWizard } from '@/components/IntakeWizard';
 import { SiteHeader } from '@/components/SiteHeader';
+import { TenderPanel } from '@/components/TenderPanel';
+import { isTenderEligibleProjectStatus } from '@/lib/tendering';
 import {
   DOCUMENT_CATEGORY_OPTIONS,
   fetchProjectDocuments,
@@ -473,6 +475,14 @@ export default function ProjectDetailPage() {
                 )}
                 <p className="muted estimate-disclaimer">{estimate.disclaimer}</p>
               </section>
+            )}
+
+            {isOwner && isTenderEligibleProjectStatus(project.status) && (
+              <TenderPanel
+                projectId={projectId}
+                project={project}
+                onUpdated={setProject}
+              />
             )}
 
             {packages.length > 0 && (
