@@ -78,6 +78,61 @@ export function isIntakeActive(project: Project): boolean {
   return intake.status !== 'completed';
 }
 
+/** Dynamic intake progress — total is estimated until ready_to_submit. */
+export function getIntakeProgress(intake: {
+  answers: Array<unknown>;
+  askedQuestionIds: string[];
+  status: IntakeStatus;
+  currentQuestion: IntakeQuestion | null;
+}): {
+  percent: number;
+  label: string;
+  answered: number;
+  step: number;
+  estimatedTotal: number;
+  isComplete: boolean;
+} {
+  const answered = intake.answers.length;
+  const onQuestion =
+    intake.status === 'awaiting_answers' && intake.currentQuestion != null;
+
+  if (intake.status === 'ready_to_submit') {
+    const total = Math.max(answered, 1);
+    return {
+      percent: 100,
+      label: 'All questions answered',
+      answered,
+      step: total,
+      estimatedTotal: total,
+      isComplete: true,
+    };
+  }
+
+  const step = onQuestion ? answered + 1 : Math.max(answered, 1);
+  const estimatedTotal = Math.max(
+    5,
+    intake.askedQuestionIds.length,
+    answered + 2,
+  );
+
+  const completedRatio = answered / estimatedTotal;
+  const inProgressBoost = onQuestion ? 0.08 : 0;
+  const percent = Math.round(
+    Math.min(92, Math.max(10, (completedRatio + inProgressBoost) * 100)),
+  );
+
+  return {
+    percent,
+    label: onQuestion
+      ? `Question ${step} of ~${estimatedTotal}`
+      : `${answered} answered`,
+    answered,
+    step,
+    estimatedTotal,
+    isComplete: false,
+  };
+}
+
 export async function submitIntakeAnswer(
   projectId: string,
   payload: IntakeAnswerPayload,

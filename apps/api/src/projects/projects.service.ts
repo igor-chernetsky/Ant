@@ -14,7 +14,7 @@ import {
 
 } from '@nestjs/common';
 
-import { Prisma, Project, ProjectStatus, ProjectTag, ProjectType, Tag } from '@prisma/client';
+import { DocumentStatus, Prisma, Project, ProjectStatus, ProjectTag, ProjectType, Tag } from '@prisma/client';
 import { IntakeService } from '../intake/intake.service';
 import { EstimatesService } from '../estimation/estimates.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -36,7 +36,19 @@ import {
 
   ProjectTagResponse,
 
+  PublicProjectCard,
+
 } from './projects.types';
+
+const PUBLIC_LIST_STATUSES: ProjectStatus[] = [
+  ProjectStatus.ready_for_estimate,
+  ProjectStatus.estimated,
+  ProjectStatus.tender_ready,
+  ProjectStatus.in_tender,
+  ProjectStatus.contractor_selected,
+  ProjectStatus.active,
+  ProjectStatus.completed,
+];
 
 const DELETABLE_STATUSES: ProjectStatus[] = [
   ProjectStatus.draft,
@@ -169,6 +181,80 @@ export class ProjectsService {
 
     return projects.map((project) => this.toResponse(project, null));
 
+  }
+
+  async listPublic(tagSlugs: string[] = []): Promise<PublicProjectCard[]> {
+    const where: Prisma.ProjectWhereInput = {
+      status: { in: PUBLIC_LIST_STATUSES },
+    };
+
+    if (tagSlugs.length > 0) {
+      where.tags = {
+        some: {
+          tag: { slug: { in: tagSlugs } },
+        },
+      };
+    }
+
+    const projects = await this.prisma.project.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+      include: this.includeTags(),
+    });
+
+    const projectIds = projects.map((p) => p.id);
+    const coverByProject = await this.loadCoverUrls(projectIds);
+
+    return projects.map((project) => ({
+      id: project.id,
+      title: project.title,
+      description: project.description,
+      projectType: project.projectType,
+      district: project.district,
+      regionCode: project.regionCode,
+      status: project.status,
+      readinessScore: project.readinessScore,
+      tags: this.mapTags(project).map((t) => ({
+        slug: t.slug,
+        label: t.label,
+      })),
+      coverImageUrl: coverByProject.get(project.id) ?? null,
+      updatedAt: project.updatedAt.toISOString(),
+    }));
+  }
+
+  private async loadCoverUrls(
+    projectIds: string[],
+  ): Promise<Map<string, string>> {
+    const result = new Map<string, string>();
+    if (projectIds.length === 0 || !this.storage.isConfigured()) {
+      return result;
+    }
+
+    const docs = await this.prisma.document.findMany({
+      where: {
+        projectId: { in: projectIds },
+        status: DocumentStatus.uploaded,
+        contentType: { startsWith: 'image/' },
+      },
+      orderBy: { uploadedAt: 'asc' },
+    });
+
+    const seen = new Set<string>();
+    for (const doc of docs) {
+      if (seen.has(doc.projectId)) continue;
+      seen.add(doc.projectId);
+      try {
+        const { downloadUrl } = await this.storage.createPresignedDownload(
+          doc.storageKey,
+        );
+        result.set(doc.projectId, downloadUrl);
+      } catch {
+        // skip broken cover
+      }
+    }
+
+    return result;
   }
 
 

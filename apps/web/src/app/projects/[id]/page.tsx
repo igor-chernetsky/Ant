@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { LoginModal } from '@/components/LoginModal';
+import { PageShell } from '@/components/PageShell';
 import { DocumentImage } from '@/components/DocumentImage';
 import { IntakeWizard } from '@/components/IntakeWizard';
 import { SiteHeader } from '@/components/SiteHeader';
@@ -72,6 +74,7 @@ export default function ProjectDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const loadProject = useCallback(async () => {
     if (!projectId) return;
@@ -191,7 +194,7 @@ export default function ProjectDetailPage() {
     setDeleting(true);
     try {
       await deleteProject(projectId);
-      router.push('/projects');
+      router.push('/');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to delete project');
       setDeleting(false);
@@ -199,16 +202,20 @@ export default function ProjectDetailPage() {
   };
 
   return (
-    <>
+    <PageShell>
       <SiteHeader
         me={me}
         onSignIn={() => setLoginOpen(true)}
         onSignOut={handleLogout}
+        onAddProject={() => {
+          if (me) setCreateOpen(true);
+          else setLoginOpen(true);
+        }}
       />
 
-      <main>
+      <main className="content-container main-content">
         <p className="breadcrumb">
-          <Link href="/projects">← Back to projects</Link>
+          <Link href="/">← Back to projects</Link>
         </p>
 
         {authState === 'loading' && (
@@ -549,7 +556,7 @@ export default function ProjectDetailPage() {
         {authState === 'authenticated' && !project && error && (
           <section className="card error">
             <p>{error}</p>
-            <Link href="/projects" className="text-link">
+            <Link href="/" className="text-link">
               Return to projects
             </Link>
           </section>
@@ -567,6 +574,11 @@ export default function ProjectDetailPage() {
         onClose={() => setLoginOpen(false)}
         onSuccess={refreshSession}
       />
-    </>
+      <CreateProjectModal
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(id) => router.push(`/projects/${id}`)}
+      />
+    </PageShell>
   );
 }

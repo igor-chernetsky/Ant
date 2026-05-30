@@ -1,121 +1,172 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { LoginModal } from '@/components/LoginModal';
+import { PageShell } from '@/components/PageShell';
+import { ProjectTile } from '@/components/ProjectTile';
 import { SiteHeader } from '@/components/SiteHeader';
+import { TagFilterBar } from '@/components/TagFilterBar';
+import {
+  fetchPublicProjects,
+  fetchPublicTags,
+  type PublicProjectCard,
+} from '@/lib/public-projects';
 import {
   fetchSessionProfile,
   logoutSession,
   type MeResponse,
 } from '@/lib/session';
 
-type AuthState = 'loading' | 'guest' | 'authenticated';
-
 export default function HomePage() {
-  const [authState, setAuthState] = useState<AuthState>('loading');
+  const router = useRouter();
   const [me, setMe] = useState<MeResponse | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [projects, setProjects] = useState<PublicProjectCard[]>([]);
+  const [allTags, setAllTags] = useState<Array<{ slug: string; label: string }>>(
+    [],
+  );
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [pendingCreate, setPendingCreate] = useState(false);
 
-  const refreshSession = useCallback(async () => {
+  const loadProjects = useCallback(async (tagSlugs: string[]) => {
+    setLoading(true);
     setError(null);
-    const profile = await fetchSessionProfile();
-    if (profile) {
-      setMe(profile);
-      setAuthState('authenticated');
-    } else {
-      setMe(null);
-      setAuthState('guest');
+    try {
+      const list = await fetchPublicProjects(tagSlugs);
+      setProjects(list);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load projects');
+      setProjects([]);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refreshSession().catch((err: unknown) => {
-      setError(err instanceof Error ? err.message : 'Failed to load session');
-      setAuthState('guest');
-    });
-  }, [refreshSession]);
+    void (async () => {
+      try {
+        const [profile, tags] = await Promise.all([
+          fetchSessionProfile(),
+          fetchPublicTags(),
+        ]);
+        setMe(profile);
+        setAllTags(tags.map((t) => ({ slug: t.slug, label: t.label })));
+      } catch {
+        setMe(null);
+      } finally {
+        setSessionReady(true);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    void loadProjects(selectedTags);
+  }, [sessionReady, selectedTags, loadProjects]);
+
+  useEffect(() => {
+    if (pendingCreate && me) {
+      setPendingCreate(false);
+      setCreateOpen(true);
+    }
+  }, [pendingCreate, me]);
+
+  const handleAddProject = () => {
+    if (me) {
+      setCreateOpen(true);
+    } else {
+      setPendingCreate(true);
+      setLoginOpen(true);
+    }
+  };
 
   const handleLogout = async () => {
-    setError(null);
     await logoutSession();
     setMe(null);
-    setAuthState('guest');
+  };
+
+  const handleLoginSuccess = async () => {
+    const profile = await fetchSessionProfile();
+    setMe(profile);
   };
 
   return (
-    <>
+    <PageShell>
       <SiteHeader
         me={me}
         onSignIn={() => setLoginOpen(true)}
         onSignOut={handleLogout}
+        onAddProject={handleAddProject}
       />
 
-      <main>
-        <section className="hero card">
-          <h1>Plan and manage construction projects in one place</h1>
-          <p className="muted">
-            Browse how the platform works as a guest. Sign in to create
-            projects, request estimates, and manage tenders.
+      <main className="content-container main-content">
+        <section className="page-hero">
+          <h1>Construction projects</h1>
+          <p className="page-hero-lead muted">
+            Browse renovation and build opportunities. Sign in to publish your
+            own project and receive contractor estimates.
           </p>
         </section>
 
-        <section className="card">
-          <h2 className="section-title">For homeowners</h2>
-          <ul className="feature-list">
-            <li>Describe your renovation or build with AI-assisted intake</li>
-            <li>Get preliminary cost estimates from local market data</li>
-            <li>Compare contractor bids in a structured format</li>
-          </ul>
-        </section>
+        <TagFilterBar
+          tags={allTags}
+          selected={selectedTags}
+          onChange={setSelectedTags}
+        />
 
-        <section className="card">
-          <h2 className="section-title">For contractors</h2>
-          <ul className="feature-list">
-            <li>Receive pre-screened tender invitations</li>
-            <li>Ask clarifying questions before submitting a bid</li>
-            <li>Track project updates and communication in one workspace</li>
-          </ul>
-        </section>
-
-        {authState === 'guest' && (
-          <section className="card cta">
-            <p>Ready to start a project?</p>
-            <button
-              type="button"
-              className="primary"
-              onClick={() => setLoginOpen(true)}
-            >
-              Sign in to continue
-            </button>
-          </section>
-        )}
-
-        {authState === 'loading' && (
+        {loading && (
           <section className="card">
-            <p className="muted">Checking session…</p>
+            <p className="muted">Loading projects…</p>
           </section>
         )}
 
         {error && (
           <section className="card error">
-            <pre>{error}</pre>
+            <p>{error}</p>
           </section>
         )}
 
-        {authState === 'authenticated' && me && (
-          <section className="card">
-            <h2 className="section-title">Your account</h2>
-            <pre>{JSON.stringify(me, null, 2)}</pre>
+        {!loading && !error && projects.length === 0 && (
+          <section className="card empty-state">
+            <p className="muted">
+              No projects match your filters yet. Try clearing tags or add the
+              first project.
+            </p>
+            <button type="button" className="primary" onClick={handleAddProject}>
+              Add project
+            </button>
+          </section>
+        )}
+
+        {!loading && projects.length > 0 && (
+          <section className="project-grid" aria-label="Projects">
+            {projects.map((project) => (
+              <ProjectTile key={project.id} project={project} />
+            ))}
           </section>
         )}
       </main>
 
       <LoginModal
         isOpen={loginOpen}
-        onClose={() => setLoginOpen(false)}
-        onSuccess={refreshSession}
+        onClose={() => {
+          setLoginOpen(false);
+          setPendingCreate(false);
+        }}
+        onSuccess={handleLoginSuccess}
       />
-    </>
+
+      <CreateProjectModal
+        isOpen={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={(id) => router.push(`/projects/${id}`)}
+      />
+    </PageShell>
   );
 }

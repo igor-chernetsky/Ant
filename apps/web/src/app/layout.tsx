@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Construction Marketplace',
-  description: 'MVP web client',
+  title: 'Ant — Construction Marketplace',
+  description: 'Browse and manage construction projects',
 };
 
 export default function RootLayout({

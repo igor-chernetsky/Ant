@@ -5,6 +5,7 @@ import type { Project } from '@/lib/projects';
 import { fetchProject } from '@/lib/projects';
 import {
   INTAKE_OTHER_OPTION_ID,
+  getIntakeProgress,
   sanitizeIntakeQuestion,
   submitIntakeAnswer,
   submitIntakeForProcessing,
@@ -40,7 +41,7 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
     return null;
   }
 
-  const answeredCount = intake.answers.length;
+  const progress = getIntakeProgress(intake);
   const showSubmit = intake.status === 'ready_to_submit' && !question;
   const canSkip = question != null && question.type !== 'info';
   const showCustom =
@@ -158,6 +159,8 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
         section below before completing intake.
       </p>
 
+      <IntakeProgressBar progress={progress} />
+
       {project.brief?.ai?.improvedDescription && (
         <div className="intake-improved">
           <h3 className="intake-subtitle">AI-improved description</h3>
@@ -183,9 +186,6 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
 
       {question && (
         <form className="intake-form" onSubmit={handleSubmitAnswer}>
-          <p className="intake-progress muted">
-            Question {answeredCount + 1}
-          </p>
           <QuestionFields
             question={question}
             textValue={textValue}
@@ -239,6 +239,40 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
 
       {error && <p className="form-error">{error}</p>}
     </section>
+  );
+}
+
+function IntakeProgressBar({
+  progress,
+}: {
+  progress: ReturnType<typeof getIntakeProgress>;
+}) {
+  return (
+    <div className="intake-progress-block" aria-live="polite">
+      <div className="intake-progress-header">
+        <span className="intake-progress-label">{progress.label}</span>
+        <span className="intake-progress-percent muted">{progress.percent}%</span>
+      </div>
+      <div
+        className="intake-progress-track"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress.percent}
+        aria-label={progress.label}
+      >
+        <div
+          className={`intake-progress-fill${progress.isComplete ? ' intake-progress-fill-complete' : ''}`}
+          style={{ width: `${progress.percent}%` }}
+        />
+      </div>
+      {!progress.isComplete && (
+        <p className="intake-progress-hint muted">
+          {progress.answered} answered · ~{progress.estimatedTotal} questions
+          expected
+        </p>
+      )}
+    </div>
   );
 }
 

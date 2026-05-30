@@ -51,3 +51,22 @@ export interface CreateTagDto {
   label: string;
   groupSlug?: string;
 }
+
+export interface PublicProjectTag {
+  slug: string;
+  label: string;
+}
+
+export interface PublicProjectCard {
+  id: string;
+  title: string;
+  description: string | null;
+  projectType: ProjectType;
+  district: string | null;
+  regionCode: string;
+  status: string;
+  readinessScore: number;
+  tags: PublicProjectTag[];
+  coverImageUrl: string | null;
+  updatedAt: string;
+}
