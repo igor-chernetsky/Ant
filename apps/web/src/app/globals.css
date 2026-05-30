@@ -888,6 +888,23 @@ pre {
   margin-top: 0.15rem;
 }
 
-.insight-item p {
-  margin: 0.35rem 0 0;
+.intake-docs-notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #1a2a38;
+  border: 1px solid #2d4a62;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+}
+
+.intake-other-block {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #1e2936;
+}
+
+.intake-other-block .intake-custom-input {
+  margin-top: 0.5rem;
+  width: 100%;
 }

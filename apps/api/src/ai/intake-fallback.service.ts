@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import {
-  InitialIntakeResult,
-  IntakeQuestion,
-  NextQuestionResult,
-  ProjectIntakeContext,
-  FinalIntakeResult,
-} from './intake.types';
+import { FinalIntakeResult, InitialIntakeResult, IntakeQuestion, NextQuestionResult, ProjectIntakeContext } from './intake.types';
+import { sanitizeIntakeQuestion } from './intake-question.utils';
 import { suggestTagSlugsFromText } from '../projects/project-brief';
 
 @Injectable()
@@ -30,7 +25,9 @@ export class IntakeFallbackService {
         status: nextQuestion ? 'awaiting_answers' : 'ready_to_submit',
         improvedDescription,
         answers: [],
-        currentQuestion: nextQuestion,
+        currentQuestion: nextQuestion
+          ? sanitizeIntakeQuestion(nextQuestion)
+          : null,
         askedQuestionIds: nextQuestion ? [nextQuestion.id] : [],
         provider: 'fallback',
       },
@@ -46,7 +43,9 @@ export class IntakeFallbackService {
     const queue = this.fallbackQuestionQueue(context);
     const next = queue.find((q) => !asked.has(q.id)) ?? null;
 
-    return { nextQuestion: next };
+    return {
+      nextQuestion: next ? sanitizeIntakeQuestion(next) : null,
+    };
   }
 
   finalizeIntake(context: ProjectIntakeContext): FinalIntakeResult {
@@ -100,13 +99,7 @@ export class IntakeFallbackService {
       };
     }
 
-    return {
-      id: 'upload-plans-info',
-      type: 'info',
-      prompt:
-        'If you have floor plans or photos, upload them in the Documents section below. This helps contractors estimate accurately.',
-      required: false,
-    };
+    return this.fallbackQuestionQueue(context)[0] ?? null;
   }
 
   private fallbackQuestionQueue(
@@ -147,13 +140,6 @@ export class IntakeFallbackService {
         required: false,
         allowSkip: true,
         placeholder: 'e.g. premium tiles, client-supplied fixtures…',
-      },
-      {
-        id: 'upload-plans-info',
-        type: 'info',
-        prompt:
-          'Upload floor plans or reference photos in the Documents section if available.',
-        required: false,
       },
     ];
   }

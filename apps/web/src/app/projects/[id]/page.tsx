@@ -519,7 +519,7 @@ export default function ProjectDetailPage() {
               <h2 className="section-title">Next steps</h2>
               <p className="muted">
                 {intakeActive
-                  ? 'Complete the intake questions above, then upload plans and photos in Documents.'
+                  ? 'Upload plans and photos in Documents, then complete the intake questions above.'
                   : estimate
                     ? 'Review the ballpark estimate above. Contractor matching and detailed quotes will follow in a future release.'
                     : 'Submit intake to receive a ballpark cost estimate.'}

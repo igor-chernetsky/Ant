@@ -5,6 +5,7 @@ import type { Project } from '@/lib/projects';
 import { fetchProject } from '@/lib/projects';
 import {
   INTAKE_OTHER_OPTION_ID,
+  sanitizeIntakeQuestion,
   submitIntakeAnswer,
   submitIntakeForProcessing,
   type IntakeQuestion,
@@ -17,7 +18,9 @@ interface IntakeWizardProps {
 
 export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
   const intake = project.brief?.ai?.intake;
-  const question = intake?.currentQuestion;
+  const question = intake?.currentQuestion
+    ? sanitizeIntakeQuestion(intake.currentQuestion)
+    : null;
   const [textValue, setTextValue] = useState('');
   const [singleValue, setSingleValue] = useState('');
   const [multiValues, setMultiValues] = useState<string[]>([]);
@@ -39,10 +42,9 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
 
   const answeredCount = intake.answers.length;
   const showSubmit = intake.status === 'ready_to_submit' && !question;
-  const canSkip = question && question.type !== 'info' && question.allowSkip !== false;
+  const canSkip = question != null && question.type !== 'info';
   const showCustom =
-    question &&
-    question.allowCustom !== false &&
+    question != null &&
     (question.type === 'single' || question.type === 'multi');
   const isOtherSelected =
     singleValue === INTAKE_OTHER_OPTION_ID ||
@@ -73,17 +75,31 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
       } else if (question.type === 'text') {
         value = textValue;
       } else if (question.type === 'single') {
-        value = singleValue;
+        value =
+          singleValue ||
+          (customText.trim() ? INTAKE_OTHER_OPTION_ID : '');
       } else {
         value = multiValues;
+        if (
+          customText.trim() &&
+          !multiValues.includes(INTAKE_OTHER_OPTION_ID)
+        ) {
+          value = [...multiValues, INTAKE_OTHER_OPTION_ID];
+        }
       }
+
+      const wantsCustom =
+        (question.type === 'single' &&
+          (singleValue === INTAKE_OTHER_OPTION_ID || !!customText.trim())) ||
+        (question.type === 'multi' &&
+          (multiValues.includes(INTAKE_OTHER_OPTION_ID) || !!customText.trim()));
 
       const updated = await submitIntakeAnswer(project.id, {
         questionId: question.id,
         skipped,
         value,
         customText:
-          !skipped && isOtherSelected ? customText.trim() : undefined,
+          !skipped && wantsCustom ? customText.trim() : undefined,
       });
       onUpdated(updated);
     } catch (err: unknown) {
@@ -135,6 +151,11 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
         AI analyzed your project and suggested tags. Answer a few questions so
         contractors receive an accurate scope. You can skip or enter your own
         answer when needed.
+      </p>
+
+      <p className="intake-docs-notice">
+        Upload all floor plans and photos in the <strong>Documents</strong>{' '}
+        section below before completing intake.
       </p>
 
       {project.brief?.ai?.improvedDescription && (
@@ -246,12 +267,7 @@ function QuestionFields({
   onToggleMulti: (id: string) => void;
   onCustomTextChange: (v: string) => void;
 }) {
-  const visibleOptions =
-    question.options?.filter(
-      (o) =>
-        o.id !== INTAKE_OTHER_OPTION_ID &&
-        !/^other\b/i.test(o.label.trim()),
-    ) ?? [];
+  const visibleOptions = question.options ?? [];
 
   return (
     <fieldset className="intake-question">
@@ -287,16 +303,30 @@ function QuestionFields({
             </label>
           ))}
           {showCustom && (
-            <label className="intake-option">
+            <div className="intake-other-block">
+              <label className="intake-option">
+                <input
+                  type="radio"
+                  name={`q-${question.id}`}
+                  value={INTAKE_OTHER_OPTION_ID}
+                  checked={singleValue === INTAKE_OTHER_OPTION_ID}
+                  onChange={() => onSingleChange(INTAKE_OTHER_OPTION_ID)}
+                />
+                Other — describe below
+              </label>
               <input
-                type="radio"
-                name={`q-${question.id}`}
-                value={INTAKE_OTHER_OPTION_ID}
-                checked={singleValue === INTAKE_OTHER_OPTION_ID}
-                onChange={() => onSingleChange(INTAKE_OTHER_OPTION_ID)}
+                type="text"
+                className="intake-custom-input"
+                value={customText}
+                onChange={(e) => {
+                  onCustomTextChange(e.target.value);
+                  if (singleValue !== INTAKE_OTHER_OPTION_ID) {
+                    onSingleChange(INTAKE_OTHER_OPTION_ID);
+                  }
+                }}
+                placeholder="Your answer…"
               />
-              Other
-            </label>
+            </div>
           )}
         </>
       )}
@@ -314,26 +344,30 @@ function QuestionFields({
             </label>
           ))}
           {showCustom && (
-            <label className="intake-option">
+            <div className="intake-other-block">
+              <label className="intake-option">
+                <input
+                  type="checkbox"
+                  checked={multiValues.includes(INTAKE_OTHER_OPTION_ID)}
+                  onChange={() => onToggleMulti(INTAKE_OTHER_OPTION_ID)}
+                />
+                Other — describe below
+              </label>
               <input
-                type="checkbox"
-                checked={multiValues.includes(INTAKE_OTHER_OPTION_ID)}
-                onChange={() => onToggleMulti(INTAKE_OTHER_OPTION_ID)}
+                type="text"
+                className="intake-custom-input"
+                value={customText}
+                onChange={(e) => {
+                  onCustomTextChange(e.target.value);
+                  if (!multiValues.includes(INTAKE_OTHER_OPTION_ID)) {
+                    onToggleMulti(INTAKE_OTHER_OPTION_ID);
+                  }
+                }}
+                placeholder="Your answer…"
               />
-              Other
-            </label>
+            </div>
           )}
         </>
-      )}
-
-      {showCustom && isOtherSelected && (
-        <input
-          type="text"
-          className="intake-custom-input"
-          value={customText}
-          onChange={(e) => onCustomTextChange(e.target.value)}
-          placeholder="Describe your answer…"
-        />
       )}
     </fieldset>
   );

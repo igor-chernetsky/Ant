@@ -7,6 +7,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { Prisma, ProjectStatus, TagSource } from '@prisma/client';
+import { sanitizeIntakeQuestion } from '../ai/intake-question.utils';
 import { IntakeFallbackService } from '../ai/intake-fallback.service';
 import {
   INTAKE_OTHER_OPTION_ID,
@@ -106,10 +107,12 @@ export class IntakeService {
       throw new BadRequestException('Intake is not accepting answers');
     }
 
-    const current = intake.currentQuestion;
-    if (!current) {
+    const rawCurrent = intake.currentQuestion;
+    if (!rawCurrent) {
       throw new BadRequestException('No active question');
     }
+
+    const current = sanitizeIntakeQuestion(rawCurrent);
 
     if (dto.questionId !== current.id) {
       throw new BadRequestException(
@@ -168,6 +171,10 @@ export class IntakeService {
         intake.askedQuestionIds,
         answers,
       );
+    }
+
+    if (nextQuestion) {
+      nextQuestion = sanitizeIntakeQuestion(nextQuestion);
     }
 
     const askedQuestionIds = [...intake.askedQuestionIds];
@@ -303,14 +310,15 @@ export class IntakeService {
     if (!candidate) {
       return null;
     }
+    const resolved = sanitizeIntakeQuestion(candidate);
     const seen = new Set([
       ...askedQuestionIds,
       ...answers.map((a) => a.questionId),
     ]);
-    if (seen.has(candidate.id)) {
+    if (seen.has(resolved.id)) {
       return null;
     }
-    return candidate;
+    return resolved;
   }
 
   private async buildContext(project: {

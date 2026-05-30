@@ -3,11 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import {
   FinalIntakeResult,
   InitialIntakeResult,
-  INTAKE_OTHER_OPTION_ID,
   IntakeQuestion,
   NextQuestionResult,
   ProjectIntakeContext,
 } from './intake.types';
+import {
+  isOtherLikeOption,
+  sanitizeIntakeQuestion,
+} from './intake-question.utils';
 
 @Injectable()
 export class OpenAiIntakeService {
@@ -74,18 +77,18 @@ export class OpenAiIntakeService {
     return `Question object schema:
 {
   "id": "kebab-case unique id",
-  "type": "single" | "multi" | "text" | "info",
+  "type": "single" | "multi" | "text",
   "prompt": "question text in English",
   "options": [{ "id": "opt-id", "label": "label" }],
   "required": true|false,
-  "allowSkip": true|false (default true — user may skip),
-  "allowCustom": true|false (default true for single/multi — user may enter "Other"),
+  "allowSkip": true (always — user may skip any non-info question),
+  "allowCustom": true (always for single/multi — do NOT add an "Other" option; the UI provides it),
   "placeholder": "optional hint for text"
 }
-- "single": radio buttons (options required, 2-6 options)
-- "multi": checkboxes (options required)
+- "single": radio buttons (options required)
+- options: 2-6 concrete choices only — never include "Other", "Custom", or free-text options
 - "text": free text (no options)
-- "info": informational only, no answer needed (required=false). Use for reminders like uploading floor plans.`;
+- Never use "info" type. Never ask the user to upload plans, photos, or documents — the UI shows a static reminder instead.`;
   }
 
   async runInitialIntake(
@@ -100,7 +103,7 @@ Rules:
 - confidence: 0-1
 - nextQuestion: first follow-up question to clarify scope, or null if nothing needed
 - Ask at most ONE question in nextQuestion
-- Prefer practical construction questions (area, timeline, materials, plans)`;
+- Prefer practical construction questions (area, timeline, materials)`;
 
     const user = JSON.stringify({
       title: context.title,
@@ -136,7 +139,9 @@ Rules:
         status,
         improvedDescription: result.improvedDescription.trim(),
         answers: [],
-        currentQuestion: nextQuestion,
+        currentQuestion: nextQuestion
+          ? sanitizeIntakeQuestion(nextQuestion)
+          : null,
         askedQuestionIds: nextQuestion ? [nextQuestion.id] : [],
         provider: 'openai',
       },
@@ -158,7 +163,7 @@ ${this.questionSchemaHint()}
 Rules:
 - Return exactly ONE next question or null when intake is complete
 - Do not repeat question ids already asked: ${JSON.stringify(context.askedQuestionIds ?? context.answers.map((a) => a.questionId))}
-- Use "info" type to suggest uploading plans/photos when relevant and not yet mentioned
+- Never ask about uploading plans, photos, or documents
 - Adapt next question based on previous answers
 - improvedDescription: optionally refine project description with new facts from answers`;
 
@@ -246,7 +251,7 @@ Rules:
     }
 
     const type = q.type;
-    if (!['single', 'multi', 'text', 'info'].includes(type)) {
+    if (!['single', 'multi', 'text'].includes(type)) {
       return null;
     }
 
@@ -257,28 +262,23 @@ Rules:
               (o): o is { id: string; label: string } =>
                 !!o?.id && !!o?.label,
             )
-            .filter(
-              (o) =>
-                o.id !== INTAKE_OTHER_OPTION_ID &&
-                !/^other\b/i.test(o.label.trim()),
-            )
+            .filter((o) => !isOtherLikeOption(o))
             .slice(0, 8)
         : undefined;
 
-    if ((type === 'single' || type === 'multi') && (!options || options.length < 2)) {
+    if ((type === 'single' || type === 'multi') && (!options || options.length < 1)) {
       return null;
     }
 
-    return {
+    return sanitizeIntakeQuestion({
       id: String(q.id).slice(0, 64),
       type,
       prompt: String(q.prompt).slice(0, 500),
       options,
-      required: type === 'info' ? false : q.required === true,
-      allowSkip: type === 'info' ? false : q.allowSkip !== false,
-      allowCustom:
-        type === 'single' || type === 'multi' ? q.allowCustom !== false : false,
+      required: q.required === true,
+      allowSkip: true,
+      allowCustom: type === 'single' || type === 'multi',
       placeholder: q.placeholder?.slice(0, 200),
-    };
+    });
   }
 }
