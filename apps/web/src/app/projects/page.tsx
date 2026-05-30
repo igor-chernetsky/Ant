@@ -235,20 +235,6 @@ export default function ProjectsPage() {
                             {project.description}
                           </p>
                         )}
-                        {project.tags.length > 0 && (
-                          <div className="tag-list">
-                            {project.tags.slice(0, 5).map((tag) => (
-                              <span key={tag.slug} className="tag-pill">
-                                {tag.label}
-                              </span>
-                            ))}
-                            {project.tags.length > 5 && (
-                              <span className="tag-pill tag-pill-more">
-                                +{project.tags.length - 5}
-                              </span>
-                            )}
-                          </div>
-                        )}
                       </div>
                       <div className="project-meta">
                         <span className="status-pill">
