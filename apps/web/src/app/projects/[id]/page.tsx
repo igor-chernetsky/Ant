@@ -145,10 +145,13 @@ export default function ProjectDetailPage() {
     try {
       const patched = new File([file], file.name, { type: contentType });
       await uploadProjectDocument(projectId, patched, docCategory);
-      await Promise.all([loadDocuments(), loadProject()]);
-      window.setTimeout(() => {
-        void loadProject();
-      }, 4000);
+      await loadDocuments();
+      if (!project || !isIntakeActive(project)) {
+        await loadProject();
+        window.setTimeout(() => {
+          void loadProject();
+        }, 4000);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {

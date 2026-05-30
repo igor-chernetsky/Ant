@@ -68,7 +68,13 @@ export class DocumentAnalysisService {
       result = this.fallbackAnalysis(doc.originalName, doc.category);
     }
 
-    const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
+    const freshProject = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: { tags: true },
+    });
+    if (!freshProject) return;
+
+    const brief = (freshProject.briefJson ?? {}) as unknown as ProjectBriefV1;
     const mergedPackages = mergePackages(brief.packages ?? [], result.packages);
 
     const insight: DocumentInsightRecord = {
@@ -93,7 +99,7 @@ export class DocumentAnalysisService {
       property: {
         ...brief.property,
         ...result.property,
-        type: brief.property?.type ?? project.propertyType ?? undefined,
+        type: brief.property?.type ?? freshProject.propertyType ?? undefined,
       },
       design: {
         ...brief.design,
@@ -123,11 +129,11 @@ export class DocumentAnalysisService {
       data: {
         briefJson: updatedBrief as unknown as Prisma.InputJsonValue,
         readinessScore: computeReadinessScore({
-          title: project.title,
-          description: project.description,
-          projectType: project.projectType,
-          propertyType: project.propertyType,
-          district: project.district,
+          title: freshProject.title,
+          description: freshProject.description,
+          projectType: freshProject.projectType,
+          propertyType: freshProject.propertyType,
+          district: freshProject.district,
           tagCount,
           brief: updatedBrief,
         }),

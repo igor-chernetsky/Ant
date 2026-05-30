@@ -76,5 +76,6 @@ export interface ProjectIntakeContext {
   district: string | null;
   improvedDescription?: string;
   answers: IntakeAnswer[];
+  askedQuestionIds?: string[];
   availableTagSlugs: string[];
 }

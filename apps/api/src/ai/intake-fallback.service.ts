@@ -40,7 +40,7 @@ export class IntakeFallbackService {
   getNextQuestion(context: ProjectIntakeContext): NextQuestionResult {
     const asked = new Set([
       ...context.answers.map((a) => a.questionId),
-      ...(context.improvedDescription ? [] : []),
+      ...(context.askedQuestionIds ?? []),
     ]);
 
     const queue = this.fallbackQuestionQueue(context);

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import type { Project } from '@/lib/projects';
+import { fetchProject } from '@/lib/projects';
 import {
   INTAKE_OTHER_OPTION_ID,
   submitIntakeAnswer,
@@ -86,7 +87,21 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
       });
       onUpdated(updated);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to submit answer');
+      const message =
+        err instanceof Error ? err.message : 'Failed to submit answer';
+      if (message.includes('does not match the current question')) {
+        try {
+          const fresh = await fetchProject(project.id);
+          onUpdated(fresh);
+          setError(
+            'The question changed while you were answering (e.g. after uploading a file). Please try again.',
+          );
+        } catch {
+          setError(message);
+        }
+      } else {
+        setError(message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -231,6 +246,13 @@ function QuestionFields({
   onToggleMulti: (id: string) => void;
   onCustomTextChange: (v: string) => void;
 }) {
+  const visibleOptions =
+    question.options?.filter(
+      (o) =>
+        o.id !== INTAKE_OTHER_OPTION_ID &&
+        !/^other\b/i.test(o.label.trim()),
+    ) ?? [];
+
   return (
     <fieldset className="intake-question">
       <legend>{question.prompt}</legend>
@@ -252,7 +274,7 @@ function QuestionFields({
 
       {question.type === 'single' && (
         <>
-          {question.options?.map((option) => (
+          {visibleOptions.map((option) => (
             <label key={option.id} className="intake-option">
               <input
                 type="radio"
@@ -281,7 +303,7 @@ function QuestionFields({
 
       {question.type === 'multi' && (
         <>
-          {question.options?.map((option) => (
+          {visibleOptions.map((option) => (
             <label key={option.id} className="intake-option">
               <input
                 type="checkbox"

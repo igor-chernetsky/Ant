@@ -112,7 +112,9 @@ export class IntakeService {
     }
 
     if (dto.questionId !== current.id) {
-      throw new BadRequestException('Answer does not match the current question');
+      throw new BadRequestException(
+        'Answer does not match the current question. Refresh the page and try again.',
+      );
     }
 
     const parsed = this.parseAnswer(current, dto);
@@ -135,6 +137,7 @@ export class IntakeService {
     context.improvedDescription =
       brief.ai?.improvedDescription ?? project.description ?? undefined;
     context.answers = answers;
+    context.askedQuestionIds = intake.askedQuestionIds;
 
     let nextQuestion: IntakeQuestion | null = null;
     let improvedDescription = brief.ai?.improvedDescription;
@@ -147,14 +150,24 @@ export class IntakeService {
         customText: parsed.customText,
       });
       if (next) {
-        nextQuestion = next.nextQuestion;
+        nextQuestion = this.acceptNextQuestion(
+          next.nextQuestion,
+          intake.askedQuestionIds,
+          answers,
+        );
         if (next.improvedDescription) {
           improvedDescription = next.improvedDescription;
         }
       }
-    } else {
-      const next = this.fallback.getNextQuestion(context);
-      nextQuestion = next.nextQuestion;
+    }
+
+    if (!nextQuestion) {
+      const fallbackNext = this.fallback.getNextQuestion(context);
+      nextQuestion = this.acceptNextQuestion(
+        fallbackNext.nextQuestion,
+        intake.askedQuestionIds,
+        answers,
+      );
     }
 
     const askedQuestionIds = [...intake.askedQuestionIds];
@@ -280,6 +293,24 @@ export class IntakeService {
       throw new ForbiddenException('Access denied');
     }
     return project;
+  }
+
+  private acceptNextQuestion(
+    candidate: IntakeQuestion | null,
+    askedQuestionIds: string[],
+    answers: Array<{ questionId: string }>,
+  ): IntakeQuestion | null {
+    if (!candidate) {
+      return null;
+    }
+    const seen = new Set([
+      ...askedQuestionIds,
+      ...answers.map((a) => a.questionId),
+    ]);
+    if (seen.has(candidate.id)) {
+      return null;
+    }
+    return candidate;
   }
 
   private async buildContext(project: {

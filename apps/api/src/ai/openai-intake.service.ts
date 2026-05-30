@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   FinalIntakeResult,
   InitialIntakeResult,
+  INTAKE_OTHER_OPTION_ID,
   IntakeQuestion,
   NextQuestionResult,
   ProjectIntakeContext,
@@ -156,7 +157,7 @@ Return JSON: { "nextQuestion": Question|null, "improvedDescription": string opti
 ${this.questionSchemaHint()}
 Rules:
 - Return exactly ONE next question or null when intake is complete
-- Do not repeat question ids already asked: ${JSON.stringify(context.answers.map((a) => a.questionId))}
+- Do not repeat question ids already asked: ${JSON.stringify(context.askedQuestionIds ?? context.answers.map((a) => a.questionId))}
 - Use "info" type to suggest uploading plans/photos when relevant and not yet mentioned
 - Adapt next question based on previous answers
 - improvedDescription: optionally refine project description with new facts from answers`;
@@ -255,6 +256,11 @@ Rules:
             .filter(
               (o): o is { id: string; label: string } =>
                 !!o?.id && !!o?.label,
+            )
+            .filter(
+              (o) =>
+                o.id !== INTAKE_OTHER_OPTION_ID &&
+                !/^other\b/i.test(o.label.trim()),
             )
             .slice(0, 8)
         : undefined;
