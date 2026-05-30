@@ -110,6 +110,7 @@ model Project {
   updatedAt      DateTime      @updatedAt @map("updated_at")
   tags           ProjectTag[]
   documents      Document[]
+  estimates      Estimate[]
 
   @@index([clientId])
   @@index([projectType])
@@ -146,4 +147,21 @@ model Document {
   @@index([projectId])
   @@index([uploaderId])
   @@map("documents")
+}
+
+model Estimate {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version     Int      @default(1)
+  type        String   @default("ballpark")
+  currency    String   @default("THB")
+  totalsJson  Json     @map("totals_json")
+  linesJson   Json     @map("lines_json")
+  confidence  Float
+  disclaimer  String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@map("estimates")
 }

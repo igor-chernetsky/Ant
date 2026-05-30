@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { DocumentImage } from '@/components/DocumentImage';
@@ -18,8 +18,11 @@ import {
   type ProjectDocument,
 } from '@/lib/documents';
 import { isImageDocument } from '@/lib/document-images';
+import { formatConfidence, formatThb } from '@/lib/estimate';
 import { isIntakeActive } from '@/lib/intake';
 import {
+  canDeleteProject,
+  deleteProject,
   fetchProject,
   formatDateTime,
   formatProjectStatus,
@@ -56,6 +59,7 @@ function guessContentType(file: File): string | null {
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const projectId = params.id;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,6 +69,7 @@ export default function ProjectDetailPage() {
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [docCategory, setDocCategory] = useState<DocumentCategory>('blueprint');
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
 
@@ -140,7 +145,10 @@ export default function ProjectDetailPage() {
     try {
       const patched = new File([file], file.name, { type: contentType });
       await uploadProjectDocument(projectId, patched, docCategory);
-      await loadDocuments();
+      await Promise.all([loadDocuments(), loadProject()]);
+      window.setTimeout(() => {
+        void loadProject();
+      }, 4000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -161,9 +169,31 @@ export default function ProjectDetailPage() {
 
   const clientTags = project?.tags.filter((t) => t.source === 'client') ?? [];
   const aiTags = project?.tags.filter((t) => t.source === 'ai') ?? [];
+  const packages = project?.brief?.packages ?? [];
+  const documentInsights = project?.brief?.ai?.documentInsights ?? [];
+  const estimate = project?.estimate ?? null;
   const imageDocuments = documents.filter(isImageDocument);
   const fileDocuments = documents.filter((d) => !isImageDocument(d));
   const intakeActive = project ? isIntakeActive(project) : false;
+  const showDelete = project ? canDeleteProject(project) : false;
+
+  const handleDelete = async () => {
+    if (!projectId || !project) return;
+    const confirmed = window.confirm(
+      `Delete "${project.title}"? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+
+    setError(null);
+    setDeleting(true);
+    try {
+      await deleteProject(projectId);
+      router.push('/projects');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete project');
+      setDeleting(false);
+    }
+  };
 
   return (
     <>
@@ -379,6 +409,79 @@ export default function ProjectDetailPage() {
               </section>
             )}
 
+            {estimate && (
+              <section className="card estimate-card">
+                <h2 className="section-title">Ballpark estimate</h2>
+                <p className="estimate-range">
+                  {formatThb(estimate.totals.minAmount)} –{' '}
+                  {formatThb(estimate.totals.maxAmount)}
+                </p>
+                <p className="muted estimate-meta">
+                  Midpoint {formatThb(estimate.totals.midAmount)} · Confidence{' '}
+                  {formatConfidence(estimate.confidence)}
+                </p>
+                {estimate.lines.length > 0 && (
+                  <ul className="estimate-lines">
+                    {estimate.lines.map((line, index) => (
+                      <li key={`${line.trade}-${index}`} className="estimate-line">
+                        <div>
+                          <strong>{line.description}</strong>
+                          <span className="muted estimate-line-trade">
+                            {line.trade}
+                          </span>
+                        </div>
+                        <span className="estimate-line-amount">
+                          {formatThb(line.lineMin)} – {formatThb(line.lineMax)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="muted estimate-disclaimer">{estimate.disclaimer}</p>
+              </section>
+            )}
+
+            {packages.length > 0 && (
+              <section className="card">
+                <h2 className="section-title">Scope packages</h2>
+                <p className="muted">
+                  Work items inferred from documents and project details.
+                </p>
+                <ul className="package-list">
+                  {packages.map((pkg, index) => (
+                    <li key={`${pkg.trade}-${index}`} className="package-item">
+                      <span className="package-trade">{pkg.trade}</span>
+                      <span>{pkg.description}</span>
+                      {(pkg.quantity ?? pkg.areaSqm) && (
+                        <span className="muted package-qty">
+                          {pkg.quantity ?? pkg.areaSqm}{' '}
+                          {pkg.unit ?? (pkg.areaSqm ? 'sqm' : '')}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {documentInsights.length > 0 && (
+              <section className="card">
+                <h2 className="section-title">Document analysis</h2>
+                <ul className="insight-list">
+                  {documentInsights.map((insight) => (
+                    <li key={insight.documentId} className="insight-item">
+                      <strong>{insight.fileName}</strong>
+                      <p>{insight.summary}</p>
+                      <p className="muted">
+                        {formatConfidence(insight.confidence)} confidence ·{' '}
+                        {insight.provider}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             {project.brief && (
               <section className="card">
                 <h2 className="section-title">Project brief</h2>
@@ -414,9 +517,29 @@ export default function ProjectDetailPage() {
               <p className="muted">
                 {intakeActive
                   ? 'Complete the intake questions above, then upload plans and photos in Documents.'
-                  : 'Cost estimation and contractor matching will be available in the next release.'}
+                  : estimate
+                    ? 'Review the ballpark estimate above. Contractor matching and detailed quotes will follow in a future release.'
+                    : 'Submit intake to receive a ballpark cost estimate.'}
               </p>
             </section>
+
+            {showDelete && (
+              <section className="card danger-zone">
+                <h2 className="section-title">Delete project</h2>
+                <p className="muted">
+                  Remove this project while it is still in draft or intake. Not
+                  available after estimation or tendering starts.
+                </p>
+                <button
+                  type="button"
+                  className="danger"
+                  disabled={deleting}
+                  onClick={() => void handleDelete()}
+                >
+                  {deleting ? 'Deleting…' : 'Delete project'}
+                </button>
+              </section>
+            )}
           </>
         )}
 

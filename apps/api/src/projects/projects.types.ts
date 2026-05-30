@@ -4,6 +4,7 @@ import {
   TagSource,
 } from '@prisma/client';
 import { ProjectBriefV1 } from './project-brief';
+import { EstimateResponse } from '../estimation/estimates.types';
 
 export interface ProjectTagResponse {
   slug: string;
@@ -33,6 +34,7 @@ export interface ProjectResponse {
   readinessScore: number;
   brief: ProjectBriefV1 | null;
   tags: ProjectTagResponse[];
+  estimate: EstimateResponse | null;
   createdAt: string;
   updatedAt: string;
 }

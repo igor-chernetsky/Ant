@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Document, DocumentStatus } from '@prisma/client';
+import { DocumentAnalysisService } from '../ai/document-analysis.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import {
@@ -23,6 +24,7 @@ export class DocumentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly documentAnalysis: DocumentAnalysisService,
   ) {}
 
   private toResponse(doc: Document): DocumentResponse {
@@ -167,6 +169,8 @@ export class DocumentsService {
         uploadedAt: new Date(),
       },
     });
+
+    this.documentAnalysis.scheduleAnalysis(projectId, documentId);
 
     return this.toResponse(updated);
   }

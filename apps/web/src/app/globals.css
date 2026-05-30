@@ -111,6 +111,20 @@ button.secondary {
   color: #e7ecf3;
 }
 
+button.danger {
+  background: #7f1d1d;
+  color: #fecaca;
+  border: 1px solid #991b1b;
+}
+
+button.danger:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+.danger-zone {
+  border-color: #442222;
+}
+
 pre {
   margin: 0;
   white-space: pre-wrap;
@@ -619,6 +633,24 @@ pre {
   margin-top: 0.5rem;
 }
 
+.intake-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.intake-custom-input {
+  width: 100%;
+  border: 1px solid #2a3647;
+  border-radius: 8px;
+  background: #0f1419;
+  color: #e7ecf3;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.95rem;
+  margin-top: 0.35rem;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -772,4 +804,90 @@ pre {
   font-size: 1.5rem;
   line-height: 1;
   padding: 0.15rem 0.45rem;
+}
+
+.estimate-card {
+  border-color: #2d4a3e;
+}
+
+.estimate-range {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0.25rem 0 0.5rem;
+  color: #86efac;
+}
+
+.estimate-meta {
+  margin: 0 0 1rem;
+}
+
+.estimate-lines {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.estimate-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0;
+  border-top: 1px solid #1e2936;
+}
+
+.estimate-line:first-child {
+  border-top: none;
+}
+
+.estimate-line-trade {
+  display: block;
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+.estimate-line-amount {
+  white-space: nowrap;
+  color: #cbd5e1;
+}
+
+.estimate-disclaimer {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.package-list,
+.insight-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.package-item,
+.insight-item {
+  padding: 0.65rem 0;
+  border-top: 1px solid #1e2936;
+}
+
+.package-item:first-child,
+.insight-item:first-child {
+  border-top: none;
+}
+
+.package-trade {
+  display: inline-block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #93c5fd;
+  margin-right: 0.5rem;
+}
+
+.package-qty {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+}
+
+.insight-item p {
+  margin: 0.35rem 0 0;
 }

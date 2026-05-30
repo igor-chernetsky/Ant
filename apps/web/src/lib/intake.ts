@@ -14,12 +14,18 @@ export interface IntakeQuestion {
   prompt: string;
   options?: Array<{ id: string; label: string }>;
   required: boolean;
+  allowSkip?: boolean;
+  allowCustom?: boolean;
   placeholder?: string;
 }
 
+export const INTAKE_OTHER_OPTION_ID = '__other__';
+
 export interface IntakeAnswerPayload {
   questionId: string;
+  skipped?: boolean;
   value?: string | string[];
+  customText?: string;
 }
 
 export function isIntakeActive(project: Project): boolean {

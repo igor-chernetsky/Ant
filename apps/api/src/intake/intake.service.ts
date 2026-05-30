@@ -9,6 +9,7 @@ import {
 import { Prisma, ProjectStatus, TagSource } from '@prisma/client';
 import { IntakeFallbackService } from '../ai/intake-fallback.service';
 import {
+  INTAKE_OTHER_OPTION_ID,
   InitialIntakeResult,
   IntakeQuestion,
   IntakeState,
@@ -23,6 +24,7 @@ import {
   computeReadinessScore,
 } from '../projects/project-brief';
 import { ProjectResponse } from '../projects/projects.types';
+import { EstimatesService } from '../estimation/estimates.service';
 import { ProjectsService } from '../projects/projects.service';
 
 @Injectable()
@@ -33,6 +35,7 @@ export class IntakeService {
     private readonly fallback: IntakeFallbackService,
     @Inject(forwardRef(() => ProjectsService))
     private readonly projectsService: ProjectsService,
+    private readonly estimatesService: EstimatesService,
   ) {}
 
   async runInitialIntakeForProject(projectId: string): Promise<void> {
@@ -112,13 +115,15 @@ export class IntakeService {
       throw new BadRequestException('Answer does not match the current question');
     }
 
-    const value = this.validateAnswer(current, dto.value);
+    const parsed = this.parseAnswer(current, dto);
 
     const answers = [
       ...intake.answers.filter((a) => a.questionId !== current.id),
       {
         questionId: current.id,
-        value,
+        value: parsed.value,
+        skipped: parsed.skipped,
+        customText: parsed.customText,
         answeredAt: new Date().toISOString(),
       },
     ];
@@ -137,7 +142,9 @@ export class IntakeService {
     if (this.openAi.isConfigured()) {
       const next = await this.openAi.getNextQuestion(context, {
         questionId: current.id,
-        value,
+        value: parsed.value,
+        skipped: parsed.skipped,
+        customText: parsed.customText,
       });
       if (next) {
         nextQuestion = next.nextQuestion;
@@ -257,6 +264,8 @@ export class IntakeService {
       },
     });
 
+    await this.estimatesService.generateAndStore(projectId);
+
     return this.projectsService.getForClient(clientId, projectId);
   }
 
@@ -318,50 +327,84 @@ export class IntakeService {
     });
   }
 
-  private validateAnswer(
+  private parseAnswer(
     question: IntakeQuestion,
-    raw: string | string[] | undefined,
-  ): string | string[] {
+    dto: SubmitAnswerDto,
+  ): { value: string | string[]; skipped?: boolean; customText?: string } {
     if (question.type === 'info') {
-      return '';
+      return { value: '' };
     }
 
+    if (dto.skipped) {
+      if (question.allowSkip === false) {
+        throw new BadRequestException('This question cannot be skipped');
+      }
+      return { value: '', skipped: true };
+    }
+
+    const customText = dto.customText?.trim();
+
     if (question.type === 'text') {
-      const value = typeof raw === 'string' ? raw.trim() : '';
-      if (question.required && !value) {
+      const value = typeof dto.value === 'string' ? dto.value.trim() : '';
+      if (question.required && !value && !customText) {
         throw new BadRequestException('An answer is required');
       }
-      return value;
+      return { value: value || customText || '' };
     }
 
     if (question.type === 'single') {
-      const value = typeof raw === 'string' ? raw : '';
-      if (question.required && !value) {
+      const value = typeof dto.value === 'string' ? dto.value : '';
+      if (!value && question.required) {
         throw new BadRequestException('Please select an option');
+      }
+      if (value === INTAKE_OTHER_OPTION_ID) {
+        if (question.allowCustom === false) {
+          throw new BadRequestException('Custom answers are not allowed');
+        }
+        if (!customText) {
+          throw new BadRequestException('Please enter your answer');
+        }
+        return { value: INTAKE_OTHER_OPTION_ID, customText };
       }
       if (value && !question.options?.some((o) => o.id === value)) {
         throw new BadRequestException('Invalid option');
       }
-      return value;
+      return { value };
     }
 
-    const values = Array.isArray(raw)
-      ? raw.filter((v) => typeof v === 'string')
-      : typeof raw === 'string' && raw
-        ? [raw]
+    const values = Array.isArray(dto.value)
+      ? dto.value.filter((v) => typeof v === 'string')
+      : typeof dto.value === 'string' && dto.value
+        ? [dto.value]
         : [];
 
-    if (question.required && values.length === 0) {
+    const hasOther = values.includes(INTAKE_OTHER_OPTION_ID);
+    const optionIds = values.filter((v) => v !== INTAKE_OTHER_OPTION_ID);
+
+    if (question.required && optionIds.length === 0 && !hasOther) {
       throw new BadRequestException('Select at least one option');
     }
 
-    for (const value of values) {
+    for (const value of optionIds) {
       if (!question.options?.some((o) => o.id === value)) {
         throw new BadRequestException('Invalid option selected');
       }
     }
 
-    return values;
+    if (hasOther) {
+      if (question.allowCustom === false) {
+        throw new BadRequestException('Custom answers are not allowed');
+      }
+      if (!customText) {
+        throw new BadRequestException('Please describe your other option');
+      }
+      return {
+        value: [...optionIds, INTAKE_OTHER_OPTION_ID],
+        customText,
+      };
+    }
+
+    return { value: optionIds };
   }
 
   private mergeBrief(

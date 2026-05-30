@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -48,5 +49,15 @@ export class ProjectsController {
   ) {
     const user = await this.resolveClient(req);
     return this.projectsService.getForClient(user.id, id);
+  }
+
+  @Delete(':id')
+  async deleteOne(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('id') id: string,
+  ) {
+    const user = await this.resolveClient(req);
+    await this.projectsService.deleteForClient(user.id, id);
+    return { ok: true };
   }
 }

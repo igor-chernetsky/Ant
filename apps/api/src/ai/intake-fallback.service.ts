@@ -53,9 +53,14 @@ export class IntakeFallbackService {
     const narrative = [
       context.title,
       context.improvedDescription ?? context.description ?? '',
-      ...context.answers.map((a) =>
-        Array.isArray(a.value) ? a.value.join(', ') : a.value,
-      ),
+      ...context.answers.map((a) => {
+        if (a.skipped) return '';
+        const base = Array.isArray(a.value) ? a.value.join(', ') : a.value;
+        if (a.customText) {
+          return `${base}: ${a.customText}`;
+        }
+        return base;
+      }),
     ].join(' ');
 
     const tagSlugs = suggestTagSlugsFromText(narrative).filter((slug) =>
@@ -84,6 +89,8 @@ export class IntakeFallbackService {
         type: 'single',
         prompt: 'What type of property is this project for?',
         required: true,
+        allowSkip: true,
+        allowCustom: true,
         options: [
           { id: 'apartment', label: 'Apartment' },
           { id: 'house', label: 'House' },
@@ -111,6 +118,8 @@ export class IntakeFallbackService {
         type: 'single',
         prompt: 'What is the approximate area involved?',
         required: true,
+        allowSkip: true,
+        allowCustom: true,
         options: [
           { id: 'under-30', label: 'Under 30 sqm' },
           { id: '30-80', label: '30–80 sqm' },
@@ -123,6 +132,8 @@ export class IntakeFallbackService {
         type: 'single',
         prompt: 'When would you like to start?',
         required: true,
+        allowSkip: true,
+        allowCustom: true,
         options: [
           { id: 'asap', label: 'As soon as possible' },
           { id: '1-3-months', label: 'In 1–3 months' },
@@ -134,6 +145,7 @@ export class IntakeFallbackService {
         type: 'text',
         prompt: 'Any material preferences or constraints? (optional)',
         required: false,
+        allowSkip: true,
         placeholder: 'e.g. premium tiles, client-supplied fixtures…',
       },
       {

@@ -38,6 +38,14 @@ export interface ProjectBriefV1 {
     confidence?: number;
     originalNarrative?: string;
     improvedDescription?: string;
+    documentInsights?: Array<{
+      documentId: string;
+      fileName: string;
+      analyzedAt: string;
+      summary: string;
+      confidence: number;
+      provider: 'openai' | 'fallback';
+    }>;
     intake?: {
       status:
         | 'awaiting_answers'
@@ -48,6 +56,8 @@ export interface ProjectBriefV1 {
       answers: Array<{
         questionId: string;
         value: string | string[];
+        skipped?: boolean;
+        customText?: string;
         answeredAt: string;
       }>;
       currentQuestion: {
@@ -56,6 +66,8 @@ export interface ProjectBriefV1 {
         prompt: string;
         options?: Array<{ id: string; label: string }>;
         required: boolean;
+        allowSkip?: boolean;
+        allowCustom?: boolean;
         placeholder?: string;
       } | null;
       askedQuestionIds: string[];

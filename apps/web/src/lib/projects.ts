@@ -29,6 +29,8 @@ export interface IntakeQuestion {
   prompt: string;
   options?: Array<{ id: string; label: string }>;
   required: boolean;
+  allowSkip?: boolean;
+  allowCustom?: boolean;
   placeholder?: string;
 }
 
@@ -45,10 +47,15 @@ export interface ProjectBriefV1 {
   packages?: Array<{
     trade: string;
     description: string;
+    quantity?: number;
+    unit?: string;
+    areaSqm?: number;
   }>;
   property?: {
     type?: PropertyType;
     areaSqm?: number;
+    floors?: number;
+    rooms?: number;
   };
   materials?: Record<string, unknown>;
   timeline?: Record<string, unknown>;
@@ -62,12 +69,22 @@ export interface ProjectBriefV1 {
     confidence?: number;
     originalNarrative?: string;
     improvedDescription?: string;
+    documentInsights?: Array<{
+      documentId: string;
+      fileName: string;
+      analyzedAt: string;
+      summary: string;
+      confidence: number;
+      provider: 'openai' | 'fallback';
+    }>;
     intake?: {
       status: IntakeStatus;
       improvedDescription?: string;
       answers: Array<{
         questionId: string;
         value: string | string[];
+        skipped?: boolean;
+        customText?: string;
         answeredAt: string;
       }>;
       currentQuestion: IntakeQuestion | null;
@@ -76,6 +93,8 @@ export interface ProjectBriefV1 {
     };
   };
 }
+
+import type { BallparkEstimate } from '@/lib/estimate';
 
 export interface Project {
   id: string;
@@ -89,6 +108,7 @@ export interface Project {
   readinessScore: number;
   brief: ProjectBriefV1 | null;
   tags: ProjectTag[];
+  estimate: BallparkEstimate | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -177,6 +197,33 @@ export async function fetchProject(id: string): Promise<Project> {
     throw new Error(body?.message ?? 'Failed to load project');
   }
   return response.json() as Promise<Project>;
+}
+
+const DELETABLE_STATUSES = new Set([
+  'draft',
+  'intake',
+  'ready_for_estimate',
+]);
+
+export function canDeleteProject(project: Pick<Project, 'status'>): boolean {
+  return DELETABLE_STATUSES.has(project.status);
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  const response = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (response.status === 401) {
+    throw new Error('NOT_AUTHENTICATED');
+  }
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to delete project');
+  }
 }
 
 export function formatProjectStatus(status: string): string {

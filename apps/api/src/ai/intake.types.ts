@@ -17,12 +17,16 @@ export interface IntakeQuestion {
   prompt: string;
   options?: IntakeQuestionOption[];
   required: boolean;
+  allowSkip?: boolean;
+  allowCustom?: boolean;
   placeholder?: string;
 }
 
 export interface IntakeAnswer {
   questionId: string;
   value: string | string[];
+  skipped?: boolean;
+  customText?: string;
   answeredAt: string;
 }
 
@@ -56,8 +60,13 @@ export interface FinalIntakeResult {
 
 export interface SubmitAnswerDto {
   questionId: string;
+  skipped?: boolean;
   value?: string | string[];
+  customText?: string;
 }
+
+/** Reserved option id — user supplies customText */
+export const INTAKE_OTHER_OPTION_ID = '__other__';
 
 export interface ProjectIntakeContext {
   title: string;

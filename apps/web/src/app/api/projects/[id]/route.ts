@@ -6,3 +6,10 @@ export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
   return proxyBackendJson(`/v1/projects/${encodeURIComponent(id)}`);
 }
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  return proxyBackendJson(`/v1/projects/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}

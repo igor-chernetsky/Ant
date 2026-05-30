@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://iabuilding.duckdns.org/schemas/estimate.ballpark.v1.json",
+  "title": "BallparkEstimateV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["lines", "totals", "confidence", "disclaimer"],
+  "properties": {
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "trade",
+          "description",
+          "quantity",
+          "unit",
+          "unitPriceMin",
+          "unitPriceMax",
+          "lineMin",
+          "lineMax"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "trade": { "type": "string", "maxLength": 64 },
+          "description": { "type": "string", "maxLength": 500 },
+          "quantity": { "type": "number", "minimum": 0 },
+          "unit": { "type": "string", "maxLength": 32 },
+          "unitPriceMin": { "type": "number", "minimum": 0 },
+          "unitPriceMax": { "type": "number", "minimum": 0 },
+          "lineMin": { "type": "number", "minimum": 0 },
+          "lineMax": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": ["minAmount", "maxAmount", "midAmount", "currency"],
+      "additionalProperties": false,
+      "properties": {
+        "minAmount": { "type": "number", "minimum": 0 },
+        "maxAmount": { "type": "number", "minimum": 0 },
+        "midAmount": { "type": "number", "minimum": 0 },
+        "currency": { "type": "string", "minLength": 3, "maxLength": 3 }
+      }
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "disclaimer": { "type": "string", "maxLength": 2000 },
+    "provider": { "type": "string", "enum": ["openai", "fallback"] }
+  }
+}

@@ -77,6 +77,8 @@ export class OpenAiIntakeService {
   "prompt": "question text in English",
   "options": [{ "id": "opt-id", "label": "label" }],
   "required": true|false,
+  "allowSkip": true|false (default true — user may skip),
+  "allowCustom": true|false (default true for single/multi — user may enter "Other"),
   "placeholder": "optional hint for text"
 }
 - "single": radio buttons (options required, 2-6 options)
@@ -142,7 +144,12 @@ Rules:
 
   async getNextQuestion(
     context: ProjectIntakeContext,
-    lastAnswer: { questionId: string; value: string | string[] },
+    lastAnswer: {
+      questionId: string;
+      value: string | string[];
+      skipped?: boolean;
+      customText?: string;
+    },
   ): Promise<NextQuestionResult | null> {
     const system = `You continue a construction project intake interview one question at a time.
 Return JSON: { "nextQuestion": Question|null, "improvedDescription": string optional }.
@@ -261,7 +268,10 @@ Rules:
       type,
       prompt: String(q.prompt).slice(0, 500),
       options,
-      required: type === 'info' ? false : q.required !== false,
+      required: type === 'info' ? false : q.required === true,
+      allowSkip: type === 'info' ? false : q.allowSkip !== false,
+      allowCustom:
+        type === 'single' || type === 'multi' ? q.allowCustom !== false : false,
       placeholder: q.placeholder?.slice(0, 200),
     };
   }
