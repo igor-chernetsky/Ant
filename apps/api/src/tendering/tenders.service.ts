@@ -362,6 +362,8 @@ export class TendersService {
     dto: RespondInvitationDto,
   ): Promise<TenderInvitationResponse> {
     const profile = await this.contractorProfiles.requireByUserId(userId);
+    this.contractorProfiles.assertVerified(profile);
+
     const invitation = await this.prisma.tenderInvitation.findUnique({
       where: {
         tenderId_contractorId: {
@@ -418,6 +420,7 @@ export class TendersService {
     }
 
     const profile = await this.contractorProfiles.requireByUserId(userId);
+    this.contractorProfiles.assertVerified(profile);
     const tender = await this.loadTender(tenderId);
 
     if (tender.status !== TenderStatus.open) {

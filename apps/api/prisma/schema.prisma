@@ -58,9 +58,18 @@ enum DocumentCategory {
 
 enum ContractorVerificationStatus {
   pending
+  awaiting_review
   verified
   suspended
   rejected
+}
+
+enum ContractorVerificationDocCategory {
+  business_license
+  registration
+  insurance
+  portfolio
+  other
 }
 
 enum TenderStatus {
@@ -95,7 +104,9 @@ model User {
   updatedAt   DateTime   @updatedAt @map("updated_at")
   projects    Project[]
   documents   Document[]
-  contractorProfile ContractorProfile?
+  contractorProfile ContractorProfile? @relation("ContractorProfileUser")
+  contractorReviews ContractorProfile[] @relation("ContractorReviewedBy")
+  contractorVerificationDocuments ContractorVerificationDocument[]
 
   @@map("users")
 }
@@ -199,21 +210,46 @@ model Estimate {
 }
 
 model ContractorProfile {
-  id                 String                       @id @default(uuid())
-  userId             String                       @unique @map("user_id")
-  user               User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  companyName        String?                      @map("company_name")
-  regionCode         String                       @default("TH") @map("region_code")
-  projectTypes       ProjectType[]                @default([]) @map("project_types")
-  verificationStatus ContractorVerificationStatus @default(pending) @map("verification_status")
-  createdAt          DateTime                     @default(now()) @map("created_at")
-  updatedAt          DateTime                     @updatedAt @map("updated_at")
-  invitations        TenderInvitation[]
-  bids               Bid[]
+  id                      String                       @id @default(uuid())
+  userId                  String                       @unique @map("user_id")
+  user                    User                         @relation("ContractorProfileUser", fields: [userId], references: [id], onDelete: Cascade)
+  companyName             String?                      @map("company_name")
+  regionCode              String                       @default("TH") @map("region_code")
+  projectTypes            ProjectType[]                @default([]) @map("project_types")
+  verificationStatus      ContractorVerificationStatus @default(pending) @map("verification_status")
+  verificationComment     String?                      @map("verification_comment")
+  verificationRequestedAt DateTime?                    @map("verification_requested_at")
+  verificationReviewedAt  DateTime?                    @map("verification_reviewed_at")
+  reviewedById            String?                      @map("reviewed_by_id")
+  reviewedBy              User?                        @relation("ContractorReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt               DateTime                     @default(now()) @map("created_at")
+  updatedAt               DateTime                     @updatedAt @map("updated_at")
+  invitations             TenderInvitation[]
+  bids                    Bid[]
+  verificationDocuments   ContractorVerificationDocument[]
 
   @@index([regionCode])
   @@index([verificationStatus])
   @@map("contractor_profiles")
+}
+
+model ContractorVerificationDocument {
+  id           String                          @id @default(uuid())
+  contractorId String                          @map("contractor_id")
+  contractor   ContractorProfile               @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+  uploaderId   String                          @map("uploader_id")
+  uploader     User                            @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  originalName String                          @map("original_name")
+  contentType  String                          @map("content_type")
+  sizeBytes    Int?                            @map("size_bytes")
+  storageKey   String                          @unique @map("storage_key")
+  category     ContractorVerificationDocCategory @default(other)
+  status       DocumentStatus                  @default(pending)
+  createdAt    DateTime                        @default(now()) @map("created_at")
+  uploadedAt   DateTime?                       @map("uploaded_at")
+
+  @@index([contractorId])
+  @@map("contractor_verification_documents")
 }
 
 model Tender {

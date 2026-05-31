@@ -16,6 +16,9 @@ export interface ContractorProfileResponse {
   regionCode: string;
   projectTypes: ProjectType[];
   verificationStatus: string;
+  verificationComment: string | null;
+  verificationRequestedAt: string | null;
+  verificationReviewedAt: string | null;
   createdAt: string;
 }
 

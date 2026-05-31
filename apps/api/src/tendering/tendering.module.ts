@@ -17,6 +17,6 @@ import { TendersService } from './tenders.service';
     TenderMatchingService,
     TenderAutoCloseService,
   ],
-  exports: [TendersService],
+  exports: [TendersService, ContractorProfilesService],
 })
 export class TenderingModule {}

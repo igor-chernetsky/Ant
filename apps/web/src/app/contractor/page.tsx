@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { ContractorVerificationPanel } from '@/components/ContractorVerificationPanel';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
@@ -215,8 +216,8 @@ export default function ContractorPage() {
           <section className="card">
             <h2 className="section-title">Register as contractor</h2>
             <p className="muted doc-hint">
-              MVP auto-verifies new profiles so you can receive invitations
-              immediately.
+              MVP auto-creates your profile as pending. Upload documents and
+              request approval below.
             </p>
             <div className="modal-form">
               <label>
@@ -253,11 +254,23 @@ export default function ContractorPage() {
             <section className="card">
               <h2 className="section-title">Your profile</h2>
               <p className="muted">
-                {profile.companyName ?? 'Unnamed company'} · {profile.regionCode}{' '}
-                · {profile.verificationStatus}
+                {profile.companyName ?? 'Unnamed company'} · {profile.regionCode}
               </p>
             </section>
 
+            <ContractorVerificationPanel
+              profile={profile}
+              onProfileUpdated={setProfile}
+            />
+
+            {profile.verificationStatus !== 'verified' ? (
+              <section className="card">
+                <p className="muted">
+                  Tender invitations and bids unlock after admin verification.
+                </p>
+              </section>
+            ) : (
+              <>
             <section className="card">
               <h2 className="section-title">Invitations</h2>
               {invitations.length === 0 ? (
@@ -404,6 +417,8 @@ export default function ContractorPage() {
                 )}
                 {error && <p className="form-error">{error}</p>}
               </section>
+            )}
+              </>
             )}
           </>
         )}

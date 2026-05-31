@@ -11,6 +11,7 @@ import { StorageModule } from './storage/storage.module';
 import { TagsModule } from './tags/tags.module';
 import { TenderingModule } from './tendering/tendering.module';
 import { UsersModule } from './users/users.module';
+import { VerificationModule } from './verification/verification.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module';
     EstimationModule,
     IntakeModule,
     TenderingModule,
+    VerificationModule,
   ],
 })
 export class AppModule {}

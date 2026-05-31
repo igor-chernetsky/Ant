@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -26,6 +27,11 @@ export class ContractorProfilesService {
       regionCode: profile.regionCode,
       projectTypes: profile.projectTypes,
       verificationStatus: profile.verificationStatus,
+      verificationComment: profile.verificationComment,
+      verificationRequestedAt:
+        profile.verificationRequestedAt?.toISOString() ?? null,
+      verificationReviewedAt:
+        profile.verificationReviewedAt?.toISOString() ?? null,
       createdAt: profile.createdAt.toISOString(),
     };
   }
@@ -49,9 +55,6 @@ export class ContractorProfilesService {
     return profile;
   }
 
-  /**
-   * MVP: new profiles are auto-verified so tender matching works without admin UI.
-   */
   async upsertForUser(
     userId: string,
     dto: UpsertContractorProfileDto,
@@ -67,7 +70,7 @@ export class ContractorProfilesService {
         companyName: dto.companyName?.trim() || null,
         regionCode: dto.regionCode?.trim() || 'TH',
         projectTypes: projectTypes ?? [],
-        verificationStatus: ContractorVerificationStatus.verified,
+        verificationStatus: ContractorVerificationStatus.pending,
       },
       update: {
         companyName: dto.companyName?.trim() || null,
@@ -77,5 +80,13 @@ export class ContractorProfilesService {
     });
 
     return this.toResponse(profile);
+  }
+
+  assertVerified(profile: ContractorProfile): void {
+    if (profile.verificationStatus !== ContractorVerificationStatus.verified) {
+      throw new ForbiddenException(
+        'Contractor account must be verified before participating in tenders',
+      );
+    }
   }
 }

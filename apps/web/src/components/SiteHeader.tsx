@@ -41,6 +41,11 @@ export function SiteHeader({
           )}
           {me ? (
             <>
+              {me.roles?.includes('admin') && (
+                <Link href="/admin/contractors" className="text-link header-link">
+                  Admin
+                </Link>
+              )}
               <Link href="/contractor" className="text-link header-link">
                 Contractor
               </Link>
