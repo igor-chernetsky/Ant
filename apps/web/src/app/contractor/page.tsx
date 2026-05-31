@@ -7,6 +7,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
 import { formatThb } from '@/lib/estimate';
+import { useSession } from '@/components/SessionProvider';
 import {
   fetchContractorInvitations,
   fetchContractorProfile,
@@ -20,14 +21,9 @@ import {
   type ContractorProfile,
   type ContractorTenderView,
 } from '@/lib/tendering';
-import {
-  fetchSessionProfile,
-  logoutSession,
-  type MeResponse,
-} from '@/lib/session';
 
 export default function ContractorPage() {
-  const [me, setMe] = useState<MeResponse | null>(null);
+  const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<ContractorProfile | null>(null);
   const [invitations, setInvitations] = useState<ContractorInvitationItem[]>(
@@ -48,14 +44,12 @@ export default function ContractorPage() {
 
   const loadAll = useCallback(async () => {
     setError(null);
-    const session = await fetchSessionProfile();
-    if (!session) {
-      setMe(null);
+    if (!sessionReady) return;
+    if (!me) {
       setReady(true);
       return;
     }
 
-    setMe(session);
     const [prof, invs] = await Promise.all([
       fetchContractorProfile(),
       fetchContractorInvitations(),
@@ -65,14 +59,15 @@ export default function ContractorPage() {
     if (prof?.companyName) setCompanyName(prof.companyName);
     if (prof?.regionCode) setRegionCode(prof.regionCode);
     setReady(true);
-  }, []);
+  }, [me, sessionReady]);
 
   useEffect(() => {
+    if (!sessionReady) return;
     loadAll().catch((err: unknown) => {
       setError(err instanceof Error ? err.message : 'Failed to load');
       setReady(true);
     });
-  }, [loadAll]);
+  }, [sessionReady, loadAll]);
 
   const loadTenderView = async (tenderId: string) => {
     setBusy(true);
@@ -169,8 +164,7 @@ export default function ContractorPage() {
   };
 
   const handleLogout = async () => {
-    await logoutSession();
-    setMe(null);
+    await signOut();
     setProfile(null);
     setInvitations([]);
     setTenderView(null);
@@ -428,7 +422,10 @@ export default function ContractorPage() {
         isOpen={loginOpen}
         onClose={() => setLoginOpen(false)}
         onSuccess={() => {
-          void loadAll();
+          void (async () => {
+            await refreshSession();
+            await loadAll();
+          })();
         }}
       />
     </PageShell>

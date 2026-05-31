@@ -1,3 +1,5 @@
+import { fetchWithAuth } from './auth-client';
+
 export interface TagCatalogItem {
   slug: string;
   label: string;
@@ -7,10 +9,7 @@ export interface TagCatalogItem {
 }
 
 export async function fetchTags(): Promise<TagCatalogItem[]> {
-  const response = await fetch('/api/tags', { credentials: 'include' });
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
+  const response = await fetchWithAuth('/api/tags');
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;
@@ -21,16 +20,12 @@ export async function fetchTags(): Promise<TagCatalogItem[]> {
 }
 
 export async function createTag(label: string): Promise<TagCatalogItem> {
-  const response = await fetch('/api/tags', {
+  const response = await fetchWithAuth('/api/tags', {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ label }),
   });
 
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;

@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { isSessionExpiredError } from '@/lib/auth-client';
 import {
   PROJECT_TYPE_OPTIONS,
   PROPERTY_TYPE_OPTIONS,
@@ -47,6 +48,10 @@ export function CreateProjectModal({
       onCreated(project.id);
       onClose();
     } catch (err: unknown) {
+      if (isSessionExpiredError(err)) {
+        onClose();
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Failed to create project');
     } finally {
       setCreating(false);

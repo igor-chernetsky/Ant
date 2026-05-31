@@ -1,3 +1,5 @@
+import { fetchWithAuth } from './auth-client';
+
 export type TenderStatus =
   | 'draft'
   | 'collecting_participants'
@@ -108,13 +110,9 @@ async function parseError(response: Response, fallback: string): Promise<never> 
 export async function fetchProjectTender(
   projectId: string,
 ): Promise<Tender | null> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/tender`,
-    { credentials: 'include' },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to load tender');
   }
@@ -126,13 +124,10 @@ export async function fetchProjectTender(
 }
 
 export async function createProjectTender(projectId: string): Promise<Tender> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/tender`,
-    { method: 'POST', credentials: 'include' },
+    { method: 'POST' },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to create tender');
   }
@@ -140,13 +135,10 @@ export async function createProjectTender(projectId: string): Promise<Tender> {
 }
 
 export async function startProjectTender(projectId: string): Promise<Tender> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/tender/start`,
-    { method: 'POST', credentials: 'include' },
+    { method: 'POST' },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to start tender');
   }
@@ -157,13 +149,10 @@ export async function selectProjectBid(
   projectId: string,
   bidId: string,
 ): Promise<Tender> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/select`,
-    { method: 'POST', credentials: 'include' },
+    { method: 'POST' },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to select bid');
   }
@@ -171,12 +160,8 @@ export async function selectProjectBid(
 }
 
 export async function fetchContractorProfile(): Promise<ContractorProfile | null> {
-  const response = await fetch('/api/contractor/profile', {
-    credentials: 'include',
+  const response = await fetchWithAuth('/api/contractor/profile', {
   });
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to load contractor profile');
   }
@@ -191,15 +176,11 @@ export async function upsertContractorProfile(input: {
   companyName?: string;
   regionCode?: string;
 }): Promise<ContractorProfile> {
-  const response = await fetch('/api/contractor/profile', {
+  const response = await fetchWithAuth('/api/contractor/profile', {
     method: 'PUT',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   });
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to save contractor profile');
   }
@@ -209,12 +190,8 @@ export async function upsertContractorProfile(input: {
 export async function fetchContractorInvitations(): Promise<
   ContractorInvitationItem[]
 > {
-  const response = await fetch('/api/contractor/invitations', {
-    credentials: 'include',
+  const response = await fetchWithAuth('/api/contractor/invitations', {
   });
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to load invitations');
   }
@@ -224,13 +201,9 @@ export async function fetchContractorInvitations(): Promise<
 export async function fetchContractorTender(
   tenderId: string,
 ): Promise<ContractorTenderView> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/contractor/tenders/${encodeURIComponent(tenderId)}`,
-    { credentials: 'include' },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to load tender');
   }
@@ -241,18 +214,14 @@ export async function respondContractorInvitation(
   tenderId: string,
   accept: boolean,
 ): Promise<TenderInvitation> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/contractor/tenders/${encodeURIComponent(tenderId)}/invitations/respond`,
     {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accept }),
     },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to respond to invitation');
   }
@@ -267,18 +236,14 @@ export async function submitContractorBid(
     notes?: string;
   },
 ): Promise<Bid> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/contractor/tenders/${encodeURIComponent(tenderId)}/bids`,
     {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to submit bid');
   }
@@ -286,13 +251,10 @@ export async function submitContractorBid(
 }
 
 export async function withdrawContractorBid(tenderId: string): Promise<Bid> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/contractor/tenders/${encodeURIComponent(tenderId)}/bids`,
-    { method: 'DELETE', credentials: 'include' },
+    { method: 'DELETE' },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     await parseError(response, 'Failed to withdraw bid');
   }

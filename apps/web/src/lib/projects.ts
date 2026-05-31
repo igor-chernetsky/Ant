@@ -1,3 +1,5 @@
+import { fetchWithAuth } from './auth-client';
+
 export type ProjectType =
   | 'renovation'
   | 'new_build'
@@ -144,10 +146,7 @@ export const PROPERTY_TYPE_OPTIONS: Array<{
 ];
 
 export async function fetchProjects(): Promise<Project[]> {
-  const response = await fetch('/api/projects', { credentials: 'include' });
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
+  const response = await fetchWithAuth('/api/projects');
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;
@@ -160,16 +159,12 @@ export async function fetchProjects(): Promise<Project[]> {
 export async function createProject(
   input: CreateProjectInput,
 ): Promise<Project> {
-  const response = await fetch('/api/projects', {
+  const response = await fetchWithAuth('/api/projects', {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   });
 
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;
@@ -180,13 +175,10 @@ export async function createProject(
 }
 
 export async function fetchProject(id: string): Promise<Project> {
-  const response = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
-    credentials: 'include',
-  });
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(id)}`,
+  );
 
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (response.status === 403) {
     throw new Error('FORBIDDEN');
   }
@@ -213,14 +205,11 @@ export function canDeleteProject(project: Pick<Project, 'status'>): boolean {
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  const response = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  );
 
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;

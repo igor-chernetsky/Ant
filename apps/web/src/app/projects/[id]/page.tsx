@@ -36,14 +36,10 @@ import {
   formatPropertyType,
   type Project,
 } from '@/lib/projects';
+import { useSession } from '@/components/SessionProvider';
 import {
   fetchPublicProject,
 } from '@/lib/public-projects';
-import {
-  fetchSessionProfile,
-  logoutSession,
-  type MeResponse,
-} from '@/lib/session';
 
 type AuthState = 'loading' | 'guest' | 'authenticated';
 
@@ -69,11 +65,11 @@ function guessContentType(file: File): string | null {
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const projectId = params.id;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [authState, setAuthState] = useState<AuthState>('loading');
-  const [me, setMe] = useState<MeResponse | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [docCategory, setDocCategory] = useState<DocumentCategory>('blueprint');
@@ -97,7 +93,7 @@ export default function ProjectDetailPage() {
   );
 
   const loadProjectView = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId || !sessionReady) return;
 
     setError(null);
     setProject(null);
@@ -105,8 +101,7 @@ export default function ProjectDetailPage() {
     setIsOwner(false);
     setPageReady(false);
 
-    const profile = await fetchSessionProfile();
-    setMe(profile);
+    const profile = me;
     setAuthState(profile ? 'authenticated' : 'guest');
 
     try {
@@ -142,19 +137,19 @@ export default function ProjectDetailPage() {
       }
       setPageReady(true);
     }
-  }, [projectId, loadDocuments]);
+  }, [projectId, loadDocuments, me, sessionReady]);
 
   useEffect(() => {
+    if (!sessionReady) return;
     loadProjectView().catch((err: unknown) => {
       setError(err instanceof Error ? err.message : 'Failed to load project');
       setAuthState('guest');
       setPageReady(true);
     });
-  }, [loadProjectView]);
+  }, [sessionReady, loadProjectView]);
 
   const handleLogout = async () => {
-    await logoutSession();
-    setMe(null);
+    await signOut();
     setProject(null);
     setDocuments([]);
     setAuthState('guest');
@@ -608,7 +603,12 @@ export default function ProjectDetailPage() {
       <LoginModal
         isOpen={loginOpen}
         onClose={() => setLoginOpen(false)}
-        onSuccess={() => void loadProjectView()}
+        onSuccess={() => {
+          void (async () => {
+            await refreshSession();
+            await loadProjectView();
+          })();
+        }}
       />
       <CreateProjectModal
         isOpen={createOpen}

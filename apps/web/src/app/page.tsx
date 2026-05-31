@@ -6,6 +6,7 @@ import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
+import { useSession } from '@/components/SessionProvider';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TagFilterBar } from '@/components/TagFilterBar';
 import {
@@ -13,16 +14,10 @@ import {
   fetchPublicTags,
   type PublicProjectCard,
 } from '@/lib/public-projects';
-import {
-  fetchSessionProfile,
-  logoutSession,
-  type MeResponse,
-} from '@/lib/session';
 
 export default function HomePage() {
   const router = useRouter();
-  const [me, setMe] = useState<MeResponse | null>(null);
-  const [sessionReady, setSessionReady] = useState(false);
+  const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [projects, setProjects] = useState<PublicProjectCard[]>([]);
   const [allTags, setAllTags] = useState<Array<{ slug: string; label: string }>>(
     [],
@@ -51,16 +46,10 @@ export default function HomePage() {
   useEffect(() => {
     void (async () => {
       try {
-        const [profile, tags] = await Promise.all([
-          fetchSessionProfile(),
-          fetchPublicTags(),
-        ]);
-        setMe(profile);
+        const tags = await fetchPublicTags();
         setAllTags(tags.map((t) => ({ slug: t.slug, label: t.label })));
       } catch {
-        setMe(null);
-      } finally {
-        setSessionReady(true);
+        setAllTags([]);
       }
     })();
   }, []);
@@ -77,6 +66,14 @@ export default function HomePage() {
     }
   }, [pendingCreate, me]);
 
+  useEffect(() => {
+    if (!me) {
+      setCreateOpen(false);
+      setLoginOpen(false);
+      setPendingCreate(false);
+    }
+  }, [me]);
+
   const handleAddProject = () => {
     if (me) {
       setCreateOpen(true);
@@ -86,14 +83,12 @@ export default function HomePage() {
     }
   };
 
-  const handleLogout = async () => {
-    await logoutSession();
-    setMe(null);
+  const handleLogout = () => {
+    void signOut();
   };
 
   const handleLoginSuccess = async () => {
-    const profile = await fetchSessionProfile();
-    setMe(profile);
+    await refreshSession();
   };
 
   return (

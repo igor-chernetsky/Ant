@@ -1,3 +1,5 @@
+import { fetchWithAuth } from './auth-client';
+
 export type DocumentCategory =
   | 'blueprint'
   | 'photo'
@@ -56,13 +58,9 @@ export function formatFileSize(bytes: number | null): string {
 export async function fetchProjectDocuments(
   projectId: string,
 ): Promise<ProjectDocument[]> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/documents`,
-    { credentials: 'include' },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;
@@ -76,18 +74,14 @@ export async function presignDocumentUpload(
   projectId: string,
   input: PresignUploadInput,
 ): Promise<PresignUploadResult> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/documents/presign`,
     {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;
@@ -101,16 +95,10 @@ export async function completeDocumentUpload(
   projectId: string,
   documentId: string,
 ): Promise<ProjectDocument> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/complete`,
-    {
-      method: 'POST',
-      credentials: 'include',
-    },
+    { method: 'POST' },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;
@@ -124,13 +112,9 @@ export async function getDocumentDownloadUrl(
   projectId: string,
   documentId: string,
 ): Promise<{ downloadUrl: string; originalName: string }> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download-url`,
-    { credentials: 'include' },
   );
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;

@@ -1,3 +1,5 @@
+import { fetchWithAuth } from './auth-client';
+
 export interface EstimateLine {
   trade: string;
   description: string;
@@ -43,14 +45,10 @@ export function formatConfidence(confidence: number): string {
 export async function fetchProjectEstimate(
   projectId: string,
 ): Promise<BallparkEstimate | null> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/estimate`,
-    { credentials: 'include' },
   );
 
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (response.status === 404) {
     return null;
   }

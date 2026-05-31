@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
+import { useSession } from '@/components/SessionProvider';
 import {
   approveAdminContractor,
   fetchAdminContractor,
@@ -17,11 +18,6 @@ import {
   type AdminContractorListItem,
   type ContractorVerificationStatus,
 } from '@/lib/verification';
-import {
-  fetchSessionProfile,
-  logoutSession,
-  type MeResponse,
-} from '@/lib/session';
 
 const STATUS_FILTERS: Array<{
   value: ContractorVerificationStatus | '';
@@ -35,7 +31,7 @@ const STATUS_FILTERS: Array<{
 ];
 
 export default function AdminContractorsPage() {
-  const [me, setMe] = useState<MeResponse | null>(null);
+  const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [ready, setReady] = useState(false);
   const [filter, setFilter] = useState<ContractorVerificationStatus | ''>(
     'awaiting_review',
@@ -54,19 +50,14 @@ export default function AdminContractorsPage() {
   }, [filter]);
 
   useEffect(() => {
-    void (async () => {
-      setError(null);
-      const session = await fetchSessionProfile();
-      setMe(session);
-      setReady(true);
-      if (session && isAdmin(session.roles)) {
-        await loadList();
-      }
-    })().catch((err: unknown) => {
-      setError(err instanceof Error ? err.message : 'Failed to load');
-      setReady(true);
-    });
-  }, [loadList]);
+    if (!sessionReady) return;
+    setReady(true);
+    if (me && isAdmin(me.roles)) {
+      void loadList().catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Failed to load');
+      });
+    }
+  }, [sessionReady, me, loadList]);
 
   useEffect(() => {
     if (!ready || !me || !isAdmin(me.roles)) return;
@@ -134,8 +125,7 @@ export default function AdminContractorsPage() {
   };
 
   const handleLogout = async () => {
-    await logoutSession();
-    setMe(null);
+    await signOut();
     setList([]);
     setDetail(null);
   };
@@ -327,8 +317,7 @@ export default function AdminContractorsPage() {
         onClose={() => setLoginOpen(false)}
         onSuccess={() => {
           void (async () => {
-            const session = await fetchSessionProfile();
-            setMe(session);
+            const session = await refreshSession();
             if (session && isAdmin(session.roles)) {
               await loadList();
             }

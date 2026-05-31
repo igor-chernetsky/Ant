@@ -1,4 +1,5 @@
 import type { Project } from './projects';
+import { fetchWithAuth } from './auth-client';
 
 export type IntakeQuestionType = 'single' | 'multi' | 'text' | 'info';
 
@@ -137,19 +138,15 @@ export async function submitIntakeAnswer(
   projectId: string,
   payload: IntakeAnswerPayload,
 ): Promise<Project> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/intake/answer`,
     {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     },
   );
 
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;
@@ -162,17 +159,11 @@ export async function submitIntakeAnswer(
 export async function submitIntakeForProcessing(
   projectId: string,
 ): Promise<Project> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/intake/submit`,
-    {
-      method: 'POST',
-      credentials: 'include',
-    },
+    { method: 'POST' },
   );
 
-  if (response.status === 401) {
-    throw new Error('NOT_AUTHENTICATED');
-  }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;

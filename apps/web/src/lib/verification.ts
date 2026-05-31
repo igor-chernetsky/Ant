@@ -1,3 +1,5 @@
+import { fetchWithAuth } from './auth-client';
+
 export type ContractorVerificationStatus =
   | 'pending'
   | 'awaiting_review'
@@ -79,10 +81,7 @@ export function formatVerificationStatus(status: string): string {
 export async function fetchVerificationDocuments(): Promise<
   ContractorVerificationDocument[]
 > {
-  const response = await fetch('/api/contractor/verification/documents', {
-    credentials: 'include',
-  });
-  if (response.status === 401) throw new Error('NOT_AUTHENTICATED');
+  const response = await fetchWithAuth('/api/contractor/verification/documents');
   if (!response.ok) {
     await parseError(response, 'Failed to load documents');
   }
@@ -95,9 +94,8 @@ export async function presignVerificationDocument(input: {
   sizeBytes: number;
   category?: ContractorVerificationDocCategory;
 }) {
-  const response = await fetch('/api/contractor/verification/documents/presign', {
+  const response = await fetchWithAuth('/api/contractor/verification/documents/presign', {
     method: 'POST',
-    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   });
@@ -111,9 +109,9 @@ export async function presignVerificationDocument(input: {
 }
 
 export async function completeVerificationDocument(documentId: string) {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/contractor/verification/documents/${encodeURIComponent(documentId)}/complete`,
-    { method: 'POST', credentials: 'include' },
+    { method: 'POST' },
   );
   if (!response.ok) {
     await parseError(response, 'Failed to confirm upload');
@@ -122,9 +120,8 @@ export async function completeVerificationDocument(documentId: string) {
 }
 
 export async function getVerificationDocumentDownloadUrl(documentId: string) {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/contractor/verification/documents/${encodeURIComponent(documentId)}/download-url`,
-    { credentials: 'include' },
   );
   if (!response.ok) {
     await parseError(response, 'Failed to get download link');
@@ -133,9 +130,8 @@ export async function getVerificationDocumentDownloadUrl(documentId: string) {
 }
 
 export async function requestContractorApproval() {
-  const response = await fetch('/api/contractor/verification/request-approval', {
+  const response = await fetchWithAuth('/api/contractor/verification/request-approval', {
     method: 'POST',
-    credentials: 'include',
   });
   if (!response.ok) {
     await parseError(response, 'Failed to request approval');
@@ -171,10 +167,7 @@ export async function fetchAdminContractors(
   status?: ContractorVerificationStatus,
 ): Promise<AdminContractorListItem[]> {
   const qs = status ? `?status=${encodeURIComponent(status)}` : '';
-  const response = await fetch(`/api/admin/contractors${qs}`, {
-    credentials: 'include',
-  });
-  if (response.status === 401) throw new Error('NOT_AUTHENTICATED');
+  const response = await fetchWithAuth(`/api/admin/contractors${qs}`);
   if (response.status === 403) throw new Error('FORBIDDEN');
   if (!response.ok) {
     await parseError(response, 'Failed to load contractors');
@@ -185,9 +178,8 @@ export async function fetchAdminContractors(
 export async function fetchAdminContractor(
   contractorId: string,
 ): Promise<AdminContractorDetail> {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/admin/contractors/${encodeURIComponent(contractorId)}`,
-    { credentials: 'include' },
   );
   if (response.status === 403) throw new Error('FORBIDDEN');
   if (!response.ok) {
@@ -197,9 +189,9 @@ export async function fetchAdminContractor(
 }
 
 export async function approveAdminContractor(contractorId: string) {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/admin/contractors/${encodeURIComponent(contractorId)}/approve`,
-    { method: 'POST', credentials: 'include' },
+    { method: 'POST' },
   );
   if (!response.ok) {
     await parseError(response, 'Failed to approve contractor');
@@ -211,11 +203,10 @@ export async function rejectAdminContractor(
   contractorId: string,
   comment: string,
 ) {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/admin/contractors/${encodeURIComponent(contractorId)}/reject`,
     {
       method: 'POST',
-      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ comment }),
     },
@@ -230,9 +221,8 @@ export async function getAdminContractorDocumentUrl(
   contractorId: string,
   documentId: string,
 ) {
-  const response = await fetch(
+  const response = await fetchWithAuth(
     `/api/admin/contractors/${encodeURIComponent(contractorId)}/documents/${encodeURIComponent(documentId)}/download-url`,
-    { credentials: 'include' },
   );
   if (!response.ok) {
     await parseError(response, 'Failed to get document link');
