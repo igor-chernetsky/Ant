@@ -22,6 +22,10 @@ import {
   BidResponse,
   BidTermsV1,
   DEFAULT_TENDER_DURATION_DAYS,
+  MAX_BID_APPROACH_LENGTH,
+  MAX_BID_LINE_ITEMS,
+  MAX_BID_NOTES_LENGTH,
+  MAX_BID_SCOPE_LENGTH,
   RespondInvitationDto,
   SubmitBidDto,
   TenderInvitationResponse,
@@ -410,6 +414,60 @@ export class TendersService {
     return this.mapInvitation(updated);
   }
 
+  private buildBidTerms(dto: SubmitBidDto): BidTermsV1 {
+    const notes = dto.notes?.trim();
+    const approach = dto.approach?.trim();
+    const scopeSummary = dto.scopeSummary?.trim();
+
+    if (notes && notes.length > MAX_BID_NOTES_LENGTH) {
+      throw new BadRequestException(
+        `Comment must be at most ${MAX_BID_NOTES_LENGTH} characters`,
+      );
+    }
+    if (approach && approach.length > MAX_BID_APPROACH_LENGTH) {
+      throw new BadRequestException(
+        `Implementation proposal must be at most ${MAX_BID_APPROACH_LENGTH} characters`,
+      );
+    }
+    if (scopeSummary && scopeSummary.length > MAX_BID_SCOPE_LENGTH) {
+      throw new BadRequestException(
+        `Scope summary must be at most ${MAX_BID_SCOPE_LENGTH} characters`,
+      );
+    }
+
+    let lineItems = dto.lineItems;
+    if (lineItems?.length) {
+      if (lineItems.length > MAX_BID_LINE_ITEMS) {
+        throw new BadRequestException(
+          `At most ${MAX_BID_LINE_ITEMS} line items allowed`,
+        );
+      }
+      lineItems = lineItems.map((item) => {
+        const trade = item.trade?.trim();
+        const description = item.description?.trim();
+        const amount = Number(item.amount);
+        if (!trade || !description) {
+          throw new BadRequestException(
+            'Each line item needs a trade and description',
+          );
+        }
+        if (!Number.isFinite(amount) || amount < 0) {
+          throw new BadRequestException(
+            'Line item amounts must be zero or positive',
+          );
+        }
+        return { trade, description, amount };
+      });
+    }
+
+    return {
+      notes: notes || undefined,
+      approach: approach || undefined,
+      scopeSummary: scopeSummary || undefined,
+      lineItems: lineItems?.length ? lineItems : undefined,
+    };
+  }
+
   async submitBid(
     userId: string,
     tenderId: string,
@@ -438,17 +496,7 @@ export class TendersService {
       throw new ForbiddenException('You must accept the invitation to submit a bid');
     }
 
-    const existing = tender.bids.find((b) => b.contractorId === profile.id);
-    if (existing && existing.status === BidStatus.submitted) {
-      throw new BadRequestException(
-        'Bid already submitted. Withdraw it first to submit a new one.',
-      );
-    }
-
-    const terms: BidTermsV1 = {
-      notes: dto.notes?.trim() || undefined,
-      lineItems: dto.lineItems,
-    };
+    const terms = this.buildBidTerms(dto);
 
     const bid = await this.prisma.bid.upsert({
       where: {

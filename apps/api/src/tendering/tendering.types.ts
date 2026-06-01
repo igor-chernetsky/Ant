@@ -1,13 +1,26 @@
 import { BidStatus, ProjectType, TenderInvitationStatus, TenderStatus } from '@prisma/client';
 
-export interface BidTermsV1 {
-  notes?: string;
-  lineItems?: Array<{
-    trade: string;
-    description: string;
-    amount: number;
-  }>;
+export interface BidLineItem {
+  trade: string;
+  description: string;
+  amount: number;
 }
+
+/** Stored in Bid.termsJson — versioned payload for contractor proposals */
+export interface BidTermsV1 {
+  /** Short comment visible to the client (conditions, assumptions) */
+  notes?: string;
+  /** How the contractor plans to execute the work */
+  approach?: string;
+  /** Optional high-level scope summary */
+  scopeSummary?: string;
+  lineItems?: BidLineItem[];
+}
+
+export const MAX_BID_NOTES_LENGTH = 2000;
+export const MAX_BID_APPROACH_LENGTH = 8000;
+export const MAX_BID_SCOPE_LENGTH = 2000;
+export const MAX_BID_LINE_ITEMS = 20;
 
 export interface ContractorProfileResponse {
   id: string;
@@ -82,7 +95,9 @@ export interface SubmitBidDto {
   amount: number;
   durationDays?: number;
   notes?: string;
-  lineItems?: BidTermsV1['lineItems'];
+  approach?: string;
+  scopeSummary?: string;
+  lineItems?: BidLineItem[];
 }
 
 export interface RespondInvitationDto {

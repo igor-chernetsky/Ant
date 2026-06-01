@@ -16,13 +16,17 @@ export type TenderInvitationStatus =
 
 export type BidStatus = 'submitted' | 'withdrawn' | 'selected' | 'rejected';
 
+export interface BidLineItem {
+  trade: string;
+  description: string;
+  amount: number;
+}
+
 export interface BidTerms {
   notes?: string;
-  lineItems?: Array<{
-    trade: string;
-    description: string;
-    amount: number;
-  }>;
+  approach?: string;
+  scopeSummary?: string;
+  lineItems?: BidLineItem[];
 }
 
 export interface TenderInvitation {
@@ -234,6 +238,9 @@ export async function submitContractorBid(
     amount: number;
     durationDays?: number;
     notes?: string;
+    approach?: string;
+    scopeSummary?: string;
+    lineItems?: BidLineItem[];
   },
 ): Promise<Bid> {
   const response = await fetchWithAuth(

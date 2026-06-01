@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { BidProposalForm } from '@/components/BidProposalForm';
 import { ContractorVerificationPanel } from '@/components/ContractorVerificationPanel';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
-import { formatThb } from '@/lib/estimate';
 import { useSession } from '@/components/SessionProvider';
 import {
   fetchContractorInvitations,
@@ -76,15 +76,6 @@ export default function ContractorPage() {
       const view = await fetchContractorTender(tenderId);
       setTenderView(view);
       setActiveTenderId(tenderId);
-      if (view.myBid) {
-        setBidAmount(view.myBid.amount);
-        setBidDuration(view.myBid.durationDays?.toString() ?? '');
-        setBidNotes(view.myBid.terms?.notes ?? '');
-      } else {
-        setBidAmount('');
-        setBidDuration('');
-        setBidNotes('');
-      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load tender');
     } finally {
@@ -125,25 +116,18 @@ export default function ContractorPage() {
     }
   };
 
-  const handleSubmitBid = async () => {
+  const handleSubmitBid = async (
+    input: Parameters<typeof submitContractorBid>[1],
+  ) => {
     if (!activeTenderId) return;
-    const amount = Number(bidAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setError('Enter a valid bid amount');
-      return;
-    }
-
     setBusy(true);
     setError(null);
     try {
-      await submitContractorBid(activeTenderId, {
-        amount,
-        durationDays: bidDuration ? Number(bidDuration) : undefined,
-        notes: bidNotes.trim() || undefined,
-      });
+      await submitContractorBid(activeTenderId, input);
       await loadTenderView(activeTenderId);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to submit bid');
+      throw err;
     } finally {
       setBusy(false);
     }
@@ -158,6 +142,7 @@ export default function ContractorPage() {
       await loadTenderView(activeTenderId);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to withdraw bid');
+      throw err;
     } finally {
       setBusy(false);
     }
@@ -333,8 +318,8 @@ export default function ContractorPage() {
 
             {tenderView && (
               <section className="card">
-                <h2 className="section-title">Submit bid</h2>
-                <p className="muted">
+                <h2 className="section-title">Submit bid &amp; proposal</h2>
+                <p className="muted doc-hint">
                   Tender status: {formatTenderStatus(tenderView.tender.status)}
                   {tenderView.tender.closesAt &&
                     ` · closes ${new Date(tenderView.tender.closesAt).toLocaleString()}`}
@@ -349,65 +334,13 @@ export default function ContractorPage() {
                     Bidding opens when the client starts the tender.
                   </p>
                 ) : (
-                  <>
-                    <div className="modal-form">
-                      <label>
-                        Total amount (THB)
-                        <input
-                          type="number"
-                          min="1"
-                          value={bidAmount}
-                          onChange={(e) => setBidAmount(e.target.value)}
-                        />
-                      </label>
-                      <label>
-                        Duration (days)
-                        <input
-                          type="number"
-                          min="1"
-                          value={bidDuration}
-                          onChange={(e) => setBidDuration(e.target.value)}
-                        />
-                      </label>
-                      <label>
-                        Notes
-                        <textarea
-                          rows={3}
-                          value={bidNotes}
-                          onChange={(e) => setBidNotes(e.target.value)}
-                        />
-                      </label>
-                    </div>
-                    <div className="tender-actions">
-                      <button
-                        type="button"
-                        className="primary"
-                        disabled={busy}
-                        onClick={() => void handleSubmitBid()}
-                      >
-                        {busy
-                          ? 'Submitting…'
-                          : tenderView.myBid
-                            ? 'Update bid'
-                            : 'Submit bid'}
-                      </button>
-                      {tenderView.myBid?.status === 'submitted' && (
-                        <button
-                          type="button"
-                          className="secondary"
-                          disabled={busy}
-                          onClick={() => void handleWithdraw()}
-                        >
-                          Withdraw bid
-                        </button>
-                      )}
-                    </div>
-                    {tenderView.myBid && (
-                      <p className="muted">
-                        Current bid: {formatThb(Number(tenderView.myBid.amount))}
-                      </p>
-                    )}
-                  </>
+                  <BidProposalForm
+                    key={`${activeTenderId}-${tenderView.myBid?.submittedAt ?? 'new'}`}
+                    existingBid={tenderView.myBid}
+                    busy={busy}
+                    onSubmit={handleSubmitBid}
+                    onWithdraw={handleWithdraw}
+                  />
                 )}
                 {error && <p className="form-error">{error}</p>}
               </section>

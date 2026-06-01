@@ -1285,6 +1285,131 @@ select {
   margin-top: 0.5rem;
 }
 
+.bid-proposal-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bid-proposal-list-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.15rem;
+  background: #fafafa;
+}
+
+.bid-proposal-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bid-proposal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.bid-proposal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.bid-proposal-block h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.bid-proposal-block p {
+  margin: 0;
+}
+
+.bid-proposal-text {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.bid-proposal-actions {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.bid-proposal-form .field-hint {
+  display: block;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+  margin-bottom: 0.35rem;
+}
+
+.required-mark {
+  color: #b45309;
+}
+
+.bid-breakdown-toggle {
+  margin: 0.5rem 0 1rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.bid-line-items-list {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bid-line-item-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 7rem auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .bid-line-item-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bid-line-item-row .icon-button {
+    grid-column: 2;
+    justify-self: end;
+  }
+}
+
+.bid-line-items-total {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
+.bid-line-items-warn {
+  color: #b45309;
+}
+
+.bid-breakdown-lines {
+  margin-top: 0.35rem;
+}
+
 .verification-card {
   border-color: #c4b5fd;
 }

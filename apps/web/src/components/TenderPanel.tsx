@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { formatThb } from '@/lib/estimate';
 import type { Project } from '@/lib/projects';
+import { BidProposalSummary } from '@/components/BidProposalSummary';
 import {
   createProjectTender,
   fetchProjectTender,
@@ -206,59 +207,36 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
 
           {tender.bids.length > 0 && (
             <>
-              <h3 className="tag-section-label">Bids</h3>
-              <ul className="estimate-lines bid-list">
-                {tender.bids.map((bid) => {
-                  const amount = Number(bid.amount);
-                  const delta =
-                    ballparkMid && ballparkMid > 0
-                      ? Math.round(((amount - ballparkMid) / ballparkMid) * 100)
-                      : null;
-
-                  return (
-                    <li key={bid.id} className="estimate-line bid-line">
-                      <div>
-                        <strong>{bid.companyName ?? 'Contractor'}</strong>
-                        {bid.durationDays && (
-                          <span className="muted estimate-line-trade">
-                            {bid.durationDays} days
-                          </span>
+              <h3 className="tag-section-label">Bids &amp; proposals</h3>
+              <ul className="bid-proposal-list">
+                {tender.bids.map((bid) => (
+                  <li key={bid.id} className="bid-proposal-list-item">
+                    <BidProposalSummary
+                      bid={bid}
+                      ballparkMid={ballparkMid}
+                    />
+                    <div className="bid-line-actions bid-proposal-actions">
+                      {(tender.status === 'open' ||
+                        tender.status === 'closed') &&
+                        bid.status === 'submitted' && (
+                          <button
+                            type="button"
+                            className="primary"
+                            disabled={busy}
+                            onClick={() => void handleSelectBid(bid)}
+                          >
+                            Select this bid
+                          </button>
                         )}
-                        {bid.terms?.notes && (
-                          <span className="muted estimate-line-trade">
-                            {bid.terms.notes}
-                          </span>
-                        )}
-                        {delta !== null && (
-                          <span className="muted estimate-line-trade">
-                            {delta >= 0 ? '+' : ''}
-                            {delta}% vs ballpark
-                          </span>
-                        )}
-                      </div>
-                      <div className="bid-line-actions">
-                        <span className="estimate-line-amount">
-                          {formatThb(amount)}
-                        </span>
-                        {(tender.status === 'open' ||
-                          tender.status === 'closed') &&
-                          bid.status === 'submitted' && (
-                            <button
-                              type="button"
-                              className="secondary"
-                              disabled={busy}
-                              onClick={() => void handleSelectBid(bid)}
-                            >
-                              Select
-                            </button>
-                          )}
-                        {bid.status === 'selected' && (
-                          <span className="readiness-badge">Selected</span>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
+                      {bid.status === 'selected' && (
+                        <span className="readiness-badge">Selected</span>
+                      )}
+                      {bid.status === 'rejected' && (
+                        <span className="status-pill">Not selected</span>
+                      )}
+                    </div>
+                  </li>
+                ))}
               </ul>
             </>
           )}
