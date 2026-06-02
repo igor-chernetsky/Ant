@@ -8,6 +8,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
+import { fetchPublicProject } from '@/lib/public-projects';
 import {
   fetchContractorInvitations,
   fetchContractorProfile,
@@ -22,6 +23,12 @@ import {
   type ContractorTenderView,
 } from '@/lib/tendering';
 
+interface HeroProjectPreview {
+  title: string;
+  district: string | null;
+  description: string | null;
+}
+
 export default function ContractorPage() {
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [ready, setReady] = useState(false);
@@ -35,9 +42,7 @@ export default function ContractorPage() {
   const [tenderView, setTenderView] = useState<ContractorTenderView | null>(
     null,
   );
-  const [bidAmount, setBidAmount] = useState('');
-  const [bidDuration, setBidDuration] = useState('');
-  const [bidNotes, setBidNotes] = useState('');
+  const [heroProject, setHeroProject] = useState<HeroProjectPreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -76,6 +81,25 @@ export default function ContractorPage() {
       const view = await fetchContractorTender(tenderId);
       setTenderView(view);
       setActiveTenderId(tenderId);
+      const invitation = invitations.find((inv) => inv.tenderId === tenderId);
+      if (invitation) {
+        try {
+          const project = await fetchPublicProject(invitation.projectId);
+          setHeroProject({
+            title: project.title,
+            district: project.district,
+            description: project.description,
+          });
+        } catch {
+          setHeroProject({
+            title: invitation.projectTitle,
+            district: invitation.projectDistrict,
+            description: null,
+          });
+        }
+      } else {
+        setHeroProject(null);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load tender');
     } finally {
@@ -318,6 +342,23 @@ export default function ContractorPage() {
 
             {tenderView && (
               <section className="card">
+                {heroProject && (
+                  <section className="contractor-project-hero">
+                    <div className="contractor-project-hero-overlay">
+                      <p className="contractor-project-hero-kicker">Project brief</p>
+                      <h3>{heroProject.title}</h3>
+                      {heroProject.district && (
+                        <p className="contractor-project-hero-meta">
+                          District: {heroProject.district}
+                        </p>
+                      )}
+                      <p className="contractor-project-hero-description">
+                        {heroProject.description?.trim() ||
+                          'The client is collecting contractor proposals for this project. Submit your bid with approach, scope, and timeline details.'}
+                      </p>
+                    </div>
+                  </section>
+                )}
                 <h2 className="section-title">Submit bid &amp; proposal</h2>
                 <p className="muted doc-hint">
                   Tender status: {formatTenderStatus(tenderView.tender.status)}
