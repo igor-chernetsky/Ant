@@ -10,16 +10,20 @@ import type { PublicProjectCard } from '@/lib/public-projects';
 
 interface ProjectTileProps {
   project: PublicProjectCard;
+  isOwned?: boolean;
 }
 
-export function ProjectTile({ project }: ProjectTileProps) {
+export function ProjectTile({ project, isOwned = false }: ProjectTileProps) {
   const excerpt =
     project.description && project.description.length > 160
       ? `${project.description.slice(0, 157)}…`
       : project.description;
 
   return (
-    <Link href={`/projects/${project.id}`} className="project-tile">
+    <Link
+      href={`/projects/${project.id}`}
+      className={`project-tile${isOwned ? ' project-tile-owned' : ''}`}
+    >
       <div className="project-tile-media">
         {project.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -37,6 +41,7 @@ export function ProjectTile({ project }: ProjectTileProps) {
         <span className="project-tile-status">
           {formatProjectStatus(project.status)}
         </span>
+        {isOwned && <span className="project-tile-owned-badge">My project</span>}
       </div>
       <div className="project-tile-body">
         <h3 className="project-tile-title">{project.title}</h3>

@@ -284,6 +284,11 @@ pre {
   transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
+.project-tile-owned {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 1px #bfdbfe, var(--shadow-sm);
+}
+
 .project-tile:hover {
   border-color: #93c5fd;
   box-shadow: var(--shadow-md);
@@ -292,14 +297,16 @@ pre {
 
 .project-tile-media {
   position: relative;
-  aspect-ratio: 16 / 10;
+  height: 210px;
   background: var(--accent-muted);
+  overflow: hidden;
 }
 
 .project-tile-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
 }
 
@@ -329,12 +336,51 @@ pre {
   box-shadow: var(--shadow-sm);
 }
 
+.project-tile-owned-badge {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
 .project-tile-body {
   padding: 1rem 1.1rem 1.15rem;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
   flex: 1;
+}
+
+.project-tile-add {
+  padding: 0;
+  text-align: left;
+  border-style: dashed;
+  border-width: 2px;
+  color: var(--accent);
+  background: #f8fbff;
+}
+
+.project-tile-add:hover {
+  border-color: var(--accent);
+  background: #eef5ff;
+}
+
+.project-tile-add-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+}
+
+.project-tile-add-icon {
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 300;
 }
 
 .project-tile-title {
@@ -640,6 +686,18 @@ pre {
 
 .modal-subtitle {
   margin: 0.5rem 0 1rem;
+}
+
+.auth-mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.auth-mode-active {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+  background: var(--accent-muted) !important;
 }
 
 .modal-form {

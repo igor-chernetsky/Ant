@@ -46,9 +46,11 @@ export function SiteHeader({
                   Admin
                 </Link>
               )}
-              <Link href="/contractor" className="text-link header-link">
-                Contractor
-              </Link>
+              {me.isContractor && (
+                <Link href="/contractor" className="text-link header-link">
+                  Contractor
+                </Link>
+              )}
               <span className="user-chip">
                 {me.displayName ?? me.email ?? 'Signed in'}
               </span>

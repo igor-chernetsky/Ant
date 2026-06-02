@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
@@ -9,6 +9,10 @@ import { ProjectTile } from '@/components/ProjectTile';
 import { useSession } from '@/components/SessionProvider';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TagFilterBar } from '@/components/TagFilterBar';
+import {
+  fetchProjects,
+  type Project,
+} from '@/lib/projects';
 import {
   fetchPublicProjects,
   fetchPublicTags,
@@ -19,6 +23,7 @@ export default function HomePage() {
   const router = useRouter();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [projects, setProjects] = useState<PublicProjectCard[]>([]);
+  const [ownedProjectIds, setOwnedProjectIds] = useState<Set<string>>(new Set());
   const [allTags, setAllTags] = useState<Array<{ slug: string; label: string }>>(
     [],
   );
@@ -60,6 +65,23 @@ export default function HomePage() {
   }, [sessionReady, selectedTags, loadProjects]);
 
   useEffect(() => {
+    if (!sessionReady) return;
+    if (!me) {
+      setOwnedProjectIds(new Set());
+      return;
+    }
+
+    void (async () => {
+      try {
+        const mine = await fetchProjects();
+        setOwnedProjectIds(new Set(mine.map((project: Project) => project.id)));
+      } catch {
+        setOwnedProjectIds(new Set());
+      }
+    })();
+  }, [sessionReady, me]);
+
+  useEffect(() => {
     if (pendingCreate && me) {
       setPendingCreate(false);
       setCreateOpen(true);
@@ -91,13 +113,19 @@ export default function HomePage() {
     await refreshSession();
   };
 
+  const sortedProjects = useMemo(() => {
+    if (!me || ownedProjectIds.size === 0) return projects;
+    const mine = projects.filter((project) => ownedProjectIds.has(project.id));
+    const others = projects.filter((project) => !ownedProjectIds.has(project.id));
+    return [...mine, ...others];
+  }, [projects, me, ownedProjectIds]);
+
   return (
     <PageShell>
       <SiteHeader
         me={me}
         onSignIn={() => setLoginOpen(true)}
         onSignOut={handleLogout}
-        onAddProject={handleAddProject}
       />
 
       <main className="content-container main-content">
@@ -139,10 +167,31 @@ export default function HomePage() {
           </section>
         )}
 
-        {!loading && projects.length > 0 && (
+        {!loading && sortedProjects.length > 0 && (
           <section className="project-grid" aria-label="Projects">
-            {projects.map((project) => (
-              <ProjectTile key={project.id} project={project} />
+            {me && (
+              <button
+                type="button"
+                className="project-tile project-tile-add"
+                onClick={handleAddProject}
+              >
+                <div className="project-tile-media project-tile-add-media" aria-hidden>
+                  <span className="project-tile-add-icon">+</span>
+                </div>
+                <div className="project-tile-body">
+                  <h3 className="project-tile-title">Add project</h3>
+                  <p className="project-tile-description">
+                    Publish a new project to receive contractor bids.
+                  </p>
+                </div>
+              </button>
+            )}
+            {sortedProjects.map((project) => (
+              <ProjectTile
+                key={project.id}
+                project={project}
+                isOwned={ownedProjectIds.has(project.id)}
+              />
             ))}
           </section>
         )}

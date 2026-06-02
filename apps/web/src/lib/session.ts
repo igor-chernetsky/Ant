@@ -4,6 +4,7 @@ export interface MeResponse {
   email: string | null;
   displayName: string | null;
   roles: string[];
+  isContractor?: boolean;
 }
 
 export async function refreshSessionTokens(): Promise<boolean> {
@@ -54,6 +55,27 @@ export async function loginWithPassword(
       message?: string;
     } | null;
     throw new Error(body?.message ?? 'Sign in failed');
+  }
+}
+
+export async function signupWithPassword(input: {
+  email: string;
+  password: string;
+  displayName?: string;
+  roles: string[];
+}): Promise<void> {
+  const response = await fetch('/api/auth/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Sign up failed');
   }
 }
 

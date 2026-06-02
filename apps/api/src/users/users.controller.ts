@@ -12,12 +12,14 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async me(@Req() req: Request & { user: JwtPayload }) {
     const user = await this.usersService.findOrCreateFromJwt(req.user);
+    const isContractor = await this.usersService.isContractor(user.id);
     return {
       id: user.id,
       keycloakSub: user.keycloakSub,
       email: user.email,
       displayName: user.displayName,
       roles: req.user.realm_access?.roles ?? [],
+      isContractor,
     };
   }
 }

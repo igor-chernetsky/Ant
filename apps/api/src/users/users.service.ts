@@ -50,4 +50,12 @@ export class UsersService {
       throw error;
     }
   }
+
+  async isContractor(userId: string): Promise<boolean> {
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    return Boolean(profile);
+  }
 }
