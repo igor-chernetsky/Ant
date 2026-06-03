@@ -251,6 +251,76 @@ pre {
   margin-bottom: 1.75rem;
 }
 
+.page-hero {
+  margin-bottom: 1.75rem;
+}
+
+.home-hero {
+  margin-bottom: 1.75rem;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #bfdbfe;
+  box-shadow: var(--shadow-md);
+  background:
+    linear-gradient(105deg, rgba(15, 23, 42, 0.82) 0%, rgba(30, 64, 175, 0.55) 45%, rgba(37, 99, 235, 0.25) 100%),
+    url('/home-hero-bg.png') center/cover no-repeat;
+  min-height: 280px;
+}
+
+.home-hero-overlay {
+  min-height: inherit;
+  display: flex;
+  align-items: flex-end;
+  padding: 2rem 1.75rem 1.85rem;
+}
+
+.home-hero-content {
+  max-width: 40rem;
+  color: #fff;
+}
+
+.home-hero-kicker {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.home-hero h1 {
+  margin: 0 0 0.65rem;
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.home-hero-lead {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 38ch;
+}
+
+.home-hero-actions {
+  margin-top: 1.15rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+@media (max-width: 640px) {
+  .home-hero-overlay {
+    padding: 1.5rem 1.15rem 1.35rem;
+  }
+
+  .home-hero {
+    min-height: 240px;
+  }
+}
+
 .page-hero-lead {
   max-width: 42rem;
   font-size: 1.05rem;

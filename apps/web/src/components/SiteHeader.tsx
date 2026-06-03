@@ -8,14 +8,12 @@ interface SiteHeaderProps {
   me: MeResponse | null;
   onSignIn: () => void;
   onSignOut: () => void;
-  onAddProject?: () => void;
 }
 
 export function SiteHeader({
   me,
   onSignIn,
   onSignOut,
-  onAddProject,
 }: SiteHeaderProps) {
   return (
     <header className="site-header">
@@ -34,11 +32,6 @@ export function SiteHeader({
           </Link>
         </div>
         <div className="header-actions">
-          {onAddProject && (
-            <button type="button" className="primary" onClick={onAddProject}>
-              Add project
-            </button>
-          )}
           {me ? (
             <>
               {me.roles?.includes('admin') && (

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
+import { HomeHero } from '@/components/HomeHero';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
@@ -129,13 +130,11 @@ export default function HomePage() {
       />
 
       <main className="content-container main-content">
-        <section className="page-hero">
-          <h1>Construction projects</h1>
-          <p className="page-hero-lead muted">
-            Browse renovation and build opportunities. Sign in to publish your
-            own project and receive contractor estimates.
-          </p>
-        </section>
+        <HomeHero
+          signedIn={Boolean(me)}
+          onAddProject={handleAddProject}
+          onSignIn={() => setLoginOpen(true)}
+        />
 
         <TagFilterBar
           tags={allTags}

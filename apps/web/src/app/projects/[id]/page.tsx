@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { DocumentImage } from '@/components/DocumentImage';
@@ -78,7 +77,6 @@ export default function ProjectDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [pageReady, setPageReady] = useState(false);
 
@@ -278,10 +276,6 @@ export default function ProjectDetailPage() {
         me={me}
         onSignIn={() => setLoginOpen(true)}
         onSignOut={handleLogout}
-        onAddProject={() => {
-          if (me) setCreateOpen(true);
-          else setLoginOpen(true);
-        }}
       />
 
       <main className="content-container main-content">
@@ -627,11 +621,6 @@ export default function ProjectDetailPage() {
             await loadProjectView();
           })();
         }}
-      />
-      <CreateProjectModal
-        isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreated={(id) => router.push(`/projects/${id}`)}
       />
     </PageShell>
   );
