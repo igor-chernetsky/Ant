@@ -8,6 +8,8 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { DocumentImage } from '@/components/DocumentImage';
 import { IntakeWizard } from '@/components/IntakeWizard';
+import { MetaSpecGrid } from '@/components/MetaSpecGrid';
+import { ProjectHero } from '@/components/ProjectHero';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderPanel } from '@/components/TenderPanel';
 import { isTenderEligibleProjectStatus } from '@/lib/tendering';
@@ -31,7 +33,6 @@ import {
   deleteProject,
   fetchProject,
   formatDateTime,
-  formatProjectStatus,
   formatProjectType,
   formatPropertyType,
   type Project,
@@ -213,6 +214,45 @@ export default function ProjectDetailPage() {
   const fileDocuments = documents.filter((d) => !isImageDocument(d));
   const intakeActive = isOwner && project ? isIntakeActive(project) : false;
   const showDelete = isOwner && project ? canDeleteProject(project) : false;
+  const brief = project?.brief ?? null;
+
+  const overviewItems = project
+    ? [
+        { label: 'Project type', value: formatProjectType(project.projectType) },
+        { label: 'Property', value: formatPropertyType(project.propertyType) },
+        { label: 'District', value: project.district ?? '—' },
+        { label: 'Region', value: project.regionCode },
+        { label: 'Created', value: formatDateTime(project.createdAt) },
+        { label: 'Last updated', value: formatDateTime(project.updatedAt) },
+      ]
+    : [];
+
+  const briefPropertyItems = brief?.property
+    ? [
+        ...(brief.property.areaSqm != null
+          ? [{ label: 'Floor area', value: `${brief.property.areaSqm} sqm` }]
+          : []),
+        ...(brief.property.floors != null
+          ? [{ label: 'Floors', value: String(brief.property.floors) }]
+          : []),
+        ...(brief.property.rooms != null
+          ? [{ label: 'Rooms', value: String(brief.property.rooms) }]
+          : []),
+      ]
+    : [];
+
+  const briefDesignItems = brief?.design
+    ? [
+        {
+          label: 'Plans available',
+          value: brief.design.hasPlans ? 'Yes' : 'No',
+        },
+        {
+          label: 'Design tender needed',
+          value: brief.design.needsDesignTender ? 'Yes' : 'No',
+        },
+      ]
+    : [];
 
   const handleDelete = async () => {
     if (!projectId || !project) return;
@@ -257,53 +297,11 @@ export default function ProjectDetailPage() {
 
         {pageReady && project && (
           <>
-            <section className="hero card">
-              <div className="detail-header">
-                <div>
-                  <h1>{project.title}</h1>
-                  {project.description && (
-                    <p className="detail-description">{project.description}</p>
-                  )}
-                </div>
-                <div className="detail-badges">
-                  <span className="status-pill status-pill-lg">
-                    {formatProjectStatus(project.status)}
-                  </span>
-                  <span className="readiness-badge readiness-badge-lg">
-                    {project.readinessScore}% ready
-                  </span>
-                </div>
-              </div>
-            </section>
+            <ProjectHero project={project} />
 
-            <section className="card">
+            <section className="card project-overview-card">
               <h2 className="section-title">Overview</h2>
-              <dl className="meta-grid">
-                <div>
-                  <dt>Project type</dt>
-                  <dd>{formatProjectType(project.projectType)}</dd>
-                </div>
-                <div>
-                  <dt>Property</dt>
-                  <dd>{formatPropertyType(project.propertyType)}</dd>
-                </div>
-                <div>
-                  <dt>District</dt>
-                  <dd>{project.district ?? '—'}</dd>
-                </div>
-                <div>
-                  <dt>Region</dt>
-                  <dd>{project.regionCode}</dd>
-                </div>
-                <div>
-                  <dt>Created</dt>
-                  <dd>{formatDateTime(project.createdAt)}</dd>
-                </div>
-                <div>
-                  <dt>Last updated</dt>
-                  <dd>{formatDateTime(project.updatedAt)}</dd>
-                </div>
-              </dl>
+              <MetaSpecGrid items={overviewItems} />
             </section>
 
             <section className="card">
@@ -521,32 +519,52 @@ export default function ProjectDetailPage() {
               </section>
             )}
 
-            {project.brief && (
-              <section className="card">
+            {brief && (
+              <section className="card project-brief-card">
                 <h2 className="section-title">Project brief</h2>
-                {project.brief.summary && (
-                  <p className="brief-summary">{project.brief.summary}</p>
+
+                {brief.summary && (
+                  <p className="brief-lead">{brief.summary}</p>
                 )}
-                {project.brief.ai?.missingFields &&
-                  project.brief.ai.missingFields.length > 0 && (
-                    <p className="muted">
-                      Missing details:{' '}
-                      {project.brief.ai.missingFields.join(', ')}
-                    </p>
-                  )}
-                {project.brief.design && (
-                  <dl className="meta-grid brief-meta">
-                    <div>
-                      <dt>Plans available</dt>
-                      <dd>{project.brief.design.hasPlans ? 'Yes' : 'No'}</dd>
-                    </div>
-                    <div>
-                      <dt>Design tender needed</dt>
-                      <dd>
-                        {project.brief.design.needsDesignTender ? 'Yes' : 'No'}
-                      </dd>
-                    </div>
-                  </dl>
+
+                {briefPropertyItems.length > 0 && (
+                  <div className="brief-subsection">
+                    <h3 className="brief-subsection-title">Property details</h3>
+                    <MetaSpecGrid items={briefPropertyItems} />
+                  </div>
+                )}
+
+                {briefDesignItems.length > 0 && (
+                  <div className="brief-subsection">
+                    <h3 className="brief-subsection-title">Design &amp; plans</h3>
+                    <MetaSpecGrid items={briefDesignItems} className="brief-meta" />
+                  </div>
+                )}
+
+                {brief.constraints && (
+                  <div className="brief-subsection">
+                    <h3 className="brief-subsection-title">Constraints</h3>
+                    <MetaSpecGrid
+                      items={[
+                        {
+                          label: 'Notes',
+                          value: brief.constraints,
+                          fullWidth: true,
+                        },
+                      ]}
+                    />
+                  </div>
+                )}
+
+                {brief.ai?.missingFields && brief.ai.missingFields.length > 0 && (
+                  <div className="brief-callout">
+                    <p className="brief-callout-title">Still needed for estimate</p>
+                    <ul className="brief-missing-list">
+                      {brief.ai.missingFields.map((field) => (
+                        <li key={field}>{field.replaceAll('_', ' ')}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </section>
             )}
