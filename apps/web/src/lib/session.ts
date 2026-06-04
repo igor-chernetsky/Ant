@@ -7,6 +7,11 @@ export interface MeResponse {
   isContractor?: boolean;
 }
 
+/** Only users with the client realm role may create projects. */
+export function canCreateProject(me: MeResponse | null): boolean {
+  return Boolean(me?.roles?.includes('client'));
+}
+
 export async function refreshSessionTokens(): Promise<boolean> {
   const response = await fetch('/api/auth/refresh', {
     method: 'POST',

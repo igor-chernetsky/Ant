@@ -2,12 +2,14 @@
 
 interface HomeHeroProps {
   signedIn: boolean;
+  canAddProject: boolean;
   onAddProject: () => void;
   onSignIn: () => void;
 }
 
 export function HomeHero({
   signedIn,
+  canAddProject,
   onAddProject,
   onSignIn,
 }: HomeHeroProps) {
@@ -22,15 +24,15 @@ export function HomeHero({
             receive ballpark estimates, and collect contractor proposals.
           </p>
           <div className="home-hero-actions">
-            {signedIn ? (
+            {canAddProject ? (
               <button type="button" className="primary" onClick={onAddProject}>
                 Add project
               </button>
-            ) : (
+            ) : !signedIn ? (
               <button type="button" className="primary" onClick={onSignIn}>
                 Sign in to publish
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

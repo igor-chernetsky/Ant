@@ -8,6 +8,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
 import { useSession } from '@/components/SessionProvider';
+import { canCreateProject } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TagFilterBar } from '@/components/TagFilterBar';
 import {
@@ -98,6 +99,7 @@ export default function HomePage() {
   }, [me]);
 
   const handleAddProject = () => {
+    if (me && !canCreateProject(me)) return;
     if (me) {
       setCreateOpen(true);
     } else {
@@ -132,6 +134,7 @@ export default function HomePage() {
       <main className="content-container main-content">
         <HomeHero
           signedIn={Boolean(me)}
+          canAddProject={canAddProject}
           onAddProject={handleAddProject}
           onSignIn={() => setLoginOpen(true)}
         />
@@ -157,18 +160,21 @@ export default function HomePage() {
         {!loading && !error && projects.length === 0 && (
           <section className="card empty-state">
             <p className="muted">
-              No projects match your filters yet. Try clearing tags or add the
-              first project.
+              {canAddProject
+                ? 'No projects match your filters yet. Try clearing tags or add the first project.'
+                : 'No projects match your filters yet.'}
             </p>
-            <button type="button" className="primary" onClick={handleAddProject}>
-              Add project
-            </button>
+            {canAddProject && (
+              <button type="button" className="primary" onClick={handleAddProject}>
+                Add project
+              </button>
+            )}
           </section>
         )}
 
         {!loading && sortedProjects.length > 0 && (
           <section className="project-grid" aria-label="Projects">
-            {me && (
+            {canAddProject && (
               <button
                 type="button"
                 className="project-tile project-tile-add"
