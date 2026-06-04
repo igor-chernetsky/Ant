@@ -1,5 +1,3 @@
-import { getKeycloakTokenUrl } from '@/lib/auth-server';
-
 const SELF_ASSIGNABLE_ROLES = ['client', 'contractor', 'designer'] as const;
 type SelfAssignableRole = (typeof SELF_ASSIGNABLE_ROLES)[number];
 
@@ -44,8 +42,11 @@ async function fetchAdminAccessToken(): Promise<string | null> {
   });
 
   try {
+    const baseUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
+    if (!baseUrl) return null;
+    const masterTokenUrl = `${baseUrl}/realms/master/protocol/openid-connect/token`;
     const response = await fetch(
-      getKeycloakTokenUrl().replace('/realms/', '/realms/master'),
+      masterTokenUrl,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

@@ -32,6 +32,10 @@ NEXT_PUBLIC_API_URL=https://iabuilding.duckdns.org/api
 
 KEYCLOAK_BFF_CLIENT_ID=platform-bff
 KEYCLOAK_BFF_CLIENT_SECRET=<from Keycloak platform-bff Credentials tab>
+
+# Sign up — server-only (same Keycloak bootstrap admin as infra/.env on EC2)
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=<from infra/.env KEYCLOAK_ADMIN_PASSWORD>
 ```
 
 Redeploy after changing env vars. **Never** put `KEYCLOAK_BFF_CLIENT_SECRET` in a `NEXT_PUBLIC_*` variable.
