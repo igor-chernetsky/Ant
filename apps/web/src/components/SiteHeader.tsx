@@ -39,7 +39,7 @@ export function SiteHeader({
                   Admin
                 </Link>
               )}
-              {me.isContractor && (
+              {(me.isContractor || me.roles?.includes('contractor')) && (
                 <Link href="/contractor" className="text-link header-link">
                   Contractor
                 </Link>
