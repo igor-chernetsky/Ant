@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { DocumentsModule } from './documents/documents.module';
 import { EstimationModule } from './estimation/estimation.module';
 import { HealthModule } from './health/health.module';
+import { AmendmentsModule } from './amendments/amendments.module';
 import { IntakeModule } from './intake/intake.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -26,6 +27,7 @@ import { VerificationModule } from './verification/verification.module';
     DocumentsModule,
     EstimationModule,
     IntakeModule,
+    AmendmentsModule,
     TenderingModule,
     VerificationModule,
   ],

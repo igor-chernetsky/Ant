@@ -6,6 +6,7 @@ import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { DocumentImage } from '@/components/DocumentImage';
+import { ClientAmendments } from '@/components/ClientAmendments';
 import { IntakeWizard } from '@/components/IntakeWizard';
 import { MetaSpecGrid } from '@/components/MetaSpecGrid';
 import { ProjectHero } from '@/components/ProjectHero';
@@ -397,6 +398,13 @@ export default function ProjectDetailPage() {
 
             {intakeActive && (
               <IntakeWizard
+                project={project}
+                onUpdated={(updated) => setProject(updated)}
+              />
+            )}
+
+            {isOwner && (
+              <ClientAmendments
                 project={project}
                 onUpdated={(updated) => setProject(updated)}
               />

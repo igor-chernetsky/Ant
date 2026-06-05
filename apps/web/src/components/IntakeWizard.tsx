@@ -154,10 +154,13 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
         answer when needed.
       </p>
 
-      <p className="intake-docs-notice">
-        Upload all floor plans and photos in the <strong>Documents</strong>{' '}
-        section above before completing intake.
-      </p>
+      <div className="intake-docs-notice" role="note">
+        <p className="intake-docs-notice-title">Upload documents first</p>
+        <p className="intake-docs-notice-text">
+          Add all floor plans and photos in the <strong>Documents</strong>{' '}
+          section above before you complete intake.
+        </p>
+      </div>
 
       <IntakeProgressBar progress={progress} />
 

@@ -714,9 +714,34 @@ pre {
 }
 
 .intake-docs-notice {
-  background: var(--accent-muted);
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
   border: 1px solid #bfdbfe;
-  color: #1e40af;
+  border-left: 4px solid var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.intake-docs-notice-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #1d4ed8;
+}
+
+.intake-docs-notice-text {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: #1e3a8a;
+}
+
+.intake-docs-notice-text strong {
+  font-weight: 700;
+  color: #1d4ed8;
 }
 
 .estimate-range {
@@ -1846,4 +1871,95 @@ select {
 .admin-reject-field {
   display: grid;
   gap: 0.35rem;
+}
+
+.amendments-card {
+  border-color: #e0e7ff;
+}
+
+.amendment-form {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.amendment-form textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.amendment-process-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: var(--accent-muted);
+  border: 1px solid #dbeafe;
+}
+
+.amendment-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.amendment-item {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fafafa;
+}
+
+.amendment-item-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.amendment-type-pill {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.amendment-date {
+  font-size: 0.82rem;
+}
+
+.amendment-status {
+  margin-left: auto;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.amendment-status.pending {
+  color: #b45309;
+}
+
+.amendment-status.processed {
+  color: #047857;
+}
+
+.amendment-body {
+  margin: 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.amendment-ai-meta {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
 }
