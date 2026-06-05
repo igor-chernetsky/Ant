@@ -116,6 +116,8 @@ export default function HomePage() {
     await refreshSession();
   };
 
+  const canAddProject = canCreateProject(me);
+
   const sortedProjects = useMemo(() => {
     if (!me || ownedProjectIds.size === 0) return projects;
     const mine = projects.filter((project) => ownedProjectIds.has(project.id));
