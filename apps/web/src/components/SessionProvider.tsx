@@ -32,10 +32,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<MeResponse | null>(null);
   const [ready, setReady] = useState(false);
 
+  const redirectHome = useCallback(() => {
+    router.replace('/');
+  }, [router]);
+
   const handleSessionExpired = useCallback(() => {
     setMe(null);
-    router.push('/');
-  }, [router]);
+    redirectHome();
+  }, [redirectHome]);
 
   useEffect(() => {
     setSessionExpiredHandler(handleSessionExpired);
@@ -64,7 +68,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await logoutSession();
     setMe(null);
-  }, []);
+    redirectHome();
+  }, [redirectHome]);
 
   const value = useMemo(
     () => ({ me, setMe, ready, refreshSession, signOut }),
