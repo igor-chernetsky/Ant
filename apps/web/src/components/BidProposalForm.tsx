@@ -270,7 +270,7 @@ export function BidProposalForm({
 
       {error && <p className="form-error">{error}</p>}
 
-      <div className="tender-actions">
+      <div className="tender-actions-block bid-proposal-submit">
         <button
           type="button"
           className="primary"

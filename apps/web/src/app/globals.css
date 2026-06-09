@@ -667,16 +667,6 @@ pre {
   overflow: hidden;
 }
 
-.intake-question textarea,
-.intake-custom-input {
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--text);
-  padding: 0.65rem 0.75rem;
-  font-family: inherit;
-}
-
 .intake-custom-input {
   width: 100%;
   font-size: 0.95rem;
@@ -684,7 +674,8 @@ pre {
 }
 
 .intake-question textarea {
-  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .intake-question {
@@ -985,48 +976,6 @@ pre {
   background: var(--accent-muted) !important;
 }
 
-.modal-form {
-  display: grid;
-  gap: 0.9rem;
-}
-
-.modal-form label {
-  display: grid;
-  gap: 0.35rem;
-  font-size: 0.9rem;
-  color: var(--text);
-}
-
-.modal-form input,
-.modal-form textarea,
-.modal-form select {
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  background: #f8fafc;
-  color: var(--text);
-  padding: 0.65rem 0.75rem;
-  font-size: 1rem;
-  font-family: inherit;
-}
-
-.modal-form textarea {
-  resize: vertical;
-}
-
-.modal-form input::placeholder,
-.modal-form textarea::placeholder {
-  color: var(--muted);
-}
-
-.modal-form input:focus,
-.modal-form textarea:focus,
-.modal-form select:focus {
-  outline: 2px solid var(--accent-soft);
-  outline-offset: 0;
-  border-color: var(--accent);
-  background: var(--surface);
-}
-
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1199,12 +1148,6 @@ pre {
 }
 
 .doc-upload-row select {
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  background: #f8fafc;
-  color: var(--text);
-  padding: 0.55rem 0.75rem;
-  font-size: 0.95rem;
   min-width: 180px;
 }
 
@@ -1580,6 +1523,95 @@ select {
   color-scheme: light;
 }
 
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not(
+    [type='range']
+  ):not([type='hidden']),
+textarea,
+select {
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--text);
+  padding: 0.65rem 0.75rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  line-height: 1.4;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    outline 0.15s ease;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 2.75rem;
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not(
+    [type='range']
+  ):not([type='hidden'])::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not(
+    [type='range']
+  ):not([type='hidden']):focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 0;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+input:not([type='checkbox']):not([type='radio']):not([type='file']):not(
+    [type='range']
+  ):not([type='hidden']):disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: #f1f5f9;
+}
+
+.form-stack,
+.modal-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.form-stack label,
+.modal-form label,
+.admin-reject-field,
+.doc-upload-row label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.form-stack input:not([type='checkbox']):not([type='radio']):not([type='file']),
+.form-stack textarea,
+.form-stack select,
+.modal-form input:not([type='checkbox']):not([type='radio']):not([type='file']),
+.modal-form textarea,
+.modal-form select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.checkbox-label input[type='checkbox'] {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .header-link {
   font-size: 0.9rem;
   font-weight: 600;
@@ -1853,6 +1885,38 @@ select {
   gap: 0.5rem;
   font-size: 0.95rem;
   cursor: pointer;
+}
+
+.bid-line-items {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.bid-line-items .tag-section-label {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.bid-line-items input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+}
+
+.bid-line-items > .secondary {
+  margin-top: 0.35rem;
+}
+
+.bid-proposal-form .form-error {
+  margin-top: 0.75rem;
+}
+
+.bid-proposal-form .tender-actions-block {
+  margin-top: 1rem;
 }
 
 .bid-line-items-list {
