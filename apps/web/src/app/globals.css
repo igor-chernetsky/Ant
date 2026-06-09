@@ -1590,10 +1590,162 @@ select {
   border-color: #bfdbfe;
 }
 
-.tender-meta {
-  margin-bottom: 1rem;
+.tender-card .doc-hint {
+  margin-bottom: 0;
 }
 
+.tender-error {
+  margin-top: 0.75rem;
+}
+
+.tender-meta {
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
+.tender-actions-block {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+  justify-items: start;
+}
+
+.tender-actions-block .tender-hint {
+  margin: 0;
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.tender-phase-hint {
+  margin: 1.25rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.tender-subsection {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.tender-subsection-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tender-invite-explainer {
+  margin: 0 0 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  max-width: 46rem;
+}
+
+.tender-invite-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+
+.tender-invite-summary-item {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.tender-invite-summary-item.pending {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.tender-invite-summary-item.accepted {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.tender-invite-summary-item.declined {
+  background: #f1f5f9;
+  color: var(--muted);
+}
+
+.tender-invite-summary-item.expired {
+  background: #fef2f2;
+  color: var(--danger);
+}
+
+.tender-invite-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.tender-invite-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.tender-invite-main {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.tender-invite-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tender-invite-responded {
+  font-size: 0.82rem;
+}
+
+.tender-invite-status {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tender-invite-status.pending {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.tender-invite-status.accepted {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid #bbf7d0;
+}
+
+.tender-invite-status.declined {
+  background: #f1f5f9;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.tender-invite-status.expired {
+  background: #fef2f2;
+  color: var(--danger);
+  border: 1px solid #fecaca;
+}
+
+/* Legacy — keep if referenced elsewhere */
 .tender-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1605,29 +1757,6 @@ select {
 .tender-hint {
   margin: 0.5rem 0 0;
   font-size: 0.9rem;
-}
-
-.tender-invite-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.65rem;
-}
-
-.tender-invite-item {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0;
-  border-top: 1px solid var(--border);
-}
-
-.tender-invite-item:first-child {
-  border-top: none;
-  padding-top: 0;
 }
 
 .bid-line-actions {

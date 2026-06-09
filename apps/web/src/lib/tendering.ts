@@ -272,6 +272,39 @@ export function formatTenderStatus(status: TenderStatus): string {
   return status.replaceAll('_', ' ');
 }
 
+export function formatInvitationStatus(status: TenderInvitationStatus): string {
+  switch (status) {
+    case 'pending':
+      return 'Awaiting response';
+    case 'accepted':
+      return 'Accepted';
+    case 'declined':
+      return 'Declined';
+    case 'expired':
+      return 'Expired';
+    default:
+      return status;
+  }
+}
+
+export function invitationStatusClass(status: TenderInvitationStatus): string {
+  switch (status) {
+    case 'pending':
+      return 'tender-invite-status pending';
+    case 'accepted':
+      return 'tender-invite-status accepted';
+    case 'declined':
+      return 'tender-invite-status declined';
+    case 'expired':
+      return 'tender-invite-status expired';
+    default:
+      return 'tender-invite-status';
+  }
+}
+
+/** Matches API `MAX_TENDER_INVITATIONS` — verified contractors in region/type. */
+export const TENDER_INVITATION_LIMIT = 8;
+
 export function isTenderEligibleProjectStatus(status: string): boolean {
   return [
     'estimated',
