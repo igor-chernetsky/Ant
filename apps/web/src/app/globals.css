@@ -1877,15 +1877,50 @@ select {
   border-color: #e0e7ff;
 }
 
+.amendments-card .doc-hint {
+  margin-bottom: 0.25rem;
+}
+
+.amendments-locked-callout {
+  margin: 1rem 0 0;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+}
+
+.amendments-locked-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #92400e;
+}
+
+.amendments-locked-text {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  color: #78350f;
+}
+
 .amendment-form {
-  display: grid;
-  gap: 0.75rem;
-  margin: 1rem 0;
+  margin: 1rem 0 0;
 }
 
 .amendment-form textarea {
-  min-height: 6rem;
-  resize: vertical;
+  min-height: 6.5rem;
+}
+
+.amendment-form select {
+  max-width: 280px;
+}
+
+.amendment-submit {
+  justify-self: start;
+  margin-top: 0.15rem;
 }
 
 .amendment-process-row {
@@ -1894,17 +1929,22 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin: 0.75rem 0 1rem;
+  margin: 1rem 0;
   padding: 0.85rem 1rem;
   border-radius: 10px;
   background: var(--accent-muted);
   border: 1px solid #dbeafe;
 }
 
+.amendment-process-row .muted {
+  margin: 0;
+  flex: 1 1 220px;
+}
+
 .amendment-list {
   display: grid;
   gap: 0.75rem;
-  margin: 0;
+  margin: 1rem 0 0;
   padding: 0;
   list-style: none;
 }
@@ -1913,7 +1953,7 @@ select {
   padding: 0.85rem 1rem;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: #fafafa;
+  background: #f8fafc;
 }
 
 .amendment-item-header {
@@ -1925,6 +1965,7 @@ select {
 }
 
 .amendment-type-pill {
+  display: inline-block;
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
   background: #e0e7ff;
@@ -1957,9 +1998,14 @@ select {
   margin: 0;
   line-height: 1.55;
   white-space: pre-wrap;
+  color: var(--text);
 }
 
 .amendment-ai-meta {
   margin: 0.45rem 0 0;
   font-size: 0.82rem;
+}
+
+.amendments-error {
+  margin-top: 0.75rem;
 }

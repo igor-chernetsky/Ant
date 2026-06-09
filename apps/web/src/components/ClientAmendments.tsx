@@ -92,14 +92,26 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
   return (
     <section className="card amendments-card">
       <h2 className="section-title">Client amendments</h2>
-      <p className="muted">
+      <p className="muted doc-hint">
         {amendable
           ? 'Add clarifications or scope changes before tendering starts. AI will merge them into the project brief when you update understanding.'
           : 'Scope is locked while tendering is active. Contact support if you need to reopen edits.'}
       </p>
 
+      {!amendable && (
+        <div className="amendments-locked-callout" role="status">
+          <p className="amendments-locked-title">Scope locked</p>
+          <p className="amendments-locked-text">
+            Amendments cannot be added or processed after tendering has started.
+          </p>
+        </div>
+      )}
+
       {amendable && (
-        <form className="amendment-form" onSubmit={(e) => void handleCreate(e)}>
+        <form
+          className="amendment-form modal-form"
+          onSubmit={(e) => void handleCreate(e)}
+        >
           <label>
             Additional requirements
             <textarea
@@ -130,7 +142,7 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
           </label>
           <button
             type="submit"
-            className="secondary"
+            className="secondary amendment-submit"
             disabled={saving || processing || body.trim().length < 5}
           >
             {saving ? 'Saving…' : 'Add amendment'}
@@ -188,7 +200,7 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
         </ul>
       )}
 
-      {error && <p className="form-error">{error}</p>}
+      {error && <p className="form-error amendments-error">{error}</p>}
     </section>
   );
 }
