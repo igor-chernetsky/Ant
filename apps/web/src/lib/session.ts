@@ -12,6 +12,10 @@ export function canCreateProject(me: MeResponse | null): boolean {
   return Boolean(me?.roles?.includes('client'));
 }
 
+export function isContractorUser(me: MeResponse | null): boolean {
+  return Boolean(me?.isContractor || me?.roles?.includes('contractor'));
+}
+
 export async function refreshSessionTokens(): Promise<boolean> {
   const response = await fetch('/api/auth/refresh', {
     method: 'POST',

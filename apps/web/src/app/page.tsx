@@ -8,8 +8,12 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
 import { useSession } from '@/components/SessionProvider';
-import { canCreateProject } from '@/lib/session';
+import { canCreateProject, isContractorUser } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
+import {
+  fetchContractorInvitations,
+  type ContractorInvitationItem,
+} from '@/lib/tendering';
 import { TagFilterBar } from '@/components/TagFilterBar';
 import {
   fetchProjects,
@@ -26,6 +30,9 @@ export default function HomePage() {
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [projects, setProjects] = useState<PublicProjectCard[]>([]);
   const [ownedProjectIds, setOwnedProjectIds] = useState<Set<string>>(new Set());
+  const [contractorInvitations, setContractorInvitations] = useState<
+    ContractorInvitationItem[]
+  >([]);
   const [allTags, setAllTags] = useState<Array<{ slug: string; label: string }>>(
     [],
   );
@@ -70,15 +77,35 @@ export default function HomePage() {
     if (!sessionReady) return;
     if (!me) {
       setOwnedProjectIds(new Set());
+      setContractorInvitations([]);
       return;
     }
 
     void (async () => {
       try {
-        const mine = await fetchProjects();
-        setOwnedProjectIds(new Set(mine.map((project: Project) => project.id)));
+        const tasks: Promise<void>[] = [];
+        if (canCreateProject(me)) {
+          tasks.push(
+            fetchProjects().then((mine) => {
+              setOwnedProjectIds(new Set(mine.map((project: Project) => project.id)));
+            }),
+          );
+        } else {
+          setOwnedProjectIds(new Set());
+        }
+        if (isContractorUser(me)) {
+          tasks.push(
+            fetchContractorInvitations().then((invs) => {
+              setContractorInvitations(invs);
+            }),
+          );
+        } else {
+          setContractorInvitations([]);
+        }
+        await Promise.all(tasks);
       } catch {
         setOwnedProjectIds(new Set());
+        setContractorInvitations([]);
       }
     })();
   }, [sessionReady, me]);
@@ -118,12 +145,35 @@ export default function HomePage() {
 
   const canAddProject = canCreateProject(me);
 
+  const contractorParticipationByProjectId = useMemo(() => {
+    const map = new Map<string, ContractorInvitationItem>();
+    for (const inv of contractorInvitations) {
+      map.set(inv.projectId, inv);
+    }
+    return map;
+  }, [contractorInvitations]);
+
   const sortedProjects = useMemo(() => {
-    if (!me || ownedProjectIds.size === 0) return projects;
-    const mine = projects.filter((project) => ownedProjectIds.has(project.id));
-    const others = projects.filter((project) => !ownedProjectIds.has(project.id));
-    return [...mine, ...others];
-  }, [projects, me, ownedProjectIds]);
+    if (
+      !me ||
+      (ownedProjectIds.size === 0 && contractorParticipationByProjectId.size === 0)
+    ) {
+      return projects;
+    }
+    const mine: PublicProjectCard[] = [];
+    const participating: PublicProjectCard[] = [];
+    const others: PublicProjectCard[] = [];
+    for (const project of projects) {
+      if (ownedProjectIds.has(project.id)) {
+        mine.push(project);
+      } else if (contractorParticipationByProjectId.has(project.id)) {
+        participating.push(project);
+      } else {
+        others.push(project);
+      }
+    }
+    return [...mine, ...participating, ...others];
+  }, [projects, me, ownedProjectIds, contractorParticipationByProjectId]);
 
   return (
     <PageShell>
@@ -137,6 +187,7 @@ export default function HomePage() {
         <HomeHero
           signedIn={Boolean(me)}
           canAddProject={canAddProject}
+          showContractorPortal={isContractorUser(me)}
           onAddProject={handleAddProject}
           onSignIn={() => setLoginOpen(true)}
         />
@@ -198,6 +249,9 @@ export default function HomePage() {
                 key={project.id}
                 project={project}
                 isOwned={ownedProjectIds.has(project.id)}
+                contractorParticipation={
+                  contractorParticipationByProjectId.get(project.id) ?? null
+                }
               />
             ))}
           </section>

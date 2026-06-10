@@ -1,8 +1,11 @@
 'use client';
 
+import Link from 'next/link';
+
 interface HomeHeroProps {
   signedIn: boolean;
   canAddProject: boolean;
+  showContractorPortal?: boolean;
   onAddProject: () => void;
   onSignIn: () => void;
 }
@@ -10,6 +13,7 @@ interface HomeHeroProps {
 export function HomeHero({
   signedIn,
   canAddProject,
+  showContractorPortal = false,
   onAddProject,
   onSignIn,
 }: HomeHeroProps) {
@@ -33,6 +37,11 @@ export function HomeHero({
                 Sign in to publish
               </button>
             ) : null}
+            {showContractorPortal && (
+              <Link href="/contractor" className="home-hero-link">
+                Contractor portal
+              </Link>
+            )}
           </div>
         </div>
       </div>

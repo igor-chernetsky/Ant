@@ -56,6 +56,19 @@ export class ContractorTenderController {
     return this.tendersService.listInvitationsForContractor(user.id);
   }
 
+  @Get('projects/:projectId/participation')
+  async getProjectParticipation(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    const participation = await this.tendersService.getParticipationForProject(
+      user.id,
+      projectId,
+    );
+    return participation ?? { participation: null };
+  }
+
   @Get('tenders/:tenderId')
   async getTender(
     @Req() req: Request & { user: JwtPayload },

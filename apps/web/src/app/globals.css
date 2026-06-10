@@ -311,6 +311,100 @@ pre {
   gap: 0.65rem;
 }
 
+.home-hero-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.65rem 1.1rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.home-hero-link:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+.project-tile-participating {
+  border-color: #c4b5fd;
+  box-shadow: 0 0 0 1px #ddd6fe, var(--shadow-sm);
+}
+
+.project-tile-contractor-badge {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  max-width: calc(100% - 1.3rem);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.project-tile-owned .project-tile-contractor-badge {
+  top: auto;
+  bottom: 0.65rem;
+  right: 0.65rem;
+}
+
+.project-tile-participation {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #5b21b6;
+}
+
+.contractor-project-card {
+  border-color: #c4b5fd;
+}
+
+.contractor-participation-meta {
+  margin-top: 1rem;
+}
+
+.contractor-participation-callout {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: #faf5ff;
+  border: 1px solid #ddd6fe;
+  border-left: 4px solid #7c3aed;
+}
+
+.contractor-participation-callout-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #5b21b6;
+}
+
+.contractor-participation-callout-text {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  color: #4c1d95;
+}
+
+.contractor-bid-status-line {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.contractor-participation-error {
+  margin-top: 0.75rem;
+}
+
 @media (max-width: 640px) {
   .home-hero-overlay {
     padding: 1.5rem 1.15rem 1.35rem;

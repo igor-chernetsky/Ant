@@ -90,6 +90,19 @@ export interface ContractorInvitationItem {
   invitationStatus: TenderInvitationStatus;
   closesAt: string | null;
   invitedAt: string;
+  bidStatus: BidStatus | null;
+  bidAmount: string | null;
+}
+
+export interface ContractorProjectParticipation {
+  tenderId: string;
+  invitation: TenderInvitation;
+  tenderStatus: TenderStatus;
+  closesAt: string | null;
+  myBid: Bid | null;
+  verificationStatus: string;
+  canRespondToInvitation: boolean;
+  canSubmitBid: boolean;
 }
 
 export interface ContractorTenderView {
@@ -202,6 +215,24 @@ export async function fetchContractorInvitations(): Promise<
   return response.json() as Promise<ContractorInvitationItem[]>;
 }
 
+export async function fetchContractorProjectParticipation(
+  projectId: string,
+): Promise<ContractorProjectParticipation | null> {
+  const response = await fetchWithAuth(
+    `/api/contractor/projects/${encodeURIComponent(projectId)}/participation`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load contractor participation');
+  }
+  const data = (await response.json()) as
+    | ContractorProjectParticipation
+    | { participation: null };
+  if ('participation' in data && data.participation === null) {
+    return null;
+  }
+  return data as ContractorProjectParticipation;
+}
+
 export async function fetchContractorTender(
   tenderId: string,
 ): Promise<ContractorTenderView> {
@@ -304,6 +335,27 @@ export function invitationStatusClass(status: TenderInvitationStatus): string {
 
 /** Matches API `MAX_TENDER_INVITATIONS` — verified contractors in region/type. */
 export const TENDER_INVITATION_LIMIT = 8;
+
+export function formatContractorParticipationLabel(
+  item: Pick<
+    ContractorInvitationItem,
+    'invitationStatus' | 'tenderStatus' | 'bidStatus'
+  >,
+): string {
+  if (item.bidStatus === 'selected') return 'Your bid selected';
+  if (item.bidStatus === 'rejected') return 'Bid not selected';
+  if (item.bidStatus === 'submitted') return 'Bid submitted';
+  if (item.invitationStatus === 'pending') return 'Invitation · respond';
+  if (item.invitationStatus === 'declined') return 'Declined';
+  if (item.invitationStatus === 'expired') return 'Invitation expired';
+  if (item.invitationStatus === 'accepted') {
+    if (item.tenderStatus === 'open') return 'Accepted · submit bid';
+    if (item.tenderStatus === 'closed') return 'Accepted · bidding closed';
+    if (item.tenderStatus === 'awarded') return 'Accepted · awarded';
+    return 'Invitation accepted';
+  }
+  return 'Invited';
+}
 
 export function isTenderEligibleProjectStatus(status: string): boolean {
   return [

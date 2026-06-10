@@ -8,6 +8,7 @@ import {
   Bid,
   BidStatus,
   ContractorProfile,
+  ContractorVerificationStatus,
   Prisma,
   ProjectStatus,
   Tender,
@@ -335,29 +336,99 @@ export class TendersService {
   }
 
   async listInvitationsForContractor(userId: string) {
-    const profile = await this.contractorProfiles.requireByUserId(userId);
+    const profile = await this.contractorProfiles.getByUserId(userId);
+    if (!profile) {
+      return [];
+    }
 
     const invitations = await this.prisma.tenderInvitation.findMany({
       where: { contractorId: profile.id },
       include: {
         tender: {
-          include: { project: true },
+          include: {
+            project: true,
+            bids: {
+              where: { contractorId: profile.id },
+              orderBy: { submittedAt: 'desc' },
+            },
+          },
         },
       },
       orderBy: { invitedAt: 'desc' },
     });
 
-    return invitations.map((inv) => ({
-      invitationId: inv.id,
-      tenderId: inv.tenderId,
-      projectId: inv.tender.projectId,
-      projectTitle: inv.tender.project.title,
-      projectDistrict: inv.tender.project.district,
-      tenderStatus: inv.tender.status,
-      invitationStatus: inv.status,
-      closesAt: inv.tender.closesAt?.toISOString() ?? null,
-      invitedAt: inv.invitedAt.toISOString(),
-    }));
+    return invitations.map((inv) => {
+      const activeBid =
+        inv.tender.bids.find((b) => b.status !== BidStatus.withdrawn) ??
+        null;
+
+      return {
+        invitationId: inv.id,
+        tenderId: inv.tenderId,
+        projectId: inv.tender.projectId,
+        projectTitle: inv.tender.project.title,
+        projectDistrict: inv.tender.project.district,
+        tenderStatus: inv.tender.status,
+        invitationStatus: inv.status,
+        closesAt: inv.tender.closesAt?.toISOString() ?? null,
+        invitedAt: inv.invitedAt.toISOString(),
+        bidStatus: activeBid?.status ?? null,
+        bidAmount: activeBid ? String(activeBid.amount) : null,
+      };
+    });
+  }
+
+  async getParticipationForProject(userId: string, projectId: string) {
+    const profile = await this.contractorProfiles.getByUserId(userId);
+    if (!profile) {
+      return null;
+    }
+
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+      include: this.includeTenderRelations(),
+    });
+    if (!tender) {
+      return null;
+    }
+
+    const invitation = tender.invitations.find(
+      (i) => i.contractorId === profile.id,
+    );
+    if (!invitation) {
+      return null;
+    }
+
+    const myBid =
+      tender.bids.find(
+        (b) =>
+          b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
+      ) ?? null;
+
+    const verified =
+      profile.verificationStatus === ContractorVerificationStatus.verified;
+
+    const canRespondToInvitation =
+      verified &&
+      invitation.status === TenderInvitationStatus.pending &&
+      (tender.status === TenderStatus.draft ||
+        tender.status === TenderStatus.collecting_participants);
+
+    const canSubmitBid =
+      verified &&
+      invitation.status === TenderInvitationStatus.accepted &&
+      tender.status === TenderStatus.open;
+
+    return {
+      tenderId: tender.id,
+      invitation: this.mapInvitation(invitation),
+      tenderStatus: tender.status,
+      closesAt: tender.closesAt?.toISOString() ?? null,
+      myBid: myBid ? this.mapBid(myBid) : null,
+      verificationStatus: profile.verificationStatus,
+      canRespondToInvitation,
+      canSubmitBid,
+    };
   }
 
   async respondToInvitation(

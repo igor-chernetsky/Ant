@@ -7,6 +7,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { DocumentImage } from '@/components/DocumentImage';
 import { ClientAmendments } from '@/components/ClientAmendments';
+import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
 import { IntakeWizard } from '@/components/IntakeWizard';
 import { MetaSpecGrid } from '@/components/MetaSpecGrid';
 import { ProjectHero } from '@/components/ProjectHero';
@@ -38,6 +39,7 @@ import {
   type Project,
 } from '@/lib/projects';
 import { useSession } from '@/components/SessionProvider';
+import { isContractorUser } from '@/lib/session';
 import {
   fetchPublicProject,
 } from '@/lib/public-projects';
@@ -477,6 +479,13 @@ export default function ProjectDetailPage() {
                 projectId={projectId}
                 project={project}
                 onUpdated={setProject}
+              />
+            )}
+
+            {!isOwner && isContractorUser(me) && (
+              <ContractorProjectPanel
+                projectId={projectId}
+                ballparkMid={estimate?.totals.midAmount ?? null}
               />
             )}
 

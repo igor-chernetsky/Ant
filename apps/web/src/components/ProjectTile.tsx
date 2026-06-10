@@ -7,22 +7,35 @@ import {
   type ProjectType,
 } from '@/lib/projects';
 import type { PublicProjectCard } from '@/lib/public-projects';
+import type { ContractorInvitationItem } from '@/lib/tendering';
+import { formatContractorParticipationLabel } from '@/lib/tendering';
 
 interface ProjectTileProps {
   project: PublicProjectCard;
   isOwned?: boolean;
+  contractorParticipation?: ContractorInvitationItem | null;
 }
 
-export function ProjectTile({ project, isOwned = false }: ProjectTileProps) {
+export function ProjectTile({
+  project,
+  isOwned = false,
+  contractorParticipation = null,
+}: ProjectTileProps) {
   const excerpt =
     project.description && project.description.length > 160
       ? `${project.description.slice(0, 157)}…`
       : project.description;
 
+  const participationLabel = contractorParticipation
+    ? formatContractorParticipationLabel(contractorParticipation)
+    : null;
+
   return (
     <Link
       href={`/projects/${project.id}`}
-      className={`project-tile${isOwned ? ' project-tile-owned' : ''}`}
+      className={`project-tile${isOwned ? ' project-tile-owned' : ''}${
+        contractorParticipation && !isOwned ? ' project-tile-participating' : ''
+      }`}
     >
       <div className="project-tile-media">
         {project.coverImageUrl ? (
@@ -42,6 +55,11 @@ export function ProjectTile({ project, isOwned = false }: ProjectTileProps) {
           {formatProjectStatus(project.status)}
         </span>
         {isOwned && <span className="project-tile-owned-badge">My project</span>}
+        {participationLabel && !isOwned && (
+          <span className="project-tile-contractor-badge">
+            {participationLabel}
+          </span>
+        )}
       </div>
       <div className="project-tile-body">
         <h3 className="project-tile-title">{project.title}</h3>
@@ -50,6 +68,9 @@ export function ProjectTile({ project, isOwned = false }: ProjectTileProps) {
           {project.district ? ` · ${project.district}` : ''}
           {project.regionCode ? ` · ${project.regionCode}` : ''}
         </p>
+        {participationLabel && (
+          <p className="project-tile-participation muted">{participationLabel}</p>
+        )}
         {excerpt && <p className="project-tile-description">{excerpt}</p>}
         {project.tags.length > 0 && (
           <div className="project-tile-tags">

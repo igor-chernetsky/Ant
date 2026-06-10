@@ -89,6 +89,19 @@ export interface ContractorInvitationItem {
   invitationStatus: TenderInvitationStatus;
   closesAt: string | null;
   invitedAt: string;
+  bidStatus: BidStatus | null;
+  bidAmount: string | null;
+}
+
+export interface ContractorProjectParticipation {
+  tenderId: string;
+  invitation: TenderInvitationResponse;
+  tenderStatus: TenderStatus;
+  closesAt: string | null;
+  myBid: BidResponse | null;
+  verificationStatus: string;
+  canRespondToInvitation: boolean;
+  canSubmitBid: boolean;
 }
 
 export interface SubmitBidDto {
