@@ -16,12 +16,26 @@ export function isContractorUser(me: MeResponse | null): boolean {
   return Boolean(me?.isContractor || me?.roles?.includes('contractor'));
 }
 
+let clientRefreshFlight: Promise<boolean> | null = null;
+
 export async function refreshSessionTokens(): Promise<boolean> {
-  const response = await fetch('/api/auth/refresh', {
-    method: 'POST',
-    credentials: 'include',
-  });
-  return response.ok;
+  if (clientRefreshFlight) {
+    return clientRefreshFlight;
+  }
+
+  clientRefreshFlight = (async () => {
+    try {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      return response.ok;
+    } finally {
+      clientRefreshFlight = null;
+    }
+  })();
+
+  return clientRefreshFlight;
 }
 
 /** Refresh cookies before a user action (forms, uploads). */

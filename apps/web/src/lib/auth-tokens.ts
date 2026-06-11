@@ -77,6 +77,27 @@ export async function refreshKeycloakTokens(
   return exchangeKeycloakTokens(params);
 }
 
+/** Deduplicate concurrent refreshes (Keycloak rotates refresh tokens). */
+const refreshFlights = new Map<
+  string,
+  Promise<KeycloakTokenResponse | null>
+>();
+
+export function refreshKeycloakTokensSingleFlight(
+  refreshToken: string,
+): Promise<KeycloakTokenResponse | null> {
+  const inFlight = refreshFlights.get(refreshToken);
+  if (inFlight) {
+    return inFlight;
+  }
+
+  const flight = refreshKeycloakTokens(refreshToken).finally(() => {
+    refreshFlights.delete(refreshToken);
+  });
+  refreshFlights.set(refreshToken, flight);
+  return flight;
+}
+
 export function applyAuthCookies(
   response: NextResponse,
   tokens: KeycloakTokenResponse,
@@ -117,7 +138,7 @@ export async function getValidAccessToken(): Promise<AuthRefreshResult> {
     return { ok: false };
   }
 
-  const refreshed = await refreshKeycloakTokens(refreshToken);
+  const refreshed = await refreshKeycloakTokensSingleFlight(refreshToken);
   if (!refreshed?.access_token) {
     return { ok: false };
   }
@@ -135,7 +156,7 @@ export async function refreshAccessTokenAfterUnauthorized(): Promise<AuthRefresh
     return { ok: false };
   }
 
-  const refreshed = await refreshKeycloakTokens(refreshToken);
+  const refreshed = await refreshKeycloakTokensSingleFlight(refreshToken);
   if (!refreshed?.access_token) {
     return { ok: false };
   }

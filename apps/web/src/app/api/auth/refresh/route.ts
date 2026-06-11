@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import {
   applyAuthCookies,
-  clearAuthCookies,
   readAuthCookies,
-  refreshKeycloakTokens,
+  refreshKeycloakTokensSingleFlight,
 } from '@/lib/auth-tokens';
 import { accessTokenNeedsRefresh } from '@/lib/jwt-utils';
 
@@ -15,23 +14,17 @@ export async function POST() {
   }
 
   if (!refreshToken) {
-    const response = NextResponse.json(
-      { message: 'Not authenticated' },
-      { status: 401 },
-    );
-    clearAuthCookies(response);
-    return response;
+    return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
   }
 
-  const tokenData = await refreshKeycloakTokens(refreshToken);
+  const tokenData = await refreshKeycloakTokensSingleFlight(refreshToken);
 
   if (!tokenData?.access_token) {
-    const response = NextResponse.json(
-      { message: 'Session expired' },
-      { status: 401 },
-    );
-    clearAuthCookies(response);
-    return response;
+    // Another in-flight refresh may have rotated tokens; keep cookies if access still valid.
+    if (accessToken && !accessTokenNeedsRefresh(accessToken)) {
+      return NextResponse.json({ ok: true });
+    }
+    return NextResponse.json({ message: 'Session expired' }, { status: 401 });
   }
 
   const response = NextResponse.json({ ok: true });
