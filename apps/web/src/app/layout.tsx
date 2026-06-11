@@ -5,6 +5,10 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Ant — Construction Marketplace',
   description: 'Browse and manage construction projects',
+  icons: {
+    icon: '/ant-logo.png',
+    apple: '/ant-logo.png',
+  },
 };
 
 export default function RootLayout({
