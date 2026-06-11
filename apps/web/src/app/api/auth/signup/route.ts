@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createKeycloakUser } from '@/lib/auth-keycloak-admin';
-import { applyAuthCookies, exchangeKeycloakTokens } from '@/lib/auth-tokens';
+import {
+  exchangeKeycloakTokens,
+  persistAndApplyAuthCookies,
+} from '@/lib/auth-tokens';
+
+export const dynamic = 'force-dynamic';
 
 interface SignupBody {
   email?: string;
@@ -50,16 +55,15 @@ export async function POST(request: Request) {
     );
   }
 
-  // Auto-login after successful signup
   const params = new URLSearchParams({
     grant_type: 'password',
     username: email,
     password,
     scope: 'openid profile email offline_access',
   });
-  const tokenData = await exchangeKeycloakTokens(params);
+  const result = await exchangeKeycloakTokens(params);
 
-  if (!tokenData?.access_token) {
+  if (!result.ok) {
     return NextResponse.json(
       {
         ok: true,
@@ -70,7 +74,6 @@ export async function POST(request: Request) {
   }
 
   const response = NextResponse.json({ ok: true }, { status: 201 });
-  applyAuthCookies(response, tokenData);
+  await persistAndApplyAuthCookies(result.tokens, response);
   return response;
 }
-

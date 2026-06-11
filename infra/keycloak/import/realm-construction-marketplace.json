@@ -1,6 +1,10 @@
 {
   "realm": "construction-marketplace",
   "enabled": true,
+  "accessTokenLifespan": 3600,
+  "ssoSessionIdleTimeout": 86400,
+  "ssoSessionMaxLifespan": 604800,
+  "revokeRefreshToken": false,
   "registrationAllowed": true,
   "registrationEmailAsUsername": true,
   "loginWithEmailAllowed": true,
@@ -70,8 +74,17 @@
         "acr",
         "profile",
         "roles",
-        "email"
-      ]
+        "email",
+        "offline_access"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone"
+      ],
+      "attributes": {
+        "use.refresh.tokens": "true",
+        "client.use.refresh.tokens": "true"
+      }
     },
     {
       "clientId": "platform-api",

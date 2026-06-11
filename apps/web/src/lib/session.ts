@@ -18,6 +18,18 @@ export function isContractorUser(me: MeResponse | null): boolean {
 
 let clientRefreshFlight: Promise<boolean> | null = null;
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callRefreshEndpoint(): Promise<boolean> {
+  const response = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    credentials: 'include',
+  });
+  return response.ok;
+}
+
 export async function refreshSessionTokens(): Promise<boolean> {
   if (clientRefreshFlight) {
     return clientRefreshFlight;
@@ -25,11 +37,12 @@ export async function refreshSessionTokens(): Promise<boolean> {
 
   clientRefreshFlight = (async () => {
     try {
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      return response.ok;
+      if (await callRefreshEndpoint()) {
+        return true;
+      }
+      // Another tab/request may have rotated the refresh token first.
+      await sleep(400);
+      return callRefreshEndpoint();
     } finally {
       clientRefreshFlight = null;
     }

@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getBackendApiUrl } from '@/lib/auth-server';
 import {
-  applyAuthCookies,
+  clearAuthCookieStore,
   clearAuthCookies,
   getValidAccessToken,
+  persistAndApplyAuthCookies,
   refreshAccessTokenAfterUnauthorized,
 } from '@/lib/auth-tokens';
+
+export const dynamic = 'force-dynamic';
 
 async function fetchProfile(accessToken: string): Promise<Response> {
   return fetch(`${getBackendApiUrl()}/v1/me`, {
@@ -25,6 +28,7 @@ export async function GET() {
       { status: 401 },
     );
     clearAuthCookies(response);
+    await clearAuthCookieStore();
     return response;
   }
 
@@ -48,6 +52,7 @@ export async function GET() {
         { status: 401 },
       );
       clearAuthCookies(response);
+      await clearAuthCookieStore();
       return response;
     }
 
@@ -68,6 +73,7 @@ export async function GET() {
       { status: 401 },
     );
     clearAuthCookies(response);
+    await clearAuthCookieStore();
     return response;
   }
 
@@ -82,7 +88,7 @@ export async function GET() {
   const profile = await backendResponse.json();
   const response = NextResponse.json(profile);
   if (refreshed) {
-    applyAuthCookies(response, refreshed);
+    await persistAndApplyAuthCookies(refreshed, response);
   }
   return response;
 }

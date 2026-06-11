@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getBackendApiUrl } from '@/lib/auth-server';
 import {
-  applyAuthCookies,
   clearAuthCookies,
   getValidAccessToken,
+  persistAndApplyAuthCookies,
   refreshAccessTokenAfterUnauthorized,
   type KeycloakTokenResponse,
 } from '@/lib/auth-tokens';
@@ -24,12 +24,12 @@ async function fetchBackend(
   });
 }
 
-function attachRefreshedCookies(
+async function attachRefreshedCookies(
   response: NextResponse,
   refreshed?: KeycloakTokenResponse,
-): NextResponse {
+): Promise<NextResponse> {
   if (refreshed) {
-    applyAuthCookies(response, refreshed);
+    await persistAndApplyAuthCookies(refreshed, response);
   }
   return response;
 }

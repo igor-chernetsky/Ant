@@ -18,12 +18,25 @@ export interface KeycloakTokenResponse {
   error_description?: string;
 }
 
-const cookieBase = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-};
+export type TokenExchangeResult =
+  | { ok: true; tokens: KeycloakTokenResponse }
+  | { ok: false; error: string; description?: string };
+
+const DEFAULT_REFRESH_MAX_AGE = 60 * 60 * 24 * 30;
+
+function useSecureCookies(): boolean {
+  return process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+}
+
+function cookieOptions(maxAge: number) {
+  return {
+    httpOnly: true,
+    secure: useSecureCookies(),
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge,
+  };
+}
 
 export async function readAuthCookies(): Promise<{
   accessToken: string | null;
@@ -38,12 +51,16 @@ export async function readAuthCookies(): Promise<{
 
 export async function exchangeKeycloakTokens(
   params: URLSearchParams,
-): Promise<KeycloakTokenResponse | null> {
+): Promise<TokenExchangeResult> {
   let bff: { clientId: string; clientSecret: string };
   try {
     bff = getKeycloakBffCredentials();
-  } catch {
-    return null;
+  } catch (err) {
+    return {
+      ok: false,
+      error: 'bff_not_configured',
+      description: err instanceof Error ? err.message : String(err),
+    };
   }
 
   params.set('client_id', bff.clientId);
@@ -59,67 +76,128 @@ export async function exchangeKeycloakTokens(
 
     const data = (await response.json()) as KeycloakTokenResponse;
     if (!response.ok || !data.access_token) {
-      return null;
+      return {
+        ok: false,
+        error: data.error ?? 'token_exchange_failed',
+        description: data.error_description,
+      };
     }
-    return data;
-  } catch {
-    return null;
+    return { ok: true, tokens: data };
+  } catch (err) {
+    return {
+      ok: false,
+      error: 'token_exchange_network_error',
+      description: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
 export async function refreshKeycloakTokens(
   refreshToken: string,
-): Promise<KeycloakTokenResponse | null> {
+): Promise<TokenExchangeResult> {
   const params = new URLSearchParams({
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
+    scope: 'openid offline_access',
   });
   return exchangeKeycloakTokens(params);
 }
 
-/** Deduplicate concurrent refreshes (Keycloak rotates refresh tokens). */
-const refreshFlights = new Map<
-  string,
-  Promise<KeycloakTokenResponse | null>
->();
+/**
+ * One in-flight Keycloak refresh per server instance.
+ * Keycloak rotates refresh tokens — parallel refreshes with the same token
+ * cause invalid_grant on all but the first caller (common on Vercel).
+ */
+let refreshFlight: Promise<TokenExchangeResult> | null = null;
 
 export function refreshKeycloakTokensSingleFlight(
   refreshToken: string,
-): Promise<KeycloakTokenResponse | null> {
-  const inFlight = refreshFlights.get(refreshToken);
-  if (inFlight) {
-    return inFlight;
+): Promise<TokenExchangeResult> {
+  if (refreshFlight) {
+    return refreshFlight;
   }
 
-  const flight = refreshKeycloakTokens(refreshToken).finally(() => {
-    refreshFlights.delete(refreshToken);
+  refreshFlight = refreshKeycloakTokens(refreshToken).finally(() => {
+    refreshFlight = null;
   });
-  refreshFlights.set(refreshToken, flight);
-  return flight;
+  return refreshFlight;
 }
 
+/** Persist auth cookies via next/headers (reliable in Route Handlers). */
+export async function persistAuthCookies(
+  tokens: KeycloakTokenResponse,
+): Promise<void> {
+  if (!tokens.access_token) {
+    return;
+  }
+
+  const cookieStore = await cookies();
+  const accessMaxAge = tokens.expires_in ?? 300;
+  cookieStore.set(
+    ACCESS_TOKEN_COOKIE,
+    tokens.access_token,
+    cookieOptions(accessMaxAge),
+  );
+
+  if (tokens.refresh_token) {
+    const refreshMaxAge =
+      tokens.refresh_expires_in ?? DEFAULT_REFRESH_MAX_AGE;
+    cookieStore.set(
+      REFRESH_TOKEN_COOKIE,
+      tokens.refresh_token,
+      cookieOptions(refreshMaxAge),
+    );
+  }
+}
+
+/** Also set Set-Cookie on a NextResponse (for proxy responses). */
 export function applyAuthCookies(
   response: NextResponse,
   tokens: KeycloakTokenResponse,
 ): void {
+  if (!tokens.access_token) {
+    return;
+  }
+
   const accessMaxAge = tokens.expires_in ?? 300;
-  response.cookies.set(ACCESS_TOKEN_COOKIE, tokens.access_token!, {
-    ...cookieBase,
-    maxAge: accessMaxAge,
-  });
+  response.cookies.set(
+    ACCESS_TOKEN_COOKIE,
+    tokens.access_token,
+    cookieOptions(accessMaxAge),
+  );
 
   if (tokens.refresh_token) {
-    const refreshMaxAge = tokens.refresh_expires_in ?? 60 * 60 * 24 * 7;
-    response.cookies.set(REFRESH_TOKEN_COOKIE, tokens.refresh_token, {
-      ...cookieBase,
-      maxAge: refreshMaxAge,
-    });
+    const refreshMaxAge =
+      tokens.refresh_expires_in ?? DEFAULT_REFRESH_MAX_AGE;
+    response.cookies.set(
+      REFRESH_TOKEN_COOKIE,
+      tokens.refresh_token,
+      cookieOptions(refreshMaxAge),
+    );
+  }
+}
+
+export async function persistAndApplyAuthCookies(
+  tokens: KeycloakTokenResponse,
+  response?: NextResponse,
+): Promise<void> {
+  await persistAuthCookies(tokens);
+  if (response) {
+    applyAuthCookies(response, tokens);
   }
 }
 
 export function clearAuthCookies(response: NextResponse): void {
-  response.cookies.set(ACCESS_TOKEN_COOKIE, '', { ...cookieBase, maxAge: 0 });
-  response.cookies.set(REFRESH_TOKEN_COOKIE, '', { ...cookieBase, maxAge: 0 });
+  const cleared = cookieOptions(0);
+  response.cookies.set(ACCESS_TOKEN_COOKIE, '', cleared);
+  response.cookies.set(REFRESH_TOKEN_COOKIE, '', cleared);
+}
+
+export async function clearAuthCookieStore(): Promise<void> {
+  const cookieStore = await cookies();
+  const cleared = cookieOptions(0);
+  cookieStore.set(ACCESS_TOKEN_COOKIE, '', cleared);
+  cookieStore.set(REFRESH_TOKEN_COOKIE, '', cleared);
 }
 
 export type AuthRefreshResult =
@@ -138,15 +216,17 @@ export async function getValidAccessToken(): Promise<AuthRefreshResult> {
     return { ok: false };
   }
 
-  const refreshed = await refreshKeycloakTokensSingleFlight(refreshToken);
-  if (!refreshed?.access_token) {
+  const result = await refreshKeycloakTokensSingleFlight(refreshToken);
+  if (!result.ok) {
     return { ok: false };
   }
 
+  await persistAuthCookies(result.tokens);
+
   return {
     ok: true,
-    accessToken: refreshed.access_token,
-    refreshed,
+    accessToken: result.tokens.access_token!,
+    refreshed: result.tokens,
   };
 }
 
@@ -156,14 +236,16 @@ export async function refreshAccessTokenAfterUnauthorized(): Promise<AuthRefresh
     return { ok: false };
   }
 
-  const refreshed = await refreshKeycloakTokensSingleFlight(refreshToken);
-  if (!refreshed?.access_token) {
+  const result = await refreshKeycloakTokensSingleFlight(refreshToken);
+  if (!result.ok) {
     return { ok: false };
   }
 
+  await persistAuthCookies(result.tokens);
+
   return {
     ok: true,
-    accessToken: refreshed.access_token,
-    refreshed,
+    accessToken: result.tokens.access_token!,
+    refreshed: result.tokens,
   };
 }

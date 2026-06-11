@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { exchangeKeycloakTokens, applyAuthCookies } from '@/lib/auth-tokens';
+import {
+  exchangeKeycloakTokens,
+  persistAndApplyAuthCookies,
+} from '@/lib/auth-tokens';
+
+export const dynamic = 'force-dynamic';
 
 interface LoginBody {
   username?: string;
@@ -31,16 +36,22 @@ export async function POST(request: Request) {
     scope: 'openid profile email offline_access',
   });
 
-  const tokenData = await exchangeKeycloakTokens(params);
+  const result = await exchangeKeycloakTokens(params);
 
-  if (!tokenData?.access_token) {
+  if (!result.ok) {
     return NextResponse.json(
       { message: 'Invalid username or password' },
       { status: 401 },
     );
   }
 
+  if (!result.tokens.refresh_token) {
+    console.warn(
+      '[auth/login] No refresh_token from Keycloak — enable offline_access on platform-bff client',
+    );
+  }
+
   const response = NextResponse.json({ ok: true });
-  applyAuthCookies(response, tokenData);
+  await persistAndApplyAuthCookies(result.tokens, response);
   return response;
 }
