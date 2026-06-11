@@ -271,6 +271,10 @@ export default function HomePage() {
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={(id) => router.push(`/projects/${id}`)}
+        onSessionExpired={() => {
+          setCreateOpen(false);
+          setLoginOpen(true);
+        }}
       />
     </PageShell>
   );

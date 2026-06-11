@@ -14,6 +14,7 @@ import { setSessionExpiredHandler } from '@/lib/auth-client';
 import {
   fetchSessionProfile,
   logoutSession,
+  refreshSessionTokens,
   type MeResponse,
 } from '@/lib/session';
 
@@ -58,6 +59,33 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (!me) {
+      return;
+    }
+
+    const refreshIfNeeded = () => {
+      void refreshSessionTokens();
+    };
+
+    const intervalId = window.setInterval(refreshIfNeeded, 4 * 60 * 1000);
+    const onFocus = () => refreshIfNeeded();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshIfNeeded();
+      }
+    };
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [me]);
 
   const refreshSession = useCallback(async () => {
     const profile = await fetchSessionProfile();

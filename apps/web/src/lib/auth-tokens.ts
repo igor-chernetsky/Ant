@@ -5,6 +5,7 @@ import {
   getKeycloakBffCredentials,
   getKeycloakTokenUrl,
 } from '@/lib/auth-server';
+import { accessTokenNeedsRefresh } from '@/lib/jwt-utils';
 
 export const REFRESH_TOKEN_COOKIE = 'platform_refresh_token';
 
@@ -104,11 +105,11 @@ export type AuthRefreshResult =
   | { ok: true; accessToken: string; refreshed?: KeycloakTokenResponse }
   | { ok: false };
 
-/** Use access token; on missing access try refresh; optionally retry after API 401. */
+/** Use access token; refresh proactively before JWT expiry or when missing. */
 export async function getValidAccessToken(): Promise<AuthRefreshResult> {
   const { accessToken, refreshToken } = await readAuthCookies();
 
-  if (accessToken) {
+  if (accessToken && !accessTokenNeedsRefresh(accessToken)) {
     return { ok: true, accessToken };
   }
 

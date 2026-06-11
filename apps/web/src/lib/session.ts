@@ -24,6 +24,11 @@ export async function refreshSessionTokens(): Promise<boolean> {
   return response.ok;
 }
 
+/** Refresh cookies before a user action (forms, uploads). */
+export async function ensureSessionFresh(): Promise<boolean> {
+  return refreshSessionTokens();
+}
+
 export async function fetchSessionProfile(): Promise<MeResponse | null> {
   const response = await fetch('/api/auth/me', { credentials: 'include' });
   if (response.status === 401) {

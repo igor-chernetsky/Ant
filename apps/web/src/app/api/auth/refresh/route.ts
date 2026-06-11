@@ -5,9 +5,14 @@ import {
   readAuthCookies,
   refreshKeycloakTokens,
 } from '@/lib/auth-tokens';
+import { accessTokenNeedsRefresh } from '@/lib/jwt-utils';
 
 export async function POST() {
-  const { refreshToken } = await readAuthCookies();
+  const { accessToken, refreshToken } = await readAuthCookies();
+
+  if (accessToken && !accessTokenNeedsRefresh(accessToken)) {
+    return NextResponse.json({ ok: true });
+  }
 
   if (!refreshToken) {
     const response = NextResponse.json(

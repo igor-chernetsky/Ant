@@ -30,6 +30,9 @@ export async function fetchWithAuth(
     credentials: 'include',
   };
 
+  // Proactive refresh so long forms submit with a valid access token.
+  await refreshSessionTokens();
+
   let response = await fetch(input, requestInit);
   if (response.status !== 401) {
     return response;

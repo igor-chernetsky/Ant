@@ -1,7 +1,8 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { isSessionExpiredError } from '@/lib/auth-client';
+import { ensureSessionFresh } from '@/lib/session';
 import {
   PROJECT_TYPE_OPTIONS,
   PROPERTY_TYPE_OPTIONS,
@@ -14,12 +15,14 @@ interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (projectId: string) => void;
+  onSessionExpired?: () => void;
 }
 
 export function CreateProjectModal({
   isOpen,
   onClose,
   onCreated,
+  onSessionExpired,
 }: CreateProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -28,6 +31,13 @@ export function CreateProjectModal({
   const [district, setDistrict] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    void ensureSessionFresh();
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -38,6 +48,13 @@ export function CreateProjectModal({
     setError(null);
     setCreating(true);
     try {
+      const sessionOk = await ensureSessionFresh();
+      if (!sessionOk) {
+        setError('Your session expired. Please sign in again.');
+        onSessionExpired?.();
+        return;
+      }
+
       const project = await createProject({
         title,
         description: description.trim() || undefined,
@@ -49,7 +66,8 @@ export function CreateProjectModal({
       onClose();
     } catch (err: unknown) {
       if (isSessionExpiredError(err)) {
-        onClose();
+        setError('Your session expired. Please sign in again.');
+        onSessionExpired?.();
         return;
       }
       setError(err instanceof Error ? err.message : 'Failed to create project');
