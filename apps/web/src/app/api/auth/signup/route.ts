@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createKeycloakUser } from '@/lib/auth-keycloak-admin';
+import { createKeycloakUser, repairKeycloakUserAuth } from '@/lib/auth-keycloak-admin';
 import {
   exchangeKeycloakTokens,
   persistAndApplyAuthCookies,
@@ -61,19 +61,33 @@ export async function POST(request: Request) {
     password,
     scope: 'openid profile email offline_access',
   });
-  const result = await exchangeKeycloakTokens(params);
+  let result = await exchangeKeycloakTokens(params);
 
   if (!result.ok) {
+    const repaired = await repairKeycloakUserAuth(email);
+    if (repaired) {
+      result = await exchangeKeycloakTokens(params);
+    }
+  }
+
+  if (!result.ok) {
+    console.error(
+      '[auth/signup] User created but token exchange failed:',
+      result.error,
+      result.description ?? '',
+    );
     return NextResponse.json(
       {
         ok: true,
-        message: 'Account created. Please sign in.',
+        signedIn: false,
+        message:
+          'Account created, but automatic sign-in failed. Try signing in with your email and password.',
       },
       { status: 201 },
     );
   }
 
-  const response = NextResponse.json({ ok: true }, { status: 201 });
+  const response = NextResponse.json({ ok: true, signedIn: true }, { status: 201 });
   await persistAndApplyAuthCookies(result.tokens, response);
   return response;
 }

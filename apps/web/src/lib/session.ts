@@ -118,6 +118,18 @@ export async function signupWithPassword(input: {
     } | null;
     throw new Error(body?.message ?? 'Sign up failed');
   }
+
+  const body = (await response.json().catch(() => null)) as {
+    signedIn?: boolean;
+    message?: string;
+  } | null;
+
+  if (body?.signedIn === false) {
+    throw new Error(
+      body.message ??
+        'Account created, but sign-in failed. Try signing in manually.',
+    );
+  }
 }
 
 export async function logoutSession(): Promise<void> {

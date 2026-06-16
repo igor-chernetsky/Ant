@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import {
+  isKeycloakConsentOrSetupError,
+  repairKeycloakUserAuth,
+} from '@/lib/auth-keycloak-admin';
+import {
   exchangeKeycloakTokens,
   persistAndApplyAuthCookies,
 } from '@/lib/auth-tokens';
@@ -19,7 +23,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Invalid request body' }, { status: 400 });
   }
 
-  const username = body.username?.trim();
+  const username = body.username?.trim().toLowerCase();
   const password = body.password;
 
   if (!username || !password) {
@@ -36,9 +40,27 @@ export async function POST(request: Request) {
     scope: 'openid profile email offline_access',
   });
 
-  const result = await exchangeKeycloakTokens(params);
+  let result = await exchangeKeycloakTokens(params);
+
+  if (
+    !result.ok &&
+    isKeycloakConsentOrSetupError({
+      error: result.error,
+      description: result.description,
+    })
+  ) {
+    const repaired = await repairKeycloakUserAuth(username);
+    if (repaired) {
+      result = await exchangeKeycloakTokens(params);
+    }
+  }
 
   if (!result.ok) {
+    console.error(
+      '[auth/login] Keycloak token exchange failed:',
+      result.error,
+      result.description ?? '',
+    );
     return NextResponse.json(
       { message: 'Invalid username or password' },
       { status: 401 },

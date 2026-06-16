@@ -112,6 +112,134 @@ async function assignRealmRoles(
   });
 }
 
+const BFF_CONSENT_SCOPES = [
+  'openid',
+  'profile',
+  'email',
+  'offline_access',
+  'roles',
+  'web-origins',
+  'acr',
+];
+
+async function finalizeKeycloakUser(
+  adminToken: string,
+  userId: string,
+): Promise<void> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  await fetch(`${baseUrl}/admin/realms/${realm}/users/${userId}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${adminToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      enabled: true,
+      emailVerified: true,
+      requiredActions: [],
+    }),
+    cache: 'no-store',
+  });
+}
+
+/** Pre-approve platform-bff scopes when the client has Consent Required enabled. */
+async function grantBffClientConsent(
+  adminToken: string,
+  userId: string,
+): Promise<void> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const clientId = process.env.KEYCLOAK_BFF_CLIENT_ID ?? 'platform-bff';
+  const now = Date.now();
+
+  const response = await fetch(
+    `${baseUrl}/admin/realms/${realm}/users/${userId}/consents`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        clientId,
+        grantedClientScopes: BFF_CONSENT_SCOPES,
+        createdDate: now,
+        lastUpdatedDate: now,
+      }),
+      cache: 'no-store',
+    },
+  );
+
+  if (!response.ok) {
+    console.warn(
+      `[auth-keycloak] grantBffClientConsent failed (${response.status}):`,
+      await response.text().catch(() => ''),
+    );
+  }
+}
+
+async function findKeycloakUserIdByLogin(
+  adminToken: string,
+  login: string,
+): Promise<string | null> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const normalized = login.trim().toLowerCase();
+
+  for (const query of [
+    `email=${encodeURIComponent(normalized)}&exact=true`,
+    `username=${encodeURIComponent(normalized)}&exact=true`,
+  ]) {
+    const response = await fetch(
+      `${baseUrl}/admin/realms/${realm}/users?${query}`,
+      {
+        headers: { Authorization: `Bearer ${adminToken}` },
+        cache: 'no-store',
+      },
+    );
+    if (!response.ok) continue;
+    const users = (await response.json()) as Array<{ id?: string }>;
+    if (users[0]?.id) {
+      return users[0].id;
+    }
+  }
+
+  return null;
+}
+
+/** Repair consent / required actions for users created before consent fix. */
+export async function repairKeycloakUserAuth(login: string): Promise<boolean> {
+  let adminToken: string | null = null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch {
+    return false;
+  }
+  if (!adminToken) {
+    return false;
+  }
+
+  const userId = await findKeycloakUserIdByLogin(adminToken, login);
+  if (!userId) {
+    return false;
+  }
+
+  await finalizeKeycloakUser(adminToken, userId);
+  await grantBffClientConsent(adminToken, userId);
+  return true;
+}
+
+export function isKeycloakConsentOrSetupError(result: {
+  error: string;
+  description?: string;
+}): boolean {
+  const description = (result.description ?? '').toLowerCase();
+  return (
+    result.error === 'consent_required' ||
+    description.includes('consent') ||
+    description.includes('not fully set up') ||
+    description.includes('account is not fully set up')
+  );
+}
+
 function parseUserIdFromLocation(location: string | null): string | null {
   if (!location) return null;
   const segments = location.split('/').filter(Boolean);
@@ -220,6 +348,8 @@ export async function createKeycloakUser(params: {
   }
 
   await assignRealmRoles(adminToken, userId, normalizedRoles);
+  await finalizeKeycloakUser(adminToken, userId);
+  await grantBffClientConsent(adminToken, userId);
   return { ok: true };
 }
 

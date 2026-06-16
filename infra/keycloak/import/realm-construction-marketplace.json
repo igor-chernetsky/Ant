@@ -67,6 +67,7 @@
       "standardFlowEnabled": false,
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
+      "consentRequired": false,
       "protocol": "openid-connect",
       "fullScopeAllowed": true,
       "defaultClientScopes": [
