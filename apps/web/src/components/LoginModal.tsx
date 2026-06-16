@@ -23,6 +23,11 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     return null;
   }
 
+  const switchMode = (next: 'signin' | 'signup') => {
+    setMode(next);
+    setError(null);
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -71,13 +76,15 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
       }}
     >
       <div
-        className="modal"
+        className="modal auth-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="login-modal-title"
       >
         <div className="modal-header">
-          <h2 id="login-modal-title">Sign in</h2>
+          <h2 id="login-modal-title">
+            {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+          </h2>
           <button
             type="button"
             className="icon-button"
@@ -89,43 +96,21 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         </div>
 
         <p className="muted modal-subtitle">
-          Access your projects and contractor tools.
+          {mode === 'signin'
+            ? 'Sign in to manage projects and contractor bids.'
+            : 'Join Ant to publish projects or respond to tenders.'}
         </p>
-
-        <div className="auth-mode-toggle" role="tablist" aria-label="Auth mode">
-          <button
-            type="button"
-            className={`secondary ${mode === 'signin' ? 'auth-mode-active' : ''}`}
-            onClick={() => {
-              setMode('signin');
-              setError(null);
-            }}
-            disabled={submitting}
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            className={`secondary ${mode === 'signup' ? 'auth-mode-active' : ''}`}
-            onClick={() => {
-              setMode('signup');
-              setError(null);
-            }}
-            disabled={submitting}
-          >
-            Sign up
-          </button>
-        </div>
 
         <form onSubmit={handleSubmit} className="modal-form">
           {mode === 'signin' ? (
             <label>
-              Email or username
+              Email
               <input
-                type="text"
+                type="email"
                 autoComplete="username"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
+                placeholder="you@example.com"
                 required
               />
             </label>
@@ -138,6 +123,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                   autoComplete="name"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="Optional"
                 />
               </label>
               <label>
@@ -147,11 +133,15 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                   autoComplete="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
                   required
                 />
               </label>
               <fieldset className="tag-fieldset">
-                <legend>How will you use Ant?</legend>
+                <legend>I am a…</legend>
+                <p className="muted tag-hint">
+                  Choose how you will use the platform. You can update this later.
+                </p>
                 <div className="tag-picker">
                   {[
                     { id: 'client', label: 'Client' },
@@ -164,6 +154,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                         key={role.id}
                         type="button"
                         className={`tag-chip ${selected ? 'tag-chip-selected' : ''}`}
+                        aria-pressed={selected}
                         onClick={() =>
                           setRoles((prev) => {
                             if (prev.includes(role.id)) {
@@ -198,29 +189,52 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
           {error && <p className="form-error">{error}</p>}
 
-          <div className="row">
-            <button
-              type="submit"
-              className="primary"
-              disabled={submitting}
-            >
-              {submitting
-                ? mode === 'signin'
-                  ? 'Signing in…'
-                  : 'Creating account…'
-                : mode === 'signin'
-                  ? 'Sign in'
-                  : 'Create account'}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={onClose}
-              disabled={submitting}
-            >
-              Cancel
-            </button>
-          </div>
+          <button type="submit" className="primary auth-submit" disabled={submitting}>
+            {submitting
+              ? mode === 'signin'
+                ? 'Signing in…'
+                : 'Creating account…'
+              : mode === 'signin'
+                ? 'Sign in'
+                : 'Create account'}
+          </button>
+
+          <p className="auth-mode-footer muted">
+            {mode === 'signin' ? (
+              <>
+                New to Ant?{' '}
+                <button
+                  type="button"
+                  className="text-link"
+                  onClick={() => switchMode('signup')}
+                  disabled={submitting}
+                >
+                  Create an account
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  className="text-link"
+                  onClick={() => switchMode('signin')}
+                  disabled={submitting}
+                >
+                  Sign in
+                </button>
+              </>
+            )}
+          </p>
+
+          <button
+            type="button"
+            className="secondary auth-cancel"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Cancel
+          </button>
         </form>
       </div>
     </div>

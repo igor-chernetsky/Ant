@@ -6,6 +6,7 @@ import {
 } from '@/lib/auth-keycloak-admin';
 import {
   exchangePasswordCredentials,
+  isWrongPasswordError,
   persistAndApplyAuthCookies,
 } from '@/lib/auth-tokens';
 
@@ -62,7 +63,14 @@ export async function POST(request: Request) {
   let result = await exchangePasswordCredentials(email, password);
 
   if (!result.ok && shouldAttemptKeycloakAuthRepair(result)) {
-    const repaired = await repairKeycloakUserAuth(email);
+    const repaired = await repairKeycloakUserAuth(email, password);
+    if (repaired) {
+      result = await exchangePasswordCredentials(email, password);
+    }
+  }
+
+  if (!result.ok && isWrongPasswordError(result)) {
+    const repaired = await repairKeycloakUserAuth(email, password);
     if (repaired) {
       result = await exchangePasswordCredentials(email, password);
     }

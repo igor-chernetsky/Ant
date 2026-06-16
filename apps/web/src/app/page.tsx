@@ -12,6 +12,7 @@ import { canCreateProject, isContractorUser } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
 import {
   fetchContractorInvitations,
+  fetchContractorProfile,
   type ContractorInvitationItem,
 } from '@/lib/tendering';
 import { TagFilterBar } from '@/components/TagFilterBar';
@@ -37,6 +38,8 @@ export default function HomePage() {
     [],
   );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [contractorFilterInitialized, setContractorFilterInitialized] =
+    useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -72,6 +75,33 @@ export default function HomePage() {
     if (!sessionReady) return;
     void loadProjects(selectedTags);
   }, [sessionReady, selectedTags, loadProjects]);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+
+    if (!me) {
+      setContractorFilterInitialized(false);
+      setSelectedTags([]);
+      return;
+    }
+
+    if (!isContractorUser(me) || contractorFilterInitialized) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const profile = await fetchContractorProfile();
+        if (profile?.tagSlugs?.length) {
+          setSelectedTags(profile.tagSlugs);
+        }
+      } catch {
+        // Keep empty filter when profile is unavailable.
+      } finally {
+        setContractorFilterInitialized(true);
+      }
+    })();
+  }, [sessionReady, me, contractorFilterInitialized]);
 
   useEffect(() => {
     if (!sessionReady) return;

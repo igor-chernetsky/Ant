@@ -21,6 +21,11 @@ interface KeycloakUserRepresentation {
   requiredActions?: string[];
 }
 
+interface KeycloakCredentialRepresentation {
+  type?: string;
+  temporary?: boolean;
+}
+
 function getKeycloakBaseAndRealm(): { baseUrl: string; realm: string } {
   const baseUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
   const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
@@ -146,6 +151,30 @@ async function fetchKeycloakUser(
   return (await response.json()) as KeycloakUserRepresentation;
 }
 
+async function fetchUserCredentials(
+  adminToken: string,
+  userId: string,
+): Promise<KeycloakCredentialRepresentation[]> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const response = await fetch(
+    `${baseUrl}/admin/realms/${realm}/users/${userId}/credentials`,
+    {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      cache: 'no-store',
+    },
+  );
+  if (!response.ok) return [];
+  return (await response.json()) as KeycloakCredentialRepresentation[];
+}
+
+async function userHasPasswordCredential(
+  adminToken: string,
+  userId: string,
+): Promise<boolean> {
+  const credentials = await fetchUserCredentials(adminToken, userId);
+  return credentials.some((credential) => credential.type === 'password');
+}
+
 async function finalizeKeycloakUser(
   adminToken: string,
   userId: string,
@@ -228,10 +257,10 @@ async function setKeycloakUserPassword(
   return true;
 }
 
-async function findKeycloakUserIdByLogin(
+async function findKeycloakUserByLogin(
   adminToken: string,
   login: string,
-): Promise<string | null> {
+): Promise<KeycloakUserRepresentation | null> {
   const { baseUrl, realm } = getKeycloakBaseAndRealm();
   const normalized = login.trim().toLowerCase();
 
@@ -247,17 +276,102 @@ async function findKeycloakUserIdByLogin(
       },
     );
     if (!response.ok) continue;
-    const users = (await response.json()) as Array<{ id?: string }>;
+    const users = (await response.json()) as KeycloakUserRepresentation[];
     if (users[0]?.id) {
-      return users[0].id;
+      return users[0];
     }
   }
 
   return null;
 }
 
-/** Clear required actions / verify flags for admin-created users. */
-export async function repairKeycloakUserAuth(login: string): Promise<boolean> {
+/** Login identifiers to try with Keycloak password grant. */
+export async function resolveKeycloakLoginIdentifiers(
+  login: string,
+): Promise<string[]> {
+  const normalized = login.trim().toLowerCase();
+  const identifiers = new Set<string>([normalized]);
+
+  let adminToken: string | null = null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch {
+    return [...identifiers];
+  }
+  if (!adminToken) {
+    return [...identifiers];
+  }
+
+  const user = await findKeycloakUserByLogin(adminToken, normalized);
+  if (user?.username) {
+    identifiers.add(user.username.trim().toLowerCase());
+  }
+  if (user?.email) {
+    identifiers.add(user.email.trim().toLowerCase());
+  }
+
+  return [...identifiers];
+}
+
+export async function diagnoseKeycloakLoginFailure(
+  login: string,
+): Promise<{ code: string; detail: string } | null> {
+  let adminToken: string | null = null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch {
+    return null;
+  }
+  if (!adminToken) {
+    return null;
+  }
+
+  const user = await findKeycloakUserByLogin(adminToken, login);
+  if (!user?.id) {
+    return {
+      code: 'user_not_found',
+      detail: 'No Keycloak user with this email or username.',
+    };
+  }
+
+  if (user.enabled === false) {
+    return {
+      code: 'user_disabled',
+      detail: 'User account is disabled in Keycloak.',
+    };
+  }
+
+  if (user.requiredActions && user.requiredActions.length > 0) {
+    return {
+      code: 'account_not_ready',
+      detail: `Required actions: ${user.requiredActions.join(', ')}`,
+    };
+  }
+
+  const hasPassword = await userHasPasswordCredential(adminToken, user.id);
+  if (!hasPassword) {
+    return {
+      code: 'password_not_configured',
+      detail:
+        'No password credential on this user. Set password in Keycloak Admin → Users → Credentials, or sign up again.',
+    };
+  }
+
+  if (user.username && user.username.toLowerCase() !== login.trim().toLowerCase()) {
+    return {
+      code: 'invalid_credentials',
+      detail: `Keycloak username is "${user.username}". Sign in with that username or the account email.`,
+    };
+  }
+
+  return null;
+}
+
+/** Clear required actions; optionally re-set password (signup repair). */
+export async function repairKeycloakUserAuth(
+  login: string,
+  password?: string,
+): Promise<boolean> {
   let adminToken: string | null = null;
   try {
     adminToken = await fetchAdminAccessToken();
@@ -268,13 +382,19 @@ export async function repairKeycloakUserAuth(login: string): Promise<boolean> {
     return false;
   }
 
-  const userId = await findKeycloakUserIdByLogin(adminToken, login);
-  if (!userId) {
+  const user = await findKeycloakUserByLogin(adminToken, login);
+  if (!user?.id) {
     return false;
   }
 
-  await finalizeKeycloakUser(adminToken, userId);
-  return true;
+  await finalizeKeycloakUser(adminToken, user.id);
+
+  if (password) {
+    return setKeycloakUserPassword(adminToken, user.id, password);
+  }
+
+  const hasPassword = await userHasPasswordCredential(adminToken, user.id);
+  return hasPassword;
 }
 
 export function shouldAttemptKeycloakAuthRepair(result: {
@@ -351,13 +471,6 @@ export async function createKeycloakUser(params: {
       firstName: firstName || undefined,
       lastName: lastName || undefined,
       requiredActions: [],
-      credentials: [
-        {
-          type: 'password',
-          temporary: false,
-          value: params.password,
-        },
-      ],
     }),
     cache: 'no-store',
   });
@@ -389,6 +502,9 @@ export async function createKeycloakUser(params: {
     };
   }
 
+  await assignRealmRoles(adminToken, userId, normalizedRoles);
+  await finalizeKeycloakUser(adminToken, userId);
+
   const passwordSet = await setKeycloakUserPassword(
     adminToken,
     userId,
@@ -402,7 +518,14 @@ export async function createKeycloakUser(params: {
     };
   }
 
-  await assignRealmRoles(adminToken, userId, normalizedRoles);
-  await finalizeKeycloakUser(adminToken, userId);
+  const hasPassword = await userHasPasswordCredential(adminToken, userId);
+  if (!hasPassword) {
+    return {
+      ok: false,
+      status: 500,
+      message: 'User created, but password credential was not saved',
+    };
+  }
+
   return { ok: true };
 }

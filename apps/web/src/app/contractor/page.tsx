@@ -7,8 +7,9 @@ import { ContractorVerificationPanel } from '@/components/ContractorVerification
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
+import { TradeTagPicker } from '@/components/TradeTagPicker';
 import { useSession } from '@/components/SessionProvider';
-import { fetchPublicProject } from '@/lib/public-projects';
+import { fetchPublicProject, fetchPublicTags } from '@/lib/public-projects';
 import {
   fetchContractorInvitations,
   fetchContractorProfile,
@@ -38,6 +39,15 @@ export default function ContractorPage() {
   );
   const [companyName, setCompanyName] = useState('');
   const [regionCode, setRegionCode] = useState('TH');
+  const [selectedTagSlugs, setSelectedTagSlugs] = useState<string[]>([]);
+  const [tradeTags, setTradeTags] = useState<
+    Array<{
+      slug: string;
+      label: string;
+      groupSlug: string | null;
+      groupLabel: string | null;
+    }>
+  >([]);
   const [activeTenderId, setActiveTenderId] = useState<string | null>(null);
   const [tenderView, setTenderView] = useState<ContractorTenderView | null>(
     null,
@@ -55,16 +65,26 @@ export default function ContractorPage() {
       return;
     }
 
-    const [prof, invs] = await Promise.all([
+    const [prof, invs, tags] = await Promise.all([
       fetchContractorProfile(),
       fetchContractorInvitations(),
+      fetchPublicTags(),
     ]);
+    setTradeTags(tags);
     setProfile(prof);
     setInvitations(invs);
     if (prof?.companyName) setCompanyName(prof.companyName);
     if (prof?.regionCode) setRegionCode(prof.regionCode);
+    if (prof?.tagSlugs) setSelectedTagSlugs(prof.tagSlugs);
     setReady(true);
   }, [me, sessionReady]);
+
+  useEffect(() => {
+    if (!sessionReady || me) return;
+    void fetchPublicTags()
+      .then(setTradeTags)
+      .catch(() => setTradeTags([]));
+  }, [sessionReady, me]);
 
   useEffect(() => {
     if (!sessionReady) return;
@@ -107,21 +127,31 @@ export default function ContractorPage() {
     }
   };
 
-  const handleRegister = async () => {
+  const handleSaveProfile = async () => {
     setBusy(true);
     setError(null);
     try {
       const prof = await upsertContractorProfile({
         companyName: companyName.trim() || undefined,
         regionCode: regionCode.trim() || 'TH',
+        tagSlugs: selectedTagSlugs,
       });
       setProfile(prof);
+      setSelectedTagSlugs(prof.tagSlugs);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : 'Failed to save profile');
     } finally {
       setBusy(false);
     }
   };
+
+  const handleRegister = async () => {
+    await handleSaveProfile();
+  };
+
+  const selectedTagLabels = selectedTagSlugs
+    .map((slug) => tradeTags.find((tag) => tag.slug === slug)?.label ?? slug)
+    .join(', ');
 
   const handleRespond = async (tenderId: string, accept: boolean) => {
     setBusy(true);
@@ -219,8 +249,7 @@ export default function ContractorPage() {
           <section className="card">
             <h2 className="section-title">Register as contractor</h2>
             <p className="muted doc-hint">
-              MVP auto-creates your profile as pending. Upload documents and
-              request approval below.
+              Tell us what trades you cover. You can update specialties anytime.
             </p>
             <div className="modal-form">
               <label>
@@ -239,6 +268,18 @@ export default function ContractorPage() {
                   placeholder="TH"
                 />
               </label>
+              <fieldset className="tag-fieldset">
+                <legend>Your specialties</legend>
+                <p className="muted tag-hint">
+                  Optional. Leave empty to see all projects on the home page.
+                </p>
+                <TradeTagPicker
+                  tags={tradeTags}
+                  selected={selectedTagSlugs}
+                  onChange={setSelectedTagSlugs}
+                  disabled={busy}
+                />
+              </fieldset>
             </div>
             {error && <p className="form-error">{error}</p>}
             <button
@@ -256,9 +297,50 @@ export default function ContractorPage() {
           <>
             <section className="card">
               <h2 className="section-title">Your profile</h2>
-              <p className="muted">
-                {profile.companyName ?? 'Unnamed company'} · {profile.regionCode}
+              <p className="muted doc-hint">
+                Update company details and the trades you want to work on.
               </p>
+              <div className="modal-form">
+                <label>
+                  Company name
+                  <input
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Your company"
+                  />
+                </label>
+                <label>
+                  Region code
+                  <input
+                    value={regionCode}
+                    onChange={(e) => setRegionCode(e.target.value)}
+                    placeholder="TH"
+                  />
+                </label>
+                <fieldset className="tag-fieldset">
+                  <legend>Your specialties</legend>
+                  <p className="muted tag-hint">
+                    {selectedTagLabels
+                      ? `Selected: ${selectedTagLabels}`
+                      : 'None selected — home page shows all projects.'}
+                  </p>
+                  <TradeTagPicker
+                    tags={tradeTags}
+                    selected={selectedTagSlugs}
+                    onChange={setSelectedTagSlugs}
+                    disabled={busy}
+                  />
+                </fieldset>
+              </div>
+              {error && <p className="form-error">{error}</p>}
+              <button
+                type="button"
+                className="primary"
+                disabled={busy}
+                onClick={() => void handleSaveProfile()}
+              >
+                {busy ? 'Saving…' : 'Save profile'}
+              </button>
             </section>
 
             <ContractorVerificationPanel

@@ -240,6 +240,7 @@ model ContractorProfile {
   companyName             String?                      @map("company_name")
   regionCode              String                       @default("TH") @map("region_code")
   projectTypes            ProjectType[]                @default([]) @map("project_types")
+  tagSlugs                String[]                     @default([]) @map("tag_slugs")
   verificationStatus      ContractorVerificationStatus @default(pending) @map("verification_status")
   verificationComment     String?                      @map("verification_comment")
   verificationRequestedAt DateTime?                    @map("verification_requested_at")

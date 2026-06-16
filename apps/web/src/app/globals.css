@@ -1070,6 +1070,40 @@ pre {
   background: var(--accent-muted) !important;
 }
 
+.auth-modal .modal-subtitle {
+  margin-top: 0;
+}
+
+.auth-submit {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.auth-cancel {
+  width: 100%;
+}
+
+.auth-mode-footer {
+  margin: 0.35rem 0 0;
+  text-align: center;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.auth-mode-footer .text-link {
+  font-weight: 600;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.trade-tag-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

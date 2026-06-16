@@ -73,6 +73,7 @@ export interface ContractorProfile {
   companyName: string | null;
   regionCode: string;
   projectTypes: string[];
+  tagSlugs: string[];
   verificationStatus: string;
   verificationComment: string | null;
   verificationRequestedAt: string | null;
@@ -192,6 +193,7 @@ export async function fetchContractorProfile(): Promise<ContractorProfile | null
 export async function upsertContractorProfile(input: {
   companyName?: string;
   regionCode?: string;
+  tagSlugs?: string[];
 }): Promise<ContractorProfile> {
   const response = await fetchWithAuth('/api/contractor/profile', {
     method: 'PUT',

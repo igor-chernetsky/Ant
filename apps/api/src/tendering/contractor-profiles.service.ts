@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -26,6 +25,7 @@ export class ContractorProfilesService {
       companyName: profile.companyName,
       regionCode: profile.regionCode,
       projectTypes: profile.projectTypes,
+      tagSlugs: profile.tagSlugs,
       verificationStatus: profile.verificationStatus,
       verificationComment: profile.verificationComment,
       verificationRequestedAt:
@@ -34,6 +34,26 @@ export class ContractorProfilesService {
         profile.verificationReviewedAt?.toISOString() ?? null,
       createdAt: profile.createdAt.toISOString(),
     };
+  }
+
+  private async normalizeTagSlugs(
+    slugs: string[] | undefined,
+  ): Promise<string[] | undefined> {
+    if (slugs === undefined) {
+      return undefined;
+    }
+
+    const unique = [...new Set(slugs.map((slug) => slug.trim()).filter(Boolean))];
+    if (unique.length === 0) {
+      return [];
+    }
+
+    const existing = await this.prisma.tag.findMany({
+      where: { slug: { in: unique } },
+      select: { slug: true },
+    });
+    const valid = new Set(existing.map((tag) => tag.slug));
+    return unique.filter((slug) => valid.has(slug));
   }
 
   async getByUserId(userId: string): Promise<ContractorProfileResponse | null> {
@@ -62,6 +82,7 @@ export class ContractorProfilesService {
     const projectTypes = dto.projectTypes?.length
       ? [...new Set(dto.projectTypes)]
       : undefined;
+    const tagSlugs = await this.normalizeTagSlugs(dto.tagSlugs);
 
     const profile = await this.prisma.contractorProfile.upsert({
       where: { userId },
@@ -70,12 +91,14 @@ export class ContractorProfilesService {
         companyName: dto.companyName?.trim() || null,
         regionCode: dto.regionCode?.trim() || 'TH',
         projectTypes: projectTypes ?? [],
+        tagSlugs: tagSlugs ?? [],
         verificationStatus: ContractorVerificationStatus.pending,
       },
       update: {
         companyName: dto.companyName?.trim() || null,
         regionCode: dto.regionCode?.trim() || undefined,
         projectTypes: projectTypes ?? undefined,
+        tagSlugs: tagSlugs ?? undefined,
       },
     });
 

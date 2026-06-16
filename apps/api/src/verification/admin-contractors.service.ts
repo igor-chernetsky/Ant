@@ -102,6 +102,7 @@ export class AdminContractorsService {
       companyName: profile.companyName,
       regionCode: profile.regionCode,
       projectTypes: profile.projectTypes,
+      tagSlugs: profile.tagSlugs,
       verificationStatus: profile.verificationStatus,
       verificationRequestedAt: profile.verificationRequestedAt?.toISOString() ?? null,
       verificationReviewedAt: profile.verificationReviewedAt?.toISOString() ?? null,

@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import {
+  diagnoseKeycloakLoginFailure,
   repairKeycloakUserAuth,
+  resolveKeycloakLoginIdentifiers,
   shouldAttemptKeycloakAuthRepair,
 } from '@/lib/auth-keycloak-admin';
 import {
   exchangePasswordCredentials,
   isWrongPasswordError,
   persistAndApplyAuthCookies,
+  type TokenExchangeResult,
 } from '@/lib/auth-tokens';
 
 export const dynamic = 'force-dynamic';
@@ -16,10 +19,27 @@ interface LoginBody {
   password?: string;
 }
 
-function authErrorPayload(result: {
-  error: string;
-  description?: string;
-}): { message: string; code: string; detail?: string } {
+function authErrorPayload(
+  result: { error: string; description?: string },
+  diagnosis?: { code: string; detail: string } | null,
+): { message: string; code: string; detail?: string } {
+  if (diagnosis) {
+    return {
+      message:
+        diagnosis.code === 'password_not_configured'
+          ? 'Account exists but has no password. Set it in Keycloak or sign up again.'
+          : diagnosis.code === 'user_not_found'
+            ? 'Invalid username or password'
+            : diagnosis.code === 'user_disabled'
+              ? 'Account is disabled'
+              : diagnosis.code === 'account_not_ready'
+                ? 'Account setup is incomplete. Try again.'
+                : 'Invalid username or password',
+      code: diagnosis.code,
+      detail: diagnosis.detail,
+    };
+  }
+
   if (isWrongPasswordError(result)) {
     return {
       message: 'Invalid username or password',
@@ -59,6 +79,31 @@ function authErrorPayload(result: {
   };
 }
 
+async function attemptLogin(
+  login: string,
+  password: string,
+): Promise<TokenExchangeResult> {
+  const identifiers = await resolveKeycloakLoginIdentifiers(login);
+  let lastResult: TokenExchangeResult = {
+    ok: false,
+    error: 'invalid_grant',
+    description: 'Invalid user credentials',
+  };
+
+  for (const identifier of identifiers) {
+    const result = await exchangePasswordCredentials(identifier, password);
+    if (result.ok) {
+      return result;
+    }
+    lastResult = result;
+    if (!isWrongPasswordError(result)) {
+      return result;
+    }
+  }
+
+  return lastResult;
+}
+
 export async function POST(request: Request) {
   let body: LoginBody;
   try {
@@ -77,12 +122,28 @@ export async function POST(request: Request) {
     );
   }
 
-  let result = await exchangePasswordCredentials(username, password);
+  let result = await attemptLogin(username, password);
 
   if (!result.ok && shouldAttemptKeycloakAuthRepair(result)) {
     const repaired = await repairKeycloakUserAuth(username);
     if (repaired) {
-      result = await exchangePasswordCredentials(username, password);
+      result = await attemptLogin(username, password);
+    }
+  }
+
+  if (!result.ok && isWrongPasswordError(result)) {
+    const diagnosis = await diagnoseKeycloakLoginFailure(username);
+    if (
+      diagnosis?.code === 'password_not_configured' ||
+      diagnosis?.code === 'account_not_ready'
+    ) {
+      const repaired = await repairKeycloakUserAuth(
+        username,
+        diagnosis.code === 'password_not_configured' ? password : undefined,
+      );
+      if (repaired) {
+        result = await attemptLogin(username, password);
+      }
     }
   }
 
@@ -92,7 +153,10 @@ export async function POST(request: Request) {
       result.error,
       result.description ?? '',
     );
-    const payload = authErrorPayload(result);
+    const diagnosis = isWrongPasswordError(result)
+      ? await diagnoseKeycloakLoginFailure(username)
+      : null;
+    const payload = authErrorPayload(result, diagnosis);
     return NextResponse.json(payload, { status: 401 });
   }
 

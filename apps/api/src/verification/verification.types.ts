@@ -40,6 +40,7 @@ export interface AdminContractorListItem {
 
 export interface AdminContractorDetail extends AdminContractorListItem {
   projectTypes: string[];
+  tagSlugs: string[];
   documents: ContractorVerificationDocumentResponse[];
 }
 

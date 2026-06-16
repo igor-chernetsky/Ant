@@ -28,6 +28,7 @@ export interface ContractorProfileResponse {
   companyName: string | null;
   regionCode: string;
   projectTypes: ProjectType[];
+  tagSlugs: string[];
   verificationStatus: string;
   verificationComment: string | null;
   verificationRequestedAt: string | null;
@@ -39,6 +40,7 @@ export interface UpsertContractorProfileDto {
   companyName?: string;
   regionCode?: string;
   projectTypes?: ProjectType[];
+  tagSlugs?: string[];
 }
 
 export interface TenderInvitationResponse {
