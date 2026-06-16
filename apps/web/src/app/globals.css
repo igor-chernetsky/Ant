@@ -1754,6 +1754,18 @@ select:disabled {
   border-color: #bfdbfe;
 }
 
+.tender-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tender-card-header .section-title {
+  margin: 0;
+}
+
 .tender-card .doc-hint {
   margin-bottom: 0;
 }

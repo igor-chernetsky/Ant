@@ -174,14 +174,20 @@ export class TendersService {
     clientId: string,
     projectId: string,
   ): Promise<TenderResponse | null> {
-    await this.assertProjectOwner(projectId, clientId);
+    const project = await this.assertProjectOwner(projectId, clientId);
+
     const tender = await this.prisma.tender.findUnique({
       where: { projectId },
       select: { id: true },
     });
+
     if (!tender) {
+      if (project.status === ProjectStatus.in_tender) {
+        return this.createTender(clientId, projectId);
+      }
       return null;
     }
+
     return this.mapTender(await this.loadTender(tender.id));
   }
 
@@ -199,19 +205,23 @@ export class TendersService {
 
     const now = new Date();
 
-    const tender = await this.prisma.tender.create({
-      data: {
-        projectId,
-        status: TenderStatus.open,
-        opensAt: now,
-        closesAt: null,
-      },
-      include: this.includeTenderRelations(),
-    });
+    const tender = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.tender.create({
+        data: {
+          projectId,
+          status: TenderStatus.open,
+          opensAt: now,
+          closesAt: null,
+        },
+        include: this.includeTenderRelations(),
+      });
 
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: { status: ProjectStatus.in_tender },
+      await tx.project.update({
+        where: { id: projectId },
+        data: { status: ProjectStatus.in_tender },
+      });
+
+      return created;
     });
 
     return this.mapTender(tender);

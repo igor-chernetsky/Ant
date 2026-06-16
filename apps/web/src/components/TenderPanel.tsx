@@ -21,6 +21,10 @@ interface TenderPanelProps {
   onUpdated: (project: Project) => void;
 }
 
+function canPublishProject(project: Project): boolean {
+  return ['estimated', 'in_tender'].includes(project.status);
+}
+
 export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps) {
   const { me } = useSession();
   const [tender, setTender] = useState<Tender | null>(null);
@@ -43,6 +47,16 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
 
   useEffect(() => {
     void loadTender();
+  }, [loadTender]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void loadTender();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [loadTender]);
 
   const refreshProject = async () => {
@@ -85,6 +99,7 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
   };
 
   const ballparkMid = project.estimate?.totals.midAmount ?? null;
+  const canPublish = canPublishProject(project);
 
   if (loading) {
     return (
@@ -96,7 +111,19 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
 
   return (
     <section className="card tender-card">
-      <h2 className="section-title">Tender &amp; bids</h2>
+      <div className="tender-card-header">
+        <h2 className="section-title">Tender &amp; bids</h2>
+        {tender && (
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy || loading}
+            onClick={() => void loadTender()}
+          >
+            Refresh
+          </button>
+        )}
+      </div>
       <p className="muted doc-hint">
         Publish the project for open bidding. Contractors can view the project
         and submit applications with an internal chat for questions.
@@ -109,14 +136,20 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
           <button
             type="button"
             className="primary"
-            disabled={busy || project.status !== 'estimated'}
+            disabled={busy || !canPublish}
             onClick={() => void handleCreate()}
           >
             {busy ? 'Publishing…' : 'Publish for bids'}
           </button>
-          {project.status !== 'estimated' && (
+          {!canPublish && (
             <p className="muted tender-hint">
               Complete intake and receive a ballpark estimate first.
+            </p>
+          )}
+          {project.status === 'in_tender' && (
+            <p className="muted tender-hint">
+              This project is marked as in tender but bidding data was missing.
+              Click &quot;Publish for bids&quot; to restore the tender.
             </p>
           )}
         </div>
@@ -157,7 +190,7 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
             </p>
           )}
 
-          {tender.bids.length > 0 && (
+          {tender.bids.length > 0 ? (
             <div className="tender-subsection">
               <h3 className="tender-subsection-title">Applications</h3>
               <ul className="bid-proposal-list">
@@ -199,6 +232,11 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
                 ))}
               </ul>
             </div>
+          ) : (
+            <p className="muted tender-phase-hint">
+              No applications yet. Contractors can submit bids from the project
+              page. Use Refresh after a contractor applies.
+            </p>
           )}
 
           {tender.status === 'awarded' && tender.awardedBidId && (

@@ -120,11 +120,21 @@ export async function fetchProjectTender(
   if (!response.ok) {
     await parseError(response, 'Failed to load tender');
   }
-  const data = (await response.json()) as Tender | { tender: null };
-  if ('tender' in data && data.tender === null) {
+  const data = (await response.json()) as Tender | { tender: null } | null;
+  if (!data || typeof data !== 'object') {
     return null;
   }
-  return data as Tender;
+  if ('tender' in data && data.tender === null && !('id' in data)) {
+    return null;
+  }
+  if (!('id' in data)) {
+    return null;
+  }
+  const tender = data as Tender;
+  return {
+    ...tender,
+    bids: Array.isArray(tender.bids) ? tender.bids : [],
+  };
 }
 
 export async function createProjectTender(projectId: string): Promise<Tender> {
