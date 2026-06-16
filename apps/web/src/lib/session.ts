@@ -94,8 +94,11 @@ export async function loginWithPassword(
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;
+      detail?: string;
+      code?: string;
     } | null;
-    throw new Error(body?.message ?? 'Sign in failed');
+    const hint = body?.detail ? ` (${body.detail})` : '';
+    throw new Error((body?.message ?? 'Sign in failed') + hint);
   }
 }
 
@@ -122,12 +125,15 @@ export async function signupWithPassword(input: {
   const body = (await response.json().catch(() => null)) as {
     signedIn?: boolean;
     message?: string;
+    detail?: string;
+    code?: string;
   } | null;
 
   if (body?.signedIn === false) {
+    const hint = body.detail ? ` (${body.detail})` : '';
     throw new Error(
-      body.message ??
-        'Account created, but sign-in failed. Try signing in manually.',
+      (body.message ??
+        'Account created, but sign-in failed. Try signing in manually.') + hint,
     );
   }
 }

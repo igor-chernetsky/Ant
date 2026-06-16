@@ -10,6 +10,17 @@ interface KeycloakRoleRepresentation {
   name: string;
 }
 
+interface KeycloakUserRepresentation {
+  id?: string;
+  username?: string;
+  email?: string;
+  enabled?: boolean;
+  emailVerified?: boolean;
+  firstName?: string;
+  lastName?: string;
+  requiredActions?: string[];
+}
+
 function getKeycloakBaseAndRealm(): { baseUrl: string; realm: string } {
   const baseUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
   const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
@@ -45,15 +56,12 @@ async function fetchAdminAccessToken(): Promise<string | null> {
     const baseUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
     if (!baseUrl) return null;
     const masterTokenUrl = `${baseUrl}/realms/master/protocol/openid-connect/token`;
-    const response = await fetch(
-      masterTokenUrl,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString(),
-        cache: 'no-store',
-      },
-    );
+    const response = await fetch(masterTokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+      cache: 'no-store',
+    });
     if (!response.ok) return null;
     const data = (await response.json()) as KeycloakAdminTokenResponse;
     return data.access_token ?? null;
@@ -101,69 +109,109 @@ async function assignRealmRoles(
 
   if (roleRepresentations.length === 0) return;
 
-  await fetch(`${baseUrl}/admin/realms/${realm}/users/${userId}/role-mappings/realm`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${adminToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(roleRepresentations),
-    cache: 'no-store',
-  });
-}
-
-const BFF_CONSENT_SCOPES = [
-  'openid',
-  'profile',
-  'email',
-  'offline_access',
-  'roles',
-  'web-origins',
-  'acr',
-];
-
-async function finalizeKeycloakUser(
-  adminToken: string,
-  userId: string,
-): Promise<void> {
-  const { baseUrl, realm } = getKeycloakBaseAndRealm();
-  await fetch(`${baseUrl}/admin/realms/${realm}/users/${userId}`, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${adminToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      enabled: true,
-      emailVerified: true,
-      requiredActions: [],
-    }),
-    cache: 'no-store',
-  });
-}
-
-/** Pre-approve platform-bff scopes when the client has Consent Required enabled. */
-async function grantBffClientConsent(
-  adminToken: string,
-  userId: string,
-): Promise<void> {
-  const { baseUrl, realm } = getKeycloakBaseAndRealm();
-  const clientId = process.env.KEYCLOAK_BFF_CLIENT_ID ?? 'platform-bff';
-  const now = Date.now();
-
   const response = await fetch(
-    `${baseUrl}/admin/realms/${realm}/users/${userId}/consents`,
+    `${baseUrl}/admin/realms/${realm}/users/${userId}/role-mappings/realm`,
     {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${adminToken}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify(roleRepresentations),
+      cache: 'no-store',
+    },
+  );
+
+  if (!response.ok) {
+    console.warn(
+      `[auth-keycloak] assignRealmRoles failed (${response.status}):`,
+      await response.text().catch(() => ''),
+    );
+  }
+}
+
+async function fetchKeycloakUser(
+  adminToken: string,
+  userId: string,
+): Promise<KeycloakUserRepresentation | null> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const response = await fetch(
+    `${baseUrl}/admin/realms/${realm}/users/${userId}`,
+    {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      cache: 'no-store',
+    },
+  );
+  if (!response.ok) return null;
+  return (await response.json()) as KeycloakUserRepresentation;
+}
+
+async function finalizeKeycloakUser(
+  adminToken: string,
+  userId: string,
+): Promise<void> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const user = await fetchKeycloakUser(adminToken, userId);
+
+  const payload: KeycloakUserRepresentation = {
+    id: userId,
+    username: user?.username,
+    email: user?.email,
+    firstName: user?.firstName,
+    lastName: user?.lastName,
+    enabled: true,
+    emailVerified: true,
+    requiredActions: [],
+  };
+
+  const response = await fetch(
+    `${baseUrl}/admin/realms/${realm}/users/${userId}`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+    },
+  );
+
+  if (!response.ok) {
+    console.warn(
+      `[auth-keycloak] finalizeKeycloakUser failed (${response.status}):`,
+      await response.text().catch(() => ''),
+    );
+    return;
+  }
+
+  const updated = await fetchKeycloakUser(adminToken, userId);
+  if (updated?.requiredActions && updated.requiredActions.length > 0) {
+    console.warn(
+      `[auth-keycloak] user ${userId} still has required actions:`,
+      updated.requiredActions.join(', '),
+    );
+  }
+}
+
+async function setKeycloakUserPassword(
+  adminToken: string,
+  userId: string,
+  password: string,
+): Promise<boolean> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const response = await fetch(
+    `${baseUrl}/admin/realms/${realm}/users/${userId}/reset-password`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        clientId,
-        grantedClientScopes: BFF_CONSENT_SCOPES,
-        createdDate: now,
-        lastUpdatedDate: now,
+        type: 'password',
+        temporary: false,
+        value: password,
       }),
       cache: 'no-store',
     },
@@ -171,10 +219,13 @@ async function grantBffClientConsent(
 
   if (!response.ok) {
     console.warn(
-      `[auth-keycloak] grantBffClientConsent failed (${response.status}):`,
+      `[auth-keycloak] setKeycloakUserPassword failed (${response.status}):`,
       await response.text().catch(() => ''),
     );
+    return false;
   }
+
+  return true;
 }
 
 async function findKeycloakUserIdByLogin(
@@ -205,7 +256,7 @@ async function findKeycloakUserIdByLogin(
   return null;
 }
 
-/** Repair consent / required actions for users created before consent fix. */
+/** Clear required actions / verify flags for admin-created users. */
 export async function repairKeycloakUserAuth(login: string): Promise<boolean> {
   let adminToken: string | null = null;
   try {
@@ -223,18 +274,24 @@ export async function repairKeycloakUserAuth(login: string): Promise<boolean> {
   }
 
   await finalizeKeycloakUser(adminToken, userId);
-  await grantBffClientConsent(adminToken, userId);
   return true;
 }
 
-export function isKeycloakConsentOrSetupError(result: {
+export function shouldAttemptKeycloakAuthRepair(result: {
   error: string;
   description?: string;
 }): boolean {
   const description = (result.description ?? '').toLowerCase();
+  if (
+    result.error === 'invalid_grant' &&
+    (description.includes('invalid user credentials') ||
+      description.includes('invalid username or password'))
+  ) {
+    return false;
+  }
+
   return (
-    result.error === 'consent_required' ||
-    description.includes('consent') ||
+    result.error === 'invalid_grant' ||
     description.includes('not fully set up') ||
     description.includes('account is not fully set up')
   );
@@ -293,6 +350,14 @@ export async function createKeycloakUser(params: {
       emailVerified: true,
       firstName: firstName || undefined,
       lastName: lastName || undefined,
+      requiredActions: [],
+      credentials: [
+        {
+          type: 'password',
+          temporary: false,
+          value: params.password,
+        },
+      ],
     }),
     cache: 'no-store',
   });
@@ -306,6 +371,8 @@ export async function createKeycloakUser(params: {
   }
 
   if (!createResponse.ok) {
+    const detail = await createResponse.text().catch(() => '');
+    console.error('[auth-keycloak] create user failed:', createResponse.status, detail);
     return {
       ok: false,
       status: createResponse.status,
@@ -322,34 +389,20 @@ export async function createKeycloakUser(params: {
     };
   }
 
-  const passwordResponse = await fetch(
-    `${baseUrl}/admin/realms/${realm}/users/${userId}/reset-password`,
-    {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${adminToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        type: 'password',
-        temporary: false,
-        value: params.password,
-      }),
-      cache: 'no-store',
-    },
+  const passwordSet = await setKeycloakUserPassword(
+    adminToken,
+    userId,
+    params.password,
   );
-
-  if (!passwordResponse.ok) {
+  if (!passwordSet) {
     return {
       ok: false,
-      status: passwordResponse.status,
+      status: 500,
       message: 'User created, but failed to set password',
     };
   }
 
   await assignRealmRoles(adminToken, userId, normalizedRoles);
   await finalizeKeycloakUser(adminToken, userId);
-  await grantBffClientConsent(adminToken, userId);
   return { ok: true };
 }
-

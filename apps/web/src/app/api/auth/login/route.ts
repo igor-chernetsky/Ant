@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import {
-  isKeycloakConsentOrSetupError,
   repairKeycloakUserAuth,
+  shouldAttemptKeycloakAuthRepair,
 } from '@/lib/auth-keycloak-admin';
 import {
-  exchangeKeycloakTokens,
+  exchangePasswordCredentials,
+  isWrongPasswordError,
   persistAndApplyAuthCookies,
 } from '@/lib/auth-tokens';
 
@@ -13,6 +14,49 @@ export const dynamic = 'force-dynamic';
 interface LoginBody {
   username?: string;
   password?: string;
+}
+
+function authErrorPayload(result: {
+  error: string;
+  description?: string;
+}): { message: string; code: string; detail?: string } {
+  if (isWrongPasswordError(result)) {
+    return {
+      message: 'Invalid username or password',
+      code: 'invalid_credentials',
+    };
+  }
+
+  if (result.error === 'bff_not_configured') {
+    return {
+      message: 'Authentication service is not configured',
+      code: result.error,
+      detail: result.description,
+    };
+  }
+
+  if (result.error === 'unauthorized_client' || result.error === 'invalid_client') {
+    return {
+      message: 'Authentication service misconfigured',
+      code: result.error,
+      detail: result.description,
+    };
+  }
+
+  const description = (result.description ?? '').toLowerCase();
+  if (description.includes('not fully set up')) {
+    return {
+      message: 'Account setup is incomplete. Try again or contact support.',
+      code: 'account_not_ready',
+      detail: result.description,
+    };
+  }
+
+  return {
+    message: 'Sign in failed',
+    code: result.error,
+    detail: result.description,
+  };
 }
 
 export async function POST(request: Request) {
@@ -33,25 +77,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const params = new URLSearchParams({
-    grant_type: 'password',
-    username,
-    password,
-    scope: 'openid profile email offline_access',
-  });
+  let result = await exchangePasswordCredentials(username, password);
 
-  let result = await exchangeKeycloakTokens(params);
-
-  if (
-    !result.ok &&
-    isKeycloakConsentOrSetupError({
-      error: result.error,
-      description: result.description,
-    })
-  ) {
+  if (!result.ok && shouldAttemptKeycloakAuthRepair(result)) {
     const repaired = await repairKeycloakUserAuth(username);
     if (repaired) {
-      result = await exchangeKeycloakTokens(params);
+      result = await exchangePasswordCredentials(username, password);
     }
   }
 
@@ -61,15 +92,13 @@ export async function POST(request: Request) {
       result.error,
       result.description ?? '',
     );
-    return NextResponse.json(
-      { message: 'Invalid username or password' },
-      { status: 401 },
-    );
+    const payload = authErrorPayload(result);
+    return NextResponse.json(payload, { status: 401 });
   }
 
   if (!result.tokens.refresh_token) {
     console.warn(
-      '[auth/login] No refresh_token from Keycloak — enable offline_access on platform-bff client',
+      '[auth/login] No refresh_token from Keycloak — add offline_access to platform-bff client scopes',
     );
   }
 

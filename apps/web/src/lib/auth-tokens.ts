@@ -92,6 +92,52 @@ export async function exchangeKeycloakTokens(
   }
 }
 
+const PASSWORD_GRANT_SCOPES = [
+  'openid profile email offline_access',
+  'openid profile email',
+] as const;
+
+/** Password grant with scope fallback when offline_access is not configured on the client. */
+export async function exchangePasswordCredentials(
+  username: string,
+  password: string,
+): Promise<TokenExchangeResult> {
+  let lastResult: TokenExchangeResult = {
+    ok: false,
+    error: 'token_exchange_failed',
+  };
+
+  for (const scope of PASSWORD_GRANT_SCOPES) {
+    const params = new URLSearchParams({
+      grant_type: 'password',
+      username,
+      password,
+      scope,
+    });
+    const result = await exchangeKeycloakTokens(params);
+    if (result.ok) {
+      return result;
+    }
+    lastResult = result;
+    if (result.error !== 'invalid_scope') {
+      return result;
+    }
+  }
+
+  return lastResult;
+}
+
+export function isWrongPasswordError(result: {
+  error: string;
+  description?: string;
+}): boolean {
+  const description = (result.description ?? '').toLowerCase();
+  return (
+    description.includes('invalid user credentials') ||
+    description.includes('invalid username or password')
+  );
+}
+
 export async function refreshKeycloakTokens(
   refreshToken: string,
 ): Promise<TokenExchangeResult> {

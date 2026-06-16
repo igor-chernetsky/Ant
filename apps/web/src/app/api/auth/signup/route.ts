@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
-import { createKeycloakUser, repairKeycloakUserAuth } from '@/lib/auth-keycloak-admin';
 import {
-  exchangeKeycloakTokens,
+  createKeycloakUser,
+  repairKeycloakUserAuth,
+  shouldAttemptKeycloakAuthRepair,
+} from '@/lib/auth-keycloak-admin';
+import {
+  exchangePasswordCredentials,
   persistAndApplyAuthCookies,
 } from '@/lib/auth-tokens';
 
@@ -55,18 +59,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const params = new URLSearchParams({
-    grant_type: 'password',
-    username: email,
-    password,
-    scope: 'openid profile email offline_access',
-  });
-  let result = await exchangeKeycloakTokens(params);
+  let result = await exchangePasswordCredentials(email, password);
 
-  if (!result.ok) {
+  if (!result.ok && shouldAttemptKeycloakAuthRepair(result)) {
     const repaired = await repairKeycloakUserAuth(email);
     if (repaired) {
-      result = await exchangeKeycloakTokens(params);
+      result = await exchangePasswordCredentials(email, password);
     }
   }
 
@@ -82,6 +80,8 @@ export async function POST(request: Request) {
         signedIn: false,
         message:
           'Account created, but automatic sign-in failed. Try signing in with your email and password.',
+        code: result.error,
+        detail: result.description,
       },
       { status: 201 },
     );
