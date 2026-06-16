@@ -100,7 +100,7 @@ export function ContractorProjectPanel({
 
   const waitingForPublish =
     !participation.tenderId &&
-    ['estimated', 'tender_ready'].includes(participation.projectStatus);
+    participation.projectStatus === 'estimated';
 
   return (
     <section className="card contractor-project-card">

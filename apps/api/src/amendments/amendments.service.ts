@@ -216,17 +216,8 @@ export class AmendmentsService {
       },
     });
 
-    if (
-      previousStatus === ProjectStatus.estimated ||
-      previousStatus === ProjectStatus.tender_ready
-    ) {
+    if (previousStatus === ProjectStatus.estimated) {
       await this.estimatesService.generateAndStore(project.id);
-      if (previousStatus === ProjectStatus.tender_ready) {
-        await this.prisma.project.update({
-          where: { id: project.id },
-          data: { status: ProjectStatus.tender_ready },
-        });
-      }
     }
 
     const updatedRows = await this.prisma.projectAmendment.findMany({

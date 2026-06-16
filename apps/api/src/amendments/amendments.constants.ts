@@ -5,7 +5,6 @@ export const AMENDABLE_STATUSES: ProjectStatus[] = [
   ProjectStatus.intake,
   ProjectStatus.ready_for_estimate,
   ProjectStatus.estimated,
-  ProjectStatus.tender_ready,
 ];
 
 export function isAmendableStatus(status: ProjectStatus): boolean {

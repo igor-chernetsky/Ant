@@ -330,7 +330,6 @@ export function formatTenderStatus(status: TenderStatus): string {
 export function isTenderEligibleProjectStatus(status: string): boolean {
   return [
     'estimated',
-    'tender_ready',
     'in_tender',
     'contractor_selected',
   ].includes(status);

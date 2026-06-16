@@ -5,7 +5,6 @@ import { formatProjectStatus } from '@/lib/projects';
 const STATUS_OPTIONS = [
   { value: 'in_tender', label: 'Accepting bids' },
   { value: 'estimated', label: 'Estimated' },
-  { value: 'tender_ready', label: 'Tender ready' },
   { value: 'contractor_selected', label: 'Contractor selected' },
   { value: 'active', label: 'Active' },
   { value: 'completed', label: 'Completed' },

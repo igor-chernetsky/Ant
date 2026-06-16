@@ -13,8 +13,7 @@ stateDiagram-v2
   intake --> intake: update_brief
   intake --> ready_for_estimate: readiness_threshold_met
   ready_for_estimate --> estimated: estimate_generated
-  estimated --> tender_ready: client_confirms_publish
-  tender_ready --> in_tender: tender_published
+  estimated --> in_tender: tender_published
   in_tender --> contractor_selected: winning_bid_selected
   contractor_selected --> active: contract_accepted
   active --> completed: project_closed
@@ -30,7 +29,6 @@ stateDiagram-v2
 | `intake` | AI-assisted data collection in progress |
 | `ready_for_estimate` | Required brief fields satisfied |
 | `estimated` | At least one estimate exists |
-| `tender_ready` | Client approved moving to tender |
 | `in_tender` | Tender open or collecting bids |
 | `contractor_selected` | Winning bid chosen |
 | `active` | Contract accepted, work in progress |

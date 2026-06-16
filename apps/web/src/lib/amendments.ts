@@ -29,7 +29,6 @@ export const AMENDABLE_STATUSES = new Set([
   'intake',
   'ready_for_estimate',
   'estimated',
-  'tender_ready',
 ]);
 
 export const AMENDMENT_CHANGE_TYPE_OPTIONS: Array<{

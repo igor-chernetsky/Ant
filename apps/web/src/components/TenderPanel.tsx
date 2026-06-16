@@ -109,16 +109,12 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
           <button
             type="button"
             className="primary"
-            disabled={
-              busy ||
-              !['estimated', 'tender_ready'].includes(project.status)
-            }
+            disabled={busy || project.status !== 'estimated'}
             onClick={() => void handleCreate()}
           >
             {busy ? 'Publishing…' : 'Publish for bids'}
           </button>
-          {project.status !== 'estimated' &&
-            project.status !== 'tender_ready' && (
+          {project.status !== 'estimated' && (
             <p className="muted tender-hint">
               Complete intake and receive a ballpark estimate first.
             </p>

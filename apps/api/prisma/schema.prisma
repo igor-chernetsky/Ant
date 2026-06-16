@@ -12,7 +12,6 @@ enum ProjectStatus {
   intake
   ready_for_estimate
   estimated
-  tender_ready
   in_tender
   contractor_selected
   active
