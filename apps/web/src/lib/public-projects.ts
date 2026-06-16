@@ -21,10 +21,14 @@ export interface PublicProjectCard {
 
 export async function fetchPublicProjects(
   tagSlugs: string[] = [],
+  statuses: string[] = [],
 ): Promise<PublicProjectCard[]> {
   const params = new URLSearchParams();
   for (const slug of tagSlugs) {
     params.append('tag', slug);
+  }
+  for (const status of statuses) {
+    params.append('status', status);
   }
   const qs = params.toString();
   const response = await fetch(

@@ -4,9 +4,11 @@ import { getBackendApiUrl } from '@/lib/auth-server';
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const tagParams = url.searchParams.getAll('tag');
-  const qs = tagParams
-    .map((tag) => `tag=${encodeURIComponent(tag)}`)
-    .join('&');
+  const statusParams = url.searchParams.getAll('status');
+  const qs = [
+    ...tagParams.map((tag) => `tag=${encodeURIComponent(tag)}`),
+    ...statusParams.map((status) => `status=${encodeURIComponent(status)}`),
+  ].join('&');
 
   try {
     const backendResponse = await fetch(

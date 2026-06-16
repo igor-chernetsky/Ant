@@ -1,15 +1,13 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { BidChat } from '@/components/BidChat';
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
+import { useSession } from '@/components/SessionProvider';
 import {
   fetchContractorProjectParticipation,
-  formatContractorParticipationLabel,
-  formatInvitationStatus,
   formatTenderStatus,
-  respondContractorInvitation,
   submitContractorBid,
   withdrawContractorBid,
   type ContractorProjectParticipation,
@@ -25,6 +23,7 @@ export function ContractorProjectPanel({
   projectId,
   ballparkMid = null,
 }: ContractorProjectPanelProps) {
+  const { me } = useSession();
   const [participation, setParticipation] =
     useState<ContractorProjectParticipation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,24 +50,10 @@ export function ContractorProjectPanel({
     void loadParticipation();
   }, [loadParticipation]);
 
-  const handleRespond = async (accept: boolean) => {
-    if (!participation) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await respondContractorInvitation(participation.tenderId, accept);
-      await loadParticipation();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to respond');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleSubmitBid = async (
     input: Parameters<typeof submitContractorBid>[1],
   ) => {
-    if (!participation) return;
+    if (!participation?.tenderId) return;
     setBusy(true);
     setError(null);
     try {
@@ -83,7 +68,7 @@ export function ContractorProjectPanel({
   };
 
   const handleWithdraw = async () => {
-    if (!participation) return;
+    if (!participation?.tenderId) return;
     setBusy(true);
     setError(null);
     try {
@@ -109,38 +94,34 @@ export function ContractorProjectPanel({
     return null;
   }
 
-  const summaryLabel = formatContractorParticipationLabel({
-    invitationStatus: participation.invitation.status,
-    tenderStatus: participation.tenderStatus,
-    bidStatus: participation.myBid?.status ?? null,
-  });
+  const bidStatusLabel = participation.myBid
+    ? participation.myBid.status.replaceAll('_', ' ')
+    : 'No application yet';
 
-  const verified = participation.verificationStatus === 'verified';
+  const waitingForPublish =
+    !participation.tenderId &&
+    ['estimated', 'tender_ready'].includes(participation.projectStatus);
 
   return (
     <section className="card contractor-project-card">
-      <h2 className="section-title">Your participation</h2>
+      <h2 className="section-title">Your application</h2>
       <p className="muted doc-hint">
-        You were invited to bid on this project. Manage your invitation and
-        proposal here, or open the{' '}
-        <Link href="/contractor" className="text-link">
-          Contractor portal
-        </Link>{' '}
-        for all tenders.
+        Submit your bid when bidding opens and discuss details with the client
+        in the internal chat.
       </p>
 
       <dl className="meta-grid contractor-participation-meta">
         <div>
           <dt>Your status</dt>
-          <dd>{summaryLabel}</dd>
-        </div>
-        <div>
-          <dt>Invitation</dt>
-          <dd>{formatInvitationStatus(participation.invitation.status)}</dd>
+          <dd>{bidStatusLabel}</dd>
         </div>
         <div>
           <dt>Tender</dt>
-          <dd>{formatTenderStatus(participation.tenderStatus)}</dd>
+          <dd>
+            {participation.tenderStatus
+              ? formatTenderStatus(participation.tenderStatus)
+              : 'Not published yet'}
+          </dd>
         </div>
         <div>
           <dt>Verification</dt>
@@ -156,61 +137,18 @@ export function ContractorProjectPanel({
         )}
       </dl>
 
-      {!verified && (
-        <div className="contractor-participation-callout">
-          <p className="contractor-participation-callout-title">
-            Verification required
-          </p>
-          <p className="contractor-participation-callout-text">
-            Complete contractor verification before accepting invitations or
-            submitting bids.{' '}
-            <Link href="/contractor" className="text-link">
-              Open Contractor portal
-            </Link>
-          </p>
-        </div>
+      {waitingForPublish && (
+        <p className="muted tender-phase-hint">
+          The client has not published this project for bids yet. Check back
+          after they complete the estimate and click &quot;Publish for bids&quot;.
+        </p>
       )}
 
-      {participation.canRespondToInvitation && (
-        <div className="tender-actions-block">
-          <p className="muted tender-hint">
-            Accept the invitation to be ready when the client opens bidding.
-          </p>
-          <div className="row">
-            <button
-              type="button"
-              className="primary"
-              disabled={busy}
-              onClick={() => void handleRespond(true)}
-            >
-              Accept invitation
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => void handleRespond(false)}
-            >
-              Decline
-            </button>
-          </div>
-        </div>
+      {!waitingForPublish && !participation.canSubmitBid && (
+        <p className="muted tender-phase-hint">
+          Bidding is not open right now.
+        </p>
       )}
-
-      {participation.invitation.status === 'pending' &&
-        verified &&
-        !participation.canRespondToInvitation && (
-          <p className="muted tender-phase-hint">
-            This invitation is no longer accepting responses.
-          </p>
-        )}
-
-      {participation.invitation.status === 'accepted' &&
-        participation.tenderStatus === 'collecting_participants' && (
-          <p className="muted tender-phase-hint">
-            You accepted the invitation. The client will open bidding when ready.
-          </p>
-        )}
 
       {participation.myBid && (
         <div className="tender-subsection">
@@ -226,10 +164,16 @@ export function ContractorProjectPanel({
             ballparkMid={ballparkMid}
             compact
           />
+          {me?.id && (
+            <BidChat
+              bidId={participation.myBid.id}
+              currentUserId={me.id}
+            />
+          )}
         </div>
       )}
 
-      {participation.canSubmitBid && (
+      {participation.canSubmitBid && participation.tenderId && (
         <div className="tender-subsection">
           <h3 className="tender-subsection-title">
             {participation.myBid ? 'Update your bid' : 'Submit your bid'}
@@ -246,16 +190,6 @@ export function ContractorProjectPanel({
           />
         </div>
       )}
-
-      {participation.invitation.status === 'accepted' &&
-        participation.tenderStatus === 'open' &&
-        !participation.canSubmitBid &&
-        !participation.myBid &&
-        verified && (
-          <p className="muted tender-phase-hint">
-            Bidding is open, but you cannot submit a bid right now.
-          </p>
-        )}
 
       {error && <p className="form-error contractor-participation-error">{error}</p>}
     </section>

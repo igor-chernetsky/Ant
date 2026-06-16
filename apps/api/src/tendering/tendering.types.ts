@@ -1,4 +1,4 @@
-import { BidStatus, ProjectType, TenderInvitationStatus, TenderStatus } from '@prisma/client';
+import { BidStatus, ProjectType, TenderStatus } from '@prisma/client';
 
 export interface BidLineItem {
   trade: string;
@@ -43,13 +43,12 @@ export interface UpsertContractorProfileDto {
   tagSlugs?: string[];
 }
 
-export interface TenderInvitationResponse {
+export interface BidMessageResponse {
   id: string;
-  contractorId: string;
-  companyName: string | null;
-  status: TenderInvitationStatus;
-  invitedAt: string;
-  respondedAt: string | null;
+  bidId: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
 }
 
 export interface BidResponse {
@@ -73,37 +72,37 @@ export interface TenderResponse {
   opensAt: string | null;
   closesAt: string | null;
   awardedBidId: string | null;
-  invitations: TenderInvitationResponse[];
   bids: BidResponse[];
-  acceptedInvitationCount: number;
   submittedBidCount: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface ContractorInvitationItem {
-  invitationId: string;
+export interface ContractorApplicationItem {
+  bidId: string;
   tenderId: string;
   projectId: string;
   projectTitle: string;
   projectDistrict: string | null;
   tenderStatus: TenderStatus;
-  invitationStatus: TenderInvitationStatus;
-  closesAt: string | null;
-  invitedAt: string;
-  bidStatus: BidStatus | null;
+  bidStatus: BidStatus;
   bidAmount: string | null;
+  submittedAt: string;
 }
 
 export interface ContractorProjectParticipation {
-  tenderId: string;
-  invitation: TenderInvitationResponse;
-  tenderStatus: TenderStatus;
+  tenderId: string | null;
+  tenderStatus: TenderStatus | null;
   closesAt: string | null;
   myBid: BidResponse | null;
   verificationStatus: string;
-  canRespondToInvitation: boolean;
   canSubmitBid: boolean;
+  projectStatus: string;
+}
+
+export interface ContractorTenderView {
+  tender: TenderResponse;
+  myBid: BidResponse | null;
 }
 
 export interface SubmitBidDto {
@@ -115,9 +114,8 @@ export interface SubmitBidDto {
   lineItems?: BidLineItem[];
 }
 
-export interface RespondInvitationDto {
-  accept: boolean;
+export interface SendBidMessageDto {
+  body: string;
 }
 
 export const DEFAULT_TENDER_DURATION_DAYS = 7;
-export const MAX_TENDER_INVITATIONS = 8;

@@ -10,12 +10,13 @@ import { ProjectTile } from '@/components/ProjectTile';
 import { useSession } from '@/components/SessionProvider';
 import { canCreateProject, isContractorUser } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
-import {
-  fetchContractorInvitations,
-  fetchContractorProfile,
-  type ContractorInvitationItem,
-} from '@/lib/tendering';
 import { TagFilterBar } from '@/components/TagFilterBar';
+import { StatusFilterBar } from '@/components/StatusFilterBar';
+import {
+  fetchContractorApplications,
+  fetchContractorProfile,
+  type ContractorApplicationItem,
+} from '@/lib/tendering';
 import {
   fetchProjects,
   type Project,
@@ -31,13 +32,14 @@ export default function HomePage() {
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [projects, setProjects] = useState<PublicProjectCard[]>([]);
   const [ownedProjectIds, setOwnedProjectIds] = useState<Set<string>>(new Set());
-  const [contractorInvitations, setContractorInvitations] = useState<
-    ContractorInvitationItem[]
+  const [contractorApplications, setContractorApplications] = useState<
+    ContractorApplicationItem[]
   >([]);
   const [allTags, setAllTags] = useState<Array<{ slug: string; label: string }>>(
     [],
   );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [contractorFilterInitialized, setContractorFilterInitialized] =
     useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,11 +48,11 @@ export default function HomePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingCreate, setPendingCreate] = useState(false);
 
-  const loadProjects = useCallback(async (tagSlugs: string[]) => {
+  const loadProjects = useCallback(async (tagSlugs: string[], statuses: string[]) => {
     setLoading(true);
     setError(null);
     try {
-      const list = await fetchPublicProjects(tagSlugs);
+      const list = await fetchPublicProjects(tagSlugs, statuses);
       setProjects(list);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load projects');
@@ -73,8 +75,8 @@ export default function HomePage() {
 
   useEffect(() => {
     if (!sessionReady) return;
-    void loadProjects(selectedTags);
-  }, [sessionReady, selectedTags, loadProjects]);
+    void loadProjects(selectedTags, selectedStatuses);
+  }, [sessionReady, selectedTags, selectedStatuses, loadProjects]);
 
   useEffect(() => {
     if (!sessionReady) return;
@@ -107,7 +109,7 @@ export default function HomePage() {
     if (!sessionReady) return;
     if (!me) {
       setOwnedProjectIds(new Set());
-      setContractorInvitations([]);
+      setContractorApplications([]);
       return;
     }
 
@@ -125,17 +127,17 @@ export default function HomePage() {
         }
         if (isContractorUser(me)) {
           tasks.push(
-            fetchContractorInvitations().then((invs) => {
-              setContractorInvitations(invs);
+            fetchContractorApplications().then((apps) => {
+              setContractorApplications(apps);
             }),
           );
         } else {
-          setContractorInvitations([]);
+          setContractorApplications([]);
         }
         await Promise.all(tasks);
       } catch {
         setOwnedProjectIds(new Set());
-        setContractorInvitations([]);
+        setContractorApplications([]);
       }
     })();
   }, [sessionReady, me]);
@@ -176,12 +178,12 @@ export default function HomePage() {
   const canAddProject = canCreateProject(me);
 
   const contractorParticipationByProjectId = useMemo(() => {
-    const map = new Map<string, ContractorInvitationItem>();
-    for (const inv of contractorInvitations) {
-      map.set(inv.projectId, inv);
+    const map = new Map<string, ContractorApplicationItem>();
+    for (const app of contractorApplications) {
+      map.set(app.projectId, app);
     }
     return map;
-  }, [contractorInvitations]);
+  }, [contractorApplications]);
 
   const sortedProjects = useMemo(() => {
     if (
@@ -226,6 +228,11 @@ export default function HomePage() {
           tags={allTags}
           selected={selectedTags}
           onChange={setSelectedTags}
+        />
+
+        <StatusFilterBar
+          selected={selectedStatuses}
+          onChange={setSelectedStatuses}
         />
 
         {loading && (

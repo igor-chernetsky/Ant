@@ -13,9 +13,10 @@ import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
+import { BidMessagesService } from './bid-messages.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
-  RespondInvitationDto,
+  SendBidMessageDto,
   SubmitBidDto,
   UpsertContractorProfileDto,
 } from './tendering.types';
@@ -26,6 +27,7 @@ import { TendersService } from './tenders.service';
 export class ContractorTenderController {
   constructor(
     private readonly tendersService: TendersService,
+    private readonly bidMessages: BidMessagesService,
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly usersService: UsersService,
   ) {}
@@ -50,10 +52,35 @@ export class ContractorTenderController {
     return this.contractorProfiles.upsertForUser(user.id, body);
   }
 
+  @Get('applications')
+  async listApplications(@Req() req: Request & { user: JwtPayload }) {
+    const user = await this.resolveUser(req);
+    return this.tendersService.listApplicationsForContractor(user.id);
+  }
+
   @Get('invitations')
   async listInvitations(@Req() req: Request & { user: JwtPayload }) {
     const user = await this.resolveUser(req);
-    return this.tendersService.listInvitationsForContractor(user.id);
+    return this.tendersService.listApplicationsForContractor(user.id);
+  }
+
+  @Get('bids/:bidId/messages')
+  async listBidMessages(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('bidId') bidId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.bidMessages.listMessages(user.id, bidId);
+  }
+
+  @Post('bids/:bidId/messages')
+  async sendBidMessage(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('bidId') bidId: string,
+    @Body() body: SendBidMessageDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.bidMessages.sendMessage(user.id, bidId, body);
   }
 
   @Get('projects/:projectId/participation')
@@ -76,16 +103,6 @@ export class ContractorTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.tendersService.getTenderForContractor(user.id, tenderId);
-  }
-
-  @Post('tenders/:tenderId/invitations/respond')
-  async respondInvitation(
-    @Req() req: Request & { user: JwtPayload },
-    @Param('tenderId') tenderId: string,
-    @Body() body: RespondInvitationDto,
-  ) {
-    const user = await this.resolveUser(req);
-    return this.tendersService.respondToInvitation(user.id, tenderId, body);
   }
 
   @Post('tenders/:tenderId/bids')

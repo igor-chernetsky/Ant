@@ -174,9 +174,19 @@ export class ProjectsService {
 
   }
 
-  async listPublic(tagSlugs: string[] = []): Promise<PublicProjectCard[]> {
+  async listPublic(
+    tagSlugs: string[] = [],
+    statuses: string[] = [],
+  ): Promise<PublicProjectCard[]> {
+    const allowedStatuses: ProjectStatus[] =
+      statuses.length > 0
+        ? statuses.filter((status): status is ProjectStatus =>
+            PUBLIC_VIEW_STATUSES.includes(status as ProjectStatus),
+          )
+        : PUBLIC_VIEW_STATUSES;
+
     const where: Prisma.ProjectWhereInput = {
-      status: { in: PUBLIC_VIEW_STATUSES },
+      status: { in: allowedStatuses },
     };
 
     if (tagSlugs.length > 0) {

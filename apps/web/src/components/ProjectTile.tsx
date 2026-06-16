@@ -7,13 +7,13 @@ import {
   type ProjectType,
 } from '@/lib/projects';
 import type { PublicProjectCard } from '@/lib/public-projects';
-import type { ContractorInvitationItem } from '@/lib/tendering';
+import type { ContractorApplicationItem } from '@/lib/tendering';
 import { formatContractorParticipationLabel } from '@/lib/tendering';
 
 interface ProjectTileProps {
   project: PublicProjectCard;
   isOwned?: boolean;
-  contractorParticipation?: ContractorInvitationItem | null;
+  contractorParticipation?: ContractorApplicationItem | null;
 }
 
 export function ProjectTile({

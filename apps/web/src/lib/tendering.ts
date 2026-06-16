@@ -2,17 +2,10 @@ import { fetchWithAuth } from './auth-client';
 
 export type TenderStatus =
   | 'draft'
-  | 'collecting_participants'
   | 'open'
   | 'closed'
   | 'awarded'
   | 'cancelled';
-
-export type TenderInvitationStatus =
-  | 'pending'
-  | 'declined'
-  | 'accepted'
-  | 'expired';
 
 export type BidStatus = 'submitted' | 'withdrawn' | 'selected' | 'rejected';
 
@@ -27,15 +20,6 @@ export interface BidTerms {
   approach?: string;
   scopeSummary?: string;
   lineItems?: BidLineItem[];
-}
-
-export interface TenderInvitation {
-  id: string;
-  contractorId: string;
-  companyName: string | null;
-  status: TenderInvitationStatus;
-  invitedAt: string;
-  respondedAt: string | null;
 }
 
 export interface Bid {
@@ -59,9 +43,7 @@ export interface Tender {
   opensAt: string | null;
   closesAt: string | null;
   awardedBidId: string | null;
-  invitations: TenderInvitation[];
   bids: Bid[];
-  acceptedInvitationCount: number;
   submittedBidCount: number;
   createdAt: string;
   updatedAt: string;
@@ -81,34 +63,38 @@ export interface ContractorProfile {
   createdAt: string;
 }
 
-export interface ContractorInvitationItem {
-  invitationId: string;
+export interface ContractorProjectParticipation {
+  tenderId: string | null;
+  tenderStatus: TenderStatus | null;
+  closesAt: string | null;
+  myBid: Bid | null;
+  verificationStatus: string;
+  canSubmitBid: boolean;
+  projectStatus: string;
+}
+
+export interface ContractorApplicationItem {
+  bidId: string;
   tenderId: string;
   projectId: string;
   projectTitle: string;
   projectDistrict: string | null;
   tenderStatus: TenderStatus;
-  invitationStatus: TenderInvitationStatus;
-  closesAt: string | null;
-  invitedAt: string;
-  bidStatus: BidStatus | null;
+  bidStatus: BidStatus;
   bidAmount: string | null;
+  submittedAt: string;
 }
 
-export interface ContractorProjectParticipation {
-  tenderId: string;
-  invitation: TenderInvitation;
-  tenderStatus: TenderStatus;
-  closesAt: string | null;
-  myBid: Bid | null;
-  verificationStatus: string;
-  canRespondToInvitation: boolean;
-  canSubmitBid: boolean;
+export interface BidMessage {
+  id: string;
+  bidId: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
 }
 
 export interface ContractorTenderView {
   tender: Tender;
-  invitation: TenderInvitation;
   myBid: Bid | null;
 }
 
@@ -206,17 +192,6 @@ export async function upsertContractorProfile(input: {
   return response.json() as Promise<ContractorProfile>;
 }
 
-export async function fetchContractorInvitations(): Promise<
-  ContractorInvitationItem[]
-> {
-  const response = await fetchWithAuth('/api/contractor/invitations', {
-  });
-  if (!response.ok) {
-    await parseError(response, 'Failed to load invitations');
-  }
-  return response.json() as Promise<ContractorInvitationItem[]>;
-}
-
 export async function fetchContractorProjectParticipation(
   projectId: string,
 ): Promise<ContractorProjectParticipation | null> {
@@ -247,24 +222,6 @@ export async function fetchContractorTender(
   return response.json() as Promise<ContractorTenderView>;
 }
 
-export async function respondContractorInvitation(
-  tenderId: string,
-  accept: boolean,
-): Promise<TenderInvitation> {
-  const response = await fetchWithAuth(
-    `/api/contractor/tenders/${encodeURIComponent(tenderId)}/invitations/respond`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accept }),
-    },
-  );
-  if (!response.ok) {
-    await parseError(response, 'Failed to respond to invitation');
-  }
-  return response.json() as Promise<TenderInvitation>;
-}
-
 export async function submitContractorBid(
   tenderId: string,
   input: {
@@ -290,6 +247,56 @@ export async function submitContractorBid(
   return response.json() as Promise<Bid>;
 }
 
+export async function fetchContractorApplications(): Promise<
+  ContractorApplicationItem[]
+> {
+  const response = await fetchWithAuth('/api/contractor/applications');
+  if (!response.ok) {
+    await parseError(response, 'Failed to load applications');
+  }
+  return response.json() as Promise<ContractorApplicationItem[]>;
+}
+
+/** @deprecated Use fetchContractorApplications */
+export async function fetchContractorInvitations(): Promise<
+  ContractorApplicationItem[]
+> {
+  return fetchContractorApplications();
+}
+
+export async function fetchBidMessages(
+  bidId: string,
+  projectId?: string,
+): Promise<BidMessage[]> {
+  const path = projectId
+    ? `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/messages`
+    : `/api/contractor/bids/${encodeURIComponent(bidId)}/messages`;
+  const response = await fetchWithAuth(path);
+  if (!response.ok) {
+    await parseError(response, 'Failed to load messages');
+  }
+  return response.json() as Promise<BidMessage[]>;
+}
+
+export async function sendBidMessage(
+  bidId: string,
+  body: string,
+  projectId?: string,
+): Promise<BidMessage> {
+  const path = projectId
+    ? `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/messages`
+    : `/api/contractor/bids/${encodeURIComponent(bidId)}/messages`;
+  const response = await fetchWithAuth(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  });
+  if (!response.ok) {
+    await parseError(response, 'Failed to send message');
+  }
+  return response.json() as Promise<BidMessage>;
+}
+
 export async function withdrawContractorBid(tenderId: string): Promise<Bid> {
   const response = await fetchWithAuth(
     `/api/contractor/tenders/${encodeURIComponent(tenderId)}/bids`,
@@ -301,62 +308,23 @@ export async function withdrawContractorBid(tenderId: string): Promise<Bid> {
   return response.json() as Promise<Bid>;
 }
 
+export function formatContractorParticipationLabel(
+  application: ContractorApplicationItem,
+): string {
+  if (application.bidStatus === 'selected') {
+    return 'Selected';
+  }
+  if (application.bidStatus === 'submitted') {
+    return 'Application submitted';
+  }
+  if (application.bidStatus === 'rejected') {
+    return 'Not selected';
+  }
+  return application.bidStatus.replaceAll('_', ' ');
+}
+
 export function formatTenderStatus(status: TenderStatus): string {
   return status.replaceAll('_', ' ');
-}
-
-export function formatInvitationStatus(status: TenderInvitationStatus): string {
-  switch (status) {
-    case 'pending':
-      return 'Awaiting response';
-    case 'accepted':
-      return 'Accepted';
-    case 'declined':
-      return 'Declined';
-    case 'expired':
-      return 'Expired';
-    default:
-      return status;
-  }
-}
-
-export function invitationStatusClass(status: TenderInvitationStatus): string {
-  switch (status) {
-    case 'pending':
-      return 'tender-invite-status pending';
-    case 'accepted':
-      return 'tender-invite-status accepted';
-    case 'declined':
-      return 'tender-invite-status declined';
-    case 'expired':
-      return 'tender-invite-status expired';
-    default:
-      return 'tender-invite-status';
-  }
-}
-
-/** Matches API `MAX_TENDER_INVITATIONS` — verified contractors in region/type. */
-export const TENDER_INVITATION_LIMIT = 8;
-
-export function formatContractorParticipationLabel(
-  item: Pick<
-    ContractorInvitationItem,
-    'invitationStatus' | 'tenderStatus' | 'bidStatus'
-  >,
-): string {
-  if (item.bidStatus === 'selected') return 'Your bid selected';
-  if (item.bidStatus === 'rejected') return 'Bid not selected';
-  if (item.bidStatus === 'submitted') return 'Bid submitted';
-  if (item.invitationStatus === 'pending') return 'Invitation · respond';
-  if (item.invitationStatus === 'declined') return 'Declined';
-  if (item.invitationStatus === 'expired') return 'Invitation expired';
-  if (item.invitationStatus === 'accepted') {
-    if (item.tenderStatus === 'open') return 'Accepted · submit bid';
-    if (item.tenderStatus === 'closed') return 'Accepted · bidding closed';
-    if (item.tenderStatus === 'awarded') return 'Accepted · awarded';
-    return 'Invitation accepted';
-  }
-  return 'Invited';
 }
 
 export function isTenderEligibleProjectStatus(status: string): boolean {

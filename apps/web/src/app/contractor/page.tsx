@@ -2,39 +2,28 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { BidProposalForm } from '@/components/BidProposalForm';
 import { ContractorVerificationPanel } from '@/components/ContractorVerificationPanel';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TradeTagPicker } from '@/components/TradeTagPicker';
 import { useSession } from '@/components/SessionProvider';
-import { fetchPublicProject, fetchPublicTags } from '@/lib/public-projects';
+import { formatThb } from '@/lib/estimate';
+import { fetchPublicTags } from '@/lib/public-projects';
 import {
-  fetchContractorInvitations,
+  fetchContractorApplications,
   fetchContractorProfile,
-  fetchContractorTender,
   formatTenderStatus,
-  respondContractorInvitation,
-  submitContractorBid,
   upsertContractorProfile,
-  withdrawContractorBid,
-  type ContractorInvitationItem,
+  type ContractorApplicationItem,
   type ContractorProfile,
-  type ContractorTenderView,
 } from '@/lib/tendering';
-
-interface HeroProjectPreview {
-  title: string;
-  district: string | null;
-  description: string | null;
-}
 
 export default function ContractorPage() {
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<ContractorProfile | null>(null);
-  const [invitations, setInvitations] = useState<ContractorInvitationItem[]>(
+  const [applications, setApplications] = useState<ContractorApplicationItem[]>(
     [],
   );
   const [companyName, setCompanyName] = useState('');
@@ -48,11 +37,6 @@ export default function ContractorPage() {
       groupLabel: string | null;
     }>
   >([]);
-  const [activeTenderId, setActiveTenderId] = useState<string | null>(null);
-  const [tenderView, setTenderView] = useState<ContractorTenderView | null>(
-    null,
-  );
-  const [heroProject, setHeroProject] = useState<HeroProjectPreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -65,14 +49,14 @@ export default function ContractorPage() {
       return;
     }
 
-    const [prof, invs, tags] = await Promise.all([
+    const [prof, apps, tags] = await Promise.all([
       fetchContractorProfile(),
-      fetchContractorInvitations(),
+      fetchContractorApplications(),
       fetchPublicTags(),
     ]);
     setTradeTags(tags);
     setProfile(prof);
-    setInvitations(invs);
+    setApplications(apps);
     if (prof?.companyName) setCompanyName(prof.companyName);
     if (prof?.regionCode) setRegionCode(prof.regionCode);
     if (prof?.tagSlugs) setSelectedTagSlugs(prof.tagSlugs);
@@ -93,39 +77,6 @@ export default function ContractorPage() {
       setReady(true);
     });
   }, [sessionReady, loadAll]);
-
-  const loadTenderView = async (tenderId: string) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const view = await fetchContractorTender(tenderId);
-      setTenderView(view);
-      setActiveTenderId(tenderId);
-      const invitation = invitations.find((inv) => inv.tenderId === tenderId);
-      if (invitation) {
-        try {
-          const project = await fetchPublicProject(invitation.projectId);
-          setHeroProject({
-            title: project.title,
-            district: project.district,
-            description: project.description,
-          });
-        } catch {
-          setHeroProject({
-            title: invitation.projectTitle,
-            district: invitation.projectDistrict,
-            description: null,
-          });
-        }
-      } else {
-        setHeroProject(null);
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load tender');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const handleSaveProfile = async () => {
     setBusy(true);
@@ -153,60 +104,10 @@ export default function ContractorPage() {
     .map((slug) => tradeTags.find((tag) => tag.slug === slug)?.label ?? slug)
     .join(', ');
 
-  const handleRespond = async (tenderId: string, accept: boolean) => {
-    setBusy(true);
-    setError(null);
-    try {
-      await respondContractorInvitation(tenderId, accept);
-      const invs = await fetchContractorInvitations();
-      setInvitations(invs);
-      if (activeTenderId === tenderId) {
-        await loadTenderView(tenderId);
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to respond');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSubmitBid = async (
-    input: Parameters<typeof submitContractorBid>[1],
-  ) => {
-    if (!activeTenderId) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await submitContractorBid(activeTenderId, input);
-      await loadTenderView(activeTenderId);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to submit bid');
-      throw err;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleWithdraw = async () => {
-    if (!activeTenderId) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await withdrawContractorBid(activeTenderId);
-      await loadTenderView(activeTenderId);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to withdraw bid');
-      throw err;
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleLogout = async () => {
     await signOut();
     setProfile(null);
-    setInvitations([]);
-    setTenderView(null);
+    setApplications([]);
   };
 
   return (
@@ -221,8 +122,8 @@ export default function ContractorPage() {
         <section className="page-hero">
           <h1>Contractor portal</h1>
           <p className="page-hero-lead muted">
-            Register as a contractor, respond to tender invitations, and submit
-            bids on client projects.
+            Register as a contractor, browse open projects, and submit
+            applications with direct chat to the client.
           </p>
         </section>
 
@@ -234,7 +135,7 @@ export default function ContractorPage() {
 
         {ready && !me && (
           <section className="card cta">
-            <p>Sign in to access contractor invitations and submit bids.</p>
+            <p>Sign in to browse projects and submit applications.</p>
             <button
               type="button"
               className="primary"
@@ -335,7 +236,7 @@ export default function ContractorPage() {
               {error && <p className="form-error">{error}</p>}
               <button
                 type="button"
-                className="primary"
+                className="primary profile-form-submit"
                 disabled={busy}
                 onClick={() => void handleSaveProfile()}
               >
@@ -349,117 +250,43 @@ export default function ContractorPage() {
             />
 
             <section className="card">
-              <h2 className="section-title">Invitations</h2>
-              {invitations.length === 0 ? (
+              <h2 className="section-title">My applications</h2>
+              {applications.length === 0 ? (
                 <p className="muted">
-                  No invitations yet. Matching uses your region (
-                  {profile.regionCode}). Create tenders from client projects
-                  after estimation.
+                  No applications yet. Browse{' '}
+                  <Link href="/" className="text-link">
+                    open projects
+                  </Link>{' '}
+                  and submit a bid when the client publishes for bidding.
                 </p>
               ) : (
                 <ul className="tender-invite-list">
-                  {invitations.map((inv) => (
-                    <li key={inv.invitationId} className="tender-invite-item">
+                  {applications.map((app) => (
+                    <li key={app.bidId} className="tender-invite-item">
                       <div>
-                        <strong>{inv.projectTitle}</strong>
+                        <strong>{app.projectTitle}</strong>
                         <p className="muted doc-meta">
-                          {inv.projectDistrict ?? inv.projectId} ·{' '}
-                          {formatTenderStatus(inv.tenderStatus)} · invitation{' '}
-                          {inv.invitationStatus}
+                          {app.projectDistrict ?? app.projectId} ·{' '}
+                          {formatTenderStatus(app.tenderStatus)} · bid{' '}
+                          {app.bidStatus.replaceAll('_', ' ')}
+                          {app.bidAmount
+                            ? ` · ${formatThb(Number(app.bidAmount))}`
+                            : ''}
                         </p>
                       </div>
                       <div className="bid-line-actions">
                         <Link
-                          href={`/projects/${inv.projectId}`}
+                          href={`/projects/${app.projectId}`}
                           className="text-link"
                         >
                           View project
                         </Link>
-                        {inv.invitationStatus === 'pending' && (
-                          <>
-                            <button
-                              type="button"
-                              className="secondary"
-                              disabled={busy}
-                              onClick={() =>
-                                void handleRespond(inv.tenderId, true)
-                              }
-                            >
-                              Accept
-                            </button>
-                            <button
-                              type="button"
-                              className="secondary"
-                              disabled={busy}
-                              onClick={() =>
-                                void handleRespond(inv.tenderId, false)
-                              }
-                            >
-                              Decline
-                            </button>
-                          </>
-                        )}
-                        <button
-                          type="button"
-                          className="secondary"
-                          disabled={busy}
-                          onClick={() => void loadTenderView(inv.tenderId)}
-                        >
-                          Manage bid
-                        </button>
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
             </section>
-
-            {tenderView && (
-              <section className="card">
-                {heroProject && (
-                  <section className="contractor-project-hero">
-                    <div className="contractor-project-hero-overlay">
-                      <p className="contractor-project-hero-kicker">Project brief</p>
-                      <h3>{heroProject.title}</h3>
-                      {heroProject.district && (
-                        <p className="contractor-project-hero-meta">
-                          District: {heroProject.district}
-                        </p>
-                      )}
-                      <p className="contractor-project-hero-description">
-                        {heroProject.description?.trim() ||
-                          'The client is collecting contractor proposals for this project. Submit your bid with approach, scope, and timeline details.'}
-                      </p>
-                    </div>
-                  </section>
-                )}
-                <h2 className="section-title">Submit bid &amp; proposal</h2>
-                <p className="muted doc-hint">
-                  Tender status: {formatTenderStatus(tenderView.tender.status)}
-                  {tenderView.tender.closesAt &&
-                    ` · closes ${new Date(tenderView.tender.closesAt).toLocaleString()}`}
-                </p>
-
-                {tenderView.invitation.status !== 'accepted' ? (
-                  <p className="muted">
-                    Accept the invitation before submitting a bid.
-                  </p>
-                ) : tenderView.tender.status !== 'open' ? (
-                  <p className="muted">
-                    Bidding opens when the client starts the tender.
-                  </p>
-                ) : (
-                  <BidProposalForm
-                    key={`${activeTenderId}-${tenderView.myBid?.submittedAt ?? 'new'}`}
-                    existingBid={tenderView.myBid}
-                    busy={busy}
-                    onSubmit={handleSubmitBid}
-                    onWithdraw={handleWithdraw}
-                  />
-                )}
-                {error && <p className="form-error">{error}</p>}
-              </section>
-            )}
           </>
         )}
       </main>

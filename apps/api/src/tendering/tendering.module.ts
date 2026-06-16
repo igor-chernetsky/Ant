@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UsersModule } from '../users/users.module';
+import { BidMessagesService } from './bid-messages.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import { ContractorTenderController } from './contractor-tender.controller';
 import { ProjectTenderController } from './project-tender.controller';
@@ -13,6 +14,7 @@ import { TendersService } from './tenders.service';
   controllers: [ProjectTenderController, ContractorTenderController],
   providers: [
     TendersService,
+    BidMessagesService,
     ContractorProfilesService,
     TenderMatchingService,
     TenderAutoCloseService,

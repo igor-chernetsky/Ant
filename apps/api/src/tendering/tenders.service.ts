@@ -8,14 +8,13 @@ import {
   Bid,
   BidStatus,
   ContractorProfile,
-  ContractorVerificationStatus,
   Prisma,
   ProjectStatus,
   Tender,
-  TenderInvitationStatus,
   TenderStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { BidMessagesService } from './bid-messages.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
@@ -27,18 +26,12 @@ import {
   MAX_BID_LINE_ITEMS,
   MAX_BID_NOTES_LENGTH,
   MAX_BID_SCOPE_LENGTH,
-  RespondInvitationDto,
   SubmitBidDto,
-  TenderInvitationResponse,
   TenderResponse,
+  ContractorApplicationItem,
 } from './tendering.types';
 
 type TenderWithRelations = Tender & {
-  invitations: Array<
-    Prisma.TenderInvitationGetPayload<{
-      include: { contractor: true };
-    }>
-  >;
   bids: Array<
     Bid & {
       contractor: ContractorProfile;
@@ -53,6 +46,7 @@ export class TendersService {
     private readonly matching: TenderMatchingService,
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly autoClose: TenderAutoCloseService,
+    private readonly bidMessages: BidMessagesService,
   ) {}
 
   private mapBid(bid: Bid & { contractor: ContractorProfile }): BidResponse {
@@ -69,23 +63,7 @@ export class TendersService {
     };
   }
 
-  private mapInvitation(
-    invitation: Prisma.TenderInvitationGetPayload<{
-      include: { contractor: true };
-    }>,
-  ): TenderInvitationResponse {
-    return {
-      id: invitation.id,
-      contractorId: invitation.contractorId,
-      companyName: invitation.contractor.companyName,
-      status: invitation.status,
-      invitedAt: invitation.invitedAt.toISOString(),
-      respondedAt: invitation.respondedAt?.toISOString() ?? null,
-    };
-  }
-
   private mapTender(tender: TenderWithRelations): TenderResponse {
-    const invitations = tender.invitations.map((i) => this.mapInvitation(i));
     const bids = tender.bids
       .filter((b) => b.status !== BidStatus.withdrawn)
       .map((b) => this.mapBid(b));
@@ -99,11 +77,7 @@ export class TendersService {
       opensAt: tender.opensAt?.toISOString() ?? null,
       closesAt: tender.closesAt?.toISOString() ?? null,
       awardedBidId: tender.awardedBidId,
-      invitations,
       bids,
-      acceptedInvitationCount: invitations.filter(
-        (i) => i.status === TenderInvitationStatus.accepted,
-      ).length,
       submittedBidCount: bids.filter((b) => b.status === BidStatus.submitted)
         .length,
       createdAt: tender.createdAt.toISOString(),
@@ -113,10 +87,6 @@ export class TendersService {
 
   private includeTenderRelations() {
     return {
-      invitations: {
-        include: { contractor: true },
-        orderBy: { invitedAt: 'asc' as const },
-      },
       bids: {
         include: { contractor: true },
         orderBy: { submittedAt: 'desc' as const },
@@ -177,40 +147,23 @@ export class TendersService {
       return this.mapTender(await this.loadTender(existing.id));
     }
 
-    const contractorIds = await this.matching.findInvitees(project, clientId);
+    const now = new Date();
+    const closesAt = new Date(now);
+    closesAt.setDate(closesAt.getDate() + DEFAULT_TENDER_DURATION_DAYS);
 
-    const tender = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.tender.create({
-        data: {
-          projectId,
-          status:
-            contractorIds.length > 0
-              ? TenderStatus.collecting_participants
-              : TenderStatus.draft,
-        },
-        include: this.includeTenderRelations(),
-      });
+    const tender = await this.prisma.tender.create({
+      data: {
+        projectId,
+        status: TenderStatus.open,
+        opensAt: now,
+        closesAt,
+      },
+      include: this.includeTenderRelations(),
+    });
 
-      if (contractorIds.length > 0) {
-        await tx.tenderInvitation.createMany({
-          data: contractorIds.map((contractorId) => ({
-            tenderId: created.id,
-            contractorId,
-          })),
-        });
-      }
-
-      if (project.status === ProjectStatus.estimated) {
-        await tx.project.update({
-          where: { id: projectId },
-          data: { status: ProjectStatus.tender_ready },
-        });
-      }
-
-      return tx.tender.findUniqueOrThrow({
-        where: { id: created.id },
-        include: this.includeTenderRelations(),
-      });
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: { status: ProjectStatus.in_tender },
     });
 
     return this.mapTender(tender);
@@ -227,20 +180,13 @@ export class TendersService {
       throw new NotFoundException('Tender not found. Create a tender first.');
     }
 
-    if (
-      tender.status !== TenderStatus.draft &&
-      tender.status !== TenderStatus.collecting_participants
-    ) {
-      throw new BadRequestException('Tender cannot be started in its current status');
+    if (tender.status === TenderStatus.open) {
+      return this.mapTender(tender);
     }
 
-    const acceptedCount = tender.invitations.filter(
-      (i) => i.status === TenderInvitationStatus.accepted,
-    ).length;
-
-    if (acceptedCount < 1) {
+    if (tender.status !== TenderStatus.draft) {
       throw new BadRequestException(
-        'At least one contractor must accept the invitation before opening the tender',
+        'Tender cannot be started in its current status',
       );
     }
 
@@ -335,47 +281,40 @@ export class TendersService {
     return this.mapTender(updated);
   }
 
-  async listInvitationsForContractor(userId: string) {
+  async listApplicationsForContractor(
+    userId: string,
+  ): Promise<ContractorApplicationItem[]> {
     const profile = await this.contractorProfiles.getByUserId(userId);
     if (!profile) {
       return [];
     }
 
-    const invitations = await this.prisma.tenderInvitation.findMany({
-      where: { contractorId: profile.id },
-      include: {
-        tender: {
-          include: {
-            project: true,
-            bids: {
-              where: { contractorId: profile.id },
-              orderBy: { submittedAt: 'desc' },
-            },
-          },
-        },
+    const bids = await this.prisma.bid.findMany({
+      where: {
+        contractorId: profile.id,
+        status: { not: BidStatus.withdrawn },
       },
-      orderBy: { invitedAt: 'desc' },
+      include: {
+        tender: { include: { project: true } },
+      },
+      orderBy: { submittedAt: 'desc' },
     });
 
-    return invitations.map((inv) => {
-      const activeBid =
-        inv.tender.bids.find((b) => b.status !== BidStatus.withdrawn) ??
-        null;
+    return bids.map((bid) => ({
+      bidId: bid.id,
+      tenderId: bid.tenderId,
+      projectId: bid.tender.projectId,
+      projectTitle: bid.tender.project.title,
+      projectDistrict: bid.tender.project.district,
+      tenderStatus: bid.tender.status,
+      bidStatus: bid.status,
+      bidAmount: bid.status === BidStatus.submitted ? bid.amount.toString() : null,
+      submittedAt: bid.submittedAt.toISOString(),
+    }));
+  }
 
-      return {
-        invitationId: inv.id,
-        tenderId: inv.tenderId,
-        projectId: inv.tender.projectId,
-        projectTitle: inv.tender.project.title,
-        projectDistrict: inv.tender.project.district,
-        tenderStatus: inv.tender.status,
-        invitationStatus: inv.status,
-        closesAt: inv.tender.closesAt?.toISOString() ?? null,
-        invitedAt: inv.invitedAt.toISOString(),
-        bidStatus: activeBid?.status ?? null,
-        bidAmount: activeBid ? String(activeBid.amount) : null,
-      };
-    });
+  async listInvitationsForContractor(userId: string): Promise<unknown[]> {
+    return this.listApplicationsForContractor(userId);
   }
 
   async getParticipationForProject(userId: string, projectId: string) {
@@ -384,99 +323,33 @@ export class TendersService {
       return null;
     }
 
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      return null;
+    }
+
     const tender = await this.prisma.tender.findUnique({
       where: { projectId },
       include: this.includeTenderRelations(),
     });
-    if (!tender) {
-      return null;
-    }
-
-    const invitation = tender.invitations.find(
-      (i) => i.contractorId === profile.id,
-    );
-    if (!invitation) {
-      return null;
-    }
 
     const myBid =
-      tender.bids.find(
+      tender?.bids.find(
         (b) =>
           b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
       ) ?? null;
 
-    const canRespondToInvitation =
-      invitation.status === TenderInvitationStatus.pending &&
-      (tender.status === TenderStatus.draft ||
-        tender.status === TenderStatus.collecting_participants);
-
-    const canSubmitBid =
-      invitation.status === TenderInvitationStatus.accepted &&
-      tender.status === TenderStatus.open;
-
     return {
-      tenderId: tender.id,
-      invitation: this.mapInvitation(invitation),
-      tenderStatus: tender.status,
-      closesAt: tender.closesAt?.toISOString() ?? null,
+      tenderId: tender?.id ?? null,
+      tenderStatus: tender?.status ?? null,
+      closesAt: tender?.closesAt?.toISOString() ?? null,
       myBid: myBid ? this.mapBid(myBid) : null,
       verificationStatus: profile.verificationStatus,
-      canRespondToInvitation,
-      canSubmitBid,
+      canSubmitBid: tender?.status === TenderStatus.open,
+      projectStatus: project.status,
     };
-  }
-
-  async respondToInvitation(
-    userId: string,
-    tenderId: string,
-    dto: RespondInvitationDto,
-  ): Promise<TenderInvitationResponse> {
-    const profile = await this.contractorProfiles.requireByUserId(userId);
-
-    const invitation = await this.prisma.tenderInvitation.findUnique({
-      where: {
-        tenderId_contractorId: {
-          tenderId,
-          contractorId: profile.id,
-        },
-      },
-      include: { contractor: true },
-    });
-
-    if (!invitation) {
-      throw new NotFoundException('Invitation not found');
-    }
-
-    if (invitation.status !== TenderInvitationStatus.pending) {
-      throw new BadRequestException('Invitation already responded');
-    }
-
-    const tender = await this.prisma.tender.findUnique({
-      where: { id: tenderId },
-    });
-    if (!tender) {
-      throw new NotFoundException('Tender not found');
-    }
-
-    if (
-      tender.status !== TenderStatus.collecting_participants &&
-      tender.status !== TenderStatus.draft
-    ) {
-      throw new BadRequestException('Invitations are closed for this tender');
-    }
-
-    const updated = await this.prisma.tenderInvitation.update({
-      where: { id: invitation.id },
-      data: {
-        status: dto.accept
-          ? TenderInvitationStatus.accepted
-          : TenderInvitationStatus.declined,
-        respondedAt: new Date(),
-      },
-      include: { contractor: true },
-    });
-
-    return this.mapInvitation(updated);
   }
 
   private buildBidTerms(dto: SubmitBidDto): BidTermsV1 {
@@ -553,13 +426,6 @@ export class TendersService {
       );
     }
 
-    const invitation = tender.invitations.find(
-      (i) => i.contractorId === profile.id,
-    );
-    if (!invitation || invitation.status !== TenderInvitationStatus.accepted) {
-      throw new ForbiddenException('You must accept the invitation to submit a bid');
-    }
-
     const terms = this.buildBidTerms(dto);
 
     const bid = await this.prisma.bid.upsert({
@@ -619,25 +485,12 @@ export class TendersService {
     const profile = await this.contractorProfiles.requireByUserId(userId);
     const tender = await this.loadTender(tenderId);
 
-    const invitation = tender.invitations.find(
-      (i) => i.contractorId === profile.id,
-    );
-    if (!invitation) {
-      throw new ForbiddenException('You are not invited to this tender');
-    }
-
     const myBid =
       tender.bids.find(
         (b) =>
           b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
       ) ?? null;
 
-    return {
-      tender: this.mapTender(tender),
-      invitation: this.mapInvitation(
-        tender.invitations.find((i) => i.id === invitation.id)!,
-      ),
-      myBid: myBid ? this.mapBid(myBid) : null,
-    };
+    return { tender: this.mapTender(tender), myBid: myBid ? this.mapBid(myBid) : null };
   }
 }

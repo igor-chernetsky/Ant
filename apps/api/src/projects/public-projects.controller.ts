@@ -10,9 +10,13 @@ export class PublicProjectsController {
   ) {}
 
   @Get('projects')
-  listProjects(@Query('tag') tagQuery?: string | string[]) {
+  listProjects(
+    @Query('tag') tagQuery?: string | string[],
+    @Query('status') statusQuery?: string | string[],
+  ) {
     const tagSlugs = normalizeTagQuery(tagQuery);
-    return this.projectsService.listPublic(tagSlugs);
+    const statuses = normalizeTagQuery(statusQuery);
+    return this.projectsService.listPublic(tagSlugs, statuses);
   }
 
   @Get('projects/:id')

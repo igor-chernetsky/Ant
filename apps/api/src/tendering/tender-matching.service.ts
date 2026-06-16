@@ -5,12 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
-  ContractorVerificationStatus,
   Project,
   ProjectStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { MAX_TENDER_INVITATIONS } from './tendering.types';
+
+const MAX_TENDER_INVITATIONS = 8;
 
 @Injectable()
 export class TenderMatchingService {

@@ -74,18 +74,10 @@ enum ContractorVerificationDocCategory {
 
 enum TenderStatus {
   draft
-  collecting_participants
   open
   closed
   awarded
   cancelled
-}
-
-enum TenderInvitationStatus {
-  pending
-  declined
-  accepted
-  expired
 }
 
 enum BidStatus {
@@ -115,6 +107,7 @@ model User {
   contractorProfile ContractorProfile? @relation("ContractorProfileUser")
   contractorReviews ContractorProfile[] @relation("ContractorReviewedBy")
   contractorVerificationDocuments ContractorVerificationDocument[]
+  bidMessages BidMessage[]
 
   @@map("users")
 }
@@ -249,7 +242,6 @@ model ContractorProfile {
   reviewedBy              User?                        @relation("ContractorReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
   createdAt               DateTime                     @default(now()) @map("created_at")
   updatedAt               DateTime                     @updatedAt @map("updated_at")
-  invitations             TenderInvitation[]
   bids                    Bid[]
   verificationDocuments   ContractorVerificationDocument[]
 
@@ -290,26 +282,10 @@ model Tender {
   awardedBid   Bid?         @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
-  invitations  TenderInvitation[]
   bids         Bid[]        @relation("TenderBids")
 
   @@index([status])
   @@map("tenders")
-}
-
-model TenderInvitation {
-  id           String                 @id @default(uuid())
-  tenderId     String                 @map("tender_id")
-  tender       Tender                 @relation(fields: [tenderId], references: [id], onDelete: Cascade)
-  contractorId String                 @map("contractor_id")
-  contractor   ContractorProfile      @relation(fields: [contractorId], references: [id], onDelete: Cascade)
-  status       TenderInvitationStatus @default(pending)
-  invitedAt    DateTime               @default(now()) @map("invited_at")
-  respondedAt  DateTime?              @map("responded_at")
-
-  @@unique([tenderId, contractorId])
-  @@index([contractorId])
-  @@map("tender_invitations")
 }
 
 model Bid {
@@ -324,10 +300,24 @@ model Bid {
   termsJson    Json?             @map("terms_json")
   submittedAt  DateTime          @default(now()) @map("submitted_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
-  awardedTender Tender?           @relation("AwardedBid")
+  awardedTender Tender?          @relation("AwardedBid")
+  messages     BidMessage[]
 
   @@unique([tenderId, contractorId])
   @@index([tenderId])
   @@index([contractorId])
   @@map("bids")
+}
+
+model BidMessage {
+  id        String   @id @default(uuid())
+  bidId     String   @map("bid_id")
+  bid       Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  authorId  String   @map("author_id")
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([bidId])
+  @@map("bid_messages")
 }
