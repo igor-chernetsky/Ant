@@ -94,7 +94,57 @@ export class TendersService {
     };
   }
 
+  private biddingDeadlineFrom(start: Date): Date {
+    const closesAt = new Date(start);
+    closesAt.setDate(closesAt.getDate() + DEFAULT_TENDER_DURATION_DAYS);
+    return closesAt;
+  }
+
+  /** Keep deadline in sync with whether bidding actually started. */
+  private async reconcileDormantTender(tenderId: string): Promise<void> {
+    const tender = await this.prisma.tender.findUnique({
+      where: { id: tenderId },
+      include: {
+        bids: {
+          where: { status: BidStatus.submitted },
+          select: { id: true },
+        },
+      },
+    });
+    if (!tender) {
+      return;
+    }
+
+    const hasSubmittedBids = tender.bids.length > 0;
+
+    if (
+      tender.status === TenderStatus.closed &&
+      !hasSubmittedBids
+    ) {
+      await this.prisma.tender.update({
+        where: { id: tenderId },
+        data: {
+          status: TenderStatus.open,
+          closesAt: null,
+        },
+      });
+      return;
+    }
+
+    if (
+      tender.status === TenderStatus.open &&
+      !hasSubmittedBids &&
+      tender.closesAt
+    ) {
+      await this.prisma.tender.update({
+        where: { id: tenderId },
+        data: { closesAt: null },
+      });
+    }
+  }
+
   private async loadTender(tenderId: string): Promise<TenderWithRelations> {
+    await this.reconcileDormantTender(tenderId);
     await this.autoClose.closeTenderIfExpired(tenderId);
 
     const tender = await this.prisma.tender.findUnique({
@@ -148,15 +198,13 @@ export class TendersService {
     }
 
     const now = new Date();
-    const closesAt = new Date(now);
-    closesAt.setDate(closesAt.getDate() + DEFAULT_TENDER_DURATION_DAYS);
 
     const tender = await this.prisma.tender.create({
       data: {
         projectId,
         status: TenderStatus.open,
         opensAt: now,
-        closesAt,
+        closesAt: null,
       },
       include: this.includeTenderRelations(),
     });
@@ -191,8 +239,6 @@ export class TendersService {
     }
 
     const now = new Date();
-    const closesAt = new Date(now);
-    closesAt.setDate(closesAt.getDate() + DEFAULT_TENDER_DURATION_DAYS);
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const next = await tx.tender.update({
@@ -200,7 +246,7 @@ export class TendersService {
         data: {
           status: TenderStatus.open,
           opensAt: now,
-          closesAt,
+          closesAt: null,
         },
         include: this.includeTenderRelations(),
       });
@@ -428,29 +474,47 @@ export class TendersService {
 
     const terms = this.buildBidTerms(dto);
 
-    const bid = await this.prisma.bid.upsert({
-      where: {
-        tenderId_contractorId: {
+    const bid = await this.prisma.$transaction(async (tx) => {
+      const nextBid = await tx.bid.upsert({
+        where: {
+          tenderId_contractorId: {
+            tenderId,
+            contractorId: profile.id,
+          },
+        },
+        create: {
           tenderId,
           contractorId: profile.id,
+          amount: dto.amount,
+          durationDays: dto.durationDays ?? null,
+          termsJson: terms as unknown as Prisma.InputJsonValue,
+          status: BidStatus.submitted,
         },
-      },
-      create: {
-        tenderId,
-        contractorId: profile.id,
-        amount: dto.amount,
-        durationDays: dto.durationDays ?? null,
-        termsJson: terms as unknown as Prisma.InputJsonValue,
-        status: BidStatus.submitted,
-      },
-      update: {
-        amount: dto.amount,
-        durationDays: dto.durationDays ?? null,
-        termsJson: terms as unknown as Prisma.InputJsonValue,
-        status: BidStatus.submitted,
-        submittedAt: new Date(),
-      },
-      include: { contractor: true },
+        update: {
+          amount: dto.amount,
+          durationDays: dto.durationDays ?? null,
+          termsJson: terms as unknown as Prisma.InputJsonValue,
+          status: BidStatus.submitted,
+          submittedAt: new Date(),
+        },
+        include: { contractor: true },
+      });
+
+      if (!tender.closesAt) {
+        const submittedCount = await tx.bid.count({
+          where: { tenderId, status: BidStatus.submitted },
+        });
+        if (submittedCount > 0) {
+          await tx.tender.updateMany({
+            where: { id: tenderId, closesAt: null },
+            data: {
+              closesAt: this.biddingDeadlineFrom(new Date()),
+            },
+          });
+        }
+      }
+
+      return nextBid;
     });
 
     return this.mapBid(bid);
@@ -472,10 +536,27 @@ export class TendersService {
       throw new NotFoundException('No active bid to withdraw');
     }
 
-    const updated = await this.prisma.bid.update({
-      where: { id: bid.id },
-      data: { status: BidStatus.withdrawn },
-      include: { contractor: true },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const nextBid = await tx.bid.update({
+        where: { id: bid.id },
+        data: { status: BidStatus.withdrawn },
+        include: { contractor: true },
+      });
+
+      const submittedCount = await tx.bid.count({
+        where: { tenderId, status: BidStatus.submitted },
+      });
+      if (submittedCount === 0) {
+        await tx.tender.update({
+          where: { id: tenderId },
+          data: {
+            closesAt: null,
+            status: TenderStatus.open,
+          },
+        });
+      }
+
+      return nextBid;
     });
 
     return this.mapBid(updated);

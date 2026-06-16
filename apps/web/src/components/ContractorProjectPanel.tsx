@@ -129,12 +129,17 @@ export function ContractorProjectPanel({
             {formatVerificationStatus(participation.verificationStatus)}
           </dd>
         </div>
-        {participation.closesAt && (
+        {participation.closesAt ? (
           <div>
             <dt>Bidding closes</dt>
             <dd>{new Date(participation.closesAt).toLocaleString()}</dd>
           </div>
-        )}
+        ) : participation.canSubmitBid ? (
+          <div>
+            <dt>Deadline</dt>
+            <dd>Starts when the first contractor applies</dd>
+          </div>
+        ) : null}
       </dl>
 
       {waitingForPublish && (

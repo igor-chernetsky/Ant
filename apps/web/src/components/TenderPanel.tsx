@@ -135,19 +135,29 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
               <dt>Applications received</dt>
               <dd>{tender.submittedBidCount}</dd>
             </div>
-            {tender.closesAt && (
+            {tender.closesAt ? (
               <div>
                 <dt>Closes</dt>
                 <dd>{new Date(tender.closesAt).toLocaleString()}</dd>
               </div>
+            ) : (
+              <div>
+                <dt>Deadline</dt>
+                <dd>Starts when the first application arrives</dd>
+              </div>
             )}
           </dl>
 
-          {(tender.status === 'open' || tender.status === 'closed') && (
+          {tender.status === 'open' && (
             <p className="muted tender-phase-hint">
-              {tender.status === 'open'
-                ? 'Bidding is open. Contractors can submit applications until the deadline.'
-                : 'Bidding closed. Compare applications below and select a winner.'}
+              {tender.closesAt
+                ? 'Bidding is open. New applications are accepted until the deadline.'
+                : 'Published for bids. The deadline starts when the first contractor applies.'}
+            </p>
+          )}
+          {tender.status === 'closed' && (
+            <p className="muted tender-phase-hint">
+              Bidding closed. Compare applications below and select a winner.
             </p>
           )}
 
