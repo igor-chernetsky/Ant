@@ -405,17 +405,12 @@ export class TendersService {
           b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
       ) ?? null;
 
-    const verified =
-      profile.verificationStatus === ContractorVerificationStatus.verified;
-
     const canRespondToInvitation =
-      verified &&
       invitation.status === TenderInvitationStatus.pending &&
       (tender.status === TenderStatus.draft ||
         tender.status === TenderStatus.collecting_participants);
 
     const canSubmitBid =
-      verified &&
       invitation.status === TenderInvitationStatus.accepted &&
       tender.status === TenderStatus.open;
 
@@ -437,7 +432,6 @@ export class TendersService {
     dto: RespondInvitationDto,
   ): Promise<TenderInvitationResponse> {
     const profile = await this.contractorProfiles.requireByUserId(userId);
-    this.contractorProfiles.assertVerified(profile);
 
     const invitation = await this.prisma.tenderInvitation.findUnique({
       where: {
@@ -549,7 +543,6 @@ export class TendersService {
     }
 
     const profile = await this.contractorProfiles.requireByUserId(userId);
-    this.contractorProfiles.assertVerified(profile);
     const tender = await this.loadTender(tenderId);
 
     if (tender.status !== TenderStatus.open) {

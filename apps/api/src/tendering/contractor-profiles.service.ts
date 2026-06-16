@@ -1,13 +1,5 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  ContractorProfile,
-  ContractorVerificationStatus,
-  ProjectType,
-} from '@prisma/client';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { ContractorProfile, ContractorVerificationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   ContractorProfileResponse,
@@ -105,11 +97,12 @@ export class ContractorProfilesService {
     return this.toResponse(profile);
   }
 
+  /**
+   * Reserved for future business rules if some actions should be
+   * restricted to verified contractors. Currently verification is optional.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   assertVerified(profile: ContractorProfile): void {
-    if (profile.verificationStatus !== ContractorVerificationStatus.verified) {
-      throw new ForbiddenException(
-        'Contractor account must be verified before participating in tenders',
-      );
-    }
+    // no-op — participation in tenders is allowed without verification
   }
 }

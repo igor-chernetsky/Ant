@@ -1104,6 +1104,10 @@ pre {
   gap: 0.75rem;
 }
 
+.profile-form-submit {
+  margin-top: 1rem;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

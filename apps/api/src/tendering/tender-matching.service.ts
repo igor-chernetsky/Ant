@@ -19,7 +19,6 @@ export class TenderMatchingService {
   async findInvitees(project: Project, excludeUserId: string): Promise<string[]> {
     const contractors = await this.prisma.contractorProfile.findMany({
       where: {
-        verificationStatus: ContractorVerificationStatus.verified,
         regionCode: project.regionCode,
         userId: { not: excludeUserId },
         OR: [

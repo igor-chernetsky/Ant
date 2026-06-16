@@ -284,7 +284,7 @@ export default function ContractorPage() {
             {error && <p className="form-error">{error}</p>}
             <button
               type="button"
-              className="primary"
+              className="primary profile-form-submit"
               disabled={busy}
               onClick={() => void handleRegister()}
             >
@@ -348,14 +348,6 @@ export default function ContractorPage() {
               onProfileUpdated={setProfile}
             />
 
-            {profile.verificationStatus !== 'verified' ? (
-              <section className="card">
-                <p className="muted">
-                  Tender invitations and bids unlock after admin verification.
-                </p>
-              </section>
-            ) : (
-              <>
             <section className="card">
               <h2 className="section-title">Invitations</h2>
               {invitations.length === 0 ? (
@@ -467,8 +459,6 @@ export default function ContractorPage() {
                 )}
                 {error && <p className="form-error">{error}</p>}
               </section>
-            )}
-              </>
             )}
           </>
         )}
