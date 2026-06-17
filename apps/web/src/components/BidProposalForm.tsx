@@ -41,7 +41,7 @@ export function BidProposalForm({
 }: BidProposalFormProps) {
   const terms = existingBid?.terms;
   const [amount, setAmount] = useState(
-    existingBid ? String(existingBid.amount) : '',
+    existingBid?.amount != null ? String(existingBid.amount) : '',
   );
   const [durationDays, setDurationDays] = useState(
     existingBid?.durationDays?.toString() ?? '',
@@ -112,29 +112,31 @@ export function BidProposalForm({
   );
 
   return (
-    <div className="bid-proposal-form">
-      <div className="modal-form">
-        <label>
-          Total bid amount (THB) <span className="required-mark">*</span>
-          <input
-            type="number"
-            min="1"
-            step="1"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="e.g. 850000"
-          />
-        </label>
-        <label>
-          Estimated duration (days)
-          <input
-            type="number"
-            min="1"
-            value={durationDays}
-            onChange={(e) => setDurationDays(e.target.value)}
-            placeholder="e.g. 45"
-          />
-        </label>
+    <div className="bid-proposal-form bid-proposal-form--compact">
+      <div className="modal-form bid-proposal-form-fields">
+        <div className="bid-proposal-form-row bid-proposal-form-row--metrics">
+          <label className="bid-proposal-field bid-proposal-field--amount">
+            Total (THB) <span className="required-mark">*</span>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="850 000"
+            />
+          </label>
+          <label className="bid-proposal-field bid-proposal-field--duration">
+            Duration (days)
+            <input
+              type="number"
+              min="1"
+              value={durationDays}
+              onChange={(e) => setDurationDays(e.target.value)}
+              placeholder="45"
+            />
+          </label>
+        </div>
         <label>
           Scope summary
           <span className="field-hint muted">
@@ -153,7 +155,7 @@ export function BidProposalForm({
             Assumptions, payment terms, exclusions
           </span>
           <textarea
-            rows={3}
+            rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Price assumes client-supplied fixtures. 30% deposit, balance on completion."
@@ -162,10 +164,10 @@ export function BidProposalForm({
         <label>
           Implementation approach
           <span className="field-hint muted">
-            Phases, materials, timeline — your proposal for how you will deliver
+            Phases, materials, timeline — how you will deliver
           </span>
           <textarea
-            rows={6}
+            rows={4}
             value={approach}
             onChange={(e) => setApproach(e.target.value)}
             placeholder="Week 1–2: demolition and rough-in. Week 3–4: tiling and cabinetry install…"
@@ -268,9 +270,9 @@ export function BidProposalForm({
         </div>
       )}
 
-      {error && <p className="form-error">{error}</p>}
+      {error && <p className="form-error bid-proposal-form-error">{error}</p>}
 
-      <div className="tender-actions-block bid-proposal-submit">
+      <div className="bid-proposal-form-footer participation-toolbar">
         <button
           type="button"
           className="primary"
@@ -280,17 +282,17 @@ export function BidProposalForm({
           {busy
             ? 'Saving…'
             : existingBid?.status === 'submitted'
-              ? 'Update bid'
-              : 'Submit bid'}
+              ? 'Update proposal'
+              : 'Submit proposal'}
         </button>
         {existingBid?.status === 'submitted' && onWithdraw && (
           <button
             type="button"
-            className="secondary"
+            className="secondary participation-toolbar-withdraw"
             disabled={busy}
             onClick={() => void onWithdraw()}
           >
-            Withdraw bid
+            Withdraw
           </button>
         )}
       </div>

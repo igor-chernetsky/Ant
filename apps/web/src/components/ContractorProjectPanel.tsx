@@ -211,19 +211,21 @@ export function ContractorProjectPanel({
       )}
 
       {participation.canStartClarification && (
-        <div className="tender-actions-block">
-          <button
-            type="button"
-            className="primary"
-            disabled={busy}
-            onClick={() => void handleStartClarification()}
-          >
-            {busy ? 'Starting…' : 'Start clarification'}
-          </button>
-          <p className="muted tender-hint">
+        <div className="participation-actions">
+          <p className="muted participation-actions-hint">
             Ask the client questions about scope, access, or timeline before
             enrolling.
           </p>
+          <div className="participation-toolbar">
+            <button
+              type="button"
+              className="primary"
+              disabled={busy}
+              onClick={() => void handleStartClarification()}
+            >
+              {busy ? 'Starting…' : 'Start clarification'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -239,27 +241,29 @@ export function ContractorProjectPanel({
       )}
 
       {participation.canEnroll && (
-        <div className="tender-actions-block">
-          <button
-            type="button"
-            className="primary"
-            disabled={busy}
-            onClick={() => void handleEnroll()}
-          >
-            {busy ? 'Enrolling…' : 'Apply for participation'}
-          </button>
-          <p className="muted tender-hint">
+        <div className="participation-actions">
+          <p className="muted participation-actions-hint">
             Receive your contender number and proceed to submit a commercial
             proposal. You can leave the discussion at any time before enrolling.
           </p>
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={() => void handleWithdraw()}
-          >
-            Leave discussion
-          </button>
+          <div className="participation-toolbar">
+            <button
+              type="button"
+              className="primary"
+              disabled={busy}
+              onClick={() => void handleEnroll()}
+            >
+              {busy ? 'Enrolling…' : 'Apply for participation'}
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => void handleWithdraw()}
+            >
+              Leave discussion
+            </button>
+          </div>
         </div>
       )}
 
@@ -292,7 +296,7 @@ export function ContractorProjectPanel({
       )}
 
       {participation.canSubmitProposal && participation.tenderId && (
-        <div className="tender-subsection">
+        <div className="tender-subsection tender-subsection--proposal">
           <h3 className="tender-subsection-title">
             {submitted ? 'Update your proposal' : 'Submit commercial proposal'}
           </h3>
@@ -304,19 +308,6 @@ export function ContractorProjectPanel({
               onWithdraw={participation.canWithdraw ? handleWithdraw : undefined}
             />
           )}
-        </div>
-      )}
-
-      {participation.canWithdraw && submitted && (
-        <div className="tender-actions-block">
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={() => void handleWithdraw()}
-          >
-            Withdraw proposal
-          </button>
         </div>
       )}
 

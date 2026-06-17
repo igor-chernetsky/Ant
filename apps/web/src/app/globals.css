@@ -2389,6 +2389,99 @@ select:disabled {
   margin-bottom: 0.35rem;
 }
 
+.bid-proposal-form--compact {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.bid-proposal-form-fields {
+  gap: 0.75rem;
+}
+
+.bid-proposal-form-row {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.bid-proposal-form-row--metrics {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 520px) {
+  .bid-proposal-form-row--metrics {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.75fr);
+    max-width: 26rem;
+  }
+}
+
+.bid-proposal-form-error {
+  margin: 0.75rem 0 0;
+}
+
+.bid-proposal-form-footer {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.participation-actions {
+  margin-top: 1.25rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #ddd6fe;
+  background: #faf5ff;
+}
+
+.participation-actions-hint {
+  margin: 0 0 0.75rem;
+  max-width: 42rem;
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.participation-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+}
+
+.participation-toolbar .primary,
+.participation-toolbar .secondary {
+  margin: 0;
+}
+
+.participation-toolbar-withdraw {
+  margin-left: auto;
+}
+
+.tender-subsection--proposal {
+  margin-top: 1.25rem;
+}
+
+.tender-subsection--proposal .tender-subsection-title {
+  margin-bottom: 0.75rem;
+}
+
+@media (max-width: 519px) {
+  .participation-toolbar-withdraw {
+    margin-left: 0;
+  }
+
+  .bid-proposal-form-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bid-proposal-form-footer .primary,
+  .bid-proposal-form-footer .secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .required-mark {
   color: #b45309;
 }
@@ -2431,10 +2524,6 @@ select:disabled {
 
 .bid-proposal-form .form-error {
   margin-top: 0.75rem;
-}
-
-.bid-proposal-form .tender-actions-block {
-  margin-top: 1rem;
 }
 
 .bid-line-items-list {
