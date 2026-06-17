@@ -14,6 +14,8 @@ interface BidApplicationCardProps {
   currentUserId?: string;
   projectId: string;
   onSelect?: (bid: Bid) => void;
+  /** Show full bid details without collapse (bids comparison page). */
+  alwaysExpanded?: boolean;
 }
 
 export function BidApplicationCard({
@@ -24,8 +26,10 @@ export function BidApplicationCard({
   currentUserId,
   projectId,
   onSelect,
+  alwaysExpanded = false,
 }: BidApplicationCardProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(alwaysExpanded);
+  const isOpen = alwaysExpanded || expanded;
   const amount = Number(bid.amount);
   const delta =
     ballparkMid && ballparkMid > 0
@@ -36,37 +40,47 @@ export function BidApplicationCard({
     (tenderStatus === 'open' || tenderStatus === 'closed') &&
     bid.status === 'submitted';
 
+  const headerContent = (
+    <>
+      <span className="bid-application-card-primary">
+        <strong className="bid-application-card-company">
+          {bid.companyName ?? 'Contractor'}
+        </strong>
+        <span className="bid-application-card-amount">{formatThb(amount)}</span>
+      </span>
+      <span className="bid-application-card-meta muted">
+        {bid.durationDays != null && <span>{bid.durationDays} days</span>}
+        {delta !== null && (
+          <span>
+            {delta >= 0 ? '+' : ''}
+            {delta}% vs ballpark
+          </span>
+        )}
+        <span>{new Date(bid.submittedAt).toLocaleDateString()}</span>
+      </span>
+    </>
+  );
+
   return (
-    <li className={`bid-application-card${expanded ? ' bid-application-card--expanded' : ''}`}>
+    <li
+      className={`bid-application-card${isOpen ? ' bid-application-card--expanded' : ''}${alwaysExpanded ? ' bid-application-card--flat' : ''}`}
+    >
       <div className="bid-application-card-bar">
-        <button
-          type="button"
-          className="bid-application-card-toggle"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((open) => !open)}
-        >
-          <span className="bid-application-card-chevron" aria-hidden>
-            {expanded ? '▾' : '▸'}
-          </span>
-          <span className="bid-application-card-primary">
-            <strong className="bid-application-card-company">
-              {bid.companyName ?? 'Contractor'}
-            </strong>
-            <span className="bid-application-card-amount">{formatThb(amount)}</span>
-          </span>
-          <span className="bid-application-card-meta muted">
-            {bid.durationDays != null && (
-              <span>{bid.durationDays} days</span>
-            )}
-            {delta !== null && (
-              <span>
-                {delta >= 0 ? '+' : ''}
-                {delta}% vs ballpark
-              </span>
-            )}
-            <span>{new Date(bid.submittedAt).toLocaleDateString()}</span>
-          </span>
-        </button>
+        {alwaysExpanded ? (
+          <div className="bid-application-card-static-header">{headerContent}</div>
+        ) : (
+          <button
+            type="button"
+            className="bid-application-card-toggle"
+            aria-expanded={isOpen}
+            onClick={() => setExpanded((open) => !open)}
+          >
+            <span className="bid-application-card-chevron" aria-hidden>
+              {isOpen ? '▾' : '▸'}
+            </span>
+            {headerContent}
+          </button>
+        )}
 
         <div className="bid-application-card-badges">
           {bid.status === 'selected' && (
@@ -78,7 +92,7 @@ export function BidApplicationCard({
         </div>
       </div>
 
-      {expanded && (
+      {isOpen && (
         <div className="bid-application-card-body">
           <BidProposalSummary bid={bid} ballparkMid={ballparkMid} detailsOnly />
 

@@ -204,6 +204,7 @@ export default function ProjectBidsPage() {
                           currentUserId={me.id}
                           projectId={projectId}
                           onSelect={handleSelectBid}
+                          alwaysExpanded
                         />
                       ))}
                     </ul>

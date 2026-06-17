@@ -205,22 +205,57 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button.primary {
+button.primary,
+a.primary,
+.button-link-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+button.primary:hover:not(:disabled),
+a.primary:hover,
+.button-link-primary:hover {
+  background: var(--accent-hover);
   color: #fff;
 }
 
-button.primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-
-button.secondary {
+button.secondary,
+a.secondary,
+.button-link-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border-strong);
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
-button.secondary:hover:not(:disabled) {
+button.secondary:hover:not(:disabled),
+a.secondary:hover,
+.button-link-secondary:hover {
   background: var(--accent-muted);
   border-color: var(--accent);
   color: var(--accent);
@@ -2242,6 +2277,19 @@ select:disabled {
   padding-top: 0.65rem;
 }
 
+.bid-application-card-static-header {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.15rem;
+  padding: 0.75rem 0.85rem;
+}
+
+.bid-application-card--flat .bid-application-card-body {
+  border-top: 1px solid var(--border);
+}
+
 .bid-application-card-body .bid-chat {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
@@ -2785,19 +2833,11 @@ select:disabled {
 }
 
 .tender-summary-cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.65rem 1.1rem;
-  border-radius: 10px;
-  font-weight: 600;
-  text-decoration: none;
-  background: var(--accent);
-  color: #fff;
+  flex-shrink: 0;
 }
 
 .tender-summary-cta:hover {
-  filter: brightness(1.05);
+  color: #fff;
 }
 
 .project-bids-header {
@@ -2837,7 +2877,7 @@ select:disabled {
 }
 
 .project-bids-back {
-  text-decoration: none;
+  flex-shrink: 0;
 }
 
 .project-bids-meta {
