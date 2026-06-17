@@ -13,7 +13,7 @@ import { IntakeWizard } from '@/components/IntakeWizard';
 import { MetaSpecGrid } from '@/components/MetaSpecGrid';
 import { ProjectHero } from '@/components/ProjectHero';
 import { SiteHeader } from '@/components/SiteHeader';
-import { TenderPanel } from '@/components/TenderPanel';
+import { TenderSummaryCard } from '@/components/TenderSummaryCard';
 import { isTenderEligibleProjectStatus } from '@/lib/tendering';
 import {
   DOCUMENT_CATEGORY_OPTIONS,
@@ -452,7 +452,7 @@ export default function ProjectDetailPage() {
             )}
 
             {isOwner && isTenderEligibleProjectStatus(project.status) && (
-              <TenderPanel
+              <TenderSummaryCard
                 projectId={projectId}
                 project={project}
                 onUpdated={setProject}

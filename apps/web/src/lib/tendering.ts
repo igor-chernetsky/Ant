@@ -344,3 +344,55 @@ export function isTenderEligibleProjectStatus(status: string): boolean {
     'contractor_selected',
   ].includes(status);
 }
+
+export interface BidAnalysisComparison {
+  bidId: string;
+  companyName: string | null;
+  strengths: string[];
+  weaknesses: string[];
+  riskFlags: string[];
+}
+
+export interface BidAnalysisResult {
+  recommendedBidId: string | null;
+  recommendedCompanyName: string | null;
+  summary: string;
+  reasoning: string;
+  comparisons: BidAnalysisComparison[];
+  confidence: number;
+  provider: 'openai' | 'fallback';
+}
+
+export interface BidAnalysisState {
+  analysis: BidAnalysisResult | null;
+  fingerprint: string;
+  generatedAt: string | null;
+  canAnalyze: boolean;
+  analysisUpToDate: boolean;
+  submittedBidCount: number;
+}
+
+export async function fetchBidAnalysis(
+  projectId: string,
+): Promise<BidAnalysisState> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/bids/analysis`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load bid analysis');
+  }
+  return response.json() as Promise<BidAnalysisState>;
+}
+
+export async function runBidAnalysis(
+  projectId: string,
+): Promise<BidAnalysisState> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/bids/analysis`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to analyze bids');
+  }
+  return response.json() as Promise<BidAnalysisState>;
+}

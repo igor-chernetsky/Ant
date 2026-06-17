@@ -2765,3 +2765,251 @@ select:disabled {
 .amendments-error {
   margin-top: 0.75rem;
 }
+
+.tender-summary-card .tender-summary-meta {
+  margin-bottom: 0.75rem;
+}
+
+.tender-summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.tender-summary-lead {
+  margin: 0;
+  flex: 1;
+  min-width: 12rem;
+}
+
+.tender-summary-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+.tender-summary-cta:hover {
+  filter: brightness(1.05);
+}
+
+.project-bids-header {
+  margin-bottom: 0.85rem;
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(
+    135deg,
+    rgba(239, 246, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.98) 55%,
+    #fff 100%
+  );
+  box-shadow: var(--shadow-sm);
+}
+
+.project-bids-kicker {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.project-bids-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.project-bids-title {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+  letter-spacing: -0.02em;
+}
+
+.project-bids-back {
+  text-decoration: none;
+}
+
+.project-bids-meta {
+  margin-top: 0.75rem;
+}
+
+.bids-compare-card {
+  border-color: #dbeafe;
+}
+
+.bids-compare-header {
+  margin-bottom: 0.75rem;
+}
+
+.bids-compare-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
+.bids-compare-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.bids-compare-table-wrap {
+  overflow-x: auto;
+}
+
+.bids-compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.bids-compare-table th,
+.bids-compare-table td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.bids-compare-table thead th {
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.bids-compare-table tbody th {
+  background: #fafafa;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bids-compare-text-cell {
+  max-width: 14rem;
+  line-height: 1.45;
+}
+
+.bid-analysis-card {
+  border-color: #e0e7ff;
+}
+
+.bid-analysis-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.bid-analysis-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
+.bid-analysis-empty {
+  margin: 0;
+}
+
+.bid-analysis-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.bid-analysis-recommendation {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.bid-analysis-summary {
+  margin: 0;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+.bid-analysis-pick {
+  margin: 0.45rem 0 0;
+  font-size: 0.9rem;
+}
+
+.bid-analysis-confidence {
+  font-weight: 400;
+}
+
+.bid-analysis-subtitle {
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.bid-analysis-reasoning p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.bid-analysis-comparison-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+
+.bid-analysis-comparison-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 0.85rem;
+  background: #fafafa;
+}
+
+.bid-analysis-points {
+  margin-top: 0.45rem;
+  font-size: 0.85rem;
+}
+
+.bid-analysis-points-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.bid-analysis-points ul {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.bid-analysis-points-pro .bid-analysis-points-label {
+  color: #047857;
+}
+
+.bid-analysis-points-con .bid-analysis-points-label {
+  color: #b45309;
+}
+
+.bid-analysis-points-risk .bid-analysis-points-label {
+  color: #b91c1c;
+}
+
+.bid-analysis-generated {
+  margin: 0;
+  font-size: 0.8rem;
+}
+

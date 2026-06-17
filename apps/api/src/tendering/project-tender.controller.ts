@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
 import { BidMessagesService } from './bid-messages.service';
+import { BidAnalysisService } from './bid-analysis.service';
 import { SendBidMessageDto } from './tendering.types';
 import { TendersService } from './tenders.service';
 
@@ -12,6 +13,7 @@ import { TendersService } from './tenders.service';
 export class ProjectTenderController {
   constructor(
     private readonly tendersService: TendersService,
+    private readonly bidAnalysis: BidAnalysisService,
     private readonly bidMessages: BidMessagesService,
     private readonly usersService: UsersService,
   ) {}
@@ -46,6 +48,24 @@ export class ProjectTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.tendersService.startTender(user.id, projectId);
+  }
+
+  @Get('bids/analysis')
+  async getBidAnalysis(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.bidAnalysis.getAnalysis(user.id, projectId);
+  }
+
+  @Post('bids/analysis')
+  async analyzeBids(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.bidAnalysis.analyzeBids(user.id, projectId);
   }
 
   @Post('bids/:bidId/select')

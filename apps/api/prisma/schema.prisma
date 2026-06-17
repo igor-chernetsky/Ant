@@ -279,6 +279,7 @@ model Tender {
   closesAt     DateTime?    @map("closes_at")
   awardedBidId String?      @unique @map("awarded_bid_id")
   awardedBid   Bid?         @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
+  bidAnalysisJson Json?       @map("bid_analysis_json")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
   bids         Bid[]        @relation("TenderBids")

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AiModule } from '../ai/ai.module';
 import { UsersModule } from '../users/users.module';
+import { BidAnalysisService } from './bid-analysis.service';
 import { BidMessagesService } from './bid-messages.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import { ContractorTenderController } from './contractor-tender.controller';
@@ -10,10 +12,11 @@ import { TenderMatchingService } from './tender-matching.service';
 import { TendersService } from './tenders.service';
 
 @Module({
-  imports: [UsersModule, ScheduleModule.forRoot()],
+  imports: [UsersModule, AiModule, ScheduleModule.forRoot()],
   controllers: [ProjectTenderController, ContractorTenderController],
   providers: [
     TendersService,
+    BidAnalysisService,
     BidMessagesService,
     ContractorProfilesService,
     TenderMatchingService,
