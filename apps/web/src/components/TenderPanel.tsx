@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { formatThb } from '@/lib/estimate';
 import type { Project } from '@/lib/projects';
-import { BidChat } from '@/components/BidChat';
-import { BidProposalSummary } from '@/components/BidProposalSummary';
+import { BidApplicationCard } from '@/components/BidApplicationCard';
 import { useSession } from '@/components/SessionProvider';
 import {
   createProjectTender,
@@ -31,8 +30,6 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(true);
-
   const loadTender = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -115,23 +112,14 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
       <div className="tender-card-header">
         <h2 className="section-title">Tender &amp; bids</h2>
         {tender && (
-          <div className="tender-card-header-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => setDetailsOpen((open) => !open)}
-            >
-              {detailsOpen ? 'Hide details' : 'Show details'}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy || loading}
-              onClick={() => void loadTender()}
-            >
-              Refresh
-            </button>
-          </div>
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy || loading}
+            onClick={() => void loadTender()}
+          >
+            Refresh
+          </button>
         )}
       </div>
       <p className="muted doc-hint">
@@ -200,55 +188,30 @@ export function TenderPanel({ projectId, project, onUpdated }: TenderPanelProps)
             </p>
           )}
 
-          {detailsOpen &&
-            (tender.bids.length > 0 ? (
-              <div className="tender-subsection">
-                <h3 className="tender-subsection-title">Applications</h3>
-                <ul className="bid-proposal-list">
-                  {tender.bids.map((bid) => (
-                    <li key={bid.id} className="bid-proposal-list-item">
-                      <BidProposalSummary
-                        bid={bid}
-                        ballparkMid={ballparkMid}
-                      />
-                      <div className="bid-line-actions bid-proposal-actions">
-                        {(tender.status === 'open' ||
-                          tender.status === 'closed') &&
-                          bid.status === 'submitted' && (
-                            <button
-                              type="button"
-                              className="primary"
-                              disabled={busy}
-                              onClick={() => void handleSelectBid(bid)}
-                            >
-                              Select this bid
-                            </button>
-                          )}
-                        {bid.status === 'selected' && (
-                          <span className="readiness-badge">Selected</span>
-                        )}
-                        {bid.status === 'rejected' && (
-                          <span className="status-pill">Not selected</span>
-                        )}
-                      </div>
-                      {me?.id && (
-                        <BidChat
-                          bidId={bid.id}
-                          projectId={projectId}
-                          currentUserId={me.id}
-                          title={`Chat with ${bid.companyName ?? 'contractor'}`}
-                        />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p className="muted tender-phase-hint">
-                No applications yet. Contractors can submit bids from the
-                project page. Use Refresh after a contractor applies.
-              </p>
-            ))}
+          {tender.bids.length > 0 ? (
+            <div className="tender-subsection">
+              <h3 className="tender-subsection-title">Applications</h3>
+              <ul className="bid-proposal-list">
+                {tender.bids.map((bid) => (
+                  <BidApplicationCard
+                    key={bid.id}
+                    bid={bid}
+                    ballparkMid={ballparkMid}
+                    tenderStatus={tender.status}
+                    busy={busy}
+                    currentUserId={me?.id}
+                    projectId={projectId}
+                    onSelect={handleSelectBid}
+                  />
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="muted tender-phase-hint">
+              No applications yet. Contractors can submit bids from the project
+              page. Use Refresh after a contractor applies.
+            </p>
+          )}
 
           {tender.status === 'awarded' && tender.awardedBidId && (
             <p className="muted tender-phase-hint">
