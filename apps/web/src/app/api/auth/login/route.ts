@@ -34,7 +34,9 @@ function authErrorPayload(
               ? 'Account is disabled'
               : diagnosis.code === 'account_not_ready'
                 ? 'Account setup is incomplete. Try again.'
-                : 'Invalid username or password',
+                : diagnosis.code === 'email_not_verified'
+                  ? 'Verify your email before signing in. Check your inbox for the confirmation link.'
+                  : 'Invalid username or password',
       code: diagnosis.code,
       detail: diagnosis.detail,
     };
@@ -125,14 +127,21 @@ export async function POST(request: Request) {
   let result = await attemptLogin(username, password);
 
   if (!result.ok && shouldAttemptKeycloakAuthRepair(result)) {
-    const repaired = await repairKeycloakUserAuth(username);
-    if (repaired) {
-      result = await attemptLogin(username, password);
+    const diagnosis = await diagnoseKeycloakLoginFailure(username);
+    if (diagnosis?.code !== 'email_not_verified') {
+      const repaired = await repairKeycloakUserAuth(username);
+      if (repaired) {
+        result = await attemptLogin(username, password);
+      }
     }
   }
 
   if (!result.ok && isWrongPasswordError(result)) {
     const diagnosis = await diagnoseKeycloakLoginFailure(username);
+    if (diagnosis?.code === 'email_not_verified') {
+      const payload = authErrorPayload(result, diagnosis);
+      return NextResponse.json(payload, { status: 401 });
+    }
     if (
       diagnosis?.code === 'password_not_configured' ||
       diagnosis?.code === 'account_not_ready'

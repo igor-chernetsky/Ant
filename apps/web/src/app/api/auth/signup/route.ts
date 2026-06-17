@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
-import {
-  createKeycloakUser,
-  repairKeycloakUserAuth,
-  shouldAttemptKeycloakAuthRepair,
-} from '@/lib/auth-keycloak-admin';
+import { createKeycloakUser } from '@/lib/auth-keycloak-admin';
 import {
   exchangePasswordCredentials,
-  isWrongPasswordError,
   persistAndApplyAuthCookies,
 } from '@/lib/auth-tokens';
 
@@ -60,22 +55,20 @@ export async function POST(request: Request) {
     );
   }
 
-  let result = await exchangePasswordCredentials(email, password);
-
-  if (!result.ok && shouldAttemptKeycloakAuthRepair(result)) {
-    const repaired = await repairKeycloakUserAuth(email, password);
-    if (repaired) {
-      result = await exchangePasswordCredentials(email, password);
-    }
+  if (created.verifyEmail) {
+    return NextResponse.json(
+      {
+        ok: true,
+        signedIn: false,
+        verifyEmail: true,
+        message:
+          'Account created. Check your email and click the verification link before signing in.',
+      },
+      { status: 201 },
+    );
   }
 
-  if (!result.ok && isWrongPasswordError(result)) {
-    const repaired = await repairKeycloakUserAuth(email, password);
-    if (repaired) {
-      result = await exchangePasswordCredentials(email, password);
-    }
-  }
-
+  const result = await exchangePasswordCredentials(email, password);
   if (!result.ok) {
     console.error(
       '[auth/signup] User created but token exchange failed:',
@@ -86,6 +79,7 @@ export async function POST(request: Request) {
       {
         ok: true,
         signedIn: false,
+        verifyEmail: false,
         message:
           'Account created, but automatic sign-in failed. Try signing in with your email and password.',
         code: result.error,
@@ -95,7 +89,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const response = NextResponse.json({ ok: true, signedIn: true }, { status: 201 });
+  const response = NextResponse.json(
+    { ok: true, signedIn: true, verifyEmail: false },
+    { status: 201 },
+  );
   await persistAndApplyAuthCookies(result.tokens, response);
   return response;
 }

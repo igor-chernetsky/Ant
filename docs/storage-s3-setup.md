@@ -113,6 +113,15 @@ Use real S3 when moving off a single EC2 box.
 ### 1. Create bucket
 
 ```bash
+cd infra
+export S3_BUCKET=your-app-uploads-staging
+export S3_REGION=eu-central-1
+bash scripts/setup-aws-s3.sh
+```
+
+Or manually:
+
+```bash
 aws s3 mb s3://your-app-uploads-staging --region eu-central-1
 ```
 

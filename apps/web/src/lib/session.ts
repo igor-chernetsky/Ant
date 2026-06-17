@@ -102,12 +102,17 @@ export async function loginWithPassword(
   }
 }
 
+export interface SignupResult {
+  verifyEmail: boolean;
+  message?: string;
+}
+
 export async function signupWithPassword(input: {
   email: string;
   password: string;
   displayName?: string;
   roles: string[];
-}): Promise<void> {
+}): Promise<SignupResult> {
   const response = await fetch('/api/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -115,19 +120,24 @@ export async function signupWithPassword(input: {
     body: JSON.stringify(input),
   });
 
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as {
-      message?: string;
-    } | null;
-    throw new Error(body?.message ?? 'Sign up failed');
-  }
-
   const body = (await response.json().catch(() => null)) as {
     signedIn?: boolean;
+    verifyEmail?: boolean;
     message?: string;
     detail?: string;
     code?: string;
   } | null;
+
+  if (!response.ok) {
+    throw new Error(body?.message ?? 'Sign up failed');
+  }
+
+  if (body?.verifyEmail) {
+    return {
+      verifyEmail: true,
+      message: body.message,
+    };
+  }
 
   if (body?.signedIn === false) {
     const hint = body.detail ? ` (${body.detail})` : '';
@@ -136,6 +146,8 @@ export async function signupWithPassword(input: {
         'Account created, but sign-in failed. Try signing in manually.') + hint,
     );
   }
+
+  return { verifyEmail: false };
 }
 
 export async function logoutSession(): Promise<void> {

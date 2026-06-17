@@ -26,6 +26,18 @@ interface KeycloakCredentialRepresentation {
   temporary?: boolean;
 }
 
+function getAppRedirectUri(): string {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (explicit) return explicit;
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel}`;
+  return 'http://localhost:3000';
+}
+
+function isEmailVerificationSkipped(): boolean {
+  return process.env.SKIP_EMAIL_VERIFICATION === 'true';
+}
+
 function getKeycloakBaseAndRealm(): { baseUrl: string; realm: string } {
   const baseUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
   const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
@@ -173,6 +185,38 @@ async function userHasPasswordCredential(
 ): Promise<boolean> {
   const credentials = await fetchUserCredentials(adminToken, userId);
   return credentials.some((credential) => credential.type === 'password');
+}
+
+async function sendKeycloakVerificationEmail(
+  adminToken: string,
+  userId: string,
+  redirectUri?: string,
+): Promise<boolean> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const params = new URLSearchParams();
+  params.set('client_id', process.env.KEYCLOAK_BFF_CLIENT_ID ?? 'platform-bff');
+  if (redirectUri) {
+    params.set('redirect_uri', redirectUri);
+  }
+
+  const response = await fetch(
+    `${baseUrl}/admin/realms/${realm}/users/${userId}/send-verify-email?${params.toString()}`,
+    {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${adminToken}` },
+      cache: 'no-store',
+    },
+  );
+
+  if (!response.ok) {
+    console.warn(
+      `[auth-keycloak] send-verify-email failed (${response.status}):`,
+      await response.text().catch(() => ''),
+    );
+    return false;
+  }
+
+  return true;
 }
 
 async function finalizeKeycloakUser(
@@ -341,6 +385,14 @@ export async function diagnoseKeycloakLoginFailure(
     };
   }
 
+  if (user.requiredActions?.includes('VERIFY_EMAIL')) {
+    return {
+      code: 'email_not_verified',
+      detail:
+        'Email address is not verified yet. Check your inbox for the confirmation link.',
+    };
+  }
+
   if (user.requiredActions && user.requiredActions.length > 0) {
     return {
       code: 'account_not_ready',
@@ -387,6 +439,10 @@ export async function repairKeycloakUserAuth(
     return false;
   }
 
+  if (user.requiredActions?.includes('VERIFY_EMAIL')) {
+    return false;
+  }
+
   await finalizeKeycloakUser(adminToken, user.id);
 
   if (password) {
@@ -428,7 +484,10 @@ export async function createKeycloakUser(params: {
   password: string;
   displayName?: string;
   roles: string[];
-}): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+}): Promise<
+  | { ok: true; verifyEmail: boolean }
+  | { ok: false; status: number; message: string }
+> {
   let adminToken: string | null = null;
   try {
     adminToken = await fetchAdminAccessToken();
@@ -456,6 +515,7 @@ export async function createKeycloakUser(params: {
 
   const [firstName, ...rest] = displayName.split(' ').filter(Boolean);
   const lastName = rest.join(' ');
+  const requireEmailVerification = !isEmailVerificationSkipped();
 
   const createResponse = await fetch(`${baseUrl}/admin/realms/${realm}/users`, {
     method: 'POST',
@@ -467,10 +527,10 @@ export async function createKeycloakUser(params: {
       enabled: true,
       username,
       email: username,
-      emailVerified: true,
+      emailVerified: !requireEmailVerification,
       firstName: firstName || undefined,
       lastName: lastName || undefined,
-      requiredActions: [],
+      requiredActions: requireEmailVerification ? ['VERIFY_EMAIL'] : [],
     }),
     cache: 'no-store',
   });
@@ -503,7 +563,6 @@ export async function createKeycloakUser(params: {
   }
 
   await assignRealmRoles(adminToken, userId, normalizedRoles);
-  await finalizeKeycloakUser(adminToken, userId);
 
   const passwordSet = await setKeycloakUserPassword(
     adminToken,
@@ -518,6 +577,26 @@ export async function createKeycloakUser(params: {
     };
   }
 
+  if (requireEmailVerification) {
+    const emailSent = await sendKeycloakVerificationEmail(
+      adminToken,
+      userId,
+      getAppRedirectUri(),
+    );
+    if (!emailSent) {
+      return {
+        ok: false,
+        status: 503,
+        message:
+          'Account created, but verification email could not be sent. Configure Keycloak SMTP (see docs/auth-email-verification.md).',
+      };
+    }
+
+    return { ok: true, verifyEmail: true };
+  }
+
+  await finalizeKeycloakUser(adminToken, userId);
+
   const hasPassword = await userHasPasswordCredential(adminToken, userId);
   if (!hasPassword) {
     return {
@@ -527,5 +606,5 @@ export async function createKeycloakUser(params: {
     };
   }
 
-  return { ok: true };
+  return { ok: true, verifyEmail: false };
 }

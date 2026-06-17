@@ -17,6 +17,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const [displayName, setDisplayName] = useState('');
   const [roles, setRoles] = useState<string[]>(['client']);
   const [error, setError] = useState<string | null>(null);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   if (!isOpen) {
@@ -26,32 +27,48 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const switchMode = (next: 'signin' | 'signup') => {
     setMode(next);
     setError(null);
+    setSuccessNotice(null);
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
+    setSuccessNotice(null);
     setSubmitting(true);
 
     try {
       if (mode === 'signin') {
         await loginWithPassword(username, password);
+        setEmail('');
+        setUsername('');
+        setPassword('');
+        setDisplayName('');
+        setRoles(['client']);
+        await onSuccess();
+        onClose();
       } else {
-        await signupWithPassword({
+        const result = await signupWithPassword({
           email,
           password,
           displayName: displayName.trim() || undefined,
           roles,
         });
+        setPassword('');
+        setDisplayName('');
+        setRoles(['client']);
+        setUsername(email);
+        setEmail('');
+        setMode('signin');
+        if (result.verifyEmail) {
+          setSuccessNotice(
+            result.message ??
+              'Account created. Check your email and verify your address before signing in.',
+          );
+        } else {
+          await onSuccess();
+          onClose();
+        }
       }
-      setMode('signin');
-      setEmail('');
-      setUsername('');
-      setPassword('');
-      setDisplayName('');
-      setRoles(['client']);
-      await onSuccess();
-      onClose();
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -188,6 +205,9 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           </label>
 
           {error && <p className="form-error">{error}</p>}
+          {successNotice && (
+            <p className="auth-success-notice">{successNotice}</p>
+          )}
 
           <button type="submit" className="primary auth-submit" disabled={submitting}>
             {submitting
