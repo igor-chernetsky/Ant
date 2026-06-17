@@ -16,6 +16,7 @@ interface BidApplicationCardProps {
   onSelect?: (bid: Bid) => void;
 }
 
+export function BidApplicationCard({
   bid,
   ballparkMid,
   tenderStatus,
