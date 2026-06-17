@@ -10,8 +10,7 @@ import { ProjectTile } from '@/components/ProjectTile';
 import { useSession } from '@/components/SessionProvider';
 import { canCreateProject, isContractorUser } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
-import { TagFilterBar } from '@/components/TagFilterBar';
-import { StatusFilterBar } from '@/components/StatusFilterBar';
+import { HomeProjectFilters } from '@/components/HomeProjectFilters';
 import {
   fetchContractorApplications,
   fetchContractorProfile,
@@ -224,15 +223,13 @@ export default function HomePage() {
           onSignIn={() => setLoginOpen(true)}
         />
 
-        <TagFilterBar
+        <HomeProjectFilters
           tags={allTags}
-          selected={selectedTags}
-          onChange={setSelectedTags}
-        />
-
-        <StatusFilterBar
-          selected={selectedStatuses}
-          onChange={setSelectedStatuses}
+          selectedTags={selectedTags}
+          onTagsChange={setSelectedTags}
+          selectedStatuses={selectedStatuses}
+          onStatusesChange={setSelectedStatuses}
+          resultCount={!loading && !error ? projects.length : undefined}
         />
 
         {loading && (

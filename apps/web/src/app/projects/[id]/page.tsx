@@ -7,6 +7,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { DocumentImage } from '@/components/DocumentImage';
 import { ClientAmendments } from '@/components/ClientAmendments';
+import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
 import { IntakeWizard } from '@/components/IntakeWizard';
 import { MetaSpecGrid } from '@/components/MetaSpecGrid';
@@ -206,8 +207,6 @@ export default function ProjectDetailPage() {
     }
   };
 
-  const clientTags = project?.tags.filter((t) => t.source === 'client') ?? [];
-  const aiTags = project?.tags.filter((t) => t.source === 'ai') ?? [];
   const packages = project?.brief?.packages ?? [];
   const documentInsights = project?.brief?.ai?.documentInsights ?? [];
   const estimate = project?.estimate ?? null;
@@ -282,10 +281,6 @@ export default function ProjectDetailPage() {
       />
 
       <main className="content-container main-content">
-        <p className="breadcrumb">
-          <Link href="/">← Back to projects</Link>
-        </p>
-
         {authState === 'loading' || !pageReady ? (
           <section className="card">
             <p className="muted">Loading…</p>
@@ -297,6 +292,15 @@ export default function ProjectDetailPage() {
             <ProjectHero
               project={project}
               estimateMidAmountThb={estimate?.totals.midAmount ?? null}
+              tags={project.tags}
+              showTags={!intakeActive && project.tags.length > 0}
+              tagsHint={
+                isOwner &&
+                isAmendableProjectStatus(project.status) &&
+                project.tags.length > 0
+                  ? 'Tags refresh when you apply client amendments.'
+                  : null
+              }
             />
 
             <section className="card project-overview-card">
@@ -413,36 +417,6 @@ export default function ProjectDetailPage() {
                 project={project}
                 onUpdated={(updated) => setProject(updated)}
               />
-            )}
-
-            {!intakeActive && project.tags.length > 0 && (
-              <section className="card">
-                <h2 className="section-title">Tags</h2>
-                {clientTags.length > 0 && (
-                  <>
-                    <h3 className="tag-section-label">Selected by you</h3>
-                    <div className="tag-list">
-                      {clientTags.map((tag) => (
-                        <span key={tag.slug} className="tag-pill tag-pill-client">
-                          {tag.label}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-                {aiTags.length > 0 && (
-                  <>
-                    <h3 className="tag-section-label">Suggested by AI</h3>
-                    <div className="tag-list">
-                      {aiTags.map((tag) => (
-                        <span key={tag.slug} className="tag-pill tag-pill-ai">
-                          {tag.label}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </section>
             )}
 
             {estimate && (
