@@ -57,10 +57,33 @@ export interface BidResponse {
   contractorId: string;
   companyName: string | null;
   status: BidStatus;
+  contenderNumber: number | null;
+  enrolledAt: string | null;
+  amount: string | null;
+  durationDays: number | null;
+  terms: BidTermsV1 | null;
+  submittedAt: string | null;
+}
+
+export interface BidOfferResponse {
+  id: string;
+  bidId: string;
+  authorRole: 'client' | 'contractor';
+  authorId: string;
   amount: string;
   durationDays: number | null;
   terms: BidTermsV1 | null;
-  submittedAt: string;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface SubmitCounterOfferDto {
+  amount: number;
+  durationDays?: number;
+  notes?: string;
+  approach?: string;
+  scopeSummary?: string;
+  lineItems?: BidLineItem[];
 }
 
 export interface TenderResponse {
@@ -86,8 +109,10 @@ export interface ContractorApplicationItem {
   projectDistrict: string | null;
   tenderStatus: TenderStatus;
   bidStatus: BidStatus;
+  contenderNumber: number | null;
   bidAmount: string | null;
-  submittedAt: string;
+  submittedAt: string | null;
+  isActiveProject: boolean;
 }
 
 export interface ContractorProjectParticipation {
@@ -96,7 +121,11 @@ export interface ContractorProjectParticipation {
   closesAt: string | null;
   myBid: BidResponse | null;
   verificationStatus: string;
-  canSubmitBid: boolean;
+  canStartClarification: boolean;
+  canEnroll: boolean;
+  canSubmitProposal: boolean;
+  canWithdraw: boolean;
+  accessDenied: boolean;
   projectStatus: string;
 }
 

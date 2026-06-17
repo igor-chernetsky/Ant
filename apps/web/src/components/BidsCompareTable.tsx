@@ -93,7 +93,9 @@ export function BidsCompareTable({ bids, ballparkMid }: BidsCompareTableProps) {
             <tr>
               <th scope="row">Total</th>
               {selectedBids.map((bid) => (
-                <td key={`${bid.id}-total`}>{formatThb(Number(bid.amount))}</td>
+                <td key={`${bid.id}-total`}>
+                  {bid.amount != null ? formatThb(Number(bid.amount)) : '—'}
+                </td>
               ))}
             </tr>
             <tr>
@@ -108,7 +110,9 @@ export function BidsCompareTable({ bids, ballparkMid }: BidsCompareTableProps) {
               <th scope="row">vs ballpark</th>
               {selectedBids.map((bid) => (
                 <td key={`${bid.id}-delta`}>
-                  {deltaLabel(Number(bid.amount), ballparkMid ?? null)}
+                  {bid.amount != null
+                    ? deltaLabel(Number(bid.amount), ballparkMid ?? null)
+                    : '—'}
                 </td>
               ))}
             </tr>

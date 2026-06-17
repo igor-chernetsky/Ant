@@ -100,8 +100,8 @@ export function TenderSummaryCard({
       {!tender ? (
         <>
           <p className="muted doc-hint">
-            Publish the project for open bidding. Contractors can apply with
-            proposals and chat.
+            Publish the project for open bidding. Contractors clarify scope,
+            enroll as contenders, then submit proposals.
           </p>
           <div className="tender-actions-block">
             <button
@@ -152,12 +152,18 @@ export function TenderSummaryCard({
                   <>
                     {tender.submittedBidCount}{' '}
                     {tender.submittedBidCount === 1 ? 'bid' : 'bids'} to review.
-                    {' '}
-                    Lowest offer{' '}
-                    {formatThb(
-                      Math.min(...tender.bids.map((b) => Number(b.amount))),
-                    )}
-                    .
+                    {(() => {
+                      const amounts = tender.bids
+                        .filter((b) => b.status === 'submitted' && b.amount != null)
+                        .map((b) => Number(b.amount));
+                      if (amounts.length === 0) return null;
+                      return (
+                        <>
+                          {' '}
+                          Lowest offer {formatThb(Math.min(...amounts))}.
+                        </>
+                      );
+                    })()}
                   </>
                 )}
               </p>
@@ -171,7 +177,7 @@ export function TenderSummaryCard({
 
           {tender.bids.length === 0 && (
             <p className="muted tender-phase-hint">
-              Published for bids. Waiting for contractor applications.
+              Published for bids. Waiting for contractors to start clarification.
             </p>
           )}
         </>

@@ -20,9 +20,9 @@ export function BidProposalSummary({
   collapsed = false,
   detailsOnly = false,
 }: BidProposalSummaryProps) {
-  const amount = Number(bid.amount);
+  const amount = bid.amount != null ? Number(bid.amount) : null;
   const delta =
-    ballparkMid && ballparkMid > 0
+    amount != null && ballparkMid && ballparkMid > 0
       ? Math.round(((amount - ballparkMid) / ballparkMid) * 100)
       : null;
   const terms = bid.terms;
@@ -104,12 +104,17 @@ export function BidProposalSummary({
                 {delta}% vs ballpark
               </span>
             )}
-            <span>
-              Submitted {new Date(bid.submittedAt).toLocaleString()}
-            </span>
+            {(bid.submittedAt || bid.enrolledAt) && (
+              <span>
+                {bid.submittedAt ? 'Submitted ' : 'Enrolled '}
+                {new Date(bid.submittedAt ?? bid.enrolledAt!).toLocaleString()}
+              </span>
+            )}
           </div>
         </div>
-        <span className="estimate-line-amount">{formatThb(amount)}</span>
+        <span className="estimate-line-amount">
+          {amount != null ? formatThb(amount) : '—'}
+        </span>
       </header>
       {details}
     </article>

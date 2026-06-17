@@ -7,7 +7,13 @@ export type TenderStatus =
   | 'awarded'
   | 'cancelled';
 
-export type BidStatus = 'submitted' | 'withdrawn' | 'selected' | 'rejected';
+export type BidStatus =
+  | 'clarifying'
+  | 'enrolled'
+  | 'submitted'
+  | 'withdrawn'
+  | 'selected'
+  | 'rejected';
 
 export interface BidLineItem {
   trade: string;
@@ -28,10 +34,12 @@ export interface Bid {
   contractorId: string;
   companyName: string | null;
   status: BidStatus;
-  amount: string;
+  contenderNumber: number | null;
+  enrolledAt: string | null;
+  amount: string | null;
   durationDays: number | null;
   terms: BidTerms | null;
-  submittedAt: string;
+  submittedAt: string | null;
 }
 
 export interface Tender {
@@ -69,8 +77,24 @@ export interface ContractorProjectParticipation {
   closesAt: string | null;
   myBid: Bid | null;
   verificationStatus: string;
-  canSubmitBid: boolean;
+  canStartClarification: boolean;
+  canEnroll: boolean;
+  canSubmitProposal: boolean;
+  canWithdraw: boolean;
+  accessDenied: boolean;
   projectStatus: string;
+}
+
+export interface BidOffer {
+  id: string;
+  bidId: string;
+  authorRole: 'client' | 'contractor';
+  authorId: string;
+  amount: string;
+  durationDays: number | null;
+  terms: BidTerms | null;
+  note: string | null;
+  createdAt: string;
 }
 
 export interface ContractorApplicationItem {
@@ -81,8 +105,10 @@ export interface ContractorApplicationItem {
   projectDistrict: string | null;
   tenderStatus: TenderStatus;
   bidStatus: BidStatus;
+  contenderNumber: number | null;
   bidAmount: string | null;
-  submittedAt: string;
+  submittedAt: string | null;
+  isActiveProject: boolean;
 }
 
 export interface BidMessage {
@@ -232,6 +258,71 @@ export async function fetchContractorTender(
   return response.json() as Promise<ContractorTenderView>;
 }
 
+export async function startContractorClarification(
+  tenderId: string,
+): Promise<Bid> {
+  const response = await fetchWithAuth(
+    `/api/contractor/tenders/${encodeURIComponent(tenderId)}/clarify`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to start clarification');
+  }
+  return response.json() as Promise<Bid>;
+}
+
+export async function enrollContractorInTender(
+  tenderId: string,
+): Promise<Bid> {
+  const response = await fetchWithAuth(
+    `/api/contractor/tenders/${encodeURIComponent(tenderId)}/enroll`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to enroll in tender');
+  }
+  return response.json() as Promise<Bid>;
+}
+
+export async function fetchBidCounterOffers(
+  projectId: string,
+  bidId: string,
+): Promise<BidOffer[]> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/counter-offers`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load counter-offers');
+  }
+  return response.json() as Promise<BidOffer[]>;
+}
+
+export async function submitClientCounterOffer(
+  projectId: string,
+  bidId: string,
+  input: {
+    amount: number;
+    durationDays?: number;
+    notes?: string;
+    approach?: string;
+    scopeSummary?: string;
+    lineItems?: BidLineItem[];
+  },
+): Promise<BidOffer> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/counter-offers`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to submit counter-offer');
+  }
+  return response.json() as Promise<BidOffer>;
+}
+
 export async function submitContractorBid(
   tenderId: string,
   input: {
@@ -321,11 +412,19 @@ export async function withdrawContractorBid(tenderId: string): Promise<Bid> {
 export function formatContractorParticipationLabel(
   application: ContractorApplicationItem,
 ): string {
-  if (application.bidStatus === 'selected') {
-    return 'Selected';
+  if (application.isActiveProject || application.bidStatus === 'selected') {
+    return 'Active project';
+  }
+  if (application.bidStatus === 'clarifying') {
+    return 'Clarifying scope';
+  }
+  if (application.bidStatus === 'enrolled') {
+    return application.contenderNumber != null
+      ? `Contender #${application.contenderNumber}`
+      : 'Enrolled';
   }
   if (application.bidStatus === 'submitted') {
-    return 'Application submitted';
+    return 'Proposal submitted';
   }
   if (application.bidStatus === 'rejected') {
     return 'Not selected';

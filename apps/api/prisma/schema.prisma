@@ -80,10 +80,17 @@ enum TenderStatus {
 }
 
 enum BidStatus {
+  clarifying
+  enrolled
   submitted
   withdrawn
   selected
   rejected
+}
+
+enum BidOfferAuthor {
+  client
+  contractor
 }
 
 enum AmendmentChangeType {
@@ -107,6 +114,7 @@ model User {
   contractorReviews ContractorProfile[] @relation("ContractorReviewedBy")
   contractorVerificationDocuments ContractorVerificationDocument[]
   bidMessages BidMessage[]
+  bidOffers   BidOffer[]
 
   @@map("users")
 }
@@ -280,6 +288,7 @@ model Tender {
   awardedBidId String?      @unique @map("awarded_bid_id")
   awardedBid   Bid?         @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
   bidAnalysisJson Json?       @map("bid_analysis_json")
+  nextContenderNumber Int     @default(1) @map("next_contender_number")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
   bids         Bid[]        @relation("TenderBids")
@@ -294,14 +303,17 @@ model Bid {
   tender       Tender            @relation("TenderBids", fields: [tenderId], references: [id], onDelete: Cascade)
   contractorId String            @map("contractor_id")
   contractor   ContractorProfile @relation(fields: [contractorId], references: [id], onDelete: Cascade)
-  status       BidStatus         @default(submitted)
-  amount       Decimal           @db.Decimal(14, 2)
+  status       BidStatus         @default(clarifying)
+  amount       Decimal?          @db.Decimal(14, 2)
   durationDays Int?              @map("duration_days")
   termsJson    Json?             @map("terms_json")
-  submittedAt  DateTime          @default(now()) @map("submitted_at")
+  contenderNumber Int?           @map("contender_number")
+  enrolledAt   DateTime?         @map("enrolled_at")
+  submittedAt  DateTime?         @map("submitted_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
   awardedTender Tender?          @relation("AwardedBid")
   messages     BidMessage[]
+  offers       BidOffer[]
 
   @@unique([tenderId, contractorId])
   @@index([tenderId])
@@ -320,4 +332,21 @@ model BidMessage {
 
   @@index([bidId])
   @@map("bid_messages")
+}
+
+model BidOffer {
+  id           String          @id @default(uuid())
+  bidId        String          @map("bid_id")
+  bid          Bid             @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  authorRole   BidOfferAuthor  @map("author_role")
+  authorId     String          @map("author_id")
+  author       User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  amount       Decimal         @db.Decimal(14, 2)
+  durationDays Int?            @map("duration_days")
+  termsJson    Json?           @map("terms_json")
+  note         String?
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  @@index([bidId])
+  @@map("bid_offers")
 }

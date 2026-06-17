@@ -13,6 +13,7 @@ import { fetchPublicTags } from '@/lib/public-projects';
 import {
   fetchContractorApplications,
   fetchContractorProfile,
+  formatContractorParticipationLabel,
   formatTenderStatus,
   upsertContractorProfile,
   type ContractorApplicationItem,
@@ -267,8 +268,8 @@ export default function ContractorPage() {
                         <strong>{app.projectTitle}</strong>
                         <p className="muted doc-meta">
                           {app.projectDistrict ?? app.projectId} ·{' '}
-                          {formatTenderStatus(app.tenderStatus)} · bid{' '}
-                          {app.bidStatus.replaceAll('_', ' ')}
+                          {formatTenderStatus(app.tenderStatus)} ·{' '}
+                          {formatContractorParticipationLabel(app)}
                           {app.bidAmount
                             ? ` · ${formatThb(Number(app.bidAmount))}`
                             : ''}

@@ -5,7 +5,8 @@ import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
 import { BidMessagesService } from './bid-messages.service';
 import { BidAnalysisService } from './bid-analysis.service';
-import { SendBidMessageDto } from './tendering.types';
+import { BidOffersService } from './bid-offers.service';
+import { SendBidMessageDto, SubmitCounterOfferDto } from './tendering.types';
 import { TendersService } from './tenders.service';
 
 @Controller('v1/projects/:projectId/tender')
@@ -14,6 +15,7 @@ export class ProjectTenderController {
   constructor(
     private readonly tendersService: TendersService,
     private readonly bidAnalysis: BidAnalysisService,
+    private readonly bidOffers: BidOffersService,
     private readonly bidMessages: BidMessagesService,
     private readonly usersService: UsersService,
   ) {}
@@ -76,6 +78,32 @@ export class ProjectTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.tendersService.selectBid(user.id, projectId, bidId);
+  }
+
+  @Get('bids/:bidId/counter-offers')
+  async listCounterOffers(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('bidId') bidId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.bidOffers.listForBid(user.id, bidId, projectId);
+  }
+
+  @Post('bids/:bidId/counter-offers')
+  async createCounterOffer(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('bidId') bidId: string,
+    @Body() body: SubmitCounterOfferDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.bidOffers.createClientCounterOffer(
+      user.id,
+      projectId,
+      bidId,
+      body,
+    );
   }
 
   @Get('bids/:bidId/messages')

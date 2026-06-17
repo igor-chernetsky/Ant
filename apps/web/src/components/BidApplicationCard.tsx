@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { formatThb } from '@/lib/estimate';
 import { BidChat } from '@/components/BidChat';
+import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import type { Bid } from '@/lib/tendering';
 
@@ -16,6 +17,11 @@ interface BidApplicationCardProps {
   onSelect?: (bid: Bid) => void;
   /** Show full bid details without collapse (bids comparison page). */
   alwaysExpanded?: boolean;
+  /** Client-only: counter-offer negotiation on bids page */
+  clientCounterOffer?: {
+    projectId: string;
+    tenderOpen: boolean;
+  };
 }
 
 export function BidApplicationCard({
@@ -27,12 +33,13 @@ export function BidApplicationCard({
   projectId,
   onSelect,
   alwaysExpanded = false,
+  clientCounterOffer,
 }: BidApplicationCardProps) {
   const [expanded, setExpanded] = useState(alwaysExpanded);
   const isOpen = alwaysExpanded || expanded;
-  const amount = Number(bid.amount);
+  const amount = bid.amount != null ? Number(bid.amount) : null;
   const delta =
-    ballparkMid && ballparkMid > 0
+    amount != null && ballparkMid && ballparkMid > 0
       ? Math.round(((amount - ballparkMid) / ballparkMid) * 100)
       : null;
 
@@ -46,9 +53,12 @@ export function BidApplicationCard({
         <strong className="bid-application-card-company">
           {bid.companyName ?? 'Contractor'}
         </strong>
-        <span className="bid-application-card-amount">{formatThb(amount)}</span>
+            <span className="bid-application-card-amount">
+              {amount != null ? formatThb(amount) : 'No proposal yet'}
+            </span>
       </span>
       <span className="bid-application-card-meta muted">
+        {bid.contenderNumber != null && <span>#{bid.contenderNumber}</span>}
         {bid.durationDays != null && <span>{bid.durationDays} days</span>}
         {delta !== null && (
           <span>
@@ -56,7 +66,11 @@ export function BidApplicationCard({
             {delta}% vs ballpark
           </span>
         )}
-        <span>{new Date(bid.submittedAt).toLocaleDateString()}</span>
+        {(bid.submittedAt || bid.enrolledAt) && (
+          <span>
+            {new Date(bid.submittedAt ?? bid.enrolledAt!).toLocaleDateString()}
+          </span>
+        )}
       </span>
     </>
   );
@@ -83,6 +97,12 @@ export function BidApplicationCard({
         )}
 
         <div className="bid-application-card-badges">
+          {bid.status === 'clarifying' && (
+            <span className="status-pill">Clarifying</span>
+          )}
+          {bid.status === 'enrolled' && (
+            <span className="status-pill">Enrolled</span>
+          )}
           {bid.status === 'selected' && (
             <span className="readiness-badge">Selected</span>
           )}
@@ -115,6 +135,14 @@ export function BidApplicationCard({
               projectId={projectId}
               currentUserId={currentUserId}
               title={`Chat with ${bid.companyName ?? 'contractor'}`}
+            />
+          )}
+
+          {clientCounterOffer && (
+            <ClientCounterOfferPanel
+              projectId={clientCounterOffer.projectId}
+              bid={bid}
+              tenderOpen={clientCounterOffer.tenderOpen}
             />
           )}
         </div>

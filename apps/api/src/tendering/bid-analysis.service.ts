@@ -38,7 +38,7 @@ export class BidAnalysisService {
       .map((bid) => ({
         id: bid.id,
         status: bid.status,
-        amount: bid.amount.toString(),
+        amount: bid.amount?.toString() ?? null,
         durationDays: bid.durationDays,
         terms: bid.termsJson,
         updatedAt: bid.updatedAt.toISOString(),
@@ -50,17 +50,17 @@ export class BidAnalysisService {
   private mapBidInput(
     bid: BidForFingerprint & {
       contractor?: { companyName: string | null };
-      submittedAt: Date;
+      submittedAt: Date | null;
     },
   ): BidAnalysisBidInput {
     return {
       id: bid.id,
       companyName: bid.contractor?.companyName ?? null,
-      amount: bid.amount.toString(),
+      amount: bid.amount?.toString() ?? '0',
       durationDays: bid.durationDays,
       terms: (bid.termsJson as BidTermsV1 | null) ?? null,
       status: bid.status,
-      submittedAt: bid.submittedAt.toISOString(),
+      submittedAt: (bid.submittedAt ?? bid.updatedAt).toISOString(),
     };
   }
 

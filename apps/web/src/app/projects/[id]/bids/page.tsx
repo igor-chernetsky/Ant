@@ -184,7 +184,7 @@ export default function ProjectBidsPage() {
                       submittedBidCount={tender.submittedBidCount}
                     />
                     <BidsCompareTable
-                      bids={tender.bids}
+                      bids={tender.bids.filter((b) => b.status === 'submitted')}
                       ballparkMid={ballparkMid}
                     />
                   </>
@@ -205,6 +205,12 @@ export default function ProjectBidsPage() {
                           projectId={projectId}
                           onSelect={handleSelectBid}
                           alwaysExpanded
+                          clientCounterOffer={{
+                            projectId,
+                            tenderOpen:
+                              tender.status === 'open' ||
+                              tender.status === 'closed',
+                          }}
                         />
                       ))}
                     </ul>

@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
 import { BidMessagesService } from './bid-messages.service';
+import { BidOffersService } from './bid-offers.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
   SendBidMessageDto,
@@ -28,6 +29,7 @@ export class ContractorTenderController {
   constructor(
     private readonly tendersService: TendersService,
     private readonly bidMessages: BidMessagesService,
+    private readonly bidOffers: BidOffersService,
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly usersService: UsersService,
   ) {}
@@ -103,6 +105,24 @@ export class ContractorTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.tendersService.getTenderForContractor(user.id, tenderId);
+  }
+
+  @Post('tenders/:tenderId/clarify')
+  async startClarification(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('tenderId') tenderId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.tendersService.startClarification(user.id, tenderId);
+  }
+
+  @Post('tenders/:tenderId/enroll')
+  async enrollInTender(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('tenderId') tenderId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.tendersService.enrollInTender(user.id, tenderId);
   }
 
   @Post('tenders/:tenderId/bids')

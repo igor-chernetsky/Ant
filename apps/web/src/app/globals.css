@@ -2185,6 +2185,47 @@ select:disabled {
   list-style: none;
 }
 
+.bid-offer-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bid-offer-item {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.bid-offer-meta {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+}
+
+.bid-offer-amount {
+  margin: 0;
+  font-weight: 600;
+}
+
+.bid-offer-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+}
+
+.client-counter-offer-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.client-counter-offer-form-wrap {
+  margin-top: 1rem;
+}
+
 .bid-application-card--expanded {
   background: #fff;
 }

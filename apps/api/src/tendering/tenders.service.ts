@@ -56,10 +56,12 @@ export class TendersService {
       contractorId: bid.contractorId,
       companyName: bid.contractor.companyName,
       status: bid.status,
-      amount: bid.amount.toString(),
+      contenderNumber: bid.contenderNumber,
+      enrolledAt: bid.enrolledAt?.toISOString() ?? null,
+      amount: bid.amount?.toString() ?? null,
       durationDays: bid.durationDays,
       terms: (bid.termsJson as BidTermsV1 | null) ?? null,
-      submittedAt: bid.submittedAt.toISOString(),
+      submittedAt: bid.submittedAt?.toISOString() ?? null,
     };
   }
 
@@ -348,7 +350,14 @@ export class TendersService {
     const bids = await this.prisma.bid.findMany({
       where: {
         contractorId: profile.id,
-        status: { not: BidStatus.withdrawn },
+        status: {
+          in: [
+            BidStatus.clarifying,
+            BidStatus.enrolled,
+            BidStatus.submitted,
+            BidStatus.selected,
+          ],
+        },
       },
       include: {
         tender: { include: { project: true } },
@@ -364,8 +373,13 @@ export class TendersService {
       projectDistrict: bid.tender.project.district,
       tenderStatus: bid.tender.status,
       bidStatus: bid.status,
-      bidAmount: bid.status === BidStatus.submitted ? bid.amount.toString() : null,
-      submittedAt: bid.submittedAt.toISOString(),
+      contenderNumber: bid.contenderNumber,
+      bidAmount:
+        bid.amount != null && bid.status === BidStatus.submitted
+          ? bid.amount.toString()
+          : null,
+      submittedAt: bid.submittedAt?.toISOString() ?? null,
+      isActiveProject: bid.status === BidStatus.selected,
     }));
   }
 
@@ -397,15 +411,117 @@ export class TendersService {
           b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
       ) ?? null;
 
+    const tenderAwarded =
+      tender?.status === TenderStatus.awarded ||
+      project.status === ProjectStatus.contractor_selected;
+
+    const accessDenied = Boolean(
+      myBid && tenderAwarded && myBid.status !== BidStatus.selected,
+    );
+
+    const tenderOpen = tender?.status === TenderStatus.open;
+
     return {
       tenderId: tender?.id ?? null,
       tenderStatus: tender?.status ?? null,
       closesAt: tender?.closesAt?.toISOString() ?? null,
       myBid: myBid ? this.mapBid(myBid) : null,
       verificationStatus: profile.verificationStatus,
-      canSubmitBid: tender?.status === TenderStatus.open,
+      canStartClarification: Boolean(tenderOpen && !myBid),
+      canEnroll: Boolean(tenderOpen && myBid?.status === BidStatus.clarifying),
+      canSubmitProposal: Boolean(
+        tenderOpen &&
+          myBid &&
+          (myBid.status === BidStatus.enrolled ||
+            myBid.status === BidStatus.submitted),
+      ),
+      canWithdraw: Boolean(
+        tenderOpen &&
+          myBid &&
+          (myBid.status === BidStatus.clarifying ||
+            myBid.status === BidStatus.enrolled ||
+            myBid.status === BidStatus.submitted),
+      ),
+      accessDenied,
       projectStatus: project.status,
     };
+  }
+
+  async startClarification(
+    userId: string,
+    tenderId: string,
+  ): Promise<BidResponse> {
+    const profile = await this.contractorProfiles.requireByUserId(userId);
+    const tender = await this.loadTender(tenderId);
+
+    if (tender.status !== TenderStatus.open) {
+      throw new BadRequestException('Tender is not open');
+    }
+
+    const existing = tender.bids.find(
+      (b) =>
+        b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
+    );
+    if (existing) {
+      return this.mapBid(existing);
+    }
+
+    const bid = await this.prisma.bid.create({
+      data: {
+        tenderId,
+        contractorId: profile.id,
+        status: BidStatus.clarifying,
+      },
+      include: { contractor: true },
+    });
+
+    return this.mapBid(bid);
+  }
+
+  async enrollInTender(userId: string, tenderId: string): Promise<BidResponse> {
+    const profile = await this.contractorProfiles.requireByUserId(userId);
+    const tender = await this.loadTender(tenderId);
+
+    if (tender.status !== TenderStatus.open) {
+      throw new BadRequestException('Tender is not open');
+    }
+
+    const bid = tender.bids.find(
+      (b) =>
+        b.contractorId === profile.id && b.status === BidStatus.clarifying,
+    );
+    if (!bid) {
+      throw new BadRequestException(
+        'Start clarification and discuss scope before enrolling',
+      );
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const currentTender = await tx.tender.findUnique({
+        where: { id: tenderId },
+      });
+      if (!currentTender) {
+        throw new NotFoundException('Tender not found');
+      }
+
+      const contenderNumber = currentTender.nextContenderNumber;
+      await tx.tender.update({
+        where: { id: tenderId },
+        data: { nextContenderNumber: contenderNumber + 1 },
+      });
+
+      return tx.bid.update({
+        where: { id: bid.id },
+        data: {
+          status: BidStatus.enrolled,
+          contenderNumber,
+          enrolledAt: new Date(),
+        },
+        include: { contractor: true },
+      });
+    });
+
+    return this.mapBid(updated);
   }
 
   private buildBidTerms(dto: SubmitBidDto): BidTermsV1 {
@@ -484,23 +600,22 @@ export class TendersService {
 
     const terms = this.buildBidTerms(dto);
 
+    const existing = tender.bids.find(
+      (b) =>
+        b.contractorId === profile.id &&
+        (b.status === BidStatus.enrolled ||
+          b.status === BidStatus.submitted),
+    );
+    if (!existing) {
+      throw new BadRequestException(
+        'Enroll as a contender before submitting a commercial proposal',
+      );
+    }
+
     const bid = await this.prisma.$transaction(async (tx) => {
-      const nextBid = await tx.bid.upsert({
-        where: {
-          tenderId_contractorId: {
-            tenderId,
-            contractorId: profile.id,
-          },
-        },
-        create: {
-          tenderId,
-          contractorId: profile.id,
-          amount: dto.amount,
-          durationDays: dto.durationDays ?? null,
-          termsJson: terms as unknown as Prisma.InputJsonValue,
-          status: BidStatus.submitted,
-        },
-        update: {
+      const nextBid = await tx.bid.update({
+        where: { id: existing.id },
+        data: {
           amount: dto.amount,
           durationDays: dto.durationDays ?? null,
           termsJson: terms as unknown as Prisma.InputJsonValue,
@@ -508,6 +623,18 @@ export class TendersService {
           submittedAt: new Date(),
         },
         include: { contractor: true },
+      });
+
+      await tx.bidOffer.create({
+        data: {
+          bidId: existing.id,
+          authorRole: 'contractor',
+          authorId: userId,
+          amount: dto.amount,
+          durationDays: dto.durationDays ?? null,
+          termsJson: terms as unknown as Prisma.InputJsonValue,
+          note: dto.notes?.trim() || null,
+        },
       });
 
       if (!tender.closesAt) {
@@ -540,7 +667,10 @@ export class TendersService {
 
     const bid = tender.bids.find(
       (b) =>
-        b.contractorId === profile.id && b.status === BidStatus.submitted,
+        b.contractorId === profile.id &&
+        (b.status === BidStatus.clarifying ||
+          b.status === BidStatus.enrolled ||
+          b.status === BidStatus.submitted),
     );
     if (!bid) {
       throw new NotFoundException('No active bid to withdraw');

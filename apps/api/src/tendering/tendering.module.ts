@@ -3,6 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AiModule } from '../ai/ai.module';
 import { UsersModule } from '../users/users.module';
 import { BidAnalysisService } from './bid-analysis.service';
+import { BidOffersService } from './bid-offers.service';
 import { BidMessagesService } from './bid-messages.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import { ContractorTenderController } from './contractor-tender.controller';
@@ -17,6 +18,7 @@ import { TendersService } from './tenders.service';
   providers: [
     TendersService,
     BidAnalysisService,
+    BidOffersService,
     BidMessagesService,
     ContractorProfilesService,
     TenderMatchingService,
