@@ -2486,6 +2486,12 @@ select:disabled {
   color: #b45309;
 }
 
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
 .bid-breakdown-toggle {
   margin: 0.5rem 0 1rem;
 }

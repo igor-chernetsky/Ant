@@ -116,7 +116,12 @@ export function BidProposalForm({
       <div className="modal-form bid-proposal-form-fields">
         <div className="bid-proposal-form-row bid-proposal-form-row--metrics">
           <label className="bid-proposal-field bid-proposal-field--amount">
-            Total (THB) <span className="required-mark">*</span>
+            <span className="field-label">
+              Total (THB)
+              <span className="required-mark" aria-hidden="true">
+                *
+              </span>
+            </span>
             <input
               type="number"
               min="1"
@@ -127,7 +132,7 @@ export function BidProposalForm({
             />
           </label>
           <label className="bid-proposal-field bid-proposal-field--duration">
-            Duration (days)
+            <span className="field-label">Duration (days)</span>
             <input
               type="number"
               min="1"
