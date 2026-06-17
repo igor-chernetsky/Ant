@@ -9,9 +9,10 @@ import {
 
 interface ProjectHeroProps {
   project: Project;
+  estimateMidAmountThb?: number | null;
 }
 
-export function ProjectHero({ project }: ProjectHeroProps) {
+export function ProjectHero({ project, estimateMidAmountThb }: ProjectHeroProps) {
   const chips = [
     formatProjectType(project.projectType),
     formatPropertyType(project.propertyType),
@@ -23,13 +24,13 @@ export function ProjectHero({ project }: ProjectHeroProps) {
     <section className="project-hero" aria-labelledby="project-hero-title">
       <div className="project-hero-body">
         <div className="project-hero-main">
-          <p className="project-hero-kicker">Project</p>
+          <p className="project-hero-kicker">Project overview</p>
           <h1 id="project-hero-title">{project.title}</h1>
           {project.description ? (
             <p className="project-hero-lead">{project.description}</p>
           ) : (
             <p className="project-hero-lead project-hero-lead-muted">
-              No description yet. Add details in intake or upload project documents.
+              Add a short description so contractors can quickly understand the scope.
             </p>
           )}
           {chips.length > 0 && (
@@ -44,9 +45,23 @@ export function ProjectHero({ project }: ProjectHeroProps) {
           <span className="status-pill status-pill-lg project-hero-status">
             {formatProjectStatus(project.status)}
           </span>
-          <span className="readiness-badge readiness-badge-lg project-hero-readiness">
-            {project.readinessScore}% ready
-          </span>
+          <div className="project-hero-aside-metrics">
+            <span className="readiness-badge readiness-badge-lg project-hero-readiness">
+              {project.readinessScore}% ready
+            </span>
+            {typeof estimateMidAmountThb === 'number' && estimateMidAmountThb > 0 && (
+              <p className="project-hero-meta">
+                Ballpark midpoint&nbsp;
+                <span className="project-hero-meta-value">
+                  {new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'THB',
+                    maximumFractionDigits: 0,
+                  }).format(estimateMidAmountThb)}
+                </span>
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </section>

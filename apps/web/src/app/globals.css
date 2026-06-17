@@ -178,8 +178,8 @@ h1 {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 1.25rem 1.35rem;
-  margin-bottom: 1rem;
+  padding: 1rem 1.15rem;
+  margin-bottom: 0.85rem;
   box-shadow: var(--shadow-sm);
 }
 
@@ -955,7 +955,7 @@ pre {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .project-hero-main {
@@ -1017,6 +1017,24 @@ pre {
   align-items: flex-end;
   gap: 0.5rem;
   flex-shrink: 0;
+}
+
+.project-hero-aside-metrics {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.project-hero-meta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.project-hero-meta-value {
+  font-weight: 600;
+  color: var(--text);
 }
 
 .project-hero-status {
@@ -1771,6 +1789,11 @@ select:disabled {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+.tender-card-header-actions {
+  display: inline-flex;
+  gap: 0.5rem;
 }
 
 .tender-card-header .section-title {

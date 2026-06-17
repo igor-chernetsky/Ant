@@ -294,7 +294,10 @@ export default function ProjectDetailPage() {
 
         {pageReady && project && (
           <>
-            <ProjectHero project={project} />
+            <ProjectHero
+              project={project}
+              estimateMidAmountThb={estimate?.totals.midAmount ?? null}
+            />
 
             <section className="card project-overview-card">
               <h2 className="section-title">Overview</h2>
