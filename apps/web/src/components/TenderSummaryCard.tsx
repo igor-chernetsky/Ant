@@ -143,13 +143,15 @@ export function TenderSummaryCard({
             )}
           </dl>
 
-          {tender.bids.length > 0 ? (
+          {tender.bids.length > 0 && (
             <div className="tender-summary-actions">
               <p className="muted tender-summary-lead">
-                {tender.submittedBidCount}{' '}
-                {tender.submittedBidCount === 1 ? 'bid' : 'bids'} to review.
-                {tender.bids[0] && (
+                {tender.status === 'awarded' && tender.awardedBidId ? (
+                  'Tender awarded. Review applications and the selected contractor.'
+                ) : (
                   <>
+                    {tender.submittedBidCount}{' '}
+                    {tender.submittedBidCount === 1 ? 'bid' : 'bids'} to review.
                     {' '}
                     Lowest offer{' '}
                     {formatThb(
@@ -160,24 +162,17 @@ export function TenderSummaryCard({
                 )}
               </p>
               <Link href={bidsHref} className="primary tender-summary-cta">
-                View &amp; compare bids
+                {tender.status === 'awarded'
+                  ? 'Review bids'
+                  : 'View & compare bids'}
               </Link>
             </div>
-          ) : (
+          )}
+
+          {tender.bids.length === 0 && (
             <p className="muted tender-phase-hint">
               Published for bids. Waiting for contractor applications.
             </p>
-          )}
-
-          {tender.status === 'awarded' && tender.awardedBidId && (
-            <div className="tender-summary-actions">
-              <p className="muted tender-phase-hint">
-                Tender awarded. Review the selected bid on the bids page.
-              </p>
-              <Link href={bidsHref} className="secondary">
-                Open bids page
-              </Link>
-            </div>
           )}
         </>
       )}
