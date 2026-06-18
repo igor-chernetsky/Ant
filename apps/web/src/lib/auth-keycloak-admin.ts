@@ -27,11 +27,21 @@ interface KeycloakCredentialRepresentation {
 }
 
 function getAppRedirectUri(): string {
+  const normalize = (url: string) => url.replace(/\/+$/, '');
   const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (explicit) return explicit;
+  if (explicit) return normalize(explicit);
   const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel}`;
+  if (vercel) return normalize(`https://${vercel}`);
   return 'http://localhost:3000';
+}
+
+/** Client used in verification links — must have Valid redirect URIs for the app URL. */
+function getVerifyEmailClientId(): string {
+  return (
+    process.env.KEYCLOAK_VERIFY_EMAIL_CLIENT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID?.trim() ||
+    'platform-web'
+  );
 }
 
 function isEmailVerificationSkipped(): boolean {
@@ -194,7 +204,7 @@ async function sendKeycloakVerificationEmail(
 ): Promise<boolean> {
   const { baseUrl, realm } = getKeycloakBaseAndRealm();
   const params = new URLSearchParams();
-  params.set('client_id', process.env.KEYCLOAK_BFF_CLIENT_ID ?? 'platform-bff');
+  params.set('client_id', getVerifyEmailClientId());
   if (redirectUri) {
     params.set('redirect_uri', redirectUri);
   }
