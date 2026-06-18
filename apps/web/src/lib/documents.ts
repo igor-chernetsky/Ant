@@ -108,6 +108,22 @@ export async function completeDocumentUpload(
   return response.json() as Promise<ProjectDocument>;
 }
 
+export async function deleteProjectDocument(
+  projectId: string,
+  documentId: string,
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}`,
+    { method: 'DELETE' },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to delete document');
+  }
+}
+
 export async function getDocumentDownloadUrl(
   projectId: string,
   documentId: string,

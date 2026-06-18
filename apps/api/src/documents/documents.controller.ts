@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -71,5 +72,20 @@ export class DocumentsController {
       documentId,
       user.id,
     );
+  }
+
+  @Delete(':documentId')
+  async delete(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('documentId') documentId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    await this.documentsService.deleteDocument(
+      projectId,
+      documentId,
+      user.id,
+    );
+    return { ok: true };
   }
 }

@@ -154,8 +154,14 @@ export default function ProjectBidsPage() {
                   </div>
                   <div>
                     <dt>Applications</dt>
-                    <dd>{tender.submittedBidCount}</dd>
+                    <dd>{tender.applicationCount ?? tender.bids.length}</dd>
                   </div>
+                  {tender.submittedBidCount > 0 && (
+                    <div>
+                      <dt>Proposals</dt>
+                      <dd>{tender.submittedBidCount}</dd>
+                    </div>
+                  )}
                   {tender.closesAt && (
                     <div>
                       <dt>Closes</dt>
@@ -177,7 +183,7 @@ export default function ProjectBidsPage() {
               </section>
             ) : (
               <>
-                {tender.bids.length >= 2 && (
+                {tender.submittedBidCount >= 2 && (
                   <>
                     <BidAnalysisPanel
                       projectId={projectId}

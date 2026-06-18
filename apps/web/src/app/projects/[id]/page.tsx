@@ -17,6 +17,7 @@ import { TenderSummaryCard } from '@/components/TenderSummaryCard';
 import { isTenderEligibleProjectStatus } from '@/lib/tendering';
 import {
   DOCUMENT_CATEGORY_OPTIONS,
+  deleteProjectDocument,
   fetchProjectDocuments,
   fetchPublicProjectDocuments,
   formatFileSize,
@@ -79,6 +80,7 @@ export default function ProjectDetailPage() {
   const [docCategory, setDocCategory] = useState<DocumentCategory>('blueprint');
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -207,6 +209,27 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleDeleteDocument = async (doc: ProjectDocument) => {
+    if (!projectId || !project) return;
+    const confirmed = window.confirm(
+      `Remove "${doc.originalName}" from this project?`,
+    );
+    if (!confirmed) return;
+
+    setError(null);
+    setDeletingDocId(doc.id);
+    try {
+      await deleteProjectDocument(projectId, doc.id);
+      await loadDocuments(true);
+      const data = await fetchProject(projectId);
+      setProject(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to delete document');
+    } finally {
+      setDeletingDocId(null);
+    }
+  };
+
   const packages = project?.brief?.packages ?? [];
   const documentInsights = project?.brief?.ai?.documentInsights ?? [];
   const estimate = project?.estimate ?? null;
@@ -214,6 +237,7 @@ export default function ProjectDetailPage() {
   const fileDocuments = documents.filter((d) => !isImageDocument(d));
   const intakeActive = isOwner && project ? isIntakeActive(project) : false;
   const showDelete = isOwner && project ? canDeleteProject(project) : false;
+  const showDocDelete = showDelete;
   const brief = project?.brief ?? null;
 
   const overviewItems = project
@@ -370,6 +394,16 @@ export default function ProjectDetailPage() {
                           <figcaption className="doc-gallery-caption">
                             {doc.originalName}
                           </figcaption>
+                          {showDocDelete && (
+                            <button
+                              type="button"
+                              className="text-link doc-remove"
+                              disabled={deletingDocId === doc.id}
+                              onClick={() => void handleDeleteDocument(doc)}
+                            >
+                              {deletingDocId === doc.id ? 'Removing…' : 'Remove'}
+                            </button>
+                          )}
                         </figure>
                       ))}
                     </div>
@@ -379,7 +413,7 @@ export default function ProjectDetailPage() {
                     <ul className="doc-list">
                       {fileDocuments.map((doc) => (
                         <li key={doc.id} className="doc-item">
-                          <div>
+                          <div className="doc-item-main">
                             <button
                               type="button"
                               className="doc-link"
@@ -397,6 +431,16 @@ export default function ProjectDetailPage() {
                                 ` · ${formatDateTime(doc.uploadedAt)}`}
                             </p>
                           </div>
+                          {showDocDelete && (
+                            <button
+                              type="button"
+                              className="secondary doc-remove-btn"
+                              disabled={deletingDocId === doc.id}
+                              onClick={() => void handleDeleteDocument(doc)}
+                            >
+                              {deletingDocId === doc.id ? 'Removing…' : 'Remove'}
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>

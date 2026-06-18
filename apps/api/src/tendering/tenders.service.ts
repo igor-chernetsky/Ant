@@ -82,6 +82,7 @@ export class TendersService {
       closesAt: tender.closesAt?.toISOString() ?? null,
       awardedBidId: tender.awardedBidId,
       bids,
+      applicationCount: bids.length,
       submittedBidCount: bids.filter((b) => b.status === BidStatus.submitted)
         .length,
       createdAt: tender.createdAt.toISOString(),

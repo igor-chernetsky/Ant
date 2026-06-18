@@ -96,6 +96,9 @@ export interface TenderResponse {
   closesAt: string | null;
   awardedBidId: string | null;
   bids: BidResponse[];
+  /** All active applications (clarifying, enrolled, submitted, etc.) */
+  applicationCount: number;
+  /** Submitted commercial proposals only */
   submittedBidCount: number;
   createdAt: string;
   updatedAt: string;

@@ -128,8 +128,14 @@ export function TenderSummaryCard({
             </div>
             <div>
               <dt>Applications</dt>
-              <dd>{tender.submittedBidCount}</dd>
+              <dd>{tender.applicationCount ?? tender.bids.length}</dd>
             </div>
+            {(tender.submittedBidCount ?? 0) > 0 && (
+              <div>
+                <dt>Proposals</dt>
+                <dd>{tender.submittedBidCount}</dd>
+              </div>
+            )}
             {tender.closesAt ? (
               <div>
                 <dt>Closes</dt>
@@ -148,10 +154,15 @@ export function TenderSummaryCard({
               <p className="muted tender-summary-lead">
                 {tender.status === 'awarded' && tender.awardedBidId ? (
                   'Tender awarded. Review applications and the selected contractor.'
-                ) : (
+                ) : tender.submittedBidCount > 0 ? (
                   <>
-                    {tender.submittedBidCount}{' '}
-                    {tender.submittedBidCount === 1 ? 'bid' : 'bids'} to review.
+                    {tender.applicationCount ?? tender.bids.length}{' '}
+                    {(tender.applicationCount ?? tender.bids.length) === 1
+                      ? 'application'
+                      : 'applications'}
+                    , {tender.submittedBidCount}{' '}
+                    {tender.submittedBidCount === 1 ? 'proposal' : 'proposals'}{' '}
+                    to review.
                     {(() => {
                       const amounts = tender.bids
                         .filter((b) => b.status === 'submitted' && b.amount != null)
@@ -164,6 +175,14 @@ export function TenderSummaryCard({
                         </>
                       );
                     })()}
+                  </>
+                ) : (
+                  <>
+                    {tender.applicationCount ?? tender.bids.length}{' '}
+                    {(tender.applicationCount ?? tender.bids.length) === 1
+                      ? 'application'
+                      : 'applications'}{' '}
+                    in progress. Waiting for commercial proposals.
                   </>
                 )}
               </p>

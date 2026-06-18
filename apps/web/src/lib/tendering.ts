@@ -52,6 +52,7 @@ export interface Tender {
   closesAt: string | null;
   awardedBidId: string | null;
   bids: Bid[];
+  applicationCount: number;
   submittedBidCount: number;
   createdAt: string;
   updatedAt: string;

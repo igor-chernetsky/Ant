@@ -5,9 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { Document, DocumentStatus } from '@prisma/client';
+import { Document, DocumentStatus, ProjectStatus, Prisma } from '@prisma/client';
 import { DocumentAnalysisService } from '../ai/document-analysis.service';
 import { isPubliclyViewable } from '../projects/projects.constants';
+import {
+  computeReadinessScore,
+  ProjectBriefV1,
+} from '../projects/project-brief';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import {
@@ -19,6 +23,12 @@ import {
   PresignUploadDto,
   PresignUploadResponse,
 } from './documents.types';
+
+const DELETABLE_DOCUMENT_PROJECT_STATUSES: ProjectStatus[] = [
+  ProjectStatus.draft,
+  ProjectStatus.intake,
+  ProjectStatus.ready_for_estimate,
+];
 
 @Injectable()
 export class DocumentsService {
@@ -255,5 +265,101 @@ export class DocumentsService {
       originalName: doc.originalName,
       contentType: doc.contentType,
     };
+  }
+
+  async deleteDocument(
+    projectId: string,
+    documentId: string,
+    userId: string,
+  ): Promise<void> {
+    const project = await this.assertProjectOwner(projectId, userId);
+
+    if (!DELETABLE_DOCUMENT_PROJECT_STATUSES.includes(project.status)) {
+      throw new BadRequestException(
+        'Documents cannot be removed after estimation or tendering has started',
+      );
+    }
+
+    const doc = await this.prisma.document.findFirst({
+      where: {
+        id: documentId,
+        projectId,
+        status: { not: DocumentStatus.deleted },
+      },
+    });
+
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+
+    if (this.storage.isConfigured() && doc.status === DocumentStatus.uploaded) {
+      try {
+        await this.storage.deleteObject(doc.storageKey);
+      } catch {
+        // Best-effort S3 cleanup
+      }
+    }
+
+    await this.prisma.document.update({
+      where: { id: documentId },
+      data: { status: DocumentStatus.deleted },
+    });
+
+    await this.removeDocumentFromBrief(projectId, documentId);
+  }
+
+  private async removeDocumentFromBrief(
+    projectId: string,
+    documentId: string,
+  ): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) return;
+
+    const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
+    const documentInsights = (brief.ai?.documentInsights ?? []).filter(
+      (insight) => insight.documentId !== documentId,
+    );
+
+    const hasBlueprint = await this.prisma.document.count({
+      where: {
+        projectId,
+        status: DocumentStatus.uploaded,
+        category: 'blueprint',
+      },
+    });
+
+    const updatedBrief: ProjectBriefV1 = {
+      ...brief,
+      design: {
+        ...brief.design,
+        hasPlans: hasBlueprint > 0,
+      },
+      ai: {
+        ...brief.ai,
+        documentInsights,
+      },
+    };
+
+    const tagCount = await this.prisma.projectTag.count({
+      where: { projectId },
+    });
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        briefJson: updatedBrief as unknown as Prisma.InputJsonValue,
+        readinessScore: computeReadinessScore({
+          title: project.title,
+          description: project.description,
+          projectType: project.projectType,
+          propertyType: project.propertyType,
+          district: project.district,
+          tagCount,
+          brief: updatedBrief,
+        }),
+      },
+    });
   }
 }
