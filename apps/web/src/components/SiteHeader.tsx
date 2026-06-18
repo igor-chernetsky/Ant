@@ -44,6 +44,9 @@ export function SiteHeader({
                   Contractor
                 </Link>
               )}
+              <Link href="/account" className="text-link header-link">
+                Account
+              </Link>
               <span className="user-chip">
                 {me.displayName ?? me.email ?? 'Signed in'}
               </span>

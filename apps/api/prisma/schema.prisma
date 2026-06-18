@@ -115,8 +115,47 @@ model User {
   contractorVerificationDocuments ContractorVerificationDocument[]
   bidMessages BidMessage[]
   bidOffers   BidOffer[]
+  bidChatPresence BidChatPresence[]
+  notificationPreferences UserNotificationPreferences?
+  notificationEmailLogs   NotificationEmailLog[]
 
   @@map("users")
+}
+
+model UserNotificationPreferences {
+  userId                 String   @id @map("user_id")
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailEnabled           Boolean  @default(true) @map("email_enabled")
+  emailClientBidActivity Boolean  @default(true) @map("email_client_bid_activity")
+  emailContractorUpdates Boolean  @default(true) @map("email_contractor_updates")
+  emailMatchingProjects  Boolean  @default(true) @map("email_matching_projects")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("user_notification_preferences")
+}
+
+enum NotificationEmailKind {
+  client_bid_enrolled
+  client_bid_submitted
+  contractor_counter_offer
+  contractor_bid_message
+  contractor_bid_selected
+  contractor_bid_rejected
+  contractor_project_awarded
+  contractor_matching_project
+}
+
+model NotificationEmailLog {
+  id        String                @id @default(uuid())
+  userId    String                @map("user_id")
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      NotificationEmailKind
+  projectId String?               @map("project_id")
+  sentAt    DateTime              @default(now()) @map("sent_at")
+
+  @@index([userId, kind, sentAt])
+  @@map("notification_email_logs")
 }
 
 model TagGroup {
@@ -314,6 +353,7 @@ model Bid {
   awardedTender Tender?          @relation("AwardedBid")
   messages     BidMessage[]
   offers       BidOffer[]
+  chatPresence BidChatPresence[]
 
   @@unique([tenderId, contractorId])
   @@index([tenderId])
@@ -332,6 +372,18 @@ model BidMessage {
 
   @@index([bidId])
   @@map("bid_messages")
+}
+
+model BidChatPresence {
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bidId      String   @map("bid_id")
+  bid        Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  lastSeenAt DateTime @map("last_seen_at")
+
+  @@id([userId, bidId])
+  @@index([bidId, lastSeenAt])
+  @@map("bid_chat_presence")
 }
 
 model BidOffer {

@@ -398,6 +398,22 @@ export async function sendBidMessage(
   return response.json() as Promise<BidMessage>;
 }
 
+const BID_CHAT_PRESENCE_INTERVAL_MS = 30_000;
+
+export function touchBidChatPresence(
+  bidId: string,
+  projectId?: string,
+): void {
+  const path = projectId
+    ? `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/presence`
+    : `/api/contractor/bids/${encodeURIComponent(bidId)}/presence`;
+  void fetchWithAuth(path, { method: 'PUT' }).catch(() => {
+    /* presence is best-effort */
+  });
+}
+
+export { BID_CHAT_PRESENCE_INTERVAL_MS };
+
 export async function withdrawContractorBid(tenderId: string): Promise<Bid> {
   const response = await fetchWithAuth(
     `/api/contractor/tenders/${encodeURIComponent(tenderId)}/bids`,

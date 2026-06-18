@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchBidMessages,
   sendBidMessage,
+  touchBidChatPresence,
+  BID_CHAT_PRESENCE_INTERVAL_MS,
   type BidMessage,
 } from '@/lib/tendering';
 
@@ -44,6 +46,46 @@ export function BidChat({
   useEffect(() => {
     void loadMessages();
   }, [loadMessages]);
+
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const ping = () => {
+      if (document.visibilityState === 'visible') {
+        touchBidChatPresence(bidId, projectId);
+      }
+    };
+
+    const startHeartbeat = () => {
+      ping();
+      intervalId = setInterval(ping, BID_CHAT_PRESENCE_INTERVAL_MS);
+    };
+
+    const stopHeartbeat = () => {
+      if (intervalId != null) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        startHeartbeat();
+      } else {
+        stopHeartbeat();
+      }
+    };
+
+    if (document.visibilityState === 'visible') {
+      startHeartbeat();
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      stopHeartbeat();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [bidId, projectId]);
 
   useEffect(() => {
     const el = listRef.current;

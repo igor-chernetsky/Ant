@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   BidOfferResponse,
   BidTermsV1,
@@ -18,7 +19,10 @@ import {
 
 @Injectable()
 export class BidOffersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   private mapOffer(offer: {
     id: string;
@@ -132,6 +136,15 @@ export class BidOffersService {
       },
     });
 
+    this.notifications.dispatch(
+      this.notifications.notifyContractorCounterOffer({
+        contractorUserId: bid.contractor.userId,
+        projectId: bid.tender.projectId,
+        projectTitle: bid.tender.project.title,
+        amount: String(dto.amount),
+      }),
+    );
+
     return this.mapOffer(offer);
   }
 
@@ -142,7 +155,10 @@ export class BidOffersService {
   ) {
     const bid = await this.prisma.bid.findUnique({
       where: { id: bidId },
-      include: { tender: { include: { project: true } } },
+      include: {
+        contractor: true,
+        tender: { include: { project: true } },
+      },
     });
     if (!bid || bid.tender.projectId !== projectId) {
       throw new NotFoundException('Bid not found');

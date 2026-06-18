@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
@@ -125,5 +125,16 @@ export class ProjectTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.bidMessages.sendMessage(user.id, bidId, body, projectId);
+  }
+
+  @Put('bids/:bidId/presence')
+  @HttpCode(204)
+  async touchBidChatPresence(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('bidId') bidId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    await this.bidMessages.touchPresence(user.id, bidId, projectId);
   }
 }

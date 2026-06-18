@@ -3244,3 +3244,91 @@ select:disabled {
   gap: 0.65rem;
 }
 
+.account-page {
+  max-width: 720px;
+}
+
+.account-page-header {
+  margin-bottom: 1.25rem;
+}
+
+.account-page-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.88rem;
+}
+
+.account-page-title {
+  margin: 0;
+  font-size: 1.75rem;
+}
+
+.account-profile-card,
+.account-notifications-card {
+  margin-bottom: 1rem;
+}
+
+.account-profile-meta {
+  margin-top: 0.75rem;
+}
+
+.account-profile-hint {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+}
+
+.account-notifications-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.account-saved-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--success);
+  background: var(--success-soft);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.account-notification-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.account-notification-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fafafa;
+  padding: 0.85rem 1rem;
+}
+
+.account-notification-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.account-notification-toggle input {
+  margin-top: 0.2rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--accent);
+}
+
+.account-notification-toggle strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.account-notification-desc {
+  display: block;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+

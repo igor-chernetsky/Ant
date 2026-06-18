@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AiModule } from '../ai/ai.module';
 import { UsersModule } from '../users/users.module';
@@ -13,7 +14,7 @@ import { TenderMatchingService } from './tender-matching.service';
 import { TendersService } from './tenders.service';
 
 @Module({
-  imports: [UsersModule, AiModule, ScheduleModule.forRoot()],
+  imports: [UsersModule, AiModule, NotificationsModule, ScheduleModule.forRoot()],
   controllers: [ProjectTenderController, ContractorTenderController],
   providers: [
     TendersService,

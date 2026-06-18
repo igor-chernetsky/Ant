@@ -18,6 +18,7 @@ import { BidMessagesService } from './bid-messages.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   BidResponse,
   BidTermsV1,
@@ -47,6 +48,7 @@ export class TendersService {
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly autoClose: TenderAutoCloseService,
     private readonly bidMessages: BidMessagesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private mapBid(bid: Bid & { contractor: ContractorProfile }): BidResponse {
@@ -226,6 +228,10 @@ export class TendersService {
       return created;
     });
 
+    this.notifications.dispatch(
+      this.notifications.notifyMatchingContractorsForProject(projectId),
+    );
+
     return this.mapTender(tender);
   }
 
@@ -335,6 +341,34 @@ export class TendersService {
 
       return nextTender;
     });
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { title: true },
+    });
+    const selectedBid = updated.bids.find((b) => b.id === bidId);
+    const rejectedBids = updated.bids.filter(
+      (b) => b.id !== bidId && b.status === BidStatus.rejected,
+    );
+
+    if (project && selectedBid) {
+      this.notifications.dispatch(
+        this.notifications.notifyContractorBidSelected({
+          contractorUserId: selectedBid.contractor.userId,
+          projectId,
+          projectTitle: project.title,
+        }),
+      );
+      for (const rejected of rejectedBids) {
+        this.notifications.dispatch(
+          this.notifications.notifyContractorBidRejected({
+            contractorUserId: rejected.contractor.userId,
+            projectId,
+            projectTitle: project.title,
+          }),
+        );
+      }
+    }
 
     return this.mapTender(updated);
   }
@@ -521,6 +555,22 @@ export class TendersService {
       });
     });
 
+    const tenderRow = await this.prisma.tender.findUnique({
+      where: { id: tenderId },
+      include: { project: { select: { id: true, title: true, clientId: true } } },
+    });
+    if (tenderRow && updated.contenderNumber != null) {
+      this.notifications.dispatch(
+        this.notifications.notifyClientBidEnrolled({
+          clientId: tenderRow.project.clientId,
+          projectId: tenderRow.project.id,
+          projectTitle: tenderRow.project.title,
+          companyName: updated.contractor.companyName ?? 'Contractor',
+          contenderNumber: updated.contenderNumber,
+        }),
+      );
+    }
+
     return this.mapBid(updated);
   }
 
@@ -653,6 +703,22 @@ export class TendersService {
 
       return nextBid;
     });
+
+    const tenderRow = await this.prisma.tender.findUnique({
+      where: { id: tenderId },
+      include: { project: { select: { id: true, title: true, clientId: true } } },
+    });
+    if (tenderRow) {
+      this.notifications.dispatch(
+        this.notifications.notifyClientBidSubmitted({
+          clientId: tenderRow.project.clientId,
+          projectId: tenderRow.project.id,
+          projectTitle: tenderRow.project.title,
+          companyName: bid.contractor.companyName ?? 'Contractor',
+          amount: String(dto.amount),
+        }),
+      );
+    }
 
     return this.mapBid(bid);
   }

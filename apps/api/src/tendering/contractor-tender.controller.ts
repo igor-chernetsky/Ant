@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Post,
   Put,
@@ -83,6 +84,16 @@ export class ContractorTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.bidMessages.sendMessage(user.id, bidId, body);
+  }
+
+  @Put('bids/:bidId/presence')
+  @HttpCode(204)
+  async touchBidChatPresence(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('bidId') bidId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    await this.bidMessages.touchPresence(user.id, bidId);
   }
 
   @Get('projects/:projectId/participation')

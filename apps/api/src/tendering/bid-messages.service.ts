@@ -6,15 +6,19 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { BidMessageResponse, SendBidMessageDto } from './tendering.types';
 
 const MAX_BID_MESSAGE_LENGTH = 4000;
+/** Skip chat email if recipient was active in this bid within the last N ms. */
+export const BID_CHAT_PRESENCE_TTL_MS = 90_000;
 
 @Injectable()
 export class BidMessagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly contractorProfiles: ContractorProfilesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private mapMessage(message: {
@@ -65,12 +69,36 @@ export class BidMessagesService {
     return { bid, isClient };
   }
 
+  private async isUserViewingBidChat(
+    userId: string,
+    bidId: string,
+  ): Promise<boolean> {
+    const presence = await this.prisma.bidChatPresence.findUnique({
+      where: { userId_bidId: { userId, bidId } },
+    });
+    if (!presence) return false;
+    return Date.now() - presence.lastSeenAt.getTime() < BID_CHAT_PRESENCE_TTL_MS;
+  }
+
+  async touchPresence(
+    userId: string,
+    bidId: string,
+    projectId?: string,
+  ): Promise<void> {
+    await this.assertBidAccess(userId, bidId, projectId);
+    await this.prisma.bidChatPresence.upsert({
+      where: { userId_bidId: { userId, bidId } },
+      create: { userId, bidId, lastSeenAt: new Date() },
+      update: { lastSeenAt: new Date() },
+    });
+  }
+
   async listMessages(
     userId: string,
     bidId: string,
     projectId?: string,
   ): Promise<BidMessageResponse[]> {
-    await this.assertBidAccess(userId, bidId, projectId);
+    await this.touchPresence(userId, bidId, projectId);
 
     const messages = await this.prisma.bidMessage.findMany({
       where: { bidId },
@@ -86,7 +114,7 @@ export class BidMessagesService {
     dto: SendBidMessageDto,
     projectId?: string,
   ): Promise<BidMessageResponse> {
-    await this.assertBidAccess(userId, bidId, projectId);
+    const { bid, isClient } = await this.assertBidAccess(userId, bidId, projectId);
 
     const body = dto.body?.trim();
     if (!body) {
@@ -101,6 +129,30 @@ export class BidMessagesService {
     const message = await this.prisma.bidMessage.create({
       data: { bidId, authorId: userId, body },
     });
+
+    await this.touchPresence(userId, bidId, projectId);
+
+    const recipientUserId = isClient
+      ? bid.contractor.userId
+      : bid.tender.project.clientId;
+    const recipientRole = isClient ? 'contractor' : 'client';
+
+    const recipientViewing = await this.isUserViewingBidChat(
+      recipientUserId,
+      bidId,
+    );
+
+    if (!recipientViewing) {
+      this.notifications.dispatch(
+        this.notifications.notifyBidMessage({
+          recipientUserId,
+          recipientRole,
+          projectId: bid.tender.projectId,
+          projectTitle: bid.tender.project.title,
+          preview: body,
+        }),
+      );
+    }
 
     return this.mapMessage(message);
   }
