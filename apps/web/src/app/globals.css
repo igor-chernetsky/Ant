@@ -3189,3 +3189,58 @@ select:disabled {
   font-size: 0.8rem;
 }
 
+.verify-email-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+}
+
+.verify-email-card {
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+  padding: 2rem 1.75rem;
+}
+
+.verify-email-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.verify-email-icon--success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.verify-email-icon--error {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.verify-email-title {
+  margin: 0 0 0.65rem;
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.verify-email-lead {
+  margin: 0 0 1.5rem;
+  font-size: 0.98rem;
+  line-height: 1.6;
+}
+
+.verify-email-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.65rem;
+}
+

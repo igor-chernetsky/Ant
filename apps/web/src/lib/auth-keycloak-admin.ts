@@ -1,3 +1,6 @@
+import { sendAppVerificationEmail } from '@/lib/send-verification-email';
+import { isAppEmailVerificationConfigured } from '@/lib/email-verification-token';
+
 const SELF_ASSIGNABLE_ROLES = ['client', 'contractor', 'designer'] as const;
 type SelfAssignableRole = (typeof SELF_ASSIGNABLE_ROLES)[number];
 
@@ -195,6 +198,83 @@ async function userHasPasswordCredential(
 ): Promise<boolean> {
   const credentials = await fetchUserCredentials(adminToken, userId);
   return credentials.some((credential) => credential.type === 'password');
+}
+
+async function markKeycloakEmailVerified(
+  adminToken: string,
+  userId: string,
+): Promise<boolean> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const user = await fetchKeycloakUser(adminToken, userId);
+  if (!user) return false;
+
+  if (user.emailVerified) {
+    return true;
+  }
+
+  const requiredActions = (user.requiredActions ?? []).filter(
+    (action) => action !== 'VERIFY_EMAIL',
+  );
+
+  const response = await fetch(
+    `${baseUrl}/admin/realms/${realm}/users/${userId}`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: userId,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        enabled: user.enabled ?? true,
+        emailVerified: true,
+        requiredActions,
+      }),
+      cache: 'no-store',
+    },
+  );
+
+  if (!response.ok) {
+    console.warn(
+      `[auth-keycloak] markKeycloakEmailVerified failed (${response.status}):`,
+      await response.text().catch(() => ''),
+    );
+    return false;
+  }
+
+  return true;
+}
+
+export async function verifyUserEmailByToken(
+  userId: string,
+  email: string,
+): Promise<'success' | 'already' | 'mismatch' | 'failed' | 'expired'> {
+  let adminToken: string | null = null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch {
+    return 'failed';
+  }
+  if (!adminToken) return 'failed';
+
+  const user = await fetchKeycloakUser(adminToken, userId);
+  if (!user) return 'failed';
+
+  const normalizedEmail = email.trim().toLowerCase();
+  if (user.email?.trim().toLowerCase() !== normalizedEmail) {
+    return 'mismatch';
+  }
+
+  if (user.emailVerified) {
+    return 'already';
+  }
+
+  const updated = await markKeycloakEmailVerified(adminToken, userId);
+  return updated ? 'success' : 'failed';
 }
 
 async function sendKeycloakVerificationEmail(
@@ -588,18 +668,34 @@ export async function createKeycloakUser(params: {
   }
 
   if (requireEmailVerification) {
-    const emailSent = await sendKeycloakVerificationEmail(
-      adminToken,
-      userId,
-      getAppRedirectUri(),
-    );
-    if (!emailSent) {
-      return {
-        ok: false,
-        status: 503,
-        message:
-          'Account created, but verification email could not be sent. Configure Keycloak SMTP (see docs/auth-email-verification.md).',
-      };
+    if (isAppEmailVerificationConfigured()) {
+      const emailSent = await sendAppVerificationEmail({
+        userId,
+        email: username,
+      });
+      if (!emailSent.ok) {
+        return {
+          ok: false,
+          status: 503,
+          message:
+            emailSent.message ||
+            'Account created, but verification email could not be sent.',
+        };
+      }
+    } else {
+      const emailSent = await sendKeycloakVerificationEmail(
+        adminToken,
+        userId,
+        `${getAppRedirectUri()}/email-verified`,
+      );
+      if (!emailSent) {
+        return {
+          ok: false,
+          status: 503,
+          message:
+            'Account created, but verification email could not be sent. Configure app SMTP (see docs/auth-email-verification.md).',
+        };
+      }
     }
 
     return { ok: true, verifyEmail: true };
