@@ -76,11 +76,24 @@ export class BidOffersService {
           `At most ${MAX_BID_LINE_ITEMS} line items allowed`,
         );
       }
-      lineItems = lineItems.map((item) => ({
-        trade: item.trade.trim(),
-        description: item.description.trim(),
-        amount: Number(item.amount),
-      }));
+      lineItems = lineItems.map((item) => {
+        const trade = item.trade?.trim();
+        const description = item.description?.trim();
+        const amount = Number(item.amount);
+        if (!trade) {
+          throw new BadRequestException('Each line item needs a trade');
+        }
+        if (!Number.isFinite(amount) || amount < 0) {
+          throw new BadRequestException(
+            'Line item amounts must be zero or positive',
+          );
+        }
+        return {
+          trade,
+          ...(description ? { description } : {}),
+          amount,
+        };
+      });
     }
 
     return {

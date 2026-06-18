@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { formatThb } from '@/lib/estimate';
-import type { Bid } from '@/lib/tendering';
+import type { Bid, BidLineItem } from '@/lib/tendering';
 
 interface BidsCompareTableProps {
   bids: Bid[];
@@ -15,6 +15,45 @@ function deltaLabel(amount: number, ballparkMid: number | null | undefined): str
   return `${delta >= 0 ? '+' : ''}${delta}%`;
 }
 
+function CompareBreakdownCell({ items }: { items?: BidLineItem[] }) {
+  if (!items?.length) {
+    return <span className="muted">Not provided</span>;
+  }
+
+  const subtotal = items.reduce(
+    (sum, item) => sum + (Number(item.amount) || 0),
+    0,
+  );
+
+  return (
+    <table className="bids-compare-breakdown-table">
+      <tbody>
+        {items.map((item, index) => (
+          <tr key={index}>
+            <td className="bids-compare-breakdown-trade">
+              <span className="bids-compare-breakdown-trade-name">{item.trade}</span>
+              {item.description ? (
+                <span className="bids-compare-breakdown-desc muted">
+                  {item.description}
+                </span>
+              ) : null}
+            </td>
+            <td className="bids-compare-breakdown-amount">
+              {formatThb(item.amount)}
+            </td>
+          </tr>
+        ))}
+        {items.length > 1 && (
+          <tr className="bids-compare-breakdown-subtotal">
+            <td>Subtotal</td>
+            <td>{formatThb(subtotal)}</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  );
+}
+
 export function BidsCompareTable({ bids, ballparkMid }: BidsCompareTableProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     bids.slice(0, Math.min(3, bids.length)).map((bid) => bid.id),
@@ -25,15 +64,11 @@ export function BidsCompareTable({ bids, ballparkMid }: BidsCompareTableProps) {
     [bids, selectedIds],
   );
 
-  const allTrades = useMemo(() => {
-    const trades = new Set<string>();
-    for (const bid of selectedBids) {
-      for (const item of bid.terms?.lineItems ?? []) {
-        trades.add(item.trade);
-      }
-    }
-    return [...trades];
-  }, [selectedBids]);
+  const hasAnyBreakdown = useMemo(
+    () =>
+      selectedBids.some((bid) => (bid.terms?.lineItems?.length ?? 0) > 0),
+    [selectedBids],
+  );
 
   const toggleBid = (bidId: string) => {
     setSelectedIds((current) => {
@@ -124,21 +159,16 @@ export function BidsCompareTable({ bids, ballparkMid }: BidsCompareTableProps) {
                 </td>
               ))}
             </tr>
-            {allTrades.map((trade) => (
-              <tr key={trade}>
-                <th scope="row">{trade}</th>
-                {selectedBids.map((bid) => {
-                  const item = bid.terms?.lineItems?.find(
-                    (line) => line.trade === trade,
-                  );
-                  return (
-                    <td key={`${bid.id}-${trade}`}>
-                      {item ? formatThb(item.amount) : '—'}
-                    </td>
-                  );
-                })}
+            {hasAnyBreakdown && (
+              <tr>
+                <th scope="row">Cost breakdown</th>
+                {selectedBids.map((bid) => (
+                  <td key={`${bid.id}-breakdown`} className="bids-compare-breakdown-cell">
+                    <CompareBreakdownCell items={bid.terms?.lineItems} />
+                  </td>
+                ))}
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

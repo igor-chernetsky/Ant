@@ -80,14 +80,14 @@ export function BidProposalForm({
       ? lineItems.filter(
           (item) =>
             item.trade.trim() ||
-            item.description.trim() ||
+            (item.description?.trim() ?? '') ||
             item.amount > 0,
         )
       : [];
 
     for (const item of activeLineItems) {
-      if (!item.trade.trim() || !item.description.trim()) {
-        setError('Each cost line needs a trade and description');
+      if (!item.trade.trim()) {
+        setError('Each cost line needs a trade');
         return;
       }
     }
@@ -99,7 +99,15 @@ export function BidProposalForm({
         notes: notes.trim() || undefined,
         approach: approach.trim() || undefined,
         scopeSummary: scopeSummary.trim() || undefined,
-        lineItems: activeLineItems.length ? activeLineItems : undefined,
+        lineItems: activeLineItems.length
+          ? activeLineItems.map((item) => ({
+              trade: item.trade.trim(),
+              ...(item.description?.trim()
+                ? { description: item.description.trim() }
+                : {}),
+              amount: item.amount,
+            }))
+          : undefined,
       });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save bid');
@@ -215,9 +223,9 @@ export function BidProposalForm({
                 />
                 <input
                   type="text"
-                  aria-label="Description"
-                  placeholder="Description"
-                  value={item.description}
+                  aria-label="Description (optional)"
+                  placeholder="Description (optional)"
+                  value={item.description ?? ''}
                   onChange={(e) => {
                     const next = [...lineItems];
                     next[index] = { ...item, description: e.target.value };

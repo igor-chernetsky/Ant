@@ -607,17 +607,19 @@ export class TendersService {
         const trade = item.trade?.trim();
         const description = item.description?.trim();
         const amount = Number(item.amount);
-        if (!trade || !description) {
-          throw new BadRequestException(
-            'Each line item needs a trade and description',
-          );
+        if (!trade) {
+          throw new BadRequestException('Each line item needs a trade');
         }
         if (!Number.isFinite(amount) || amount < 0) {
           throw new BadRequestException(
             'Line item amounts must be zero or positive',
           );
         }
-        return { trade, description, amount };
+        return {
+          trade,
+          ...(description ? { description } : {}),
+          amount,
+        };
       });
     }
 

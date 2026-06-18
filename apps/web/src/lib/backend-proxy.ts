@@ -87,6 +87,15 @@ export async function proxyBackendJson(
     return attachRefreshedCookies(backendResponse, refreshed);
   }
 
+  if (
+    backendResponse.status === 204 ||
+    backendResponse.status === 205 ||
+    backendResponse.status === 304
+  ) {
+    const response = new NextResponse(null, { status: backendResponse.status });
+    return attachRefreshedCookies(response, refreshed);
+  }
+
   const text = await backendResponse.text();
   let body: unknown = text;
   try {

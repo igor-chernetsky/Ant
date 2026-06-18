@@ -2,7 +2,7 @@ import { BidStatus, ProjectType, TenderStatus } from '@prisma/client';
 
 export interface BidLineItem {
   trade: string;
-  description: string;
+  description?: string;
   amount: number;
 }
 

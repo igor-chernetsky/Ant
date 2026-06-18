@@ -17,7 +17,7 @@ export type BidStatus =
 
 export interface BidLineItem {
   trade: string;
-  description: string;
+  description?: string;
   amount: number;
 }
 
