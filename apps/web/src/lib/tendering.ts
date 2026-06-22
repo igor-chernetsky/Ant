@@ -463,7 +463,7 @@ export async function downloadCommercialProposal(
   const fileName =
     parseContentDispositionFilename(
       response.headers.get('content-disposition'),
-    ) ?? `commercial-proposal-${bidId.slice(0, 8)}.html`;
+    ) ?? `commercial-proposal-${bidId.slice(0, 8)}.pdf`;
 
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');

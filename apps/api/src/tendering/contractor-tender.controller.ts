@@ -106,16 +106,16 @@ export class ContractorTenderController {
     @Res() res: Response,
   ) {
     const user = await this.resolveUser(req);
-    const { html, fileName } = await this.commercialProposal.renderHtml(
+    const { pdf, fileName } = await this.commercialProposal.renderPdf(
       user.id,
       bidId,
     );
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${fileName}"`,
     );
-    res.send(html);
+    res.send(pdf);
   }
 
   @Get('projects/:projectId/participation')

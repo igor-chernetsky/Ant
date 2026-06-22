@@ -13,6 +13,7 @@ import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
+import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 
 @Module({
   imports: [UsersModule, AiModule, NotificationsModule, ScheduleModule.forRoot()],
@@ -26,6 +27,7 @@ import { CommercialProposalService } from './commercial-proposal.service';
     TenderMatchingService,
     TenderAutoCloseService,
     CommercialProposalService,
+    HtmlToPdfService,
   ],
   exports: [TendersService, ContractorProfilesService],
 })

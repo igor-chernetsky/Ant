@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { BidStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
   buildCommercialProposalData,
@@ -24,9 +25,24 @@ export class CommercialProposalService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly contractorProfiles: ContractorProfilesService,
+    private readonly htmlToPdf: HtmlToPdfService,
   ) {}
 
-  async renderHtml(
+  async renderPdf(
+    userId: string,
+    bidId: string,
+    projectId?: string,
+  ): Promise<{ pdf: Buffer; fileName: string }> {
+    const { html, fileName } = await this.buildHtmlDocument(
+      userId,
+      bidId,
+      projectId,
+    );
+    const pdf = await this.htmlToPdf.render(html);
+    return { pdf, fileName };
+  }
+
+  private async buildHtmlDocument(
     userId: string,
     bidId: string,
     projectId?: string,
@@ -79,8 +95,7 @@ export class CommercialProposalService {
         bid.tender.project.client.email ||
         'Employer',
       employerEmail: bid.tender.project.client.email,
-      contractorCompanyName:
-        bid.contractor.companyName ?? 'Contractor',
+      contractorCompanyName: bid.contractor.companyName ?? 'Contractor',
       submittedAt: bid.submittedAt?.toISOString() ?? null,
     });
 
@@ -90,7 +105,7 @@ export class CommercialProposalService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
       .slice(0, 40);
-    const fileName = `commercial-proposal-${slug || bidId.slice(0, 8)}.html`;
+    const fileName = `commercial-proposal-${slug || bidId.slice(0, 8)}.pdf`;
 
     return { html, fileName };
   }

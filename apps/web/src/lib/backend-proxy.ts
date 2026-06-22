@@ -97,6 +97,31 @@ export async function proxyBackendJson(
   }
 
   const contentType = backendResponse.headers.get('content-type') ?? '';
+  if (
+    contentType.includes('application/pdf') ||
+    contentType.includes('application/octet-stream')
+  ) {
+    const buffer = await backendResponse.arrayBuffer();
+    const response = new NextResponse(buffer, {
+      status: backendResponse.status,
+      headers: {
+        'Content-Type': contentType,
+        ...(backendResponse.headers.get('content-disposition')
+          ? {
+              'Content-Disposition': backendResponse.headers.get(
+                'content-disposition',
+              )!,
+            }
+          : {}),
+      },
+    });
+    if (backendResponse.status === 401) {
+      clearAuthCookies(response);
+      return response;
+    }
+    return attachRefreshedCookies(response, refreshed);
+  }
+
   if (contentType.includes('text/html')) {
     const html = await backendResponse.text();
     const response = new NextResponse(html, {
