@@ -28,6 +28,7 @@ import {
   MAX_BID_LINE_ITEMS,
   MAX_BID_NOTES_LENGTH,
   MAX_BID_SCOPE_LENGTH,
+  MAX_BID_SPECIAL_CONDITIONS_LENGTH,
   SubmitBidDto,
   TenderResponse,
   ContractorApplicationItem,
@@ -629,8 +630,23 @@ export class TendersService {
       approach: approach || undefined,
       scopeSummary: scopeSummary || undefined,
       lineItems: lineItems?.length ? lineItems : undefined,
-      contractTerms: normalizeContractTerms(dto.contractTerms),
+      contractTerms: this.normalizeAndValidateContractTerms(dto.contractTerms),
     };
+  }
+
+  private normalizeAndValidateContractTerms(
+    raw?: SubmitBidDto['contractTerms'],
+  ) {
+    const contractTerms = normalizeContractTerms(raw);
+    if (
+      contractTerms?.specialConditions &&
+      contractTerms.specialConditions.length > MAX_BID_SPECIAL_CONDITIONS_LENGTH
+    ) {
+      throw new BadRequestException(
+        `Special conditions must be at most ${MAX_BID_SPECIAL_CONDITIONS_LENGTH} characters`,
+      );
+    }
+    return contractTerms;
   }
 
   async submitBid(

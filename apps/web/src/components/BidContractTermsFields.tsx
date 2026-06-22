@@ -202,6 +202,20 @@ export function BidContractTermsFields({
           />
         </label>
 
+        <label>
+          Special conditions
+          <span className="field-hint muted">
+            Optional — included in the commercial proposal document when filled
+          </span>
+          <textarea
+            rows={4}
+            disabled={disabled}
+            value={value.specialConditions ?? ''}
+            placeholder="Any additional terms, exclusions, or party-specific arrangements…"
+            onChange={(e) => set('specialConditions', e.target.value)}
+          />
+        </label>
+
         <details className="bid-contract-terms-advanced">
           <summary>Employer &amp; contractor legal details (optional)</summary>
           <div className="bid-contract-terms-advanced-body modal-form bid-proposal-form-fields">

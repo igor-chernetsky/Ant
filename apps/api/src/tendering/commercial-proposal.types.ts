@@ -34,6 +34,7 @@ export interface BidContractTerms {
   warrantyPeriodNotes?: string;
   /** Delay damages note (optional). */
   delayDamagesNotes?: string;
+  specialConditions?: string;
 }
 
 export interface CommercialProposalRenderData {
@@ -58,6 +59,8 @@ export interface CommercialProposalRenderData {
   retentionReleaseText: string;
   warrantyText: string;
   delayDamagesText: string;
+  specialConditions: string;
+  hasSpecialConditions: boolean;
   boqTableHtml: string;
   hasBoq: boolean;
 }

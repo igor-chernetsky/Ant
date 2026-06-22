@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
-import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 import { useSession } from '@/components/SessionProvider';
 import {
   enrollContractorInTender,
@@ -276,7 +275,6 @@ export function ContractorProjectPanel({
         <div className="tender-subsection">
           <h3 className="tender-subsection-title">Your proposal</h3>
           <BidProposalSummary bid={myBid} ballparkMid={ballparkMid} compact />
-          <CommercialProposalDownload bidId={myBid.id} />
         </div>
       )}
 
@@ -312,6 +310,7 @@ export function ContractorProjectPanel({
               busy={busy}
               projectTitle={projectTitle}
               projectDistrict={projectDistrict}
+              downloadBidId={submitted ? myBid?.id : undefined}
               onSubmit={handleSubmitBid}
               onWithdraw={participation.canWithdraw ? handleWithdraw : undefined}
             />

@@ -7,6 +7,7 @@ import {
   BidContractTermsFields,
   contractTermsFromBid,
 } from '@/components/BidContractTermsFields';
+import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 
 export interface BidProposalInput {
   amount: number;
@@ -23,6 +24,7 @@ interface BidProposalFormProps {
   busy?: boolean;
   projectTitle?: string;
   projectDistrict?: string | null;
+  downloadBidId?: string;
   onSubmit: (input: BidProposalInput) => Promise<void>;
   onWithdraw?: () => Promise<void>;
 }
@@ -45,6 +47,7 @@ export function BidProposalForm({
   busy = false,
   projectTitle,
   projectDistrict,
+  downloadBidId,
   onSubmit,
   onWithdraw,
 }: BidProposalFormProps) {
@@ -135,6 +138,10 @@ export function BidProposalForm({
     (sum, item) => sum + (Number(item.amount) || 0),
     0,
   );
+
+  const proposalDownloadable =
+    existingBid?.status === 'submitted' ||
+    existingBid?.status === 'selected';
 
   return (
     <div className="bid-proposal-form bid-proposal-form--compact">
@@ -300,28 +307,38 @@ export function BidProposalForm({
         </div>
       )}
 
-      <div className="bid-breakdown-toggle">
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={showContractTerms}
-            onChange={(e) => setShowContractTerms(e.target.checked)}
-          />
-          Include commercial proposal document fields
-        </label>
-      </div>
-
-      {showContractTerms && (
-        <div className="bid-contract-terms-section">
-          <BidContractTermsFields
-          value={contractTerms}
-          onChange={setContractTerms}
-          projectTitle={projectTitle}
-          projectDistrict={projectDistrict}
-          disabled={busy}
-        />
+      <div className="bid-contract-terms-section">
+        <div className="bid-breakdown-toggle">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={showContractTerms}
+              onChange={(e) => setShowContractTerms(e.target.checked)}
+            />
+            Include commercial proposal document fields
+          </label>
         </div>
-      )}
+
+        {showContractTerms && (
+          <BidContractTermsFields
+            value={contractTerms}
+            onChange={setContractTerms}
+            projectTitle={projectTitle}
+            projectDistrict={projectDistrict}
+            disabled={busy}
+          />
+        )}
+
+        {proposalDownloadable && downloadBidId && (
+          <div className="bid-contract-terms-actions">
+            <CommercialProposalDownload bidId={downloadBidId} />
+            <p className="muted bid-contract-terms-download-hint">
+              Document reflects the last saved proposal. Submit updates to refresh
+              the download.
+            </p>
+          </div>
+        )}
+      </div>
 
       {error && <p className="form-error bid-proposal-form-error">{error}</p>}
 

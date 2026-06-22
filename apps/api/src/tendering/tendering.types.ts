@@ -27,6 +27,8 @@ export interface BidContractTerms {
   defectNotificationMonths?: number;
   warrantyPeriodNotes?: string;
   delayDamagesNotes?: string;
+  /** Free-text special conditions appended to the document when set. */
+  specialConditions?: string;
 }
 
 /** Stored in Bid.termsJson — versioned payload for contractor proposals */
@@ -45,6 +47,7 @@ export interface BidTermsV1 {
 export const MAX_BID_NOTES_LENGTH = 2000;
 export const MAX_BID_APPROACH_LENGTH = 8000;
 export const MAX_BID_SCOPE_LENGTH = 2000;
+export const MAX_BID_SPECIAL_CONDITIONS_LENGTH = 4000;
 export const MAX_BID_LINE_ITEMS = 20;
 
 export interface ContractorProfileResponse {

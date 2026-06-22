@@ -41,6 +41,7 @@ export interface BidContractTerms {
   defectNotificationMonths?: number;
   warrantyPeriodNotes?: string;
   delayDamagesNotes?: string;
+  specialConditions?: string;
 }
 
 export interface BidTerms {

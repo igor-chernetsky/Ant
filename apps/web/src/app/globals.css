@@ -2578,6 +2578,10 @@ select:disabled {
   border-top: 1px solid var(--border);
 }
 
+.bid-contract-terms-section .bid-breakdown-toggle {
+  margin: 0 0 0.75rem;
+}
+
 .bid-contract-terms-header {
   margin-bottom: 0.75rem;
 }
@@ -2621,7 +2625,23 @@ select:disabled {
 }
 
 .commercial-proposal-download {
-  margin-top: 0.75rem;
+  margin-top: 0;
+}
+
+.bid-contract-terms-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.bid-contract-terms-download-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  flex: 1 1 12rem;
 }
 
 .checkbox-label {
