@@ -96,6 +96,29 @@ export async function proxyBackendJson(
     return attachRefreshedCookies(response, refreshed);
   }
 
+  const contentType = backendResponse.headers.get('content-type') ?? '';
+  if (contentType.includes('text/html')) {
+    const html = await backendResponse.text();
+    const response = new NextResponse(html, {
+      status: backendResponse.status,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        ...(backendResponse.headers.get('content-disposition')
+          ? {
+              'Content-Disposition': backendResponse.headers.get(
+                'content-disposition',
+              )!,
+            }
+          : {}),
+      },
+    });
+    if (backendResponse.status === 401) {
+      clearAuthCookies(response);
+      return response;
+    }
+    return attachRefreshedCookies(response, refreshed);
+  }
+
   const text = await backendResponse.text();
   let body: unknown = text;
   try {

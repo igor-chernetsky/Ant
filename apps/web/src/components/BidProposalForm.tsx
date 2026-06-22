@@ -2,7 +2,11 @@
 
 import { useState } from 'react';
 import { formatThb } from '@/lib/estimate';
-import type { Bid, BidLineItem, BidTerms } from '@/lib/tendering';
+import type { Bid, BidContractTerms, BidLineItem, BidTerms } from '@/lib/tendering';
+import {
+  BidContractTermsFields,
+  contractTermsFromBid,
+} from '@/components/BidContractTermsFields';
 
 export interface BidProposalInput {
   amount: number;
@@ -11,11 +15,14 @@ export interface BidProposalInput {
   approach?: string;
   scopeSummary?: string;
   lineItems?: BidLineItem[];
+  contractTerms?: BidContractTerms;
 }
 
 interface BidProposalFormProps {
   existingBid?: Bid | null;
   busy?: boolean;
+  projectTitle?: string;
+  projectDistrict?: string | null;
   onSubmit: (input: BidProposalInput) => Promise<void>;
   onWithdraw?: () => Promise<void>;
 }
@@ -36,6 +43,8 @@ function lineItemsFromTerms(terms: BidTerms | null | undefined): BidLineItem[] {
 export function BidProposalForm({
   existingBid,
   busy = false,
+  projectTitle,
+  projectDistrict,
   onSubmit,
   onWithdraw,
 }: BidProposalFormProps) {
@@ -54,6 +63,13 @@ export function BidProposalForm({
   );
   const [showBreakdown, setShowBreakdown] = useState(
     (terms?.lineItems?.length ?? 0) > 0,
+  );
+  const [showContractTerms, setShowContractTerms] = useState(true);
+  const [contractTerms, setContractTerms] = useState<BidContractTerms>(() =>
+    contractTermsFromBid(terms, {
+      title: projectTitle,
+      district: projectDistrict,
+    }),
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -108,6 +124,7 @@ export function BidProposalForm({
               amount: item.amount,
             }))
           : undefined,
+        contractTerms: showContractTerms ? contractTerms : undefined,
       });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save bid');
@@ -281,6 +298,27 @@ export function BidProposalForm({
             </p>
           )}
         </div>
+      )}
+
+      <div className="bid-breakdown-toggle">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={showContractTerms}
+            onChange={(e) => setShowContractTerms(e.target.checked)}
+          />
+          Include contract document fields (КП)
+        </label>
+      </div>
+
+      {showContractTerms && (
+        <BidContractTermsFields
+          value={contractTerms}
+          onChange={setContractTerms}
+          projectTitle={projectTitle}
+          projectDistrict={projectDistrict}
+          disabled={busy}
+        />
       )}
 
       {error && <p className="form-error bid-proposal-form-error">{error}</p>}

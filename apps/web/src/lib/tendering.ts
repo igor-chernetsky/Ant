@@ -21,11 +21,34 @@ export interface BidLineItem {
   amount: number;
 }
 
+export interface BidContractTerms {
+  subjectOfContract?: string;
+  siteAddress?: string;
+  propertyOwnership?: string;
+  employerName?: string;
+  employerAddress?: string;
+  employerRegistrationNo?: string;
+  contractorAddress?: string;
+  contractorRegistrationNo?: string;
+  contractorRepresentative?: string;
+  advancePaymentPercent?: number;
+  advancePaymentAmount?: number;
+  worksStartDate?: string;
+  contractPeriodMonths?: number;
+  retentionPercent?: number;
+  retentionLimitPercent?: number;
+  retentionReleaseNotes?: string;
+  defectNotificationMonths?: number;
+  warrantyPeriodNotes?: string;
+  delayDamagesNotes?: string;
+}
+
 export interface BidTerms {
   notes?: string;
   approach?: string;
   scopeSummary?: string;
   lineItems?: BidLineItem[];
+  contractTerms?: BidContractTerms;
 }
 
 export interface Bid {
@@ -333,6 +356,7 @@ export async function submitContractorBid(
     approach?: string;
     scopeSummary?: string;
     lineItems?: BidLineItem[];
+    contractTerms?: BidContractTerms;
   },
 ): Promise<Bid> {
   const response = await fetchWithAuth(
@@ -414,6 +438,39 @@ export function touchBidChatPresence(
 }
 
 export { BID_CHAT_PRESENCE_INTERVAL_MS };
+
+function parseContentDispositionFilename(header: string | null): string | null {
+  if (!header) return null;
+  const match = /filename="([^"]+)"/i.exec(header);
+  return match?.[1] ?? null;
+}
+
+export async function downloadCommercialProposal(
+  bidId: string,
+  projectId?: string,
+): Promise<void> {
+  const path = projectId
+    ? `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/commercial-proposal`
+    : `/api/contractor/bids/${encodeURIComponent(bidId)}/commercial-proposal`;
+
+  const response = await fetchWithAuth(path);
+  if (!response.ok) {
+    await parseError(response, 'Failed to download commercial proposal');
+  }
+
+  const blob = await response.blob();
+  const fileName =
+    parseContentDispositionFilename(
+      response.headers.get('content-disposition'),
+    ) ?? `commercial-proposal-${bidId.slice(0, 8)}.html`;
+
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
 
 export async function withdrawContractorBid(tenderId: string): Promise<Bid> {
   const response = await fetchWithAuth(

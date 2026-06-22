@@ -6,6 +6,29 @@ export interface BidLineItem {
   amount: number;
 }
 
+/** Legal fields for downloadable commercial proposal (КП). */
+export interface BidContractTerms {
+  subjectOfContract?: string;
+  siteAddress?: string;
+  propertyOwnership?: string;
+  employerName?: string;
+  employerAddress?: string;
+  employerRegistrationNo?: string;
+  contractorAddress?: string;
+  contractorRegistrationNo?: string;
+  contractorRepresentative?: string;
+  advancePaymentPercent?: number;
+  advancePaymentAmount?: number;
+  worksStartDate?: string;
+  contractPeriodMonths?: number;
+  retentionPercent?: number;
+  retentionLimitPercent?: number;
+  retentionReleaseNotes?: string;
+  defectNotificationMonths?: number;
+  warrantyPeriodNotes?: string;
+  delayDamagesNotes?: string;
+}
+
 /** Stored in Bid.termsJson — versioned payload for contractor proposals */
 export interface BidTermsV1 {
   /** Short comment visible to the client (conditions, assumptions) */
@@ -15,6 +38,8 @@ export interface BidTermsV1 {
   /** Optional high-level scope summary */
   scopeSummary?: string;
   lineItems?: BidLineItem[];
+  /** Contract / КП fields for document generation */
+  contractTerms?: BidContractTerms;
 }
 
 export const MAX_BID_NOTES_LENGTH = 2000;
@@ -144,6 +169,7 @@ export interface SubmitBidDto {
   approach?: string;
   scopeSummary?: string;
   lineItems?: BidLineItem[];
+  contractTerms?: BidContractTerms;
 }
 
 export interface SendBidMessageDto {

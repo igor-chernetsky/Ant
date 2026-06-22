@@ -1,5 +1,5 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
+import { Body, Controller, Get, Header, HttpCode, Param, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
@@ -8,6 +8,7 @@ import { BidAnalysisService } from './bid-analysis.service';
 import { BidOffersService } from './bid-offers.service';
 import { SendBidMessageDto, SubmitCounterOfferDto } from './tendering.types';
 import { TendersService } from './tenders.service';
+import { CommercialProposalService } from './commercial-proposal.service';
 
 @Controller('v1/projects/:projectId/tender')
 @UseGuards(JwtAuthGuard)
@@ -18,6 +19,7 @@ export class ProjectTenderController {
     private readonly bidOffers: BidOffersService,
     private readonly bidMessages: BidMessagesService,
     private readonly usersService: UsersService,
+    private readonly commercialProposal: CommercialProposalService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
@@ -136,5 +138,26 @@ export class ProjectTenderController {
   ) {
     const user = await this.resolveUser(req);
     await this.bidMessages.touchPresence(user.id, bidId, projectId);
+  }
+
+  @Get('bids/:bidId/commercial-proposal')
+  async downloadCommercialProposal(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('bidId') bidId: string,
+    @Res() res: Response,
+  ) {
+    const user = await this.resolveUser(req);
+    const { html, fileName } = await this.commercialProposal.renderHtml(
+      user.id,
+      bidId,
+      projectId,
+    );
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName}"`,
+    );
+    res.send(html);
   }
 }

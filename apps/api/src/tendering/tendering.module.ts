@@ -12,6 +12,7 @@ import { ProjectTenderController } from './project-tender.controller';
 import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
 import { TendersService } from './tenders.service';
+import { CommercialProposalService } from './commercial-proposal.service';
 
 @Module({
   imports: [UsersModule, AiModule, NotificationsModule, ScheduleModule.forRoot()],
@@ -24,6 +25,7 @@ import { TendersService } from './tenders.service';
     ContractorProfilesService,
     TenderMatchingService,
     TenderAutoCloseService,
+    CommercialProposalService,
   ],
   exports: [TendersService, ContractorProfilesService],
 })

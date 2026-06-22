@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
+import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 import { useSession } from '@/components/SessionProvider';
 import {
   enrollContractorInTender,
@@ -21,6 +22,8 @@ import { formatVerificationStatus } from '@/lib/verification';
 interface ContractorProjectPanelProps {
   projectId: string;
   ballparkMid?: number | null;
+  projectTitle?: string;
+  projectDistrict?: string | null;
 }
 
 function formatParticipationStatus(participation: ContractorProjectParticipation): string {
@@ -38,6 +41,8 @@ function formatParticipationStatus(participation: ContractorProjectParticipation
 export function ContractorProjectPanel({
   projectId,
   ballparkMid = null,
+  projectTitle,
+  projectDistrict,
 }: ContractorProjectPanelProps) {
   const { me } = useSession();
   const [participation, setParticipation] =
@@ -271,6 +276,7 @@ export function ContractorProjectPanel({
         <div className="tender-subsection">
           <h3 className="tender-subsection-title">Your proposal</h3>
           <BidProposalSummary bid={myBid} ballparkMid={ballparkMid} compact />
+          <CommercialProposalDownload bidId={myBid.id} />
         </div>
       )}
 
@@ -304,6 +310,8 @@ export function ContractorProjectPanel({
             <BidProposalForm
               existingBid={submitted ? myBid : null}
               busy={busy}
+              projectTitle={projectTitle}
+              projectDistrict={projectDistrict}
               onSubmit={handleSubmitBid}
               onWithdraw={participation.canWithdraw ? handleWithdraw : undefined}
             />

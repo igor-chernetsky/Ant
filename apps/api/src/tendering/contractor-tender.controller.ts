@@ -8,9 +8,10 @@ import {
   Post,
   Put,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
@@ -23,6 +24,7 @@ import {
   UpsertContractorProfileDto,
 } from './tendering.types';
 import { TendersService } from './tenders.service';
+import { CommercialProposalService } from './commercial-proposal.service';
 
 @Controller('v1/contractor')
 @UseGuards(JwtAuthGuard)
@@ -33,6 +35,7 @@ export class ContractorTenderController {
     private readonly bidOffers: BidOffersService,
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly usersService: UsersService,
+    private readonly commercialProposal: CommercialProposalService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
@@ -94,6 +97,25 @@ export class ContractorTenderController {
   ) {
     const user = await this.resolveUser(req);
     await this.bidMessages.touchPresence(user.id, bidId);
+  }
+
+  @Get('bids/:bidId/commercial-proposal')
+  async downloadCommercialProposal(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('bidId') bidId: string,
+    @Res() res: Response,
+  ) {
+    const user = await this.resolveUser(req);
+    const { html, fileName } = await this.commercialProposal.renderHtml(
+      user.id,
+      bidId,
+    );
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName}"`,
+    );
+    res.send(html);
   }
 
   @Get('projects/:projectId/participation')

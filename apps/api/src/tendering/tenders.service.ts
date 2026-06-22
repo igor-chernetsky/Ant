@@ -19,6 +19,7 @@ import { ContractorProfilesService } from './contractor-profiles.service';
 import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { normalizeContractTerms } from './commercial-proposal.template';
 import {
   BidResponse,
   BidTermsV1,
@@ -628,6 +629,7 @@ export class TendersService {
       approach: approach || undefined,
       scopeSummary: scopeSummary || undefined,
       lineItems: lineItems?.length ? lineItems : undefined,
+      contractTerms: normalizeContractTerms(dto.contractTerms),
     };
   }
 

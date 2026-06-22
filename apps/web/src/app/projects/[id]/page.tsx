@@ -507,6 +507,8 @@ export default function ProjectDetailPage() {
               <ContractorProjectPanel
                 projectId={projectId}
                 ballparkMid={estimate?.totals.midAmount ?? null}
+                projectTitle={project.title}
+                projectDistrict={project.district}
               />
             )}
 

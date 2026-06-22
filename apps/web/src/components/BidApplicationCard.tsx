@@ -5,6 +5,7 @@ import { formatThb } from '@/lib/estimate';
 import { BidChat } from '@/components/BidChat';
 import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
+import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 import type { Bid } from '@/lib/tendering';
 
 interface BidApplicationCardProps {
@@ -115,6 +116,15 @@ export function BidApplicationCard({
       {isOpen && (
         <div className="bid-application-card-body">
           <BidProposalSummary bid={bid} ballparkMid={ballparkMid} detailsOnly />
+
+          {(bid.status === 'submitted' ||
+            bid.status === 'selected' ||
+            bid.status === 'rejected') && (
+            <CommercialProposalDownload
+              bidId={bid.id}
+              projectId={projectId}
+            />
+          )}
 
           <div className="bid-line-actions bid-proposal-actions">
             {canSelect && onSelect && (
