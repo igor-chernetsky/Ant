@@ -1,4 +1,4 @@
-/** Legal / contract fields for the downloadable commercial proposal (КП). */
+/** Legal / contract fields for the downloadable commercial proposal document. */
 export interface BidContractTerms {
   /** Subject of contract — scope definition (Clause 1). */
   subjectOfContract?: string;

@@ -13,7 +13,7 @@ interface CommercialProposalDownloadProps {
 export function CommercialProposalDownload({
   bidId,
   projectId,
-  label = 'Download КП (HTML)',
+  label = 'Download commercial proposal',
   className = 'secondary',
 }: CommercialProposalDownloadProps) {
   const [busy, setBusy] = useState(false);

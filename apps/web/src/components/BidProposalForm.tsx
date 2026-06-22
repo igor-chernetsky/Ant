@@ -139,7 +139,7 @@ export function BidProposalForm({
   return (
     <div className="bid-proposal-form bid-proposal-form--compact">
       <div className="modal-form bid-proposal-form-fields">
-        <div className="bid-proposal-form-row bid-proposal-form-row--metrics">
+        <div className="bid-proposal-form-row bid-proposal-form-row--amount-duration">
           <label className="bid-proposal-field bid-proposal-field--amount">
             <span className="field-label">
               Total (THB)
@@ -307,18 +307,20 @@ export function BidProposalForm({
             checked={showContractTerms}
             onChange={(e) => setShowContractTerms(e.target.checked)}
           />
-          Include contract document fields (КП)
+          Include commercial proposal document fields
         </label>
       </div>
 
       {showContractTerms && (
-        <BidContractTermsFields
+        <div className="bid-contract-terms-section">
+          <BidContractTermsFields
           value={contractTerms}
           onChange={setContractTerms}
           projectTitle={projectTitle}
           projectDistrict={projectDistrict}
           disabled={busy}
         />
+        </div>
       )}
 
       {error && <p className="form-error bid-proposal-form-error">{error}</p>}

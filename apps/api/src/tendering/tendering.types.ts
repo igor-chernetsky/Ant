@@ -6,7 +6,7 @@ export interface BidLineItem {
   amount: number;
 }
 
-/** Legal fields for downloadable commercial proposal (КП). */
+/** Legal fields for downloadable commercial proposal document. */
 export interface BidContractTerms {
   subjectOfContract?: string;
   siteAddress?: string;
@@ -38,7 +38,7 @@ export interface BidTermsV1 {
   /** Optional high-level scope summary */
   scopeSummary?: string;
   lineItems?: BidLineItem[];
-  /** Contract / КП fields for document generation */
+  /** Commercial proposal document fields for PDF/HTML generation */
   contractTerms?: BidContractTerms;
 }
 
