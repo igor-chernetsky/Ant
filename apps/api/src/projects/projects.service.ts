@@ -124,6 +124,10 @@ export class ProjectsService {
 
       brief: project.briefJson as ProjectResponse['brief'],
 
+      clarificationMode: project.clarificationMode,
+
+      clarificationSummary: project.clarificationSummary,
+
       tags: this.mapTags(project),
 
       estimate,
@@ -347,6 +351,9 @@ export class ProjectsService {
         district: dto.district?.trim() || null,
 
         regionCode: dto.regionCode?.trim() || 'TH',
+
+        clarificationMode:
+          dto.clarificationMode ?? undefined,
 
         readinessScore: computeReadinessScore({
 

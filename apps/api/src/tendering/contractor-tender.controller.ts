@@ -21,8 +21,10 @@ import { ContractorProfilesService } from './contractor-profiles.service';
 import {
   SendBidMessageDto,
   SubmitBidDto,
+  SubmitBidClarificationQuestionsDto,
   UpsertContractorProfileDto,
 } from './tendering.types';
+import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 
@@ -36,6 +38,7 @@ export class ContractorTenderController {
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly usersService: UsersService,
     private readonly commercialProposal: CommercialProposalService,
+    private readonly clarifications: TenderClarificationsService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
@@ -147,6 +150,29 @@ export class ContractorTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.tendersService.startClarification(user.id, tenderId);
+  }
+
+  @Get('bids/:bidId/clarification-questions')
+  async getBidClarificationQuestions(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('bidId') bidId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    const submission = await this.clarifications.getSubmissionForContractor(
+      user.id,
+      bidId,
+    );
+    return submission ?? { submission: null };
+  }
+
+  @Post('bids/:bidId/clarification-questions')
+  async submitBidClarificationQuestions(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('bidId') bidId: string,
+    @Body() body: SubmitBidClarificationQuestionsDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.clarifications.submitBidQuestions(user.id, bidId, body);
   }
 
   @Post('tenders/:tenderId/enroll')

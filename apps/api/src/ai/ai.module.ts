@@ -5,6 +5,7 @@ import { DocumentAnalysisService } from './document-analysis.service';
 import { IntakeFallbackService } from './intake-fallback.service';
 import { OpenAiAmendmentService } from './openai-amendment.service';
 import { OpenAiBidAnalysisService } from './openai-bid-analysis.service';
+import { OpenAiClarificationService } from './openai-clarification.service';
 import { OpenAiDocumentService } from './openai-document.service';
 import { OpenAiIntakeService } from './openai-intake.service';
 
@@ -18,6 +19,7 @@ import { OpenAiIntakeService } from './openai-intake.service';
     BidAnalysisFallbackService,
     OpenAiDocumentService,
     DocumentAnalysisService,
+    OpenAiClarificationService,
   ],
   exports: [
     OpenAiIntakeService,
@@ -27,6 +29,7 @@ import { OpenAiIntakeService } from './openai-intake.service';
     OpenAiBidAnalysisService,
     BidAnalysisFallbackService,
     DocumentAnalysisService,
+    OpenAiClarificationService,
   ],
 })
 export class AiModule {}

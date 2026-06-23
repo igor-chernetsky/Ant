@@ -2622,6 +2622,150 @@ select:disabled {
   font-size: 0.85rem;
 }
 
+.clarification-mode-fieldset {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin: 0;
+}
+
+.clarification-mode-fieldset legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.clarification-mode-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.88rem;
+}
+
+.clarification-mode-option {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0.5rem 0;
+  cursor: pointer;
+}
+
+.clarification-mode-option strong {
+  display: block;
+}
+
+.clarification-mode-desc {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+}
+
+.structured-clarification-disclaimer {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: #fff8e6;
+  border: 1px solid #f0d78c;
+  font-size: 0.9rem;
+}
+
+.structured-clarification-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.structured-clarification-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.structured-clarification-index {
+  font-weight: 600;
+  color: var(--muted, #6b7280);
+}
+
+.structured-clarification-toolbar {
+  margin: 0.65rem 0;
+}
+
+.structured-clarification-confirm {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+}
+
+.structured-clarification-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.structured-clarification-waiting {
+  margin-top: 0.75rem;
+}
+
+.client-clarification-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.client-clarification-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+}
+
+.client-clarification-progress {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.client-clarification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.client-clarification-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem;
+  background: #fff;
+}
+
+.client-clarification-item--answered {
+  border-color: #b8e0c3;
+  background: #f6fcf8;
+}
+
+.client-clarification-question {
+  margin: 0 0 0.65rem;
+  font-weight: 600;
+}
+
+.client-clarification-index {
+  color: var(--muted, #6b7280);
+}
+
+.client-clarification-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.client-clarification-summary {
+  margin-top: 1rem;
+  padding: 0.85rem;
+  border-radius: 10px;
+  background: var(--surface-muted, #f6f7f8);
+}
+
 .bid-contract-terms-hint {
   margin: 0.25rem 0 0;
   font-size: 0.82rem;

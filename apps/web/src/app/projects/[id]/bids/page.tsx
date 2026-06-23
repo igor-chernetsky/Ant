@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { BidAnalysisPanel } from '@/components/BidAnalysisPanel';
 import { BidApplicationCard } from '@/components/BidApplicationCard';
 import { BidsCompareTable } from '@/components/BidsCompareTable';
+import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificationQuestionsPanel';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
@@ -211,6 +212,15 @@ export default function ProjectBidsPage() {
 
                 <section className="card tender-card">
                   <h2 className="section-title">Applications</h2>
+
+                  {project?.clarificationMode === 'structured_qa' && (
+                    <ClientClarificationQuestionsPanel
+                      projectId={projectId}
+                      clarificationSummary={project.clarificationSummary}
+                      onUpdated={() => void loadData()}
+                    />
+                  )}
+
                   {tender.bids.length > 0 ? (
                     <ul className="bid-proposal-list">
                       {tender.bids.map((bid) => (
@@ -233,6 +243,7 @@ export default function ProjectBidsPage() {
                             projectDistrict: project?.district,
                             onBidUpdated: handleBidUpdated,
                           }}
+                          clarificationMode={project?.clarificationMode}
                         />
                       ))}
                     </ul>

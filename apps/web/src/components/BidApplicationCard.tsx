@@ -26,6 +26,7 @@ interface BidApplicationCardProps {
     projectDistrict?: string | null;
     onBidUpdated?: (bid: Bid) => void;
   };
+  clarificationMode?: 'open_chat' | 'structured_qa';
 }
 
 export function BidApplicationCard({
@@ -38,6 +39,7 @@ export function BidApplicationCard({
   onSelect,
   alwaysExpanded = false,
   clientCounterOffer,
+  clarificationMode = 'open_chat',
 }: BidApplicationCardProps) {
   const [expanded, setExpanded] = useState(alwaysExpanded);
   const isOpen = alwaysExpanded || expanded;
@@ -146,7 +148,7 @@ export function BidApplicationCard({
             )}
           </div>
 
-          {currentUserId && (
+          {currentUserId && clarificationMode === 'open_chat' && (
             <BidChat
               bidId={bid.id}
               projectId={projectId}

@@ -119,6 +119,7 @@ export function buildCommercialProposalData(input: {
   projectTitle: string;
   projectDistrict?: string | null;
   projectDescription?: string | null;
+  clarificationSummary?: string | null;
   bidAmount: number;
   durationDays?: number | null;
   terms: BidTermsV1 | null;
@@ -214,6 +215,8 @@ export function buildCommercialProposalData(input: {
     hasBoq: Boolean(lineItems?.length),
     annex2Html: buildAnnex2Html(input.projectDocuments ?? []),
     hasAnnex2Documents: (input.projectDocuments?.length ?? 0) > 0,
+    clarificationSummary: input.clarificationSummary?.trim() ?? '',
+    hasClarificationSummary: Boolean(input.clarificationSummary?.trim()),
   };
 }
 
@@ -231,6 +234,13 @@ export function renderCommercialProposalHtml(
     <h2>Annex #2 — Drawings and Specifications</h2>
     ${data.annex2Html}
   `;
+
+  const clarificationSection = data.hasClarificationSummary
+    ? `
+    <h2>Contractor Clarifications</h2>
+    <p class="clause pre">${escapeHtml(data.clarificationSummary)}</p>
+  `
+    : '';
 
   const specialConditionsSection = data.hasSpecialConditions
     ? `
@@ -354,6 +364,8 @@ export function renderCommercialProposalHtml(
   <p class="clause"><span class="clause-num">6.6 Release of Retention:</span></p>
   <p class="clause pre">${escapeHtml(data.retentionReleaseText)}</p>
   <p class="clause"><span class="clause-num">6.7 Defect Notification / Warranty:</span> ${escapeHtml(data.warrantyText)}</p>
+
+  ${clarificationSection}
 
   ${specialConditionsSection}
 

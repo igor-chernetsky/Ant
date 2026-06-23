@@ -98,6 +98,8 @@ export interface ProjectBriefV1 {
 
 import type { BallparkEstimate } from '@/lib/estimate';
 
+export type ClarificationMode = 'open_chat' | 'structured_qa';
+
 export interface Project {
   id: string;
   title: string;
@@ -109,6 +111,8 @@ export interface Project {
   status: string;
   readinessScore: number;
   brief: ProjectBriefV1 | null;
+  clarificationMode: ClarificationMode;
+  clarificationSummary: string | null;
   tags: ProjectTag[];
   estimate: BallparkEstimate | null;
   createdAt: string;
@@ -122,7 +126,27 @@ export interface CreateProjectInput {
   projectType?: ProjectType;
   propertyType?: PropertyType;
   district?: string;
+  clarificationMode?: ClarificationMode;
 }
+
+export const CLARIFICATION_MODE_OPTIONS: Array<{
+  value: ClarificationMode;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: 'open_chat',
+    label: 'Open chat',
+    description:
+      'Contractors ask questions in a live chat thread (default).',
+  },
+  {
+    value: 'structured_qa',
+    label: 'Structured questions',
+    description:
+      'Contractors submit a question list once; you answer a merged checklist.',
+  },
+];
 
 export const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> =
   [

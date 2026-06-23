@@ -11,6 +11,7 @@ import { ContractorTenderController } from './contractor-tender.controller';
 import { ProjectTenderController } from './project-tender.controller';
 import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
+import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
@@ -28,6 +29,7 @@ import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
     TenderAutoCloseService,
     CommercialProposalService,
     HtmlToPdfService,
+    TenderClarificationsService,
   ],
   exports: [TendersService, ContractorProfilesService],
 })

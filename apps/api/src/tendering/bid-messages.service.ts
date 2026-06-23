@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ClarificationMode } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -115,6 +116,14 @@ export class BidMessagesService {
     projectId?: string,
   ): Promise<BidMessageResponse> {
     const { bid, isClient } = await this.assertBidAccess(userId, bidId, projectId);
+
+    if (
+      bid.tender.project.clarificationMode === ClarificationMode.structured_qa
+    ) {
+      throw new BadRequestException(
+        'This project uses structured clarification questions instead of chat',
+      );
+    }
 
     const body = dto.body?.trim();
     if (!body) {

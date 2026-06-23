@@ -6,7 +6,8 @@ import { UsersService } from '../users/users.service';
 import { BidMessagesService } from './bid-messages.service';
 import { BidAnalysisService } from './bid-analysis.service';
 import { BidOffersService } from './bid-offers.service';
-import { SendBidMessageDto, SubmitCounterOfferDto, UpdateBidContractTermsDto } from './tendering.types';
+import { SendBidMessageDto, SubmitCounterOfferDto, UpdateBidContractTermsDto, AnswerClarificationQuestionDto } from './tendering.types';
+import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 
@@ -20,6 +21,7 @@ export class ProjectTenderController {
     private readonly bidMessages: BidMessagesService,
     private readonly usersService: UsersService,
     private readonly commercialProposal: CommercialProposalService,
+    private readonly clarifications: TenderClarificationsService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
@@ -62,6 +64,31 @@ export class ProjectTenderController {
   ) {
     const user = await this.resolveUser(req);
     await this.tendersService.revertTenderToEstimated(user.id, projectId);
+  }
+
+  @Get('clarification-questions')
+  async listClarificationQuestions(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.clarifications.listForClient(user.id, projectId);
+  }
+
+  @Patch('clarification-questions/:questionId')
+  async answerClarificationQuestion(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('questionId') questionId: string,
+    @Body() body: AnswerClarificationQuestionDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.clarifications.answerQuestion(
+      user.id,
+      projectId,
+      questionId,
+      body,
+    );
   }
 
   @Get('bids/analysis')

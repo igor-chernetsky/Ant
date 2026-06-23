@@ -95,6 +95,7 @@ export class CommercialProposalService {
       projectTitle: bid.tender.project.title,
       projectDistrict: bid.tender.project.district,
       projectDescription: bid.tender.project.description,
+      clarificationSummary: bid.tender.project.clarificationSummary,
       bidAmount: Number(bid.amount),
       durationDays: bid.durationDays,
       terms,

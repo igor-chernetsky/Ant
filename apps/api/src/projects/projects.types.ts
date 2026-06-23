@@ -2,6 +2,7 @@ import {
   ProjectType,
   PropertyType,
   TagSource,
+  ClarificationMode,
 } from '@prisma/client';
 import { ProjectBriefV1 } from './project-brief';
 import { EstimateResponse } from '../estimation/estimates.types';
@@ -20,6 +21,7 @@ export interface CreateProjectDto {
   projectType?: ProjectType;
   propertyType?: PropertyType;
   district?: string;
+  clarificationMode?: ClarificationMode;
 }
 
 export interface ProjectResponse {
@@ -33,6 +35,8 @@ export interface ProjectResponse {
   status: string;
   readinessScore: number;
   brief: ProjectBriefV1 | null;
+  clarificationMode: ClarificationMode;
+  clarificationSummary: string | null;
   tags: ProjectTagResponse[];
   estimate: EstimateResponse | null;
   createdAt: string;

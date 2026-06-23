@@ -7,6 +7,7 @@ import {
 import {
   Bid,
   BidStatus,
+  ClarificationMode,
   ContractorProfile,
   Prisma,
   ProjectStatus,
@@ -14,11 +15,12 @@ import {
   TenderStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { BidMessagesService } from './bid-messages.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { TenderClarificationsService } from './tender-clarifications.service';
 import { normalizeContractTerms } from './commercial-proposal.template';
 import {
   BidResponse,
@@ -52,6 +54,7 @@ export class TendersService {
     private readonly autoClose: TenderAutoCloseService,
     private readonly bidMessages: BidMessagesService,
     private readonly notifications: NotificationsService,
+    private readonly clarifications: TenderClarificationsService,
   ) {}
 
   private mapBid(bid: Bid & { contractor: ContractorProfile }): BidResponse {
@@ -212,13 +215,15 @@ export class TendersService {
     }
 
     const now = new Date();
+    const structuredClarification =
+      project.clarificationMode === ClarificationMode.structured_qa;
 
     const tender = await this.prisma.$transaction(async (tx) => {
       const created = await tx.tender.create({
         data: {
           projectId,
-          status: TenderStatus.open,
-          opensAt: now,
+          status: structuredClarification ? TenderStatus.draft : TenderStatus.open,
+          opensAt: structuredClarification ? null : now,
           closesAt: null,
         },
         include: this.includeTenderRelations(),
@@ -260,6 +265,10 @@ export class TendersService {
       );
     }
 
+    if (project.clarificationMode === ClarificationMode.structured_qa) {
+      await this.clarifications.summarizeAnsweredForProject(projectId);
+    }
+
     const now = new Date();
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -280,6 +289,10 @@ export class TendersService {
 
       return next;
     });
+
+    this.notifications.dispatch(
+      this.notifications.notifyMatchingContractorsForProject(projectId),
+    );
 
     return this.mapTender(updated);
   }
@@ -312,9 +325,12 @@ export class TendersService {
       return;
     }
 
-    if (tender.status !== TenderStatus.open) {
+    if (
+      tender.status !== TenderStatus.open &&
+      tender.status !== TenderStatus.draft
+    ) {
       throw new BadRequestException(
-        'Tender can only be reverted while it is open',
+        'Tender can only be reverted before bidding starts',
       );
     }
 
@@ -506,7 +522,34 @@ export class TendersService {
       myBid && tenderAwarded && myBid.status !== BidStatus.selected,
     );
 
+    const clarificationMode =
+      project.clarificationMode ?? ClarificationMode.open_chat;
     const tenderOpen = tender?.status === TenderStatus.open;
+    const tenderCollectingClarifications = Boolean(
+      tender?.status === TenderStatus.draft &&
+        clarificationMode === ClarificationMode.structured_qa,
+    );
+
+    let hasSubmittedClarificationQuestions = false;
+    let clarificationProgress = {
+      totalQuestions: 0,
+      answeredQuestions: 0,
+      allAnswered: false,
+    };
+
+    if (tender && clarificationMode === ClarificationMode.structured_qa) {
+      clarificationProgress = await this.clarifications.getClarificationProgress(
+        tender.id,
+      );
+      if (myBid) {
+        hasSubmittedClarificationQuestions =
+          await this.clarifications.hasSubmittedQuestions(myBid.id);
+      }
+    }
+
+    const structuredReadyForEnroll =
+      clarificationMode !== ClarificationMode.structured_qa ||
+      hasSubmittedClarificationQuestions;
 
     return {
       tenderId: tender?.id ?? null,
@@ -514,8 +557,18 @@ export class TendersService {
       closesAt: tender?.closesAt?.toISOString() ?? null,
       myBid: myBid ? this.mapBid(myBid) : null,
       verificationStatus: profile.verificationStatus,
-      canStartClarification: Boolean(tenderOpen && !myBid),
-      canEnroll: Boolean(tenderOpen && myBid?.status === BidStatus.clarifying),
+      clarificationMode,
+      hasSubmittedClarificationQuestions,
+      clarificationProgress,
+      tenderCollectingClarifications,
+      canStartClarification: Boolean(
+        (tenderOpen || tenderCollectingClarifications) && !myBid,
+      ),
+      canEnroll: Boolean(
+        tenderOpen &&
+          myBid?.status === BidStatus.clarifying &&
+          structuredReadyForEnroll,
+      ),
       canSubmitProposal: Boolean(
         tenderOpen &&
           myBid &&
@@ -523,7 +576,7 @@ export class TendersService {
             myBid.status === BidStatus.submitted),
       ),
       canWithdraw: Boolean(
-        tenderOpen &&
+        (tenderOpen || tenderCollectingClarifications) &&
           myBid &&
           (myBid.status === BidStatus.clarifying ||
             myBid.status === BidStatus.enrolled ||
@@ -541,8 +594,18 @@ export class TendersService {
     const profile = await this.contractorProfiles.requireByUserId(userId);
     const tender = await this.loadTender(tenderId);
 
-    if (tender.status !== TenderStatus.open) {
-      throw new BadRequestException('Tender is not open');
+    const project = await this.prisma.project.findUnique({
+      where: { id: tender.projectId },
+    });
+    const structuredClarification =
+      project?.clarificationMode === ClarificationMode.structured_qa;
+
+    const clarificationAllowed =
+      tender.status === TenderStatus.open ||
+      (tender.status === TenderStatus.draft && structuredClarification);
+
+    if (!clarificationAllowed) {
+      throw new BadRequestException('Tender is not accepting clarification');
     }
 
     const existing = tender.bids.find(
@@ -581,6 +644,18 @@ export class TendersService {
       throw new BadRequestException(
         'Start clarification and discuss scope before enrolling',
       );
+    }
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: tender.projectId },
+    });
+    if (project?.clarificationMode === ClarificationMode.structured_qa) {
+      const submitted = await this.clarifications.hasSubmittedQuestions(bid.id);
+      if (!submitted) {
+        throw new BadRequestException(
+          'Submit your question list before enrolling',
+        );
+      }
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {
@@ -873,7 +948,16 @@ export class TendersService {
     const profile = await this.contractorProfiles.requireByUserId(userId);
     const tender = await this.loadTender(tenderId);
 
-    if (tender.status !== TenderStatus.open) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: tender.projectId },
+    });
+    const structuredClarification =
+      project?.clarificationMode === ClarificationMode.structured_qa;
+    const withdrawalAllowed =
+      tender.status === TenderStatus.open ||
+      (tender.status === TenderStatus.draft && structuredClarification);
+
+    if (!withdrawalAllowed) {
       throw new BadRequestException('Tender is not open');
     }
 

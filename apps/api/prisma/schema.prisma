@@ -101,6 +101,11 @@ enum AmendmentChangeType {
   other
 }
 
+enum ClarificationMode {
+  open_chat
+  structured_qa
+}
+
 model User {
   id          String    @id @default(uuid())
   keycloakSub String    @unique @map("keycloak_sub")
@@ -116,6 +121,7 @@ model User {
   bidMessages BidMessage[]
   bidOffers   BidOffer[]
   bidChatPresence BidChatPresence[]
+  tenderClarificationAnswers TenderClarificationQuestion[] @relation("ClarificationAnsweredBy")
   notificationPreferences UserNotificationPreferences?
   notificationEmailLogs   NotificationEmailLog[]
 
@@ -195,6 +201,8 @@ model Project {
   status         ProjectStatus @default(draft)
   readinessScore Int           @default(0) @map("readiness_score")
   briefJson      Json?         @map("brief_json")
+  clarificationMode ClarificationMode @default(open_chat) @map("clarification_mode")
+  clarificationSummary String?  @map("clarification_summary") @db.Text
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
   tags           ProjectTag[]
@@ -331,6 +339,7 @@ model Tender {
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
   bids         Bid[]        @relation("TenderBids")
+  clarificationQuestions TenderClarificationQuestion[]
 
   @@index([status])
   @@map("tenders")
@@ -354,6 +363,7 @@ model Bid {
   messages     BidMessage[]
   offers       BidOffer[]
   chatPresence BidChatPresence[]
+  clarificationSubmission BidClarificationSubmission?
 
   @@unique([tenderId, contractorId])
   @@index([tenderId])
@@ -401,4 +411,32 @@ model BidOffer {
 
   @@index([bidId])
   @@map("bid_offers")
+}
+
+model BidClarificationSubmission {
+  id          String   @id @default(uuid())
+  bidId       String   @unique @map("bid_id")
+  bid         Bid      @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  questions   Json
+  submittedAt DateTime @default(now()) @map("submitted_at")
+
+  @@map("bid_clarification_submissions")
+}
+
+model TenderClarificationQuestion {
+  id           String    @id @default(uuid())
+  tenderId     String    @map("tender_id")
+  tender       Tender    @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+  questionText String    @map("question_text")
+  sortOrder    Int       @default(0) @map("sort_order")
+  answer       String?   @db.Text
+  answeredAt   DateTime? @map("answered_at")
+  answeredById String?   @map("answered_by_id")
+  answeredBy   User?     @relation("ClarificationAnsweredBy", fields: [answeredById], references: [id], onDelete: SetNull)
+  sourceBidIds String[]  @default([]) @map("source_bid_ids")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([tenderId, sortOrder])
+  @@map("tender_clarification_questions")
 }

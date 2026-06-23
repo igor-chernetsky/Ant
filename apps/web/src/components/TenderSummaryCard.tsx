@@ -9,8 +9,10 @@ import {
   fetchProjectTender,
   formatTenderStatus,
   revertProjectTender,
+  startProjectTender,
   type Tender,
 } from '@/lib/tendering';
+import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificationQuestionsPanel';
 
 interface TenderSummaryCardProps {
   projectId: string;
@@ -69,6 +71,34 @@ export function TenderSummaryCard({
     }
   };
 
+  const handleOpenTender = async () => {
+    const confirmed = window.confirm(
+      'Open the tender for commercial proposals? Answered clarification questions will be summarized into the project description.',
+    );
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await startProjectTender(projectId);
+      setTender(data);
+      await refreshProject();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to open tender');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const structuredQa = project.clarificationMode === 'structured_qa';
+  const collectingQuestions = structuredQa && tender?.status === 'draft';
+  const canPublish = canPublishProject(project);
+  const canRevert =
+    tender != null &&
+    (tender.status === 'open' || tender.status === 'draft') &&
+    (tender.applicationCount ?? tender.bids.length) === 0;
+  const bidsHref = `/projects/${projectId}/bids`;
+
   const handleRevert = async () => {
     const confirmed = window.confirm(
       'Return this project to preparation? Contractors will no longer see it for bidding until you publish again.',
@@ -87,13 +117,6 @@ export function TenderSummaryCard({
       setBusy(false);
     }
   };
-
-  const canPublish = canPublishProject(project);
-  const canRevert =
-    tender != null &&
-    tender.status === 'open' &&
-    (tender.applicationCount ?? tender.bids.length) === 0;
-  const bidsHref = `/projects/${projectId}/bids`;
 
   if (loading) {
     return (
@@ -124,8 +147,9 @@ export function TenderSummaryCard({
       {!tender ? (
         <>
           <p className="muted doc-hint">
-            Publish the project for open bidding. Contractors clarify scope,
-            enroll as contenders, then submit proposals.
+            {structuredQa
+              ? 'Publish to collect contractor clarification questions. Answer what you can, then open the tender for commercial proposals.'
+              : 'Publish the project for open bidding. Contractors clarify scope, enroll as contenders, then submit proposals.'}
           </p>
           <div className="tender-actions-block">
             <button
@@ -134,7 +158,11 @@ export function TenderSummaryCard({
               disabled={busy || !canPublish}
               onClick={() => void handleCreate()}
             >
-              {busy ? 'Publishing…' : 'Publish for bids'}
+              {busy
+                ? 'Publishing…'
+                : structuredQa
+                  ? 'Publish for clarification'
+                  : 'Publish for bids'}
             </button>
             {!canPublish && (
               <p className="muted tender-hint">
@@ -148,7 +176,11 @@ export function TenderSummaryCard({
           <dl className="meta-grid tender-meta tender-summary-meta">
             <div>
               <dt>Status</dt>
-              <dd>{formatTenderStatus(tender.status)}</dd>
+              <dd>
+                {collectingQuestions
+                  ? 'Collecting questions'
+                  : formatTenderStatus(tender.status)}
+              </dd>
             </div>
             <div>
               <dt>Applications</dt>
@@ -218,7 +250,25 @@ export function TenderSummaryCard({
             </div>
           )}
 
-          {tender.bids.length === 0 && (
+          {collectingQuestions && (
+            <div className="tender-actions-block">
+              <p className="muted tender-phase-hint">
+                Contractors are submitting clarification questions. Answer any
+                you are ready to — you do not need to answer all of them before
+                opening the tender.
+              </p>
+              <button
+                type="button"
+                className="primary"
+                disabled={busy}
+                onClick={() => void handleOpenTender()}
+              >
+                {busy ? 'Opening…' : 'Open tender for bids'}
+              </button>
+            </div>
+          )}
+
+          {tender.bids.length === 0 && !collectingQuestions && (
             <>
               <p className="muted tender-phase-hint">
                 Published for bids. Waiting for contractors to start clarification.
@@ -239,6 +289,16 @@ export function TenderSummaryCard({
                 </div>
               )}
             </>
+          )}
+
+          {project.clarificationMode === 'structured_qa' && tender && (
+            <ClientClarificationQuestionsPanel
+              projectId={projectId}
+              clarificationSummary={
+                collectingQuestions ? null : project.clarificationSummary
+              }
+              onUpdated={() => void refreshProject()}
+            />
           )}
         </>
       )}

@@ -4,9 +4,11 @@ import { FormEvent, useEffect, useState } from 'react';
 import { isSessionExpiredError } from '@/lib/auth-client';
 import { ensureSessionFresh } from '@/lib/session';
 import {
+  CLARIFICATION_MODE_OPTIONS,
   PROJECT_TYPE_OPTIONS,
   PROPERTY_TYPE_OPTIONS,
   createProject,
+  type ClarificationMode,
   type ProjectType,
   type PropertyType,
 } from '@/lib/projects';
@@ -29,6 +31,8 @@ export function CreateProjectModal({
   const [projectType, setProjectType] = useState<ProjectType>('renovation');
   const [propertyType, setPropertyType] = useState<PropertyType | ''>('');
   const [district, setDistrict] = useState('');
+  const [clarificationMode, setClarificationMode] =
+    useState<ClarificationMode>('open_chat');
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -61,6 +65,7 @@ export function CreateProjectModal({
         projectType,
         propertyType: propertyType || undefined,
         district: district.trim() || undefined,
+        clarificationMode,
       });
       onCreated(project.id);
       onClose();
@@ -171,6 +176,30 @@ export function CreateProjectModal({
               placeholder="e.g. Sukhumvit, Bangkok"
             />
           </label>
+
+          <fieldset className="clarification-mode-fieldset">
+            <legend>Contractor clarification</legend>
+            <p className="muted clarification-mode-hint">
+              How contractors ask questions before submitting proposals.
+            </p>
+            {CLARIFICATION_MODE_OPTIONS.map((option) => (
+              <label key={option.value} className="clarification-mode-option">
+                <input
+                  type="radio"
+                  name="clarificationMode"
+                  value={option.value}
+                  checked={clarificationMode === option.value}
+                  onChange={() => setClarificationMode(option.value)}
+                />
+                <span>
+                  <strong>{option.label}</strong>
+                  <span className="muted clarification-mode-desc">
+                    {option.description}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
 
           {error && <p className="form-error">{error}</p>}
 

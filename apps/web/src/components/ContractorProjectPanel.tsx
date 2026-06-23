@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
+import { StructuredClarificationForm } from '@/components/StructuredClarificationForm';
 import { useSession } from '@/components/SessionProvider';
 import {
   enrollContractorInTender,
@@ -169,6 +170,8 @@ export function ContractorProjectPanel({
 
   const myBid = participation.myBid;
   const inClarification = myBid?.status === 'clarifying';
+  const structuredQa =
+    participation.clarificationMode === 'structured_qa';
   const enrolled = myBid?.status === 'enrolled';
   const submitted = myBid?.status === 'submitted';
 
@@ -176,9 +179,11 @@ export function ContractorProjectPanel({
     <section className="card contractor-project-card">
       <h2 className="section-title">Your participation</h2>
       <p className="muted doc-hint">
-        Ask clarifying questions first, enroll as a contender, then submit your
-        commercial proposal. The client may send counter-offers until a winner is
-        chosen.
+        {structuredQa
+          ? participation.tenderCollectingClarifications
+            ? 'Submit your clarification questions once. The client will open the tender for proposals when ready.'
+            : 'Submit your clarification questions once, then enroll and submit your commercial proposal when the tender is open.'
+          : 'Ask clarifying questions first, enroll as a contender, then submit your commercial proposal. The client may send counter-offers until a winner is chosen.'}
       </p>
 
       <dl className="meta-grid contractor-participation-meta">
@@ -217,8 +222,9 @@ export function ContractorProjectPanel({
       {participation.canStartClarification && (
         <div className="participation-actions">
           <p className="muted participation-actions-hint">
-            Ask the client questions about scope, access, or timeline before
-            enrolling.
+            {structuredQa
+              ? 'Start clarification to compose your one-time question list for the client.'
+              : 'Ask the client questions about scope, access, or timeline before enrolling.'}
           </p>
           <div className="participation-toolbar">
             <button
@@ -235,20 +241,49 @@ export function ContractorProjectPanel({
 
       {myBid && (inClarification || enrolled || submitted) && me?.id && (
         <div className="tender-subsection">
-          <h3 className="tender-subsection-title">Discussion with client</h3>
-          <BidChat
-            bidId={myBid.id}
-            currentUserId={me.id}
-            title="Clarifications & questions"
-          />
+          {structuredQa && inClarification ? (
+            <>
+              <h3 className="tender-subsection-title">Your question list</h3>
+              <StructuredClarificationForm
+                bidId={myBid.id}
+                disabled={busy}
+                onSubmitted={() => void loadParticipation()}
+              />
+              {participation.tenderCollectingClarifications && (
+                <p className="muted structured-clarification-waiting">
+                  Waiting for the client to open the tender for commercial
+                  proposals.
+                </p>
+              )}
+              {participation.hasSubmittedClarificationQuestions &&
+                !participation.tenderCollectingClarifications &&
+                participation.tenderStatus === 'open' &&
+                participation.canEnroll && (
+                  <p className="muted structured-clarification-waiting">
+                    The tender is open — you can enroll and submit your
+                    proposal.
+                  </p>
+                )}
+            </>
+          ) : !structuredQa ? (
+            <>
+              <h3 className="tender-subsection-title">Discussion with client</h3>
+              <BidChat
+                bidId={myBid.id}
+                currentUserId={me.id}
+                title="Clarifications & questions"
+              />
+            </>
+          ) : null}
         </div>
       )}
 
       {participation.canEnroll && (
         <div className="participation-actions">
           <p className="muted participation-actions-hint">
-            Receive your contender number and proceed to submit a commercial
-            proposal. You can leave the discussion at any time before enrolling.
+            {structuredQa
+              ? 'The tender is open for proposals. Enroll to receive your contender number.'
+              : 'Receive your contender number and proceed to submit a commercial proposal. You can leave the discussion at any time before enrolling.'}
           </p>
           <div className="participation-toolbar">
             <button

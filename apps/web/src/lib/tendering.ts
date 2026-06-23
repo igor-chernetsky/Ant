@@ -96,12 +96,33 @@ export interface ContractorProfile {
   createdAt: string;
 }
 
+export type ClarificationMode = 'open_chat' | 'structured_qa';
+
+export interface ClarificationQuestion {
+  id: string;
+  questionText: string;
+  sortOrder: number;
+  answer: string | null;
+  answeredAt: string | null;
+  sourceBidIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ContractorProjectParticipation {
   tenderId: string | null;
   tenderStatus: TenderStatus | null;
   closesAt: string | null;
   myBid: Bid | null;
   verificationStatus: string;
+  clarificationMode: ClarificationMode;
+  hasSubmittedClarificationQuestions: boolean;
+  clarificationProgress: {
+    totalQuestions: number;
+    answeredQuestions: number;
+    allAnswered: boolean;
+  };
+  tenderCollectingClarifications: boolean;
   canStartClarification: boolean;
   canEnroll: boolean;
   canSubmitProposal: boolean;
@@ -218,6 +239,73 @@ export async function revertProjectTender(projectId: string): Promise<void> {
   if (!response.ok) {
     await parseError(response, 'Failed to revert tender');
   }
+}
+
+export async function fetchClarificationQuestions(
+  projectId: string,
+): Promise<ClarificationQuestion[]> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/clarification-questions`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load clarification questions');
+  }
+  return response.json() as Promise<ClarificationQuestion[]>;
+}
+
+export async function answerClarificationQuestion(
+  projectId: string,
+  questionId: string,
+  answer: string,
+): Promise<ClarificationQuestion> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/clarification-questions/${encodeURIComponent(questionId)}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answer }),
+    },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to save answer');
+  }
+  return response.json() as Promise<ClarificationQuestion>;
+}
+
+export async function fetchBidClarificationSubmission(
+  bidId: string,
+): Promise<{ questions: string[]; submittedAt: string } | null> {
+  const response = await fetchWithAuth(
+    `/api/contractor/bids/${encodeURIComponent(bidId)}/clarification-questions`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load your question list');
+  }
+  const data = (await response.json()) as
+    | { questions: string[]; submittedAt: string }
+    | { submission: null };
+  if ('submission' in data && data.submission === null) {
+    return null;
+  }
+  return data as { questions: string[]; submittedAt: string };
+}
+
+export async function submitBidClarificationQuestions(
+  bidId: string,
+  questions: string[],
+): Promise<{ questions: string[]; submittedAt: string }> {
+  const response = await fetchWithAuth(
+    `/api/contractor/bids/${encodeURIComponent(bidId)}/clarification-questions`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questions }),
+    },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to submit questions');
+  }
+  return response.json() as Promise<{ questions: string[]; submittedAt: string }>;
 }
 
 export async function selectProjectBid(

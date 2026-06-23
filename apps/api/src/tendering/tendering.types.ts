@@ -152,6 +152,14 @@ export interface ContractorProjectParticipation {
   closesAt: string | null;
   myBid: BidResponse | null;
   verificationStatus: string;
+  clarificationMode: 'open_chat' | 'structured_qa';
+  hasSubmittedClarificationQuestions: boolean;
+  clarificationProgress: {
+    totalQuestions: number;
+    answeredQuestions: number;
+    allAnswered: boolean;
+  };
+  tenderCollectingClarifications: boolean;
   canStartClarification: boolean;
   canEnroll: boolean;
   canSubmitProposal: boolean;
@@ -181,6 +189,25 @@ export interface UpdateBidContractTermsDto {
 
 export interface SendBidMessageDto {
   body: string;
+}
+
+export interface ClarificationQuestionResponse {
+  id: string;
+  questionText: string;
+  sortOrder: number;
+  answer: string | null;
+  answeredAt: string | null;
+  sourceBidIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubmitBidClarificationQuestionsDto {
+  questions: string[];
+}
+
+export interface AnswerClarificationQuestionDto {
+  answer: string;
 }
 
 export const DEFAULT_TENDER_DURATION_DAYS = 7;
