@@ -115,15 +115,21 @@ export function ClientClarificationQuestionsPanel({
                   key={question.id}
                   className={`client-clarification-item${isAnswered ? ' client-clarification-item--answered' : ''}`}
                 >
-                  <p className="client-clarification-question">
+                  <div className="client-clarification-question">
                     <span className="client-clarification-index">
                       {index + 1}.
-                    </span>{' '}
-                    {question.questionText}
-                  </p>
-                  <label>
-                    Your answer
+                    </span>
+                    <p>{question.questionText}</p>
+                  </div>
+                  <div className="client-clarification-answer-field">
+                    <label
+                      className="client-clarification-answer-label"
+                      htmlFor={`clarification-answer-${question.id}`}
+                    >
+                      Your answer
+                    </label>
                     <textarea
+                      id={`clarification-answer-${question.id}`}
                       rows={3}
                       value={draft}
                       disabled={savingId === question.id}
@@ -134,7 +140,7 @@ export function ClientClarificationQuestionsPanel({
                         }))
                       }
                     />
-                  </label>
+                  </div>
                   <div className="client-clarification-actions">
                     <button
                       type="button"

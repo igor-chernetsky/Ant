@@ -94,7 +94,11 @@ export class DocumentAnalysisService {
     if (!freshProject) return;
 
     const brief = (freshProject.briefJson ?? {}) as unknown as ProjectBriefV1;
-    const mergedPackages = mergePackages(brief.packages ?? [], result.packages);
+    const taggedPackages = result.packages.map((pkg) => ({
+      ...pkg,
+      sourceDocumentId: doc.id,
+    }));
+    const mergedPackages = mergePackages(brief.packages ?? [], taggedPackages);
 
     const insight: DocumentInsightRecord = {
       documentId: doc.id,

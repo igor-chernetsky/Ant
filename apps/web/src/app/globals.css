@@ -2792,9 +2792,12 @@ select:disabled {
 }
 
 .client-clarification-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 0.85rem;
+  padding: 0.95rem 1rem;
   background: #fff;
 }
 
@@ -2804,12 +2807,41 @@ select:disabled {
 }
 
 .client-clarification-question {
-  margin: 0 0 0.65rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0;
   font-weight: 600;
+  line-height: 1.45;
+}
+
+.client-clarification-question p {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .client-clarification-index {
+  flex-shrink: 0;
   color: var(--muted, #6b7280);
+  font-weight: 600;
+}
+
+.client-clarification-answer-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.client-clarification-answer-label {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.client-clarification-answer-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 5rem;
 }
 
 .client-clarification-actions {
@@ -2817,7 +2849,11 @@ select:disabled {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 0.5rem;
+  margin-top: 0;
+}
+
+.client-clarification-saved {
+  font-size: 0.85rem;
 }
 
 .client-clarification-summary {

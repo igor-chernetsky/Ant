@@ -13,6 +13,7 @@ export interface ProjectBriefV1 {
     quantity?: number;
     unit?: string;
     areaSqm?: number;
+    sourceDocumentId?: string;
   }>;
   property?: {
     type?: PropertyType;

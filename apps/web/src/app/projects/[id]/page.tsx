@@ -33,6 +33,7 @@ import { formatConfidence, formatThb } from '@/lib/estimate';
 import { isIntakeActive } from '@/lib/intake';
 import {
   canDeleteProject,
+  canDeleteDocument,
   deleteProject,
   fetchProject,
   formatDateTime,
@@ -182,13 +183,11 @@ export default function ProjectDetailPage() {
       const patched = new File([file], file.name, { type: contentType });
       await uploadProjectDocument(projectId, patched, docCategory);
       await loadDocuments(true);
-      if (!project || !isIntakeActive(project)) {
-        const data = await fetchProject(projectId);
-        setProject(data);
-        window.setTimeout(() => {
-          void fetchProject(projectId).then(setProject);
-        }, 4000);
-      }
+      const data = await fetchProject(projectId);
+      setProject(data);
+      window.setTimeout(() => {
+        void fetchProject(projectId).then(setProject);
+      }, 4000);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -240,7 +239,8 @@ export default function ProjectDetailPage() {
   const fileDocuments = documents.filter((d) => !isImageDocument(d));
   const intakeActive = isOwner && project ? isIntakeActive(project) : false;
   const showDelete = isOwner && project ? canDeleteProject(project) : false;
-  const showDocDelete = showDelete;
+  const showDocDelete =
+    isOwner && project ? canDeleteDocument(project) : false;
   const brief = project?.brief ?? null;
 
   const overviewItems = project
@@ -339,7 +339,7 @@ export default function ProjectDetailPage() {
               <h2 className="section-title">Documents</h2>
               <p className="muted doc-hint">
                 {isOwner
-                  ? `Upload blueprints, photos, and specifications (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Files are stored in private object storage.`
+                  ? `Upload blueprints, photos, and specifications (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Files are stored in private object storage. PDFs and images are analyzed automatically — a short summary is added to the project brief.`
                   : 'Plans, photos, and specifications attached to this project.'}
               </p>
               {isOwner && (

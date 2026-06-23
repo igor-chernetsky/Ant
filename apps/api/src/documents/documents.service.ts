@@ -28,6 +28,7 @@ const DELETABLE_DOCUMENT_PROJECT_STATUSES: ProjectStatus[] = [
   ProjectStatus.draft,
   ProjectStatus.intake,
   ProjectStatus.ready_for_estimate,
+  ProjectStatus.estimated,
 ];
 
 @Injectable()
@@ -276,7 +277,7 @@ export class DocumentsService {
 
     if (!DELETABLE_DOCUMENT_PROJECT_STATUSES.includes(project.status)) {
       throw new BadRequestException(
-        'Documents cannot be removed after estimation or tendering has started',
+        'Documents cannot be removed after the tender has started',
       );
     }
 
@@ -321,6 +322,13 @@ export class DocumentsService {
     const documentInsights = (brief.ai?.documentInsights ?? []).filter(
       (insight) => insight.documentId !== documentId,
     );
+    const packages = (brief.packages ?? []).filter(
+      (pkg) => pkg.sourceDocumentId !== documentId,
+    );
+    const confidence =
+      documentInsights.length > 0
+        ? Math.max(...documentInsights.map((insight) => insight.confidence))
+        : (brief.ai?.confidence ?? 0);
 
     const hasBlueprint = await this.prisma.document.count({
       where: {
@@ -332,6 +340,7 @@ export class DocumentsService {
 
     const updatedBrief: ProjectBriefV1 = {
       ...brief,
+      packages,
       design: {
         ...brief.design,
         hasPlans: hasBlueprint > 0,
@@ -339,6 +348,7 @@ export class DocumentsService {
       ai: {
         ...brief.ai,
         documentInsights,
+        confidence,
       },
     };
 

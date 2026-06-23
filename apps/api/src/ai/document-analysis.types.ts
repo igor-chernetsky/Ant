@@ -4,6 +4,8 @@ export interface BriefPackage {
   quantity?: number;
   unit?: string;
   areaSqm?: number;
+  /** Set when scope line was inferred from a specific uploaded document */
+  sourceDocumentId?: string;
 }
 
 export interface DocumentAnalysisResult {

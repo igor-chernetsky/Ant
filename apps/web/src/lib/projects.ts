@@ -52,6 +52,7 @@ export interface ProjectBriefV1 {
     quantity?: number;
     unit?: string;
     areaSqm?: number;
+    sourceDocumentId?: string;
   }>;
   property?: {
     type?: PropertyType;
@@ -226,8 +227,19 @@ const DELETABLE_STATUSES = new Set([
   'ready_for_estimate',
 ]);
 
+const DELETABLE_DOCUMENT_STATUSES = new Set([
+  'draft',
+  'intake',
+  'ready_for_estimate',
+  'estimated',
+]);
+
 export function canDeleteProject(project: Pick<Project, 'status'>): boolean {
   return DELETABLE_STATUSES.has(project.status);
+}
+
+export function canDeleteDocument(project: Pick<Project, 'status'>): boolean {
+  return DELETABLE_DOCUMENT_STATUSES.has(project.status);
 }
 
 export async function deleteProject(id: string): Promise<void> {
