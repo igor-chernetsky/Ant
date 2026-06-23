@@ -54,6 +54,16 @@ export class ProjectTenderController {
     return this.tendersService.startTender(user.id, projectId);
   }
 
+  @Post('revert')
+  @HttpCode(204)
+  async revertTender(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    await this.tendersService.revertTenderToEstimated(user.id, projectId);
+  }
+
   @Get('bids/analysis')
   async getBidAnalysis(
     @Req() req: Request & { user: JwtPayload },

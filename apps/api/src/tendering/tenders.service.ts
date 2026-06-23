@@ -284,6 +284,55 @@ export class TendersService {
     return this.mapTender(updated);
   }
 
+  async revertTenderToEstimated(
+    clientId: string,
+    projectId: string,
+  ): Promise<void> {
+    const project = await this.assertProjectOwner(projectId, clientId);
+
+    if (project.status !== ProjectStatus.in_tender) {
+      throw new BadRequestException('Project is not published for bids');
+    }
+
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+      include: {
+        bids: {
+          where: { status: { not: BidStatus.withdrawn } },
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!tender) {
+      await this.prisma.project.update({
+        where: { id: projectId },
+        data: { status: ProjectStatus.estimated },
+      });
+      return;
+    }
+
+    if (tender.status !== TenderStatus.open) {
+      throw new BadRequestException(
+        'Tender can only be reverted while it is open',
+      );
+    }
+
+    if (tender.bids.length > 0) {
+      throw new BadRequestException(
+        'Cannot revert tender after contractors have applied',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.tender.delete({ where: { id: tender.id } });
+      await tx.project.update({
+        where: { id: projectId },
+        data: { status: ProjectStatus.estimated },
+      });
+    });
+  }
+
   async selectBid(
     clientId: string,
     projectId: string,

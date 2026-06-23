@@ -210,6 +210,16 @@ export async function startProjectTender(projectId: string): Promise<Tender> {
   return response.json() as Promise<Tender>;
 }
 
+export async function revertProjectTender(projectId: string): Promise<void> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/revert`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to revert tender');
+  }
+}
+
 export async function selectProjectBid(
   projectId: string,
   bidId: string,

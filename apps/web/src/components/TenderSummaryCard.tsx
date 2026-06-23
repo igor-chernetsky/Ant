@@ -8,6 +8,7 @@ import {
   createProjectTender,
   fetchProjectTender,
   formatTenderStatus,
+  revertProjectTender,
   type Tender,
 } from '@/lib/tendering';
 
@@ -68,7 +69,30 @@ export function TenderSummaryCard({
     }
   };
 
+  const handleRevert = async () => {
+    const confirmed = window.confirm(
+      'Return this project to preparation? Contractors will no longer see it for bidding until you publish again.',
+    );
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      await revertProjectTender(projectId);
+      setTender(null);
+      await refreshProject();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to revert tender');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const canPublish = canPublishProject(project);
+  const canRevert =
+    tender != null &&
+    tender.status === 'open' &&
+    (tender.applicationCount ?? tender.bids.length) === 0;
   const bidsHref = `/projects/${projectId}/bids`;
 
   if (loading) {
@@ -195,9 +219,26 @@ export function TenderSummaryCard({
           )}
 
           {tender.bids.length === 0 && (
-            <p className="muted tender-phase-hint">
-              Published for bids. Waiting for contractors to start clarification.
-            </p>
+            <>
+              <p className="muted tender-phase-hint">
+                Published for bids. Waiting for contractors to start clarification.
+              </p>
+              {canRevert && (
+                <div className="tender-actions-block">
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => void handleRevert()}
+                  >
+                    {busy ? 'Returning…' : 'Return to preparation'}
+                  </button>
+                  <p className="muted tender-hint">
+                    Unpublish to refine project details before contractors apply.
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
