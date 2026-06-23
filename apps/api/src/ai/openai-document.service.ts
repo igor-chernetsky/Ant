@@ -92,6 +92,84 @@ Do not invent precise measurements unless readable. Use trade slugs like electri
     }
   }
 
+  async analyzePdfText(input: {
+    extractedText: string;
+    pageCount: number;
+    truncated: boolean;
+    fileName: string;
+    category: string;
+    projectTitle: string;
+    projectDescription: string | null;
+    availableTagSlugs: string[];
+  }): Promise<DocumentAnalysisResult | null> {
+    if (!this.isConfigured()) {
+      return null;
+    }
+
+    const system = `You extract construction-relevant facts from PDF document text for a marketplace project brief.
+Return JSON only: { summary, confidence, property, packages, suggestedTagSlugs, omittedNote, keyFacts }.
+
+Rules:
+- summary: 2-4 concise English sentences for AI/project context. Paraphrase — never paste long raw excerpts.
+- omittedNote: optional one sentence listing what you ignored (legal boilerplate, ads, repeated headers, unrelated appendices).
+- keyFacts: optional array of up to 8 short bullets with scope-relevant facts only.
+- property: optional { areaSqm, rooms, floors } when clearly stated in the document.
+- packages: scope lines { trade, description, quantity?, unit?, areaSqm? } useful for estimating/tendering.
+- suggestedTagSlugs: subset of allowed tags only.
+- confidence: 0-1 (lower if text is noisy, scanned, or incomplete).
+
+Ignore pricing tables unless they clarify scope quantities. Do not invent measurements.`;
+
+    const userText = JSON.stringify({
+      fileName: input.fileName,
+      category: input.category,
+      projectTitle: input.projectTitle,
+      projectDescription: input.projectDescription,
+      allowedTagSlugs: input.availableTagSlugs,
+      pageCount: input.pageCount,
+      textTruncated: input.truncated,
+      documentText: input.extractedText,
+    });
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini').trim(),
+          temperature: 0.2,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: userText },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        this.logger.warn(`PDF analysis HTTP ${response.status}: ${text.slice(0, 200)}`);
+        return null;
+      }
+
+      const payload = (await response.json()) as {
+        choices?: Array<{ message?: { content?: string } }>;
+      };
+      const content = payload.choices?.[0]?.message?.content;
+      if (!content) return null;
+
+      return this.normalizeResult(JSON.parse(content) as Record<string, unknown>);
+    } catch (err) {
+      this.logger.warn(
+        `PDF analysis failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
+  }
+
   private normalizeResult(raw: Record<string, unknown>): DocumentAnalysisResult {
     const packages = Array.isArray(raw.packages)
       ? raw.packages
@@ -138,6 +216,15 @@ Do not invent precise measurements unless readable. Use trade slugs like electri
       suggestedTagSlugs: Array.isArray(raw.suggestedTagSlugs)
         ? raw.suggestedTagSlugs.map((s) => String(s).slice(0, 64))
         : [],
+      omittedNote: raw.omittedNote
+        ? String(raw.omittedNote).slice(0, 500)
+        : undefined,
+      keyFacts: Array.isArray(raw.keyFacts)
+        ? raw.keyFacts
+            .map((fact) => String(fact).trim())
+            .filter(Boolean)
+            .slice(0, 8)
+        : undefined,
     };
   }
 }

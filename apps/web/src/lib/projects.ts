@@ -78,6 +78,8 @@ export interface ProjectBriefV1 {
       summary: string;
       confidence: number;
       provider: 'openai' | 'fallback';
+      omittedNote?: string;
+      keyFacts?: string[];
     }>;
     intake?: {
       status: IntakeStatus;

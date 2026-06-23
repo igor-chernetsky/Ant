@@ -16,6 +16,9 @@ export interface DocumentAnalysisResult {
   };
   packages: BriefPackage[];
   suggestedTagSlugs: string[];
+  /** What noisy sections were left out of the summary */
+  omittedNote?: string;
+  keyFacts?: string[];
 }
 
 export interface DocumentInsightRecord {
@@ -25,4 +28,6 @@ export interface DocumentInsightRecord {
   summary: string;
   confidence: number;
   provider: 'openai' | 'fallback';
+  omittedNote?: string;
+  keyFacts?: string[];
 }

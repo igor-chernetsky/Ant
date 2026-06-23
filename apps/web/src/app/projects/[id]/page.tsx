@@ -232,6 +232,9 @@ export default function ProjectDetailPage() {
 
   const packages = project?.brief?.packages ?? [];
   const documentInsights = project?.brief?.ai?.documentInsights ?? [];
+  const insightByDocumentId = new Map(
+    documentInsights.map((insight) => [insight.documentId, insight]),
+  );
   const estimate = project?.estimate ?? null;
   const imageDocuments = documents.filter(isImageDocument);
   const fileDocuments = documents.filter((d) => !isImageDocument(d));
@@ -411,7 +414,9 @@ export default function ProjectDetailPage() {
 
                   {fileDocuments.length > 0 && (
                     <ul className="doc-list">
-                      {fileDocuments.map((doc) => (
+                      {fileDocuments.map((doc) => {
+                        const insight = insightByDocumentId.get(doc.id);
+                        return (
                         <li key={doc.id} className="doc-item">
                           <div className="doc-item-main">
                             <button
@@ -430,6 +435,18 @@ export default function ProjectDetailPage() {
                               {doc.uploadedAt &&
                                 ` · ${formatDateTime(doc.uploadedAt)}`}
                             </p>
+                            {insight && (
+                              <div className="doc-insight">
+                                <p className="doc-insight-summary">
+                                  {insight.summary}
+                                </p>
+                                {insight.omittedNote && (
+                                  <p className="muted doc-insight-omitted">
+                                    {insight.omittedNote}
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                           {showDocDelete && (
                             <button
@@ -442,7 +459,8 @@ export default function ProjectDetailPage() {
                             </button>
                           )}
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   )}
                 </>
@@ -543,6 +561,18 @@ export default function ProjectDetailPage() {
                     <li key={insight.documentId} className="insight-item">
                       <strong>{insight.fileName}</strong>
                       <p>{insight.summary}</p>
+                      {insight.keyFacts && insight.keyFacts.length > 0 && (
+                        <ul className="doc-insight-facts">
+                          {insight.keyFacts.map((fact) => (
+                            <li key={fact}>{fact}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {insight.omittedNote && (
+                        <p className="muted doc-insight-omitted">
+                          {insight.omittedNote}
+                        </p>
+                      )}
                       <p className="muted">
                         {formatConfidence(insight.confidence)} confidence ·{' '}
                         {insight.provider}

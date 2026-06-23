@@ -8,6 +8,7 @@ import { OpenAiBidAnalysisService } from './openai-bid-analysis.service';
 import { OpenAiClarificationService } from './openai-clarification.service';
 import { OpenAiDocumentService } from './openai-document.service';
 import { OpenAiIntakeService } from './openai-intake.service';
+import { PdfTextService } from '../pdf/pdf-text.service';
 
 @Module({
   providers: [
@@ -20,6 +21,7 @@ import { OpenAiIntakeService } from './openai-intake.service';
     OpenAiDocumentService,
     DocumentAnalysisService,
     OpenAiClarificationService,
+    PdfTextService,
   ],
   exports: [
     OpenAiIntakeService,
@@ -30,6 +32,7 @@ import { OpenAiIntakeService } from './openai-intake.service';
     BidAnalysisFallbackService,
     DocumentAnalysisService,
     OpenAiClarificationService,
+    PdfTextService,
   ],
 })
 export class AiModule {}

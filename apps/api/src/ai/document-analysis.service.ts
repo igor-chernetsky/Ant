@@ -12,6 +12,7 @@ import {
   DocumentInsightRecord,
 } from './document-analysis.types';
 import { OpenAiDocumentService } from './openai-document.service';
+import { PdfTextService } from '../pdf/pdf-text.service';
 
 @Injectable()
 export class DocumentAnalysisService {
@@ -21,6 +22,7 @@ export class DocumentAnalysisService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly openAiDocument: OpenAiDocumentService,
+    private readonly pdfText: PdfTextService,
   ) {}
 
   scheduleAnalysis(projectId: string, documentId: string): void {
@@ -62,10 +64,27 @@ export class DocumentAnalysisService {
         availableTagSlugs,
       });
       if (result) provider = 'openai';
+    } else if (
+      (doc.contentType === 'application/pdf' ||
+        doc.contentType === 'text/plain') &&
+      this.storage.isConfigured() &&
+      this.openAiDocument.isConfigured()
+    ) {
+      result = await this.analyzeTextDocument({
+        doc,
+        projectTitle: project.title,
+        projectDescription: project.description,
+        availableTagSlugs,
+      });
+      if (result) provider = 'openai';
     }
 
     if (!result) {
-      result = this.fallbackAnalysis(doc.originalName, doc.category);
+      result = this.fallbackAnalysis(
+        doc.originalName,
+        doc.category,
+        doc.contentType,
+      );
     }
 
     const freshProject = await this.prisma.project.findUnique({
@@ -84,6 +103,8 @@ export class DocumentAnalysisService {
       summary: result.summary,
       confidence: result.confidence,
       provider,
+      ...(result.omittedNote ? { omittedNote: result.omittedNote } : {}),
+      ...(result.keyFacts?.length ? { keyFacts: result.keyFacts } : {}),
     };
 
     const existingInsights = brief.ai?.documentInsights ?? [];
@@ -141,9 +162,55 @@ export class DocumentAnalysisService {
     });
   }
 
+  private async analyzeTextDocument(input: {
+    doc: { storageKey: string; originalName: string; category: string; contentType: string };
+    projectTitle: string;
+    projectDescription: string | null;
+    availableTagSlugs: string[];
+  }): Promise<DocumentAnalysisResult | null> {
+    try {
+      const buffer = await this.storage.getObjectBuffer(input.doc.storageKey);
+      let extractedText = '';
+      let pageCount = 0;
+      let truncated = false;
+
+      if (input.doc.contentType === 'application/pdf') {
+        const pdf = await this.pdfText.extractText(buffer);
+        if (!pdf) {
+          return null;
+        }
+        extractedText = pdf.text;
+        pageCount = pdf.pageCount;
+        truncated = pdf.truncated;
+      } else {
+        extractedText = buffer.toString('utf8').replace(/\s+/g, ' ').trim().slice(0, 24_000);
+        if (!extractedText) {
+          return null;
+        }
+      }
+
+      return this.openAiDocument.analyzePdfText({
+        extractedText,
+        pageCount,
+        truncated,
+        fileName: input.doc.originalName,
+        category: input.doc.category,
+        projectTitle: input.projectTitle,
+        projectDescription: input.projectDescription,
+        availableTagSlugs: input.availableTagSlugs,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Text document analysis failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return null;
+    }
+  }
+
   private fallbackAnalysis(
     fileName: string,
     category: string,
+    contentType?: string,
   ): DocumentAnalysisResult {
     const lower = `${fileName} ${category}`.toLowerCase();
     const packages: BriefPackage[] = [];
@@ -162,7 +229,10 @@ export class DocumentAnalysisService {
     }
 
     return {
-      summary: `Document "${fileName}" uploaded (${category}). AI vision analysis pending or unavailable — scope lines added from document type.`,
+      summary:
+        contentType === 'application/pdf'
+          ? `PDF "${fileName}" uploaded (${category}). Text extraction or AI analysis was unavailable — review the file manually.`
+          : `Document "${fileName}" uploaded (${category}). AI analysis pending or unavailable — scope lines added from document type.`,
       confidence: 0.25,
       packages,
       suggestedTagSlugs: [],

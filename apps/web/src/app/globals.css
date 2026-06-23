@@ -1553,6 +1553,32 @@ pre {
   font-size: 0.85rem;
 }
 
+.doc-insight {
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-radius: 0 6px 6px 0;
+}
+
+.doc-insight-summary {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.doc-insight-omitted {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.doc-insight-facts {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+}
+
 .doc-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

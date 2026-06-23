@@ -155,4 +155,18 @@ export class StorageService {
       new DeleteObjectCommand({ Bucket: bucket, Key: storageKey }),
     );
   }
+
+  async getObjectBuffer(storageKey: string): Promise<Buffer> {
+    const { internal, bucket } = this.requireClient();
+    const response = await internal.send(
+      new GetObjectCommand({ Bucket: bucket, Key: storageKey }),
+    );
+
+    if (!response.Body) {
+      throw new Error('Empty object body');
+    }
+
+    const bytes = await response.Body.transformToByteArray();
+    return Buffer.from(bytes);
+  }
 }
