@@ -1553,16 +1553,44 @@ pre {
   font-size: 0.85rem;
 }
 
-.doc-insight {
+.doc-insight-details {
   margin-top: 0.5rem;
-  padding: 0.55rem 0.65rem;
-  border-left: 3px solid var(--accent);
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
-  border-radius: 0 6px 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 4%, #fff);
+  overflow: hidden;
+}
+
+.doc-insight-details-summary {
+  cursor: pointer;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+  list-style: none;
+}
+
+.doc-insight-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.doc-insight-details-summary::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.doc-insight-details[open] .doc-insight-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.doc-insight-details-body {
+  padding: 0 0.65rem 0.65rem;
+  border-top: 1px solid var(--border);
 }
 
 .doc-insight-summary {
-  margin: 0;
+  margin: 0.55rem 0 0;
   font-size: 0.88rem;
   line-height: 1.45;
 }
@@ -1577,6 +1605,15 @@ pre {
   margin: 0.35rem 0 0;
   padding-left: 1.1rem;
   font-size: 0.85rem;
+}
+
+.doc-insight-meta {
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
+}
+
+.doc-gallery-item .doc-insight-details {
+  width: 100%;
 }
 
 .doc-gallery {

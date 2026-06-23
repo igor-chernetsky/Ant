@@ -6,6 +6,7 @@ import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { DocumentImage } from '@/components/DocumentImage';
+import { DocumentInsightCollapsible } from '@/components/DocumentInsightCollapsible';
 import { ClientAmendments } from '@/components/ClientAmendments';
 import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
@@ -397,6 +398,11 @@ export default function ProjectDetailPage() {
                           <figcaption className="doc-gallery-caption">
                             {doc.originalName}
                           </figcaption>
+                          {insightByDocumentId.get(doc.id) && (
+                            <DocumentInsightCollapsible
+                              insight={insightByDocumentId.get(doc.id)!}
+                            />
+                          )}
                           {showDocDelete && (
                             <button
                               type="button"
@@ -436,16 +442,7 @@ export default function ProjectDetailPage() {
                                 ` · ${formatDateTime(doc.uploadedAt)}`}
                             </p>
                             {insight && (
-                              <div className="doc-insight">
-                                <p className="doc-insight-summary">
-                                  {insight.summary}
-                                </p>
-                                {insight.omittedNote && (
-                                  <p className="muted doc-insight-omitted">
-                                    {insight.omittedNote}
-                                  </p>
-                                )}
-                              </div>
+                              <DocumentInsightCollapsible insight={insight} />
                             )}
                           </div>
                           {showDocDelete && (
@@ -547,36 +544,6 @@ export default function ProjectDetailPage() {
                           {pkg.unit ?? (pkg.areaSqm ? 'sqm' : '')}
                         </span>
                       )}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
-
-            {documentInsights.length > 0 && (
-              <section className="card">
-                <h2 className="section-title">Document analysis</h2>
-                <ul className="insight-list">
-                  {documentInsights.map((insight) => (
-                    <li key={insight.documentId} className="insight-item">
-                      <strong>{insight.fileName}</strong>
-                      <p>{insight.summary}</p>
-                      {insight.keyFacts && insight.keyFacts.length > 0 && (
-                        <ul className="doc-insight-facts">
-                          {insight.keyFacts.map((fact) => (
-                            <li key={fact}>{fact}</li>
-                          ))}
-                        </ul>
-                      )}
-                      {insight.omittedNote && (
-                        <p className="muted doc-insight-omitted">
-                          {insight.omittedNote}
-                        </p>
-                      )}
-                      <p className="muted">
-                        {formatConfidence(insight.confidence)} confidence ·{' '}
-                        {insight.provider}
-                      </p>
                     </li>
                   ))}
                 </ul>
