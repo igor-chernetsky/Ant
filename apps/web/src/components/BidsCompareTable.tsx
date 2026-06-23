@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { formatThb } from '@/lib/estimate';
-import type { Bid, BidLineItem } from '@/lib/tendering';
+import type { Bid, BidLineItem, DefaultCostBreakdownItem } from '@/lib/tendering';
 
 interface BidsCompareTableProps {
   bids: Bid[];
   ballparkMid?: number | null;
+  defaultCostBreakdown?: DefaultCostBreakdownItem[];
 }
 
 function deltaLabel(amount: number, ballparkMid: number | null | undefined): string {
@@ -15,46 +16,38 @@ function deltaLabel(amount: number, ballparkMid: number | null | undefined): str
   return `${delta >= 0 ? '+' : ''}${delta}%`;
 }
 
-function CompareBreakdownCell({ items }: { items?: BidLineItem[] }) {
-  if (!items?.length) {
-    return <span className="muted">Not provided</span>;
-  }
+function normalizeTrade(value: string): string {
+  return value.trim().toLowerCase();
+}
 
-  const subtotal = items.reduce(
+function amountForTrade(bid: Bid, trade: string): number | null {
+  const key = normalizeTrade(trade);
+  const item = bid.terms?.lineItems?.find(
+    (line) => normalizeTrade(line.trade) === key,
+  );
+  if (!item || item.amount == null) {
+    return null;
+  }
+  const amount = Number(item.amount);
+  return Number.isFinite(amount) ? amount : null;
+}
+
+function breakdownSubtotal(items?: BidLineItem[]): number | null {
+  if (!items?.length) {
+    return null;
+  }
+  const total = items.reduce(
     (sum, item) => sum + (Number(item.amount) || 0),
     0,
   );
-
-  return (
-    <table className="bids-compare-breakdown-table">
-      <tbody>
-        {items.map((item, index) => (
-          <tr key={index}>
-            <td className="bids-compare-breakdown-trade">
-              <span className="bids-compare-breakdown-trade-name">{item.trade}</span>
-              {item.description ? (
-                <span className="bids-compare-breakdown-desc muted">
-                  {item.description}
-                </span>
-              ) : null}
-            </td>
-            <td className="bids-compare-breakdown-amount">
-              {formatThb(item.amount)}
-            </td>
-          </tr>
-        ))}
-        {items.length > 1 && (
-          <tr className="bids-compare-breakdown-subtotal">
-            <td>Subtotal</td>
-            <td>{formatThb(subtotal)}</td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  );
+  return total > 0 ? total : null;
 }
 
-export function BidsCompareTable({ bids, ballparkMid }: BidsCompareTableProps) {
+export function BidsCompareTable({
+  bids,
+  ballparkMid,
+  defaultCostBreakdown = [],
+}: BidsCompareTableProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     bids.slice(0, Math.min(3, bids.length)).map((bid) => bid.id),
   );
@@ -64,11 +57,32 @@ export function BidsCompareTable({ bids, ballparkMid }: BidsCompareTableProps) {
     [bids, selectedIds],
   );
 
-  const hasAnyBreakdown = useMemo(
-    () =>
-      selectedBids.some((bid) => (bid.terms?.lineItems?.length ?? 0) > 0),
-    [selectedBids],
-  );
+  const breakdownRows = useMemo(() => {
+    if (defaultCostBreakdown.length > 0) {
+      return defaultCostBreakdown;
+    }
+
+    const seen = new Set<string>();
+    const merged: DefaultCostBreakdownItem[] = [];
+    for (const bid of selectedBids) {
+      for (const item of bid.terms?.lineItems ?? []) {
+        const trade = item.trade?.trim();
+        if (!trade) {
+          continue;
+        }
+        const key = normalizeTrade(trade);
+        if (seen.has(key)) {
+          continue;
+        }
+        seen.add(key);
+        merged.push({
+          trade,
+          description: item.description?.trim() || undefined,
+        });
+      }
+    }
+    return merged;
+  }, [defaultCostBreakdown, selectedBids]);
 
   const toggleBid = (bidId: string) => {
     setSelectedIds((current) => {
@@ -159,15 +173,51 @@ export function BidsCompareTable({ bids, ballparkMid }: BidsCompareTableProps) {
                 </td>
               ))}
             </tr>
-            {hasAnyBreakdown && (
-              <tr>
-                <th scope="row">Cost breakdown</th>
-                {selectedBids.map((bid) => (
-                  <td key={`${bid.id}-breakdown`} className="bids-compare-breakdown-cell">
-                    <CompareBreakdownCell items={bid.terms?.lineItems} />
-                  </td>
+            {breakdownRows.length > 0 && (
+              <>
+                <tr className="bids-compare-breakdown-divider">
+                  <th
+                    scope="row"
+                    colSpan={1 + selectedBids.length}
+                    className="bids-compare-breakdown-heading"
+                  >
+                    Cost breakdown by trade
+                  </th>
+                </tr>
+                {breakdownRows.map((row) => (
+                  <tr key={row.trade}>
+                    <th scope="row" className="bids-compare-breakdown-row-label">
+                      <span className="bids-compare-breakdown-trade-name">
+                        {row.trade}
+                      </span>
+                      {row.description ? (
+                        <span className="bids-compare-breakdown-desc muted">
+                          {row.description}
+                        </span>
+                      ) : null}
+                    </th>
+                    {selectedBids.map((bid) => {
+                      const amount = amountForTrade(bid, row.trade);
+                      return (
+                        <td key={`${bid.id}-${row.trade}`}>
+                          {amount != null ? formatThb(amount) : '—'}
+                        </td>
+                      );
+                    })}
+                  </tr>
                 ))}
-              </tr>
+                <tr className="bids-compare-breakdown-subtotal-row">
+                  <th scope="row">Breakdown subtotal</th>
+                  {selectedBids.map((bid) => {
+                    const subtotal = breakdownSubtotal(bid.terms?.lineItems);
+                    return (
+                      <td key={`${bid.id}-subtotal`}>
+                        {subtotal != null ? formatThb(subtotal) : '—'}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </>
             )}
           </tbody>
         </table>

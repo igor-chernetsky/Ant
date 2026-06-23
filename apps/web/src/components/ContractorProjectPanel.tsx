@@ -345,6 +345,7 @@ export function ContractorProjectPanel({
               busy={busy}
               projectTitle={projectTitle}
               projectDistrict={projectDistrict}
+              defaultCostBreakdown={participation.defaultCostBreakdown ?? []}
               downloadBidId={submitted ? myBid?.id : undefined}
               onSubmit={handleSubmitBid}
               onWithdraw={participation.canWithdraw ? handleWithdraw : undefined}

@@ -335,6 +335,7 @@ model Tender {
   awardedBidId String?      @unique @map("awarded_bid_id")
   awardedBid   Bid?         @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
   bidAnalysisJson Json?       @map("bid_analysis_json")
+  defaultCostBreakdown Json?  @map("default_cost_breakdown")
   nextContenderNumber Int     @default(1) @map("next_contender_number")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")

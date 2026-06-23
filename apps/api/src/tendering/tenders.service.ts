@@ -21,11 +21,13 @@ import { ContractorProfilesService } from './contractor-profiles.service';
 import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
 import { TenderClarificationsService } from './tender-clarifications.service';
+import { DefaultCostBreakdownService } from './default-cost-breakdown.service';
 import { normalizeContractTerms } from './commercial-proposal.template';
 import {
   BidResponse,
   BidTermsV1,
   DEFAULT_TENDER_DURATION_DAYS,
+  DefaultCostBreakdownItem,
   MAX_BID_APPROACH_LENGTH,
   MAX_BID_LINE_ITEMS,
   MAX_BID_NOTES_LENGTH,
@@ -55,6 +57,7 @@ export class TendersService {
     private readonly bidMessages: BidMessagesService,
     private readonly notifications: NotificationsService,
     private readonly clarifications: TenderClarificationsService,
+    private readonly costBreakdown: DefaultCostBreakdownService,
   ) {}
 
   private mapBid(bid: Bid & { contractor: ContractorProfile }): BidResponse {
@@ -91,6 +94,9 @@ export class TendersService {
       applicationCount: bids.length,
       submittedBidCount: bids.filter((b) => b.status === BidStatus.submitted)
         .length,
+      defaultCostBreakdown: this.costBreakdown.parseStored(
+        tender.defaultCostBreakdown,
+      ),
       createdAt: tender.createdAt.toISOString(),
       updatedAt: tender.updatedAt.toISOString(),
     };
@@ -241,7 +247,9 @@ export class TendersService {
       this.notifications.notifyMatchingContractorsForProject(projectId),
     );
 
-    return this.mapTender(tender);
+    await this.costBreakdown.generateAndStoreForTender(tender.id, projectId);
+
+    return this.mapTender(await this.loadTender(tender.id));
   }
 
   async startTender(clientId: string, projectId: string): Promise<TenderResponse> {
@@ -290,11 +298,27 @@ export class TendersService {
       return next;
     });
 
+    const existingBreakdown = this.costBreakdown.parseStored(
+      updated.defaultCostBreakdown,
+    );
+    if (existingBreakdown.length === 0) {
+      await this.costBreakdown.generateAndStoreForTender(updated.id, projectId);
+    }
+
     this.notifications.dispatch(
       this.notifications.notifyMatchingContractorsForProject(projectId),
     );
 
-    return this.mapTender(updated);
+    return this.mapTender(await this.loadTender(updated.id));
+  }
+
+  private defaultCostBreakdownForTender(
+    tender: { defaultCostBreakdown: unknown } | null | undefined,
+  ): DefaultCostBreakdownItem[] {
+    if (!tender) {
+      return [];
+    }
+    return this.costBreakdown.parseStored(tender.defaultCostBreakdown);
   }
 
   async revertTenderToEstimated(
@@ -561,6 +585,7 @@ export class TendersService {
       hasSubmittedClarificationQuestions,
       clarificationProgress,
       tenderCollectingClarifications,
+      defaultCostBreakdown: this.defaultCostBreakdownForTender(tender),
       canStartClarification: Boolean(
         (tenderOpen || tenderCollectingClarifications) && !myBid,
       ),

@@ -66,6 +66,11 @@ export interface Bid {
   submittedAt: string | null;
 }
 
+export interface DefaultCostBreakdownItem {
+  trade: string;
+  description?: string;
+}
+
 export interface Tender {
   id: string;
   projectId: string;
@@ -78,6 +83,7 @@ export interface Tender {
   bids: Bid[];
   applicationCount: number;
   submittedBidCount: number;
+  defaultCostBreakdown: DefaultCostBreakdownItem[];
   createdAt: string;
   updatedAt: string;
 }
@@ -123,6 +129,7 @@ export interface ContractorProjectParticipation {
     allAnswered: boolean;
   };
   tenderCollectingClarifications: boolean;
+  defaultCostBreakdown: DefaultCostBreakdownItem[];
   canStartClarification: boolean;
   canEnroll: boolean;
   canSubmitProposal: boolean;
@@ -206,6 +213,9 @@ export async function fetchProjectTender(
   return {
     ...tender,
     bids: Array.isArray(tender.bids) ? tender.bids : [],
+    defaultCostBreakdown: Array.isArray(tender.defaultCostBreakdown)
+      ? tender.defaultCostBreakdown
+      : [],
   };
 }
 
@@ -385,7 +395,13 @@ export async function fetchContractorProjectParticipation(
   if ('participation' in data && data.participation === null) {
     return null;
   }
-  return data as ContractorProjectParticipation;
+  const participation = data as ContractorProjectParticipation;
+  return {
+    ...participation,
+    defaultCostBreakdown: Array.isArray(participation.defaultCostBreakdown)
+      ? participation.defaultCostBreakdown
+      : [],
+  };
 }
 
 export async function fetchContractorTender(

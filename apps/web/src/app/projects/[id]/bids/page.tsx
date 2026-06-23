@@ -206,6 +206,7 @@ export default function ProjectBidsPage() {
                     <BidsCompareTable
                       bids={tender.bids.filter((b) => b.status === 'submitted')}
                       ballparkMid={ballparkMid}
+                      defaultCostBreakdown={tender.defaultCostBreakdown}
                     />
                   </>
                 )}

@@ -177,29 +177,41 @@ export function CreateProjectModal({
             />
           </label>
 
-          <fieldset className="clarification-mode-fieldset">
-            <legend>Contractor clarification</legend>
+          <div className="clarification-mode-field">
+            <span className="clarification-mode-label">Contractor clarification</span>
             <p className="muted clarification-mode-hint">
               How contractors ask questions before submitting proposals.
             </p>
-            {CLARIFICATION_MODE_OPTIONS.map((option) => (
-              <label key={option.value} className="clarification-mode-option">
-                <input
-                  type="radio"
-                  name="clarificationMode"
-                  value={option.value}
-                  checked={clarificationMode === option.value}
-                  onChange={() => setClarificationMode(option.value)}
-                />
-                <span>
-                  <strong>{option.label}</strong>
-                  <span className="muted clarification-mode-desc">
-                    {option.description}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
+            <div
+              className="clarification-mode-switch"
+              role="radiogroup"
+              aria-label="Contractor clarification"
+            >
+              {CLARIFICATION_MODE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={clarificationMode === option.value}
+                  className={`clarification-mode-switch-btn${
+                    clarificationMode === option.value
+                      ? ' clarification-mode-switch-btn--active'
+                      : ''
+                  }`}
+                  onClick={() => setClarificationMode(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="muted clarification-mode-desc">
+              {
+                CLARIFICATION_MODE_OPTIONS.find(
+                  (option) => option.value === clarificationMode,
+                )?.description
+              }
+            </p>
+          </div>
 
           {error && <p className="form-error">{error}</p>}
 

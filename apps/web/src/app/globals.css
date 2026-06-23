@@ -2622,39 +2622,74 @@ select:disabled {
   font-size: 0.85rem;
 }
 
-.clarification-mode-fieldset {
+.clarification-mode-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 0.75rem 1rem;
-  margin: 0;
+  background: #fff;
+  text-align: left;
 }
 
-.clarification-mode-fieldset legend {
+.clarification-mode-label {
   font-weight: 600;
-  padding: 0 0.25rem;
+  font-size: 0.9rem;
+  color: var(--text);
 }
 
 .clarification-mode-hint {
-  margin: 0 0 0.65rem;
+  margin: 0;
   font-size: 0.88rem;
 }
 
-.clarification-mode-option {
-  display: flex;
-  gap: 0.6rem;
-  align-items: flex-start;
-  margin: 0.5rem 0;
-  cursor: pointer;
+.clarification-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 10px;
+  background: var(--surface-muted, #f3f4f6);
+  border: 1px solid var(--border);
 }
 
-.clarification-mode-option strong {
-  display: block;
+.clarification-mode-switch-btn {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.clarification-mode-switch-btn:hover:not(.clarification-mode-switch-btn--active) {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.clarification-mode-switch-btn--active {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 
 .clarification-mode-desc {
-  display: block;
+  margin: 0;
   font-size: 0.85rem;
-  margin-top: 0.15rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 480px) {
+  .clarification-mode-switch {
+    grid-template-columns: 1fr;
+  }
 }
 
 .structured-clarification-disclaimer {
@@ -3454,6 +3489,29 @@ select:disabled {
 
 .bids-compare-breakdown-subtotal .bids-compare-breakdown-amount {
   font-weight: 700;
+}
+
+.bids-compare-breakdown-divider th {
+  padding-top: 0.85rem;
+  background: #f3f4f6;
+  border-top: 2px solid var(--border);
+  text-align: left;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bids-compare-breakdown-row-label {
+  vertical-align: top;
+  max-width: 12rem;
+  line-height: 1.35;
+}
+
+.bids-compare-breakdown-subtotal-row th,
+.bids-compare-breakdown-subtotal-row td {
+  border-top: 1px solid var(--border);
+  font-weight: 600;
+  background: #fafafa;
 }
 
 .bid-analysis-card {

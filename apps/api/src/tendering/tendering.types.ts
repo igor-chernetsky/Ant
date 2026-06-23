@@ -49,6 +49,13 @@ export const MAX_BID_APPROACH_LENGTH = 8000;
 export const MAX_BID_SCOPE_LENGTH = 2000;
 export const MAX_BID_SPECIAL_CONDITIONS_LENGTH = 4000;
 export const MAX_BID_LINE_ITEMS = 20;
+export const MAX_DEFAULT_COST_BREAKDOWN_ITEMS = 20;
+
+/** Tender-wide cost breakdown template (no amounts). */
+export interface DefaultCostBreakdownItem {
+  trade: string;
+  description?: string;
+}
 
 export interface ContractorProfileResponse {
   id: string;
@@ -128,6 +135,7 @@ export interface TenderResponse {
   applicationCount: number;
   /** Submitted commercial proposals only */
   submittedBidCount: number;
+  defaultCostBreakdown: DefaultCostBreakdownItem[];
   createdAt: string;
   updatedAt: string;
 }
@@ -160,6 +168,7 @@ export interface ContractorProjectParticipation {
     allAnswered: boolean;
   };
   tenderCollectingClarifications: boolean;
+  defaultCostBreakdown: DefaultCostBreakdownItem[];
   canStartClarification: boolean;
   canEnroll: boolean;
   canSubmitProposal: boolean;

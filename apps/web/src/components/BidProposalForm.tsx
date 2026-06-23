@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { formatThb } from '@/lib/estimate';
-import type { Bid, BidContractTerms, BidLineItem, BidTerms } from '@/lib/tendering';
+import type { Bid, BidContractTerms, BidLineItem, BidTerms, DefaultCostBreakdownItem } from '@/lib/tendering';
 import {
   BidContractTermsFields,
   contractTermsFromBid,
@@ -27,6 +27,7 @@ interface BidProposalFormProps {
   projectTitle?: string;
   projectDistrict?: string | null;
   downloadBidId?: string;
+  defaultCostBreakdown?: DefaultCostBreakdownItem[];
   /** Who fills commercial proposal fields — `none` hides the section. */
   contractTermsAudience?: ContractTermsAudience | 'none';
   onSubmit: (input: BidProposalInput) => Promise<void>;
@@ -39,9 +40,19 @@ const emptyLineItem = (): BidLineItem => ({
   amount: 0,
 });
 
-function lineItemsFromTerms(terms: BidTerms | null | undefined): BidLineItem[] {
+function lineItemsFromTerms(
+  terms: BidTerms | null | undefined,
+  defaults?: DefaultCostBreakdownItem[],
+): BidLineItem[] {
   if (terms?.lineItems?.length) {
     return terms.lineItems.map((item) => ({ ...item }));
+  }
+  if (defaults?.length) {
+    return defaults.map((item) => ({
+      trade: item.trade,
+      description: item.description ?? '',
+      amount: 0,
+    }));
   }
   return [];
 }
@@ -52,6 +63,7 @@ export function BidProposalForm({
   projectTitle,
   projectDistrict,
   downloadBidId,
+  defaultCostBreakdown = [],
   contractTermsAudience = 'contractor',
   onSubmit,
   onWithdraw,
@@ -67,10 +79,10 @@ export function BidProposalForm({
   const [approach, setApproach] = useState(terms?.approach ?? '');
   const [scopeSummary, setScopeSummary] = useState(terms?.scopeSummary ?? '');
   const [lineItems, setLineItems] = useState<BidLineItem[]>(() =>
-    lineItemsFromTerms(terms),
+    lineItemsFromTerms(terms, defaultCostBreakdown),
   );
   const [showBreakdown, setShowBreakdown] = useState(
-    (terms?.lineItems?.length ?? 0) > 0,
+    (terms?.lineItems?.length ?? 0) > 0 || defaultCostBreakdown.length > 0,
   );
   const [showContractTerms, setShowContractTerms] = useState(true);
   const [contractTerms, setContractTerms] = useState<BidContractTerms>(() =>
@@ -230,7 +242,15 @@ export function BidProposalForm({
             onChange={(e) => {
               setShowBreakdown(e.target.checked);
               if (e.target.checked && lineItems.length === 0) {
-                setLineItems([emptyLineItem()]);
+                setLineItems(
+                  defaultCostBreakdown.length > 0
+                    ? defaultCostBreakdown.map((item) => ({
+                        trade: item.trade,
+                        description: item.description ?? '',
+                        amount: 0,
+                      }))
+                    : [emptyLineItem()],
+                );
               }
             }}
           />
