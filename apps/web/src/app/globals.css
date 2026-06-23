@@ -2590,6 +2590,38 @@ select:disabled {
   gap: 0.75rem;
 }
 
+.bid-contract-terms-fields input:disabled,
+.bid-contract-terms-fields textarea:disabled,
+.bid-contract-terms-fields select:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+  background: var(--surface-muted, #f6f7f8);
+}
+
+.client-commercial-proposal-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.client-commercial-proposal-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+}
+
+.bid-contract-terms-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.bid-contract-terms-download-hint {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
 .bid-contract-terms-hint {
   margin: 0.25rem 0 0;
   font-size: 0.82rem;

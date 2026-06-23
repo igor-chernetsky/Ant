@@ -175,6 +175,10 @@ export interface SubmitBidDto {
   contractTerms?: BidContractTerms;
 }
 
+export interface UpdateBidContractTermsDto {
+  contractTerms: BidContractTerms;
+}
+
 export interface SendBidMessageDto {
   body: string;
 }

@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BidStatus } from '@prisma/client';
+import { BidStatus, DocumentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
@@ -82,6 +82,15 @@ export class CommercialProposalService {
     }
 
     const terms = (bid.termsJson as BidTermsV1 | null) ?? null;
+    const projectDocuments = await this.prisma.document.findMany({
+      where: {
+        projectId: bid.tender.projectId,
+        status: DocumentStatus.uploaded,
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { originalName: true, category: true },
+    });
+
     const data = buildCommercialProposalData({
       projectTitle: bid.tender.project.title,
       projectDistrict: bid.tender.project.district,
@@ -89,6 +98,10 @@ export class CommercialProposalService {
       bidAmount: Number(bid.amount),
       durationDays: bid.durationDays,
       terms,
+      projectDocuments: projectDocuments.map((doc) => ({
+        originalName: doc.originalName,
+        category: doc.category,
+      })),
       employerName:
         terms?.contractTerms?.employerName?.trim() ||
         bid.tender.project.client.displayName ||

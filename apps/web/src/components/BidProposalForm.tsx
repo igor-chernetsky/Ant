@@ -6,6 +6,8 @@ import type { Bid, BidContractTerms, BidLineItem, BidTerms } from '@/lib/tenderi
 import {
   BidContractTermsFields,
   contractTermsFromBid,
+  pickContractorContractTerms,
+  type ContractTermsAudience,
 } from '@/components/BidContractTermsFields';
 import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 
@@ -25,6 +27,8 @@ interface BidProposalFormProps {
   projectTitle?: string;
   projectDistrict?: string | null;
   downloadBidId?: string;
+  /** Who fills commercial proposal fields — `none` hides the section. */
+  contractTermsAudience?: ContractTermsAudience | 'none';
   onSubmit: (input: BidProposalInput) => Promise<void>;
   onWithdraw?: () => Promise<void>;
 }
@@ -48,6 +52,7 @@ export function BidProposalForm({
   projectTitle,
   projectDistrict,
   downloadBidId,
+  contractTermsAudience = 'contractor',
   onSubmit,
   onWithdraw,
 }: BidProposalFormProps) {
@@ -127,7 +132,12 @@ export function BidProposalForm({
               amount: item.amount,
             }))
           : undefined,
-        contractTerms: showContractTerms ? contractTerms : undefined,
+        contractTerms:
+          showContractTerms && contractTermsAudience !== 'none'
+            ? contractTermsAudience === 'contractor'
+              ? pickContractorContractTerms(contractTerms)
+              : contractTerms
+            : undefined,
       });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save bid');
@@ -307,38 +317,44 @@ export function BidProposalForm({
         </div>
       )}
 
-      <div className="bid-contract-terms-section">
-        <div className="bid-breakdown-toggle">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={showContractTerms}
-              onChange={(e) => setShowContractTerms(e.target.checked)}
+      {(contractTermsAudience !== 'none' ||
+        (proposalDownloadable && downloadBidId)) && (
+        <div className="bid-contract-terms-section">
+          {contractTermsAudience !== 'none' && (
+            <div className="bid-breakdown-toggle">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={showContractTerms}
+                  onChange={(e) => setShowContractTerms(e.target.checked)}
+                />
+                Include commercial proposal document fields
+              </label>
+            </div>
+          )}
+
+          {showContractTerms && contractTermsAudience !== 'none' && (
+            <BidContractTermsFields
+              value={contractTerms}
+              onChange={setContractTerms}
+              audience={contractTermsAudience}
+              projectTitle={projectTitle}
+              projectDistrict={projectDistrict}
+              disabled={busy}
             />
-            Include commercial proposal document fields
-          </label>
+          )}
+
+          {proposalDownloadable && downloadBidId && (
+            <div className="bid-contract-terms-actions">
+              <CommercialProposalDownload bidId={downloadBidId} />
+              <p className="muted bid-contract-terms-download-hint">
+                Document reflects the last saved proposal. Submit updates to
+                refresh the download.
+              </p>
+            </div>
+          )}
         </div>
-
-        {showContractTerms && (
-          <BidContractTermsFields
-            value={contractTerms}
-            onChange={setContractTerms}
-            projectTitle={projectTitle}
-            projectDistrict={projectDistrict}
-            disabled={busy}
-          />
-        )}
-
-        {proposalDownloadable && downloadBidId && (
-          <div className="bid-contract-terms-actions">
-            <CommercialProposalDownload bidId={downloadBidId} />
-            <p className="muted bid-contract-terms-download-hint">
-              Document reflects the last saved proposal. Submit updates to refresh
-              the download.
-            </p>
-          </div>
-        )}
-      </div>
+      )}
 
       {error && <p className="form-error bid-proposal-form-error">{error}</p>}
 

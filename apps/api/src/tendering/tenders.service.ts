@@ -30,6 +30,7 @@ import {
   MAX_BID_SCOPE_LENGTH,
   MAX_BID_SPECIAL_CONDITIONS_LENGTH,
   SubmitBidDto,
+  UpdateBidContractTermsDto,
   TenderResponse,
   ContractorApplicationItem,
 } from './tendering.types';
@@ -649,6 +650,19 @@ export class TendersService {
     return contractTerms;
   }
 
+  private mergeContractTerms(
+    existingTerms: BidTermsV1 | null,
+    incoming?: SubmitBidDto['contractTerms'],
+  ): SubmitBidDto['contractTerms'] {
+    if (!incoming && !existingTerms?.contractTerms) {
+      return undefined;
+    }
+    return {
+      ...existingTerms?.contractTerms,
+      ...incoming,
+    };
+  }
+
   async submitBid(
     userId: string,
     tenderId: string,
@@ -669,8 +683,6 @@ export class TendersService {
       );
     }
 
-    const terms = this.buildBidTerms(dto);
-
     const existing = tender.bids.find(
       (b) =>
         b.contractorId === profile.id &&
@@ -682,6 +694,14 @@ export class TendersService {
         'Enroll as a contender before submitting a commercial proposal',
       );
     }
+
+    const terms = this.buildBidTerms({
+      ...dto,
+      contractTerms: this.mergeContractTerms(
+        (existing.termsJson as BidTermsV1 | null) ?? null,
+        dto.contractTerms,
+      ),
+    });
 
     const bid = await this.prisma.$transaction(async (tx) => {
       const nextBid = await tx.bid.update({
@@ -742,6 +762,62 @@ export class TendersService {
     }
 
     return this.mapBid(bid);
+  }
+
+  async updateBidContractTermsForClient(
+    clientId: string,
+    projectId: string,
+    bidId: string,
+    dto: UpdateBidContractTermsDto,
+  ): Promise<BidResponse> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.clientId !== clientId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    const bid = await this.prisma.bid.findFirst({
+      where: { id: bidId, tender: { projectId } },
+      include: { contractor: true },
+    });
+    if (!bid) {
+      throw new NotFoundException('Bid not found');
+    }
+
+    const editableStatuses: BidStatus[] = [
+      BidStatus.submitted,
+      BidStatus.selected,
+      BidStatus.rejected,
+    ];
+    if (!editableStatuses.includes(bid.status)) {
+      throw new BadRequestException(
+        'Contract terms can be updated after a proposal is submitted',
+      );
+    }
+
+    const existingTerms = (bid.termsJson as BidTermsV1 | null) ?? {};
+    const contractTerms = this.normalizeAndValidateContractTerms(
+      this.mergeContractTerms(existingTerms, dto.contractTerms),
+    );
+
+    const updatedTerms: BidTermsV1 = {
+      ...existingTerms,
+      contractTerms,
+    };
+
+    const updated = await this.prisma.bid.update({
+      where: { id: bidId },
+      data: {
+        termsJson: updatedTerms as unknown as Prisma.InputJsonValue,
+      },
+      include: { contractor: true },
+    });
+
+    return this.mapBid(updated);
   }
 
   async withdrawBid(userId: string, tenderId: string): Promise<BidResponse> {

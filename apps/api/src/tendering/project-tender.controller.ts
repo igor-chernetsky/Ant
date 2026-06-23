@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, HttpCode, Param, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
@@ -6,7 +6,7 @@ import { UsersService } from '../users/users.service';
 import { BidMessagesService } from './bid-messages.service';
 import { BidAnalysisService } from './bid-analysis.service';
 import { BidOffersService } from './bid-offers.service';
-import { SendBidMessageDto, SubmitCounterOfferDto } from './tendering.types';
+import { SendBidMessageDto, SubmitCounterOfferDto, UpdateBidContractTermsDto } from './tendering.types';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 
@@ -138,6 +138,22 @@ export class ProjectTenderController {
   ) {
     const user = await this.resolveUser(req);
     await this.bidMessages.touchPresence(user.id, bidId, projectId);
+  }
+
+  @Patch('bids/:bidId/contract-terms')
+  async updateBidContractTerms(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('bidId') bidId: string,
+    @Body() body: UpdateBidContractTermsDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.tendersService.updateBidContractTermsForClient(
+      user.id,
+      projectId,
+      bidId,
+      body,
+    );
   }
 
   @Get('bids/:bidId/commercial-proposal')

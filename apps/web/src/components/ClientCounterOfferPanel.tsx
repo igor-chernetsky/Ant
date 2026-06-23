@@ -86,7 +86,7 @@ export function ClientCounterOfferPanel({
       {tenderOpen && (
         <div className="client-counter-offer-form-wrap">
           <h4 className="bid-analysis-subtitle">Send counter-offer</h4>
-          <BidProposalForm busy={busy} onSubmit={handleSubmit} />
+          <BidProposalForm busy={busy} contractTermsAudience="none" onSubmit={handleSubmit} />
         </div>
       )}
 

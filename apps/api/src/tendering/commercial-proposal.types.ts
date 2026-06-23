@@ -63,4 +63,6 @@ export interface CommercialProposalRenderData {
   hasSpecialConditions: boolean;
   boqTableHtml: string;
   hasBoq: boolean;
+  annex2Html: string;
+  hasAnnex2Documents: boolean;
 }

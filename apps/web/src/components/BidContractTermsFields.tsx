@@ -1,17 +1,23 @@
 'use client';
 
 import type { BidContractTerms } from '@/lib/tendering';
+import {
+  canEditContractTermField,
+  type ContractTermsAudience,
+} from '@/lib/contract-terms-fields';
 
-export const DEFAULT_CONTRACT_TERMS: BidContractTerms = {
-  retentionPercent: 10,
-  retentionLimitPercent: 10,
-  defectNotificationMonths: 24,
-  advancePaymentPercent: 0,
-};
+export { DEFAULT_CONTRACT_TERMS } from '@/lib/contract-terms-fields';
+export type { ContractTermsAudience } from '@/lib/contract-terms-fields';
+export {
+  contractTermsFromBid,
+  pickClientContractTerms,
+  pickContractorContractTerms,
+} from '@/lib/contract-terms-fields';
 
 interface BidContractTermsFieldsProps {
   value: BidContractTerms;
   onChange: (next: BidContractTerms) => void;
+  audience?: ContractTermsAudience;
   projectTitle?: string;
   projectDistrict?: string | null;
   disabled?: boolean;
@@ -20,6 +26,7 @@ interface BidContractTermsFieldsProps {
 export function BidContractTermsFields({
   value,
   onChange,
+  audience = 'contractor',
   projectTitle,
   projectDistrict,
   disabled = false,
@@ -31,13 +38,17 @@ export function BidContractTermsFields({
     onChange({ ...value, [key]: fieldValue });
   };
 
+  const fieldDisabled = (key: keyof BidContractTerms) =>
+    disabled || !canEditContractTermField(key, audience);
+
   return (
     <div className="bid-contract-terms">
       <div className="bid-contract-terms-header">
         <p className="tag-section-label">Commercial proposal document</p>
         <p className="muted bid-contract-terms-hint">
-          Used to generate the downloadable commercial proposal for both
-          parties.
+          {audience === 'contractor'
+            ? 'Fields filled by the client are shown for reference. Site address and employer details come from the project.'
+            : 'Propose changes to payment and schedule terms. Contractor proposal fields are shown for reference.'}
         </p>
       </div>
 
@@ -49,7 +60,7 @@ export function BidContractTermsFields({
           </span>
           <textarea
             rows={2}
-            disabled={disabled}
+            disabled={fieldDisabled('subjectOfContract')}
             value={value.subjectOfContract ?? ''}
             placeholder={
               projectTitle
@@ -64,7 +75,7 @@ export function BidContractTermsFields({
           Site address
           <input
             type="text"
-            disabled={disabled}
+            disabled={fieldDisabled('siteAddress')}
             value={value.siteAddress ?? ''}
             placeholder={projectDistrict ?? 'Full property address'}
             onChange={(e) => set('siteAddress', e.target.value)}
@@ -78,7 +89,7 @@ export function BidContractTermsFields({
           </span>
           <textarea
             rows={2}
-            disabled={disabled}
+            disabled={fieldDisabled('propertyOwnership')}
             value={value.propertyOwnership ?? ''}
             placeholder="The Employer holds lawful title to the Site and right to commission the Works."
             onChange={(e) => set('propertyOwnership', e.target.value)}
@@ -90,7 +101,7 @@ export function BidContractTermsFields({
             <span className="field-label">Works start date</span>
             <input
               type="date"
-              disabled={disabled}
+              disabled={fieldDisabled('worksStartDate')}
               value={value.worksStartDate ?? ''}
               onChange={(e) => set('worksStartDate', e.target.value)}
             />
@@ -100,7 +111,7 @@ export function BidContractTermsFields({
             <input
               type="number"
               min="1"
-              disabled={disabled}
+              disabled={fieldDisabled('contractPeriodMonths')}
               value={value.contractPeriodMonths ?? ''}
               placeholder="7"
               onChange={(e) =>
@@ -121,7 +132,7 @@ export function BidContractTermsFields({
               min="0"
               max="100"
               step="1"
-              disabled={disabled}
+              disabled={fieldDisabled('advancePaymentPercent')}
               value={value.advancePaymentPercent ?? ''}
               placeholder="0"
               onChange={(e) =>
@@ -137,7 +148,7 @@ export function BidContractTermsFields({
             <input
               type="number"
               min="0"
-              disabled={disabled}
+              disabled={fieldDisabled('advancePaymentAmount')}
               value={value.advancePaymentAmount ?? ''}
               placeholder="Optional"
               onChange={(e) =>
@@ -157,7 +168,7 @@ export function BidContractTermsFields({
               type="number"
               min="0"
               max="100"
-              disabled={disabled}
+              disabled={fieldDisabled('retentionPercent')}
               value={value.retentionPercent ?? 10}
               onChange={(e) =>
                 set('retentionPercent', Number(e.target.value) || 0)
@@ -170,7 +181,7 @@ export function BidContractTermsFields({
               type="number"
               min="0"
               max="100"
-              disabled={disabled}
+              disabled={fieldDisabled('retentionLimitPercent')}
               value={value.retentionLimitPercent ?? 10}
               onChange={(e) =>
                 set('retentionLimitPercent', Number(e.target.value) || 0)
@@ -182,7 +193,7 @@ export function BidContractTermsFields({
             <input
               type="number"
               min="0"
-              disabled={disabled}
+              disabled={fieldDisabled('defectNotificationMonths')}
               value={value.defectNotificationMonths ?? 24}
               onChange={(e) =>
                 set('defectNotificationMonths', Number(e.target.value) || 0)
@@ -195,7 +206,7 @@ export function BidContractTermsFields({
           Retention release schedule
           <textarea
             rows={2}
-            disabled={disabled}
+            disabled={fieldDisabled('retentionReleaseNotes')}
             value={value.retentionReleaseNotes ?? ''}
             placeholder="5% on Taking-Over Certificate; 5% after 12 months from Practical Completion."
             onChange={(e) => set('retentionReleaseNotes', e.target.value)}
@@ -209,7 +220,7 @@ export function BidContractTermsFields({
           </span>
           <textarea
             rows={4}
-            disabled={disabled}
+            disabled={fieldDisabled('specialConditions')}
             value={value.specialConditions ?? ''}
             placeholder="Any additional terms, exclusions, or party-specific arrangements…"
             onChange={(e) => set('specialConditions', e.target.value)}
@@ -223,7 +234,7 @@ export function BidContractTermsFields({
               Employer legal name
               <input
                 type="text"
-                disabled={disabled}
+                disabled={fieldDisabled('employerName')}
                 value={value.employerName ?? ''}
                 onChange={(e) => set('employerName', e.target.value)}
               />
@@ -232,7 +243,7 @@ export function BidContractTermsFields({
               Employer address
               <input
                 type="text"
-                disabled={disabled}
+                disabled={fieldDisabled('employerAddress')}
                 value={value.employerAddress ?? ''}
                 onChange={(e) => set('employerAddress', e.target.value)}
               />
@@ -241,16 +252,18 @@ export function BidContractTermsFields({
               Employer registration no.
               <input
                 type="text"
-                disabled={disabled}
+                disabled={fieldDisabled('employerRegistrationNo')}
                 value={value.employerRegistrationNo ?? ''}
-                onChange={(e) => set('employerRegistrationNo', e.target.value)}
+                onChange={(e) =>
+                  set('employerRegistrationNo', e.target.value)
+                }
               />
             </label>
             <label>
               Contractor address
               <input
                 type="text"
-                disabled={disabled}
+                disabled={fieldDisabled('contractorAddress')}
                 value={value.contractorAddress ?? ''}
                 onChange={(e) => set('contractorAddress', e.target.value)}
               />
@@ -259,7 +272,7 @@ export function BidContractTermsFields({
               Contractor registration no.
               <input
                 type="text"
-                disabled={disabled}
+                disabled={fieldDisabled('contractorRegistrationNo')}
                 value={value.contractorRegistrationNo ?? ''}
                 onChange={(e) =>
                   set('contractorRegistrationNo', e.target.value)
@@ -270,7 +283,7 @@ export function BidContractTermsFields({
               Contractor representative
               <input
                 type="text"
-                disabled={disabled}
+                disabled={fieldDisabled('contractorRepresentative')}
                 value={value.contractorRepresentative ?? ''}
                 onChange={(e) =>
                   set('contractorRepresentative', e.target.value)
@@ -282,19 +295,4 @@ export function BidContractTermsFields({
       </div>
     </div>
   );
-}
-
-export function contractTermsFromBid(
-  terms?: { contractTerms?: BidContractTerms } | null,
-  project?: { title?: string; district?: string | null },
-): BidContractTerms {
-  const existing = terms?.contractTerms ?? {};
-  return {
-    ...DEFAULT_CONTRACT_TERMS,
-    siteAddress: existing.siteAddress ?? project?.district ?? undefined,
-    subjectOfContract:
-      existing.subjectOfContract ??
-      (project?.title ? `Construction works for ${project.title}` : undefined),
-    ...existing,
-  };
 }

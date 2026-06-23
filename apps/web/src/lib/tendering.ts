@@ -224,6 +224,25 @@ export async function selectProjectBid(
   return response.json() as Promise<Tender>;
 }
 
+export async function updateBidContractTerms(
+  projectId: string,
+  bidId: string,
+  contractTerms: BidContractTerms,
+): Promise<Bid> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/contract-terms`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contractTerms }),
+    },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to update contract terms');
+  }
+  return response.json() as Promise<Bid>;
+}
+
 export async function fetchContractorProfile(): Promise<ContractorProfile | null> {
   const response = await fetchWithAuth('/api/contractor/profile', {
   });

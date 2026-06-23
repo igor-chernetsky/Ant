@@ -62,6 +62,19 @@ export default function ProjectBidsPage() {
     void loadData();
   }, [loadData]);
 
+  const handleBidUpdated = (updatedBid: Bid) => {
+    setTender((prev) =>
+      prev
+        ? {
+            ...prev,
+            bids: prev.bids.map((b) =>
+              b.id === updatedBid.id ? updatedBid : b,
+            ),
+          }
+        : null,
+    );
+  };
+
   const handleSelectBid = async (bid: Bid) => {
     const confirmed = window.confirm(
       `Select bid from ${bid.companyName ?? 'contractor'}?`,
@@ -216,6 +229,9 @@ export default function ProjectBidsPage() {
                             tenderOpen:
                               tender.status === 'open' ||
                               tender.status === 'closed',
+                            projectTitle: project?.title,
+                            projectDistrict: project?.district,
+                            onBidUpdated: handleBidUpdated,
                           }}
                         />
                       ))}

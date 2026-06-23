@@ -91,6 +91,30 @@ function buildBoqTable(lineItems?: BidLineItem[]): string {
     </table>`;
 }
 
+function formatDocumentCategory(category: string): string {
+  return category.replace(/_/g, ' ');
+}
+
+function buildAnnex2Html(
+  documents: Array<{ originalName: string; category: string }>,
+): string {
+  if (!documents.length) {
+    return `<p class="clause">Drawings, specifications, and other technical documents uploaded to the project on the platform are deemed part of this Contract when listed here.</p>
+    <p class="clause"><em>No project documents are recorded on the platform yet. Annex #2 to be supplemented with drawings and specifications before Works commence.</em></p>`;
+  }
+
+  const items = documents
+    .map(
+      (doc) =>
+        `<li><strong>${escapeHtml(formatDocumentCategory(doc.category))}</strong> — ${escapeHtml(doc.originalName)}</li>`,
+    )
+    .join('');
+
+  return `<p class="clause">The following project documents form Annex #2 (Drawings and Specifications):</p>
+    <ul>${items}</ul>
+    <p class="clause muted">Full files are available in the project workspace on the platform.</p>`;
+}
+
 export function buildCommercialProposalData(input: {
   projectTitle: string;
   projectDistrict?: string | null;
@@ -98,6 +122,7 @@ export function buildCommercialProposalData(input: {
   bidAmount: number;
   durationDays?: number | null;
   terms: BidTermsV1 | null;
+  projectDocuments?: Array<{ originalName: string; category: string }>;
   employerName: string;
   employerEmail?: string | null;
   contractorCompanyName: string;
@@ -187,6 +212,8 @@ export function buildCommercialProposalData(input: {
     hasSpecialConditions: Boolean(contract?.specialConditions?.trim()),
     boqTableHtml,
     hasBoq: Boolean(lineItems?.length),
+    annex2Html: buildAnnex2Html(input.projectDocuments ?? []),
+    hasAnnex2Documents: (input.projectDocuments?.length ?? 0) > 0,
   };
 }
 
@@ -199,6 +226,11 @@ export function renderCommercialProposalHtml(
     ${data.boqTableHtml}
   `
     : '';
+
+  const annex2Section = `
+    <h2>Annex #2 — Drawings and Specifications</h2>
+    ${data.annex2Html}
+  `;
 
   const specialConditionsSection = data.hasSpecialConditions
     ? `
@@ -307,6 +339,8 @@ export function renderCommercialProposalHtml(
   <p class="clause">No adjustment shall be allowed for changes in cost of materials, labour, equipment or services during the Contract period unless agreed in writing as a Variation Order.</p>
 
   ${boqSection}
+
+  ${annex2Section}
 
   <h2>Clause 5 — Contract Period</h2>
   <p class="clause"><strong>Works Commencement Date:</strong> ${escapeHtml(data.worksStartDate)}</p>
