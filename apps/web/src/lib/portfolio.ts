@@ -143,20 +143,53 @@ export async function uploadPortfolioPhoto(file: File): Promise<PortfolioItem> {
     );
   }
 
+  const patched =
+    file.type === contentType
+      ? file
+      : new File([file], file.name, { type: contentType });
+
   const { itemId, uploadUrl } = await presignPortfolioItem({
-    fileName: file.name,
+    fileName: patched.name,
     contentType,
-    sizeBytes: file.size,
+    sizeBytes: patched.size,
   });
 
   const uploadResponse = await fetch(uploadUrl, {
     method: 'PUT',
     headers: { 'Content-Type': contentType },
-    body: file,
+    body: patched,
   });
   if (!uploadResponse.ok) {
-    throw new Error('Upload to storage failed');
+    const detail = await uploadResponse.text().catch(() => '');
+    throw new Error(
+      `Upload to storage failed (${uploadResponse.status}). Check S3 CORS and bucket settings. ${detail.slice(0, 120)}`,
+    );
   }
 
   return completePortfolioItem(itemId);
+}
+
+export async function syncPendingPortfolioItems(
+  items: PortfolioItem[],
+): Promise<PortfolioItem[]> {
+  const pending = items.filter((item) => item.status === 'pending');
+  if (pending.length === 0) {
+    return items;
+  }
+
+  const synced = [...items];
+  for (const item of pending) {
+    try {
+      const completed = await completePortfolioItem(item.id);
+      const index = synced.findIndex((entry) => entry.id === item.id);
+      if (index >= 0) {
+        synced[index] = completed;
+      } else {
+        synced.push(completed);
+      }
+    } catch {
+      // Leave pending item as-is; UI can retry on next load.
+    }
+  }
+  return synced;
 }

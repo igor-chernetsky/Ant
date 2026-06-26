@@ -4,6 +4,7 @@ import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import {
   deletePortfolioItem,
   fetchPortfolioItems,
+  syncPendingPortfolioItems,
   updatePortfolioItem,
   uploadPortfolioPhoto,
   type PortfolioItem,
@@ -46,10 +47,24 @@ function RemoveIcon() {
   );
 }
 
+function mergePortfolioItems(
+  current: PortfolioItem[],
+  incoming: PortfolioItem[],
+): PortfolioItem[] {
+  const byId = new Map(current.map((item) => [item.id, item]));
+  for (const item of incoming) {
+    byId.set(item.id, item);
+  }
+  return [...byId.values()].sort(
+    (a, b) => a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt),
+  );
+}
+
 export function ContractorPortfolioPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,16 +72,29 @@ export function ContractorPortfolioPanel() {
   const [savingCaptionId, setSavingCaptionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadItems = useCallback(async () => {
-    setLoading(true);
+  const loadItems = useCallback(async (options?: { silent?: boolean }) => {
+    if (options?.silent) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
       const data = await fetchPortfolioItems();
-      setItems(data.filter((item) => item.status === 'uploaded'));
+      const synced = await syncPendingPortfolioItems(data);
+      setItems(
+        synced
+          .filter((item) => item.status === 'uploaded' || item.status === 'pending')
+          .sort(
+            (a, b) =>
+              a.sortOrder - b.sortOrder || a.createdAt.localeCompare(b.createdAt),
+          ),
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load portfolio');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -81,13 +109,20 @@ export function ContractorPortfolioPanel() {
 
     setBusy(true);
     setError(null);
+    const uploaded: PortfolioItem[] = [];
+
     try {
       for (const file of Array.from(files)) {
-        await uploadPortfolioPhoto(file);
+        const item = await uploadPortfolioPhoto(file);
+        uploaded.push(item);
       }
-      await loadItems();
+      setItems((prev) => mergePortfolioItems(prev, uploaded));
+      void loadItems({ silent: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed');
+      if (uploaded.length > 0) {
+        setItems((prev) => mergePortfolioItems(prev, uploaded));
+      }
     } finally {
       setBusy(false);
     }
@@ -145,6 +180,8 @@ export function ContractorPortfolioPanel() {
     }
   };
 
+  const visibleItems = items.filter((item) => item.status === 'uploaded');
+
   return (
     <section className="card contractor-portfolio-card">
       <div className="contractor-portfolio-header">
@@ -168,17 +205,23 @@ export function ContractorPortfolioPanel() {
         </button>
       </div>
 
+      {refreshing && !loading && (
+        <p className="muted contractor-portfolio-refresh-hint">Refreshing…</p>
+      )}
+
       {error && <p className="form-error">{error}</p>}
 
       {loading ? (
         <p className="muted">Loading portfolio…</p>
-      ) : items.length === 0 ? (
+      ) : visibleItems.length === 0 ? (
         <p className="muted contractor-portfolio-empty">
-          No photos yet. Upload images of your completed work.
+          {busy
+            ? 'Uploading photo…'
+            : 'No photos yet. Upload images of your completed work.'}
         </p>
       ) : (
         <ul className="contractor-portfolio-grid contractor-portfolio-grid--owner">
-          {items.map((item) => {
+          {visibleItems.map((item) => {
             const isEditing = editingId === item.id;
             const hasCaption = Boolean(item.title?.trim());
 

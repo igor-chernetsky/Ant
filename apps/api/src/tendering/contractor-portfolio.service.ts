@@ -241,46 +241,66 @@ export class ContractorPortfolioService {
     }
 
     const { sizeBytes } = await this.storage.verifyObject(item.storageKey);
-    let thumbnailStorageKey: string | null = null;
-
-    if (this.storage.isConfigured()) {
-      try {
-        const buffer = await this.storage.getObjectBuffer(item.storageKey);
-        const thumbBuffer = await this.thumbnails.createJpegThumbnail(
-          buffer,
-          item.contentType,
-        );
-        if (thumbBuffer) {
-          thumbnailStorageKey = buildPortfolioThumbnailKey(
-            profile.id,
-            item.id,
-          );
-          await this.storage.putObject({
-            storageKey: thumbnailStorageKey,
-            body: thumbBuffer,
-            contentType: 'image/jpeg',
-          });
-        }
-      } catch {
-        thumbnailStorageKey = null;
-      }
-    }
-
     const updated = await this.prisma.contractorPortfolioItem.update({
       where: { id: itemId },
       data: {
         status: DocumentStatus.uploaded,
         sizeBytes,
         uploadedAt: new Date(),
-        thumbnailStorageKey,
       },
     });
+
+    void this.generateThumbnailInBackground(profile.id, updated);
 
     const [response] = await this.attachImageUrls(
       [this.toBaseResponse(updated)],
       [updated],
     );
     return response;
+  }
+
+  private generateThumbnailInBackground(
+    contractorId: string,
+    item: {
+      id: string;
+      storageKey: string;
+      contentType: string;
+      thumbnailStorageKey: string | null;
+    },
+  ): void {
+    if (!this.storage.isConfigured()) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const buffer = await this.storage.getObjectBuffer(item.storageKey);
+        const thumbBuffer = await this.thumbnails.createJpegThumbnail(
+          buffer,
+          item.contentType,
+        );
+        if (!thumbBuffer) {
+          return;
+        }
+
+        const thumbnailStorageKey = buildPortfolioThumbnailKey(
+          contractorId,
+          item.id,
+        );
+        await this.storage.putObject({
+          storageKey: thumbnailStorageKey,
+          body: thumbBuffer,
+          contentType: 'image/jpeg',
+        });
+
+        await this.prisma.contractorPortfolioItem.update({
+          where: { id: item.id },
+          data: { thumbnailStorageKey },
+        });
+      } catch {
+        // Thumbnail is optional — original image is still available.
+      }
+    })();
   }
 
   async updateItem(

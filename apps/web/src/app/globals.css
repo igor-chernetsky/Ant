@@ -1641,6 +1641,11 @@ pre {
   margin: 0;
 }
 
+.contractor-portfolio-refresh-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+}
+
 .contractor-portfolio-grid,
 .contractor-portfolio-preview-grid {
   list-style: none;
