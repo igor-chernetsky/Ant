@@ -1620,33 +1620,59 @@ pre {
   margin-bottom: 0.85rem;
 }
 
-.contractor-portfolio-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.85rem;
+.contractor-portfolio-title {
+  margin: 0 0 0.85rem;
 }
 
-.contractor-portfolio-header .section-title {
-  margin: 0;
+.contractor-portfolio-upload-tile {
+  min-width: 0;
 }
 
 .contractor-portfolio-upload-label {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  aspect-ratio: 1;
+  width: 100%;
+  margin: 0;
+  padding: 0.75rem;
+  border: 2px dashed var(--border-strong);
+  border-radius: 12px;
+  background: #f8fafc;
+  color: var(--muted);
   cursor: pointer;
   overflow: hidden;
-  min-height: 2.5rem;
-  padding: 0.65rem 1.1rem;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
-.contractor-portfolio-upload-label span {
+.contractor-portfolio-upload-label:hover:not(.contractor-portfolio-upload-label--busy) {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.contractor-portfolio-upload-tile-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   pointer-events: none;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.contractor-portfolio-upload-icon {
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 400;
 }
 
 .contractor-portfolio-upload-label--busy {
@@ -1666,13 +1692,14 @@ pre {
   font-size: 0;
 }
 
-.contractor-portfolio-empty {
-  margin: 0;
-}
-
 .contractor-portfolio-refresh-hint {
   margin: 0 0 0.5rem;
   font-size: 0.82rem;
+}
+
+.contractor-portfolio-loading-hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.85rem;
 }
 
 .contractor-portfolio-grid,

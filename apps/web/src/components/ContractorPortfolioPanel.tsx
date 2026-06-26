@@ -212,26 +212,7 @@ export function ContractorPortfolioPanel() {
 
   return (
     <section className="card contractor-portfolio-card">
-      <div className="contractor-portfolio-header">
-        <h2 className="section-title">Portfolio</h2>
-        <label
-          className={`contractor-portfolio-upload-label secondary${busy ? ' contractor-portfolio-upload-label--busy' : ''}`}
-        >
-          <span>{busy ? 'Uploading…' : 'Upload image'}</span>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="contractor-portfolio-file-input"
-            multiple
-            accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
-            disabled={busy}
-            onPointerDown={() => markFilePickerOpening()}
-            onChange={(event) =>
-              void processSelectedFiles(event.currentTarget.files, event.currentTarget)
-            }
-          />
-        </label>
-      </div>
+      <h2 className="section-title contractor-portfolio-title">Portfolio</h2>
 
       {refreshing && !loading && (
         <p className="muted contractor-portfolio-refresh-hint">Refreshing…</p>
@@ -239,17 +220,36 @@ export function ContractorPortfolioPanel() {
 
       {error && <p className="form-error">{error}</p>}
 
-      {loading ? (
-        <p className="muted">Loading portfolio…</p>
-      ) : visibleItems.length === 0 ? (
-        <p className="muted contractor-portfolio-empty">
-          {busy
-            ? 'Uploading photo…'
-            : 'No photos yet. Upload images of your completed work.'}
-        </p>
-      ) : (
-        <ul className="contractor-portfolio-grid contractor-portfolio-grid--owner">
-          {visibleItems.map((item) => {
+      <ul className="contractor-portfolio-grid contractor-portfolio-grid--owner">
+        <li className="contractor-portfolio-tile contractor-portfolio-upload-tile">
+          <label
+            className={`contractor-portfolio-upload-label${busy ? ' contractor-portfolio-upload-label--busy' : ''}`}
+          >
+            <span className="contractor-portfolio-upload-tile-inner">
+              <span className="contractor-portfolio-upload-icon" aria-hidden>
+                +
+              </span>
+              <span>{busy ? 'Uploading…' : 'Upload image'}</span>
+            </span>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="contractor-portfolio-file-input"
+              multiple
+              accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
+              disabled={busy}
+              onPointerDown={() => markFilePickerOpening()}
+              onChange={(event) =>
+                void processSelectedFiles(
+                  event.currentTarget.files,
+                  event.currentTarget,
+                )
+              }
+            />
+          </label>
+        </li>
+
+        {visibleItems.map((item) => {
             const isEditing = editingId === item.id;
             const hasCaption = Boolean(item.title?.trim());
 
@@ -344,7 +344,10 @@ export function ContractorPortfolioPanel() {
               </li>
             );
           })}
-        </ul>
+      </ul>
+
+      {loading && visibleItems.length === 0 && (
+        <p className="muted contractor-portfolio-loading-hint">Loading photos…</p>
       )}
     </section>
   );
