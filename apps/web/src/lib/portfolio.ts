@@ -1,5 +1,4 @@
 import { fetchWithAuth } from './auth-client';
-import { ensureSessionFresh } from './session';
 
 export interface PortfolioItem {
   id: string;
@@ -62,6 +61,9 @@ export function guessPortfolioContentType(file: File): string | null {
 
 export async function fetchPortfolioItems(): Promise<PortfolioItem[]> {
   const response = await fetchWithAuth('/api/contractor/portfolio');
+  if (response.status === 404) {
+    return [];
+  }
   if (!response.ok) {
     await parseError(response, 'Failed to load portfolio');
   }
@@ -142,11 +144,6 @@ export async function deletePortfolioItem(itemId: string) {
 }
 
 export async function uploadPortfolioPhoto(file: File): Promise<PortfolioItem> {
-  const sessionOk = await ensureSessionFresh();
-  if (!sessionOk) {
-    throw new Error('Session expired. Please sign in again.');
-  }
-
   const contentType = guessPortfolioContentType(file);
   if (!contentType) {
     throw new Error('Use JPEG, PNG, or WebP images.');

@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   deletePortfolioItem,
   fetchPortfolioItems,
@@ -9,6 +9,10 @@ import {
   uploadPortfolioPhoto,
   type PortfolioItem,
 } from '@/lib/portfolio';
+import {
+  markFilePickerOpening,
+  releaseFilePickerGuard,
+} from '@/lib/file-picker-guard';
 
 function CaptionIcon() {
   return (
@@ -61,7 +65,7 @@ function mergePortfolioItems(
 }
 
 export function ContractorPortfolioPanel() {
-  const uploadInputId = useId();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,35 +106,55 @@ export function ContractorPortfolioPanel() {
     void loadItems();
   }, [loadItems]);
 
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const selected = event.target.files;
-    // Reset so the same file can be picked again later.
-    event.target.value = '';
-    if (!selected?.length) {
+  const processSelectedFiles = useCallback(
+    async (fileList: FileList | null, input?: HTMLInputElement | null) => {
+      if (!fileList?.length) {
+        releaseFilePickerGuard();
+        return;
+      }
+
+      const files = Array.from(fileList);
+      if (input) {
+        input.value = '';
+      }
+
+      setBusy(true);
+      setError(null);
+      const uploaded: PortfolioItem[] = [];
+
+      try {
+        for (const file of files) {
+          const item = await uploadPortfolioPhoto(file);
+          uploaded.push(item);
+        }
+        setItems((prev) => mergePortfolioItems(prev, uploaded));
+        void loadItems({ silent: true });
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Upload failed');
+        if (uploaded.length > 0) {
+          setItems((prev) => mergePortfolioItems(prev, uploaded));
+        }
+      } finally {
+        setBusy(false);
+        releaseFilePickerGuard();
+      }
+    },
+    [loadItems],
+  );
+
+  useEffect(() => {
+    const input = fileInputRef.current;
+    if (!input) {
       return;
     }
 
-    const files = Array.from(selected);
-    setBusy(true);
-    setError(null);
-    const uploaded: PortfolioItem[] = [];
+    const onNativeChange = () => {
+      void processSelectedFiles(input.files, input);
+    };
 
-    try {
-      for (const file of files) {
-        const item = await uploadPortfolioPhoto(file);
-        uploaded.push(item);
-      }
-      setItems((prev) => mergePortfolioItems(prev, uploaded));
-      void loadItems({ silent: true });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-      if (uploaded.length > 0) {
-        setItems((prev) => mergePortfolioItems(prev, uploaded));
-      }
-    } finally {
-      setBusy(false);
-    }
-  };
+    input.addEventListener('change', onNativeChange);
+    return () => input.removeEventListener('change', onNativeChange);
+  }, [processSelectedFiles]);
 
   const handleDelete = async (item: PortfolioItem) => {
     const confirmed = window.confirm('Remove this photo from your portfolio?');
@@ -191,20 +215,22 @@ export function ContractorPortfolioPanel() {
       <div className="contractor-portfolio-header">
         <h2 className="section-title">Portfolio</h2>
         <label
-          htmlFor={uploadInputId}
-          className={`secondary contractor-portfolio-upload-btn${busy ? ' contractor-portfolio-upload-btn--busy' : ''}`}
+          className={`contractor-portfolio-upload-label secondary${busy ? ' contractor-portfolio-upload-label--busy' : ''}`}
         >
-          {busy ? 'Uploading…' : 'Upload image'}
+          <span>{busy ? 'Uploading…' : 'Upload image'}</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="contractor-portfolio-file-input"
+            multiple
+            accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
+            disabled={busy}
+            onPointerDown={() => markFilePickerOpening()}
+            onChange={(event) =>
+              void processSelectedFiles(event.currentTarget.files, event.currentTarget)
+            }
+          />
         </label>
-        <input
-          id={uploadInputId}
-          type="file"
-          className="contractor-portfolio-file-input"
-          multiple
-          accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
-          onChange={(e) => void handleFileChange(e)}
-          disabled={busy}
-        />
       </div>
 
       {refreshing && !loading && (

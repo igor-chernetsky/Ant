@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { setSessionExpiredHandler } from '@/lib/auth-client';
+import { isFilePickerActive } from '@/lib/file-picker-guard';
 import {
   fetchSessionProfile,
   logoutSession,
@@ -66,18 +67,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
 
     const refreshIfNeeded = () => {
+      if (isFilePickerActive()) {
+        return;
+      }
       void refreshSessionTokens();
     };
 
     const onFocus = () => {
-      // Defer refresh until after native file-picker change events can fire.
-      window.setTimeout(refreshIfNeeded, 300);
+      window.setTimeout(refreshIfNeeded, 800);
     };
 
     const intervalId = window.setInterval(refreshIfNeeded, 4 * 60 * 1000);
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
-        window.setTimeout(refreshIfNeeded, 300);
+        window.setTimeout(refreshIfNeeded, 800);
       }
     };
 
