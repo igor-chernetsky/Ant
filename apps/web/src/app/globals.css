@@ -1616,6 +1616,130 @@ pre {
   width: 100%;
 }
 
+.contractor-portfolio-preview-desc,
+.contractor-portfolio-description {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.contractor-portfolio-card {
+  margin-bottom: 0.85rem;
+}
+
+.contractor-portfolio-form {
+  margin-bottom: 1rem;
+}
+
+.contractor-portfolio-grid,
+.contractor-portfolio-preview-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.contractor-portfolio-item,
+.contractor-portfolio-preview-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.contractor-portfolio-thumb-link {
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: #f1f5f9;
+}
+
+.contractor-portfolio-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.contractor-portfolio-thumb--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.contractor-portfolio-item-body {
+  padding: 0.65rem 0.75rem 0.75rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.contractor-portfolio-title-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+}
+
+.contractor-portfolio-title-input:focus {
+  border-color: var(--border-strong);
+  background: #f8fafc;
+  outline: none;
+}
+
+.contractor-portfolio-remove {
+  justify-self: flex-start;
+  font-size: 0.85rem;
+}
+
+.contractor-portfolio-preview {
+  margin: 0.75rem 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  background: #f8fafc;
+}
+
+.contractor-portfolio-preview-summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  list-style: none;
+}
+
+.contractor-portfolio-preview-summary::-webkit-details-marker {
+  display: none;
+}
+
+.contractor-portfolio-preview-summary::before {
+  content: '▸ ';
+}
+
+.contractor-portfolio-preview[open] .contractor-portfolio-preview-summary::before {
+  content: '▾ ';
+}
+
+.contractor-portfolio-preview-grid {
+  margin-top: 0.75rem;
+}
+
+.contractor-portfolio-preview-title {
+  margin: 0.45rem 0.75rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.contractor-portfolio-preview-desc {
+  margin: 0.2rem 0.75rem 0.75rem;
+}
+
 .doc-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));

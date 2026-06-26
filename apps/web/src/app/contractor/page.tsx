@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { ContractorVerificationPanel } from '@/components/ContractorVerificationPanel';
+import { ContractorPortfolioPanel } from '@/components/ContractorPortfolioPanel';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
@@ -249,6 +250,8 @@ export default function ContractorPage() {
               profile={profile}
               onProfileUpdated={setProfile}
             />
+
+            <ContractorPortfolioPanel />
 
             <section className="card">
               <h2 className="section-title">My applications</h2>

@@ -6,6 +6,7 @@ import { BidChat } from '@/components/BidChat';
 import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
 import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
+import { ContractorPortfolioGallery } from '@/components/ContractorPortfolioGallery';
 import type { Bid } from '@/lib/tendering';
 
 interface BidApplicationCardProps {
@@ -121,6 +122,11 @@ export function BidApplicationCard({
       {isOpen && (
         <div className="bid-application-card-body">
           <BidProposalSummary bid={bid} ballparkMid={ballparkMid} detailsOnly />
+
+          <ContractorPortfolioGallery
+            contractorId={bid.contractorId}
+            companyName={bid.companyName}
+          />
 
           {clientCounterOffer &&
             (bid.status === 'submitted' ||

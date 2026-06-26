@@ -298,6 +298,7 @@ model ContractorProfile {
   updatedAt               DateTime                     @updatedAt @map("updated_at")
   bids                    Bid[]
   verificationDocuments   ContractorVerificationDocument[]
+  portfolioItems          ContractorPortfolioItem[]
 
   @@index([regionCode])
   @@index([verificationStatus])
@@ -321,6 +322,26 @@ model ContractorVerificationDocument {
 
   @@index([contractorId])
   @@map("contractor_verification_documents")
+}
+
+model ContractorPortfolioItem {
+  id                  String            @id @default(uuid())
+  contractorId        String            @map("contractor_id")
+  contractor          ContractorProfile @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+  title               String
+  description         String?           @db.Text
+  originalName        String            @map("original_name")
+  contentType         String            @map("content_type")
+  sizeBytes           Int?              @map("size_bytes")
+  storageKey          String            @unique @map("storage_key")
+  thumbnailStorageKey String?           @unique @map("thumbnail_storage_key")
+  sortOrder           Int               @default(0) @map("sort_order")
+  status              DocumentStatus    @default(pending)
+  createdAt           DateTime          @default(now()) @map("created_at")
+  uploadedAt          DateTime?         @map("uploaded_at")
+
+  @@index([contractorId, sortOrder])
+  @@map("contractor_portfolio_items")
 }
 
 model Tender {

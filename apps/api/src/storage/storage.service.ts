@@ -169,4 +169,20 @@ export class StorageService {
     const bytes = await response.Body.transformToByteArray();
     return Buffer.from(bytes);
   }
+
+  async putObject(input: {
+    storageKey: string;
+    body: Buffer;
+    contentType: string;
+  }): Promise<void> {
+    const { internal, bucket } = this.requireClient();
+    await internal.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: input.storageKey,
+        Body: input.body,
+        ContentType: input.contentType,
+      }),
+    );
+  }
 }

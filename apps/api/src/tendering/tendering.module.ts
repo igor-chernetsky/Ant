@@ -16,10 +16,19 @@ import { DefaultCostBreakdownService } from './default-cost-breakdown.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
+import { ContractorPortfolioController } from './contractor-portfolio.controller';
+import { ContractorPortfolioService } from './contractor-portfolio.service';
+import { ImageThumbnailService } from './image-thumbnail.service';
+import { PublicContractorsController } from './public-contractors.controller';
 
 @Module({
   imports: [UsersModule, AiModule, NotificationsModule, ScheduleModule.forRoot()],
-  controllers: [ProjectTenderController, ContractorTenderController],
+  controllers: [
+    ProjectTenderController,
+    ContractorTenderController,
+    ContractorPortfolioController,
+    PublicContractorsController,
+  ],
   providers: [
     TendersService,
     BidAnalysisService,
@@ -32,6 +41,8 @@ import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
     HtmlToPdfService,
     TenderClarificationsService,
     DefaultCostBreakdownService,
+    ContractorPortfolioService,
+    ImageThumbnailService,
   ],
   exports: [TendersService, ContractorProfilesService],
 })
