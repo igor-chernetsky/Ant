@@ -1,6 +1,6 @@
 'use client';
 
-import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useId, useState } from 'react';
 import {
   deletePortfolioItem,
   fetchPortfolioItems,
@@ -61,7 +61,7 @@ function mergePortfolioItems(
 }
 
 export function ContractorPortfolioPanel() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadInputId = useId();
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -103,16 +103,20 @@ export function ContractorPortfolioPanel() {
   }, [loadItems]);
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+    const selected = event.target.files;
+    // Reset so the same file can be picked again later.
     event.target.value = '';
-    if (!files?.length) return;
+    if (!selected?.length) {
+      return;
+    }
 
+    const files = Array.from(selected);
     setBusy(true);
     setError(null);
     const uploaded: PortfolioItem[] = [];
 
     try {
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         const item = await uploadPortfolioPhoto(file);
         uploaded.push(item);
       }
@@ -186,23 +190,21 @@ export function ContractorPortfolioPanel() {
     <section className="card contractor-portfolio-card">
       <div className="contractor-portfolio-header">
         <h2 className="section-title">Portfolio</h2>
+        <label
+          htmlFor={uploadInputId}
+          className={`secondary contractor-portfolio-upload-btn${busy ? ' contractor-portfolio-upload-btn--busy' : ''}`}
+        >
+          {busy ? 'Uploading…' : 'Upload image'}
+        </label>
         <input
-          ref={fileInputRef}
+          id={uploadInputId}
           type="file"
-          className="sr-only"
+          className="contractor-portfolio-file-input"
           multiple
-          accept=".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp"
+          accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
           onChange={(e) => void handleFileChange(e)}
           disabled={busy}
         />
-        <button
-          type="button"
-          className="secondary contractor-portfolio-upload-btn"
-          disabled={busy}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          {busy ? 'Uploading…' : 'Upload image'}
-        </button>
       </div>
 
       {refreshing && !loading && (

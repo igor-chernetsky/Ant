@@ -1,4 +1,5 @@
 import { fetchWithAuth } from './auth-client';
+import { ensureSessionFresh } from './session';
 
 export interface PortfolioItem {
   id: string;
@@ -39,9 +40,17 @@ async function parseError(response: Response, fallback: string): Promise<never> 
 }
 
 export function guessPortfolioContentType(file: File): string | null {
-  if (file.type && PORTFOLIO_IMAGE_TYPES.has(file.type)) {
-    return file.type;
+  const normalizedType = file.type?.split(';')[0]?.trim().toLowerCase();
+  if (normalizedType?.startsWith('image/')) {
+    if (PORTFOLIO_IMAGE_TYPES.has(normalizedType)) {
+      return normalizedType;
+    }
+    // Browsers may report image/jpg or other aliases — normalize common cases.
+    if (normalizedType === 'image/jpg' || normalizedType === 'image/pjpeg') {
+      return 'image/jpeg';
+    }
   }
+
   const lower = file.name.toLowerCase();
   if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
   if (lower.endsWith('.png')) return 'image/png';
@@ -133,6 +142,11 @@ export async function deletePortfolioItem(itemId: string) {
 }
 
 export async function uploadPortfolioPhoto(file: File): Promise<PortfolioItem> {
+  const sessionOk = await ensureSessionFresh();
+  if (!sessionOk) {
+    throw new Error('Session expired. Please sign in again.');
+  }
+
   const contentType = guessPortfolioContentType(file);
   if (!contentType) {
     throw new Error('Use JPEG, PNG, or WebP images.');

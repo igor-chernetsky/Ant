@@ -1635,6 +1635,24 @@ pre {
 
 .contractor-portfolio-upload-btn {
   flex-shrink: 0;
+  cursor: pointer;
+}
+
+.contractor-portfolio-upload-btn--busy {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.contractor-portfolio-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .contractor-portfolio-empty {

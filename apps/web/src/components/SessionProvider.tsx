@@ -69,11 +69,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       void refreshSessionTokens();
     };
 
+    const onFocus = () => {
+      // Defer refresh until after native file-picker change events can fire.
+      window.setTimeout(refreshIfNeeded, 300);
+    };
+
     const intervalId = window.setInterval(refreshIfNeeded, 4 * 60 * 1000);
-    const onFocus = () => refreshIfNeeded();
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
-        refreshIfNeeded();
+        window.setTimeout(refreshIfNeeded, 300);
       }
     };
 
