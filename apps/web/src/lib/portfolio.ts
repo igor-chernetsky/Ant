@@ -77,8 +77,7 @@ export async function presignPortfolioItem(input: {
   fileName: string;
   contentType: string;
   sizeBytes: number;
-  title: string;
-  description?: string;
+  title?: string;
 }) {
   const response = await fetchWithAuth('/api/contractor/portfolio/presign', {
     method: 'POST',
@@ -107,7 +106,7 @@ export async function completePortfolioItem(itemId: string) {
 
 export async function updatePortfolioItem(
   itemId: string,
-  input: { title?: string; description?: string },
+  input: { title?: string },
 ) {
   const response = await fetchWithAuth(
     `/api/contractor/portfolio/${encodeURIComponent(itemId)}`,
@@ -133,10 +132,7 @@ export async function deletePortfolioItem(itemId: string) {
   }
 }
 
-export async function uploadPortfolioPhoto(
-  file: File,
-  input: { title: string; description?: string },
-): Promise<PortfolioItem> {
+export async function uploadPortfolioPhoto(file: File): Promise<PortfolioItem> {
   const contentType = guessPortfolioContentType(file);
   if (!contentType) {
     throw new Error('Use JPEG, PNG, or WebP images.');
@@ -151,8 +147,6 @@ export async function uploadPortfolioPhoto(
     fileName: file.name,
     contentType,
     sizeBytes: file.size,
-    title: input.title,
-    description: input.description,
   });
 
   const uploadResponse = await fetch(uploadUrl, {

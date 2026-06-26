@@ -62,12 +62,9 @@ export function ContractorPortfolioGallery({
                 />
               ) : null}
             </a>
-            <p className="contractor-portfolio-preview-title">{item.title}</p>
-            {item.description && (
-              <p className="muted contractor-portfolio-preview-desc">
-                {item.description}
-              </p>
-            )}
+            {item.title?.trim() ? (
+              <p className="contractor-portfolio-preview-title">{item.title}</p>
+            ) : null}
           </li>
         ))}
       </ul>

@@ -9,14 +9,52 @@ import {
   type PortfolioItem,
 } from '@/lib/portfolio';
 
+function CaptionIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function RemoveIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
+  );
+}
+
 export function ContractorPortfolioPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<PortfolioItem[]>([]);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [captionDraft, setCaptionDraft] = useState('');
+  const [savingCaptionId, setSavingCaptionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadItems = useCallback(async () => {
@@ -37,25 +75,16 @@ export function ContractorPortfolioPanel() {
   }, [loadItems]);
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+    const files = event.target.files;
     event.target.value = '';
-    if (!file) return;
-
-    const workTitle = title.trim();
-    if (!workTitle) {
-      setError('Enter a work title before uploading a photo.');
-      return;
-    }
+    if (!files?.length) return;
 
     setBusy(true);
     setError(null);
     try {
-      await uploadPortfolioPhoto(file, {
-        title: workTitle,
-        description: description.trim() || undefined,
-      });
-      setTitle('');
-      setDescription('');
+      for (const file of Array.from(files)) {
+        await uploadPortfolioPhoto(file);
+      }
       await loadItems();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -65,78 +94,77 @@ export function ContractorPortfolioPanel() {
   };
 
   const handleDelete = async (item: PortfolioItem) => {
-    const confirmed = window.confirm(`Remove "${item.title}" from your portfolio?`);
+    const confirmed = window.confirm('Remove this photo from your portfolio?');
     if (!confirmed) return;
 
     setDeletingId(item.id);
     setError(null);
+    if (editingId === item.id) {
+      setEditingId(null);
+      setCaptionDraft('');
+    }
     try {
       await deletePortfolioItem(item.id);
       setItems((prev) => prev.filter((entry) => entry.id !== item.id));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to delete item');
+      setError(err instanceof Error ? err.message : 'Failed to delete photo');
     } finally {
       setDeletingId(null);
     }
   };
 
-  const handleTitleBlur = async (item: PortfolioItem, nextTitle: string) => {
-    const trimmed = nextTitle.trim();
-    if (!trimmed || trimmed === item.title) return;
+  const openCaptionEditor = (item: PortfolioItem) => {
+    setEditingId(item.id);
+    setCaptionDraft(item.title ?? '');
+  };
 
+  const closeCaptionEditor = () => {
+    setEditingId(null);
+    setCaptionDraft('');
+  };
+
+  const handleSaveCaption = async (item: PortfolioItem) => {
+    const next = captionDraft.trim();
+    if (next === (item.title ?? '').trim()) {
+      closeCaptionEditor();
+      return;
+    }
+
+    setSavingCaptionId(item.id);
+    setError(null);
     try {
-      const updated = await updatePortfolioItem(item.id, { title: trimmed });
+      const updated = await updatePortfolioItem(item.id, { title: next });
       setItems((prev) =>
         prev.map((entry) => (entry.id === item.id ? updated : entry)),
       );
+      closeCaptionEditor();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to update title');
+      setError(err instanceof Error ? err.message : 'Failed to save caption');
+    } finally {
+      setSavingCaptionId(null);
     }
   };
 
   return (
     <section className="card contractor-portfolio-card">
-      <h2 className="section-title">Portfolio</h2>
-      <p className="muted doc-hint">
-        Showcase completed work with photos. Thumbnails are generated automatically
-        for faster loading.
-      </p>
-
-      <div className="contractor-portfolio-form modal-form">
-        <label>
-          Work title
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Kitchen renovation, Bang Tao"
-            disabled={busy}
-          />
-        </label>
-        <label>
-          Description <span className="muted">(optional)</span>
-          <textarea
-            rows={2}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Scope, materials, timeline…"
-            disabled={busy}
-          />
-        </label>
+      <div className="contractor-portfolio-header">
+        <h2 className="section-title">Portfolio</h2>
         <input
           ref={fileInputRef}
           type="file"
           className="sr-only"
+          multiple
           accept=".jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp"
           onChange={(e) => void handleFileChange(e)}
           disabled={busy}
         />
         <button
           type="button"
-          className="primary"
-          disabled={busy || !title.trim()}
+          className="secondary contractor-portfolio-upload-btn"
+          disabled={busy}
           onClick={() => fileInputRef.current?.click()}
         >
-          {busy ? 'Uploading…' : 'Add photo'}
+          {busy ? 'Uploading…' : 'Upload image'}
         </button>
       </div>
 
@@ -145,53 +173,106 @@ export function ContractorPortfolioPanel() {
       {loading ? (
         <p className="muted">Loading portfolio…</p>
       ) : items.length === 0 ? (
-        <p className="muted">No portfolio items yet.</p>
+        <p className="muted contractor-portfolio-empty">
+          No photos yet. Upload images of your completed work.
+        </p>
       ) : (
-        <ul className="contractor-portfolio-grid">
-          {items.map((item) => (
-            <li key={item.id} className="contractor-portfolio-item">
-              <a
-                href={item.imageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="contractor-portfolio-thumb-link"
-              >
-                {item.thumbnailUrl || item.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item.thumbnailUrl ?? item.imageUrl}
-                    alt={item.title}
-                    className="contractor-portfolio-thumb"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="contractor-portfolio-thumb contractor-portfolio-thumb--placeholder">
-                    No preview
+        <ul className="contractor-portfolio-grid contractor-portfolio-grid--owner">
+          {items.map((item) => {
+            const isEditing = editingId === item.id;
+            const hasCaption = Boolean(item.title?.trim());
+
+            return (
+              <li key={item.id} className="contractor-portfolio-tile">
+                <div className="contractor-portfolio-tile-media">
+                  <a
+                    href={item.imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="contractor-portfolio-thumb-link"
+                  >
+                    {item.thumbnailUrl || item.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={item.thumbnailUrl ?? item.imageUrl}
+                        alt={item.title?.trim() || 'Portfolio photo'}
+                        className="contractor-portfolio-thumb"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="contractor-portfolio-thumb contractor-portfolio-thumb--placeholder">
+                        No preview
+                      </div>
+                    )}
+                  </a>
+                  <div className="contractor-portfolio-tile-actions">
+                    <button
+                      type="button"
+                      className={`contractor-portfolio-icon-btn${hasCaption ? ' contractor-portfolio-icon-btn--active' : ''}`}
+                      title={hasCaption ? 'Edit caption' : 'Add caption'}
+                      aria-label={hasCaption ? 'Edit caption' : 'Add caption'}
+                      onClick={() => openCaptionEditor(item)}
+                    >
+                      <CaptionIcon />
+                    </button>
+                    <button
+                      type="button"
+                      className="contractor-portfolio-icon-btn contractor-portfolio-icon-btn--danger"
+                      title="Remove photo"
+                      aria-label="Remove photo"
+                      disabled={deletingId === item.id}
+                      onClick={() => void handleDelete(item)}
+                    >
+                      <RemoveIcon />
+                    </button>
+                  </div>
+                  {hasCaption && !isEditing && (
+                    <p className="contractor-portfolio-tile-caption">
+                      {item.title}
+                    </p>
+                  )}
+                </div>
+
+                {isEditing && (
+                  <div className="contractor-portfolio-caption-editor">
+                    <input
+                      value={captionDraft}
+                      onChange={(e) => setCaptionDraft(e.target.value)}
+                      placeholder="Work description (optional)"
+                      disabled={savingCaptionId === item.id}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          void handleSaveCaption(item);
+                        }
+                        if (e.key === 'Escape') {
+                          closeCaptionEditor();
+                        }
+                      }}
+                    />
+                    <div className="contractor-portfolio-caption-editor-actions">
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={savingCaptionId === item.id}
+                        onClick={() => void handleSaveCaption(item)}
+                      >
+                        {savingCaptionId === item.id ? 'Saving…' : 'Save'}
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={savingCaptionId === item.id}
+                        onClick={closeCaptionEditor}
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 )}
-              </a>
-              <div className="contractor-portfolio-item-body">
-                <input
-                  className="contractor-portfolio-title-input"
-                  defaultValue={item.title}
-                  onBlur={(e) => void handleTitleBlur(item, e.target.value)}
-                />
-                {item.description && (
-                  <p className="muted contractor-portfolio-description">
-                    {item.description}
-                  </p>
-                )}
-                <button
-                  type="button"
-                  className="text-link contractor-portfolio-remove"
-                  disabled={deletingId === item.id}
-                  onClick={() => void handleDelete(item)}
-                >
-                  {deletingId === item.id ? 'Removing…' : 'Remove'}
-                </button>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

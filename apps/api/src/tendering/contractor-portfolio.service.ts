@@ -139,10 +139,7 @@ export class ContractorPortfolioService {
   async presignUpload(userId: string, dto: PresignPortfolioItemDto) {
     const profile = await this.contractorProfiles.requireByUserId(userId);
 
-    const title = dto.title?.trim();
-    if (!title) {
-      throw new BadRequestException('title is required');
-    }
+    const title = dto.title?.trim() ?? '';
 
     const fileName = dto.fileName?.trim();
     if (!fileName) {
@@ -196,7 +193,7 @@ export class ContractorPortfolioService {
         id: itemId,
         contractorId: profile.id,
         title,
-        description: dto.description?.trim() || null,
+        description: null,
         originalName: fileName,
         contentType,
         sizeBytes: dto.sizeBytes,
@@ -303,19 +300,12 @@ export class ContractorPortfolioService {
       throw new NotFoundException('Portfolio item not found');
     }
 
-    const title = dto.title?.trim();
-    if (dto.title !== undefined && !title) {
-      throw new BadRequestException('title cannot be empty');
-    }
-
     const updated = await this.prisma.contractorPortfolioItem.update({
       where: { id: itemId },
-      data: {
-        ...(title !== undefined ? { title } : {}),
-        ...(dto.description !== undefined
-          ? { description: dto.description.trim() || null }
-          : {}),
-      },
+      data:
+        dto.title !== undefined
+          ? { title: dto.title.trim() }
+          : {},
     });
 
     const [response] = await this.attachImageUrls(

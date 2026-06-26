@@ -4,13 +4,11 @@ export interface PresignPortfolioItemDto {
   fileName: string;
   contentType: string;
   sizeBytes: number;
-  title: string;
-  description?: string;
+  title?: string;
 }
 
 export interface UpdatePortfolioItemDto {
   title?: string;
-  description?: string;
 }
 
 export interface PortfolioItemResponse {
