@@ -10,6 +10,7 @@ export { DEFAULT_CONTRACT_TERMS } from '@/lib/contract-terms-fields';
 export type { ContractTermsAudience } from '@/lib/contract-terms-fields';
 export {
   contractTermsFromBid,
+  defaultScopeSummary,
   pickClientContractTerms,
   pickContractorContractTerms,
 } from '@/lib/contract-terms-fields';
@@ -21,6 +22,10 @@ interface BidContractTermsFieldsProps {
   projectTitle?: string;
   projectDistrict?: string | null;
   disabled?: boolean;
+  /** Hide subject field when scope is edited in the parent proposal form. */
+  hideSubjectOfContract?: boolean;
+  /** Hide standalone section header when embedded in the main proposal form. */
+  showSectionHeader?: boolean;
 }
 
 export function BidContractTermsFields({
@@ -30,6 +35,8 @@ export function BidContractTermsFields({
   projectTitle,
   projectDistrict,
   disabled = false,
+  hideSubjectOfContract = false,
+  showSectionHeader = true,
 }: BidContractTermsFieldsProps) {
   const set = <K extends keyof BidContractTerms>(
     key: K,
@@ -43,33 +50,37 @@ export function BidContractTermsFields({
 
   return (
     <div className="bid-contract-terms">
-      <div className="bid-contract-terms-header">
-        <p className="tag-section-label">Commercial proposal document</p>
-        <p className="muted bid-contract-terms-hint">
-          {audience === 'contractor'
-            ? 'Fields filled by the client are shown for reference. Site address and employer details come from the project.'
-            : 'Propose changes to payment and schedule terms. Contractor proposal fields are shown for reference.'}
-        </p>
-      </div>
+      {showSectionHeader && (
+        <div className="bid-contract-terms-header">
+          <p className="tag-section-label">Commercial proposal document</p>
+          <p className="muted bid-contract-terms-hint">
+            {audience === 'contractor'
+              ? 'Fields filled by the client are shown for reference. Site address and employer details come from the project.'
+              : 'Propose changes to payment and schedule terms. Contractor proposal fields are shown for reference.'}
+          </p>
+        </div>
+      )}
 
       <div className="modal-form bid-proposal-form-fields bid-contract-terms-fields">
-        <label>
-          Subject of contract
-          <span className="field-hint muted">
-            Scope definition — what works are included
-          </span>
-          <textarea
-            rows={2}
-            disabled={fieldDisabled('subjectOfContract')}
-            value={value.subjectOfContract ?? ''}
-            placeholder={
-              projectTitle
-                ? `Construction works for ${projectTitle}`
-                : 'Construction works as per drawings and specifications'
-            }
-            onChange={(e) => set('subjectOfContract', e.target.value)}
-          />
-        </label>
+        {!hideSubjectOfContract && (
+          <label>
+            Subject of contract
+            <span className="field-hint muted">
+              Scope definition — what works are included
+            </span>
+            <textarea
+              rows={2}
+              disabled={fieldDisabled('subjectOfContract')}
+              value={value.subjectOfContract ?? ''}
+              placeholder={
+                projectTitle
+                  ? `Construction works for ${projectTitle}`
+                  : 'Construction works as per drawings and specifications'
+              }
+              onChange={(e) => set('subjectOfContract', e.target.value)}
+            />
+          </label>
+        )}
 
         <label>
           Site address
@@ -227,71 +238,67 @@ export function BidContractTermsFields({
           />
         </label>
 
-        <details className="bid-contract-terms-advanced">
-          <summary>Employer &amp; contractor legal details (optional)</summary>
-          <div className="bid-contract-terms-advanced-body modal-form bid-proposal-form-fields">
-            <label>
-              Employer legal name
-              <input
-                type="text"
-                disabled={fieldDisabled('employerName')}
-                value={value.employerName ?? ''}
-                onChange={(e) => set('employerName', e.target.value)}
-              />
-            </label>
-            <label>
-              Employer address
-              <input
-                type="text"
-                disabled={fieldDisabled('employerAddress')}
-                value={value.employerAddress ?? ''}
-                onChange={(e) => set('employerAddress', e.target.value)}
-              />
-            </label>
-            <label>
-              Employer registration no.
-              <input
-                type="text"
-                disabled={fieldDisabled('employerRegistrationNo')}
-                value={value.employerRegistrationNo ?? ''}
-                onChange={(e) =>
-                  set('employerRegistrationNo', e.target.value)
-                }
-              />
-            </label>
-            <label>
-              Contractor address
-              <input
-                type="text"
-                disabled={fieldDisabled('contractorAddress')}
-                value={value.contractorAddress ?? ''}
-                onChange={(e) => set('contractorAddress', e.target.value)}
-              />
-            </label>
-            <label>
-              Contractor registration no.
-              <input
-                type="text"
-                disabled={fieldDisabled('contractorRegistrationNo')}
-                value={value.contractorRegistrationNo ?? ''}
-                onChange={(e) =>
-                  set('contractorRegistrationNo', e.target.value)
-                }
-              />
-            </label>
-            <label className="bid-contract-terms-advanced-span">
-              Contractor representative
-              <input
-                type="text"
-                disabled={fieldDisabled('contractorRepresentative')}
-                value={value.contractorRepresentative ?? ''}
-                onChange={(e) =>
-                  set('contractorRepresentative', e.target.value)
-                }
-              />
-            </label>
-          </div>
-        </details>
+        <p className="tag-section-label bid-contract-terms-legal-label">
+          Employer &amp; contractor legal details (optional)
+        </p>
+        <label>
+          Employer legal name
+          <input
+            type="text"
+            disabled={fieldDisabled('employerName')}
+            value={value.employerName ?? ''}
+            onChange={(e) => set('employerName', e.target.value)}
+          />
+        </label>
+        <label>
+          Employer address
+          <input
+            type="text"
+            disabled={fieldDisabled('employerAddress')}
+            value={value.employerAddress ?? ''}
+            onChange={(e) => set('employerAddress', e.target.value)}
+          />
+        </label>
+        <label>
+          Employer registration no.
+          <input
+            type="text"
+            disabled={fieldDisabled('employerRegistrationNo')}
+            value={value.employerRegistrationNo ?? ''}
+            onChange={(e) => set('employerRegistrationNo', e.target.value)}
+          />
+        </label>
+        <label>
+          Contractor address
+          <input
+            type="text"
+            disabled={fieldDisabled('contractorAddress')}
+            value={value.contractorAddress ?? ''}
+            onChange={(e) => set('contractorAddress', e.target.value)}
+          />
+        </label>
+        <label>
+          Contractor registration no.
+          <input
+            type="text"
+            disabled={fieldDisabled('contractorRegistrationNo')}
+            value={value.contractorRegistrationNo ?? ''}
+            onChange={(e) =>
+              set('contractorRegistrationNo', e.target.value)
+            }
+          />
+        </label>
+        <label>
+          Contractor representative
+          <input
+            type="text"
+            disabled={fieldDisabled('contractorRepresentative')}
+            value={value.contractorRepresentative ?? ''}
+            onChange={(e) =>
+              set('contractorRepresentative', e.target.value)
+            }
+          />
+        </label>
       </div>
     </div>
   );

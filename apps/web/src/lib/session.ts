@@ -16,6 +16,18 @@ export function isContractorUser(me: MeResponse | null): boolean {
   return Boolean(me?.isContractor || me?.roles?.includes('contractor'));
 }
 
+/** Greeting in the site header — first name only (full displayName can repeat last name). */
+export function headerUserLabel(me: MeResponse): string {
+  const name = me.displayName?.trim();
+  if (name) {
+    const firstName = name.split(/\s+/)[0];
+    if (firstName) {
+      return firstName;
+    }
+  }
+  return me.email ?? 'Signed in';
+}
+
 let clientRefreshFlight: Promise<boolean> | null = null;
 
 function sleep(ms: number): Promise<void> {

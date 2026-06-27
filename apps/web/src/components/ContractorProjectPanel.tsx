@@ -24,6 +24,7 @@ interface ContractorProjectPanelProps {
   ballparkMid?: number | null;
   projectTitle?: string;
   projectDistrict?: string | null;
+  projectDescription?: string | null;
 }
 
 function formatParticipationStatus(participation: ContractorProjectParticipation): string {
@@ -43,6 +44,7 @@ export function ContractorProjectPanel({
   ballparkMid = null,
   projectTitle,
   projectDistrict,
+  projectDescription,
 }: ContractorProjectPanelProps) {
   const { me } = useSession();
   const [participation, setParticipation] =
@@ -345,6 +347,7 @@ export function ContractorProjectPanel({
               busy={busy}
               projectTitle={projectTitle}
               projectDistrict={projectDistrict}
+              projectDescription={projectDescription}
               defaultCostBreakdown={participation.defaultCostBreakdown ?? []}
               downloadBidId={submitted ? myBid?.id : undefined}
               onSubmit={handleSubmitBid}

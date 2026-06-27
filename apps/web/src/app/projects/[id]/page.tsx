@@ -524,6 +524,7 @@ export default function ProjectDetailPage() {
                 ballparkMid={estimate?.totals.midAmount ?? null}
                 projectTitle={project.title}
                 projectDistrict={project.district}
+                projectDescription={project.description}
               />
             )}
 

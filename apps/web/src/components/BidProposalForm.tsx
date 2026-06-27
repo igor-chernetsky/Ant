@@ -6,6 +6,7 @@ import type { Bid, BidContractTerms, BidLineItem, BidTerms, DefaultCostBreakdown
 import {
   BidContractTermsFields,
   contractTermsFromBid,
+  defaultScopeSummary,
   pickContractorContractTerms,
   type ContractTermsAudience,
 } from '@/components/BidContractTermsFields';
@@ -26,9 +27,10 @@ interface BidProposalFormProps {
   busy?: boolean;
   projectTitle?: string;
   projectDistrict?: string | null;
+  projectDescription?: string | null;
   downloadBidId?: string;
   defaultCostBreakdown?: DefaultCostBreakdownItem[];
-  /** Who fills commercial proposal fields — `none` hides the section. */
+  /** Who fills commercial proposal fields — `none` hides contract terms. */
   contractTermsAudience?: ContractTermsAudience | 'none';
   onSubmit: (input: BidProposalInput) => Promise<void>;
   onWithdraw?: () => Promise<void>;
@@ -57,11 +59,24 @@ function lineItemsFromTerms(
   return [];
 }
 
+function buildContractTermsProjectContext(
+  projectTitle?: string,
+  projectDistrict?: string | null,
+  projectDescription?: string | null,
+) {
+  return {
+    title: projectTitle,
+    district: projectDistrict,
+    description: projectDescription,
+  };
+}
+
 export function BidProposalForm({
   existingBid,
   busy = false,
   projectTitle,
   projectDistrict,
+  projectDescription,
   downloadBidId,
   defaultCostBreakdown = [],
   contractTermsAudience = 'contractor',
@@ -69,6 +84,11 @@ export function BidProposalForm({
   onWithdraw,
 }: BidProposalFormProps) {
   const terms = existingBid?.terms;
+  const projectContext = buildContractTermsProjectContext(
+    projectTitle,
+    projectDistrict,
+    projectDescription,
+  );
   const [amount, setAmount] = useState(
     existingBid?.amount != null ? String(existingBid.amount) : '',
   );
@@ -77,21 +97,35 @@ export function BidProposalForm({
   );
   const [notes, setNotes] = useState(terms?.notes ?? '');
   const [approach, setApproach] = useState(terms?.approach ?? '');
-  const [scopeSummary, setScopeSummary] = useState(terms?.scopeSummary ?? '');
+  const [scopeSummary, setScopeSummary] = useState(() =>
+    defaultScopeSummary(terms, projectContext),
+  );
   const [lineItems, setLineItems] = useState<BidLineItem[]>(() =>
     lineItemsFromTerms(terms, defaultCostBreakdown),
   );
   const [showBreakdown, setShowBreakdown] = useState(
     (terms?.lineItems?.length ?? 0) > 0 || defaultCostBreakdown.length > 0,
   );
-  const [showContractTerms, setShowContractTerms] = useState(true);
   const [contractTerms, setContractTerms] = useState<BidContractTerms>(() =>
-    contractTermsFromBid(terms, {
-      title: projectTitle,
-      district: projectDistrict,
-    }),
+    contractTermsFromBid(terms, projectContext, existingBid?.durationDays),
   );
   const [error, setError] = useState<string | null>(null);
+
+  const handleDurationChange = (value: string) => {
+    setDurationDays(value);
+    const parsed = value.trim() ? Number(value) : undefined;
+    if (
+      parsed !== undefined &&
+      Number.isFinite(parsed) &&
+      parsed >= 1 &&
+      contractTerms.contractPeriodMonths == null
+    ) {
+      setContractTerms((current) => ({
+        ...current,
+        contractPeriodMonths: Math.max(1, Math.round(parsed / 30)),
+      }));
+    }
+  };
 
   const handleSubmit = async () => {
     setError(null);
@@ -128,13 +162,15 @@ export function BidProposalForm({
       }
     }
 
+    const scopeText = scopeSummary.trim();
+
     try {
       await onSubmit({
         amount: parsedAmount,
         durationDays: parsedDuration,
         notes: notes.trim() || undefined,
         approach: approach.trim() || undefined,
-        scopeSummary: scopeSummary.trim() || undefined,
+        scopeSummary: scopeText || undefined,
         lineItems: activeLineItems.length
           ? activeLineItems.map((item) => ({
               trade: item.trade.trim(),
@@ -145,9 +181,12 @@ export function BidProposalForm({
             }))
           : undefined,
         contractTerms:
-          showContractTerms && contractTermsAudience !== 'none'
+          contractTermsAudience !== 'none'
             ? contractTermsAudience === 'contractor'
-              ? pickContractorContractTerms(contractTerms)
+              ? {
+                  ...pickContractorContractTerms(contractTerms),
+                  ...(scopeText ? { subjectOfContract: scopeText } : {}),
+                }
               : contractTerms
             : undefined,
       });
@@ -191,23 +230,28 @@ export function BidProposalForm({
               type="number"
               min="1"
               value={durationDays}
-              onChange={(e) => setDurationDays(e.target.value)}
+              onChange={(e) => handleDurationChange(e.target.value)}
               placeholder="45"
             />
           </label>
         </div>
+
         <label>
-          Scope summary
+          Subject / scope of works
           <span className="field-hint muted">
-            One or two sentences on what is included in your price
+            Used in the commercial proposal document and shared with the client
           </span>
           <textarea
-            rows={2}
+            rows={3}
             value={scopeSummary}
             onChange={(e) => setScopeSummary(e.target.value)}
-            placeholder="Full kitchen renovation including cabinets, countertops, plumbing…"
+            placeholder={
+              projectDescription?.trim() ||
+              'Full kitchen renovation including cabinets, countertops, plumbing…'
+            }
           />
         </label>
+
         <label>
           Comment for the client
           <span className="field-hint muted">
@@ -220,6 +264,7 @@ export function BidProposalForm({
             placeholder="Price assumes client-supplied fixtures. 30% deposit, balance on completion."
           />
         </label>
+
         <label>
           Implementation approach
           <span className="field-hint muted">
@@ -232,6 +277,19 @@ export function BidProposalForm({
             placeholder="Week 1–2: demolition and rough-in. Week 3–4: tiling and cabinetry install…"
           />
         </label>
+
+        {contractTermsAudience !== 'none' && (
+          <BidContractTermsFields
+            value={contractTerms}
+            onChange={setContractTerms}
+            audience={contractTermsAudience}
+            projectTitle={projectTitle}
+            projectDistrict={projectDistrict}
+            disabled={busy}
+            hideSubjectOfContract
+            showSectionHeader={false}
+          />
+        )}
       </div>
 
       <div className="bid-breakdown-toggle">
@@ -337,42 +395,13 @@ export function BidProposalForm({
         </div>
       )}
 
-      {(contractTermsAudience !== 'none' ||
-        (proposalDownloadable && downloadBidId)) && (
-        <div className="bid-contract-terms-section">
-          {contractTermsAudience !== 'none' && (
-            <div className="bid-breakdown-toggle">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={showContractTerms}
-                  onChange={(e) => setShowContractTerms(e.target.checked)}
-                />
-                Include commercial proposal document fields
-              </label>
-            </div>
-          )}
-
-          {showContractTerms && contractTermsAudience !== 'none' && (
-            <BidContractTermsFields
-              value={contractTerms}
-              onChange={setContractTerms}
-              audience={contractTermsAudience}
-              projectTitle={projectTitle}
-              projectDistrict={projectDistrict}
-              disabled={busy}
-            />
-          )}
-
-          {proposalDownloadable && downloadBidId && (
-            <div className="bid-contract-terms-actions">
-              <CommercialProposalDownload bidId={downloadBidId} />
-              <p className="muted bid-contract-terms-download-hint">
-                Document reflects the last saved proposal. Submit updates to
-                refresh the download.
-              </p>
-            </div>
-          )}
+      {proposalDownloadable && downloadBidId && (
+        <div className="bid-contract-terms-actions">
+          <CommercialProposalDownload bidId={downloadBidId} />
+          <p className="muted bid-contract-terms-download-hint">
+            Document reflects the last saved proposal. Submit updates to refresh
+            the download.
+          </p>
         </div>
       )}
 

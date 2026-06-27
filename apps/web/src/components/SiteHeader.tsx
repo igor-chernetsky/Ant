@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import type { MeResponse } from '@/lib/session';
+import { headerUserLabel, type MeResponse } from '@/lib/session';
 
 interface SiteHeaderProps {
   me: MeResponse | null;
@@ -48,7 +48,7 @@ export function SiteHeader({
                 Account
               </Link>
               <span className="user-chip">
-                {me.displayName ?? me.email ?? 'Signed in'}
+                {headerUserLabel(me)}
               </span>
               <button type="button" className="secondary" onClick={onSignOut}>
                 Sign out

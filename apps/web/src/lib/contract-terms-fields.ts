@@ -11,6 +11,12 @@ export type ContractTermsAudience = 'contractor' | 'client';
 
 export type ContractTermsFieldKey = keyof BidContractTerms;
 
+export interface ContractTermsProjectContext {
+  title?: string;
+  district?: string | null;
+  description?: string | null;
+}
+
 const SHARED_KEYS: ContractTermsFieldKey[] = [
   'worksStartDate',
   'contractPeriodMonths',
@@ -74,17 +80,40 @@ export function pickClientContractTerms(
   return pickKeys(terms, [...CLIENT_ONLY_KEYS, ...SHARED_KEYS]);
 }
 
+function monthsFromDurationDays(days?: number | null): number | undefined {
+  if (days == null || days < 1) return undefined;
+  return Math.max(1, Math.round(days / 30));
+}
+
+export function defaultScopeSummary(
+  terms?: {
+    scopeSummary?: string;
+    contractTerms?: BidContractTerms;
+  } | null,
+  project?: ContractTermsProjectContext,
+): string {
+  return (
+    terms?.scopeSummary?.trim() ||
+    terms?.contractTerms?.subjectOfContract?.trim() ||
+    project?.description?.trim() ||
+    (project?.title ? `Construction works for ${project.title}` : '')
+  );
+}
+
 export function contractTermsFromBid(
   terms?: { contractTerms?: BidContractTerms } | null,
-  project?: { title?: string; district?: string | null },
+  project?: ContractTermsProjectContext,
+  durationDays?: number | null,
 ): BidContractTerms {
   const existing = terms?.contractTerms ?? {};
+  const defaultSubject = defaultScopeSummary(terms, project) || undefined;
+
   return {
     ...DEFAULT_CONTRACT_TERMS,
-    siteAddress: existing.siteAddress ?? project?.district ?? undefined,
-    subjectOfContract:
-      existing.subjectOfContract ??
-      (project?.title ? `Construction works for ${project.title}` : undefined),
     ...existing,
+    siteAddress: existing.siteAddress ?? project?.district ?? undefined,
+    subjectOfContract: existing.subjectOfContract ?? defaultSubject,
+    contractPeriodMonths:
+      existing.contractPeriodMonths ?? monthsFromDurationDays(durationDays),
   };
 }
