@@ -127,12 +127,9 @@ export async function POST(request: Request) {
   let result = await attemptLogin(username, password);
 
   if (!result.ok && shouldAttemptKeycloakAuthRepair(result)) {
-    const diagnosis = await diagnoseKeycloakLoginFailure(username);
-    if (diagnosis?.code !== 'email_not_verified') {
-      const repaired = await repairKeycloakUserAuth(username);
-      if (repaired) {
-        result = await attemptLogin(username, password);
-      }
+    const repaired = await repairKeycloakUserAuth(username, password);
+    if (repaired) {
+      result = await attemptLogin(username, password);
     }
   }
 
@@ -144,12 +141,11 @@ export async function POST(request: Request) {
     }
     if (
       diagnosis?.code === 'password_not_configured' ||
-      diagnosis?.code === 'account_not_ready'
+      diagnosis?.code === 'account_not_ready' ||
+      diagnosis?.code === 'profile_incomplete' ||
+      diagnosis?.code === 'temporary_password'
     ) {
-      const repaired = await repairKeycloakUserAuth(
-        username,
-        diagnosis.code === 'password_not_configured' ? password : undefined,
-      );
+      const repaired = await repairKeycloakUserAuth(username, password);
       if (repaired) {
         result = await attemptLogin(username, password);
       }
@@ -162,9 +158,11 @@ export async function POST(request: Request) {
       result.error,
       result.description ?? '',
     );
-    const diagnosis = isWrongPasswordError(result)
-      ? await diagnoseKeycloakLoginFailure(username)
-      : null;
+    const description = (result.description ?? '').toLowerCase();
+    const diagnosis =
+      isWrongPasswordError(result) || description.includes('not fully set up')
+        ? await diagnoseKeycloakLoginFailure(username)
+        : null;
     const payload = authErrorPayload(result, diagnosis);
     return NextResponse.json(payload, { status: 401 });
   }

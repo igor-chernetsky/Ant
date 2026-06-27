@@ -111,6 +111,50 @@ function normalizeRoles(roles: string[]): SelfAssignableRole[] {
   return [...unique] as SelfAssignableRole[];
 }
 
+function titleCaseToken(value: string): string {
+  if (!value) return value;
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
+/** Keycloak User Profile requires first/last name for password grant even when the admin UI shows no required actions. */
+function resolveUserProfileNames(
+  user: Pick<KeycloakUserRepresentation, 'firstName' | 'lastName' | 'email' | 'username'>,
+  displayName?: string,
+): { firstName: string; lastName: string } {
+  const trimmedDisplayName = displayName?.trim();
+  if (trimmedDisplayName) {
+    const [first, ...rest] = trimmedDisplayName.split(/\s+/).filter(Boolean);
+    return {
+      firstName: first,
+      lastName: rest.join(' ') || first,
+    };
+  }
+
+  const first = user.firstName?.trim();
+  const last = user.lastName?.trim();
+  if (first && last) {
+    return { firstName: first, lastName: last };
+  }
+  if (first) {
+    return { firstName: first, lastName: first };
+  }
+
+  const source = user.email?.trim() || user.username?.trim() || 'user';
+  const localPart = source.split('@')[0] || 'user';
+  const tokens = localPart.split(/[._-]+/).filter(Boolean);
+  const firstName = tokens[0] ? titleCaseToken(tokens[0]) : 'User';
+  const lastName =
+    tokens.length > 1
+      ? tokens.slice(1).map(titleCaseToken).join(' ')
+      : firstName;
+
+  return { firstName, lastName };
+}
+
+function userProfileIsComplete(user: KeycloakUserRepresentation): boolean {
+  return Boolean(user.firstName?.trim() && user.lastName?.trim());
+}
+
 async function fetchRoleRepresentation(
   adminToken: string,
   roleName: SelfAssignableRole,
@@ -200,53 +244,34 @@ async function userHasPasswordCredential(
   return credentials.some((credential) => credential.type === 'password');
 }
 
+async function userHasTemporaryPassword(
+  adminToken: string,
+  userId: string,
+): Promise<boolean> {
+  const credentials = await fetchUserCredentials(adminToken, userId);
+  return credentials.some(
+    (credential) => credential.type === 'password' && credential.temporary === true,
+  );
+}
+
 async function markKeycloakEmailVerified(
   adminToken: string,
   userId: string,
 ): Promise<boolean> {
-  const { baseUrl, realm } = getKeycloakBaseAndRealm();
   const user = await fetchKeycloakUser(adminToken, userId);
   if (!user) return false;
 
-  if (user.emailVerified) {
+  const emailSynced =
+    user.emailVerified === true &&
+    !(user.requiredActions ?? []).includes('VERIFY_EMAIL');
+  const profileComplete = userProfileIsComplete(user);
+  const noRequiredActions = (user.requiredActions ?? []).length === 0;
+
+  if (emailSynced && profileComplete && noRequiredActions) {
     return true;
   }
 
-  const requiredActions = (user.requiredActions ?? []).filter(
-    (action) => action !== 'VERIFY_EMAIL',
-  );
-
-  const response = await fetch(
-    `${baseUrl}/admin/realms/${realm}/users/${userId}`,
-    {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${adminToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        id: userId,
-        username: user.username,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        enabled: user.enabled ?? true,
-        emailVerified: true,
-        requiredActions,
-      }),
-      cache: 'no-store',
-    },
-  );
-
-  if (!response.ok) {
-    console.warn(
-      `[auth-keycloak] markKeycloakEmailVerified failed (${response.status}):`,
-      await response.text().catch(() => ''),
-    );
-    return false;
-  }
-
-  return true;
+  return finalizeKeycloakUser(adminToken, userId);
 }
 
 export async function verifyUserEmailByToken(
@@ -269,12 +294,16 @@ export async function verifyUserEmailByToken(
     return 'mismatch';
   }
 
+  const updated = await markKeycloakEmailVerified(adminToken, userId);
+  if (!updated) {
+    return 'failed';
+  }
+
   if (user.emailVerified) {
     return 'already';
   }
 
-  const updated = await markKeycloakEmailVerified(adminToken, userId);
-  return updated ? 'success' : 'failed';
+  return 'success';
 }
 
 async function sendKeycloakVerificationEmail(
@@ -312,16 +341,17 @@ async function sendKeycloakVerificationEmail(
 async function finalizeKeycloakUser(
   adminToken: string,
   userId: string,
-): Promise<void> {
+): Promise<boolean> {
   const { baseUrl, realm } = getKeycloakBaseAndRealm();
   const user = await fetchKeycloakUser(adminToken, userId);
+  const { firstName, lastName } = resolveUserProfileNames(user ?? {});
 
   const payload: KeycloakUserRepresentation = {
     id: userId,
     username: user?.username,
     email: user?.email,
-    firstName: user?.firstName,
-    lastName: user?.lastName,
+    firstName,
+    lastName,
     enabled: true,
     emailVerified: true,
     requiredActions: [],
@@ -345,7 +375,7 @@ async function finalizeKeycloakUser(
       `[auth-keycloak] finalizeKeycloakUser failed (${response.status}):`,
       await response.text().catch(() => ''),
     );
-    return;
+    return false;
   }
 
   const updated = await fetchKeycloakUser(adminToken, userId);
@@ -355,6 +385,8 @@ async function finalizeKeycloakUser(
       updated.requiredActions.join(', '),
     );
   }
+
+  return true;
 }
 
 async function setKeycloakUserPassword(
@@ -475,7 +507,10 @@ export async function diagnoseKeycloakLoginFailure(
     };
   }
 
-  if (user.requiredActions?.includes('VERIFY_EMAIL')) {
+  if (
+    user.requiredActions?.includes('VERIFY_EMAIL') &&
+    user.emailVerified !== true
+  ) {
     return {
       code: 'email_not_verified',
       detail:
@@ -490,12 +525,29 @@ export async function diagnoseKeycloakLoginFailure(
     };
   }
 
+  if (!userProfileIsComplete(user)) {
+    return {
+      code: 'profile_incomplete',
+      detail:
+        'User profile is missing first or last name. Keycloak blocks login until the profile is complete.',
+    };
+  }
+
   const hasPassword = await userHasPasswordCredential(adminToken, user.id);
   if (!hasPassword) {
     return {
       code: 'password_not_configured',
       detail:
         'No password credential on this user. Set password in Keycloak Admin → Users → Credentials, or sign up again.',
+    };
+  }
+
+  const hasTemporaryPassword = await userHasTemporaryPassword(adminToken, user.id);
+  if (hasTemporaryPassword) {
+    return {
+      code: 'temporary_password',
+      detail:
+        'Password is marked temporary in Keycloak. User must set a permanent password before password grant login.',
     };
   }
 
@@ -529,14 +581,34 @@ export async function repairKeycloakUserAuth(
     return false;
   }
 
-  if (user.requiredActions?.includes('VERIFY_EMAIL')) {
+  if (
+    user.requiredActions?.includes('VERIFY_EMAIL') &&
+    user.emailVerified !== true
+  ) {
     return false;
   }
 
-  await finalizeKeycloakUser(adminToken, user.id);
+  if (
+    user.requiredActions?.includes('VERIFY_EMAIL') &&
+    user.emailVerified === true
+  ) {
+    const synced = await markKeycloakEmailVerified(adminToken, user.id);
+    if (!synced) {
+      return false;
+    }
+  }
+
+  const finalized = await finalizeKeycloakUser(adminToken, user.id);
+  if (!finalized) {
+    return false;
+  }
 
   if (password) {
-    return setKeycloakUserPassword(adminToken, user.id, password);
+    const passwordSet = await setKeycloakUserPassword(adminToken, user.id, password);
+    if (!passwordSet) {
+      return false;
+    }
+    return true;
   }
 
   const hasPassword = await userHasPasswordCredential(adminToken, user.id);
@@ -601,10 +673,10 @@ export async function createKeycloakUser(params: {
   const { baseUrl, realm } = getKeycloakBaseAndRealm();
   const normalizedRoles = normalizeRoles(params.roles);
   const username = params.email.trim().toLowerCase();
-  const displayName = params.displayName?.trim() || '';
-
-  const [firstName, ...rest] = displayName.split(' ').filter(Boolean);
-  const lastName = rest.join(' ');
+  const { firstName, lastName } = resolveUserProfileNames(
+    { email: username, username },
+    params.displayName,
+  );
   const requireEmailVerification = !isEmailVerificationSkipped();
 
   const createResponse = await fetch(`${baseUrl}/admin/realms/${realm}/users`, {
@@ -618,8 +690,8 @@ export async function createKeycloakUser(params: {
       username,
       email: username,
       emailVerified: !requireEmailVerification,
-      firstName: firstName || undefined,
-      lastName: lastName || undefined,
+      firstName,
+      lastName,
       requiredActions: requireEmailVerification ? ['VERIFY_EMAIL'] : [],
     }),
     cache: 'no-store',
