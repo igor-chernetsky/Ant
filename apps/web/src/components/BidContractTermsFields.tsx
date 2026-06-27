@@ -238,67 +238,79 @@ export function BidContractTermsFields({
           />
         </label>
 
-        <p className="tag-section-label bid-contract-terms-legal-label">
-          Employer &amp; contractor legal details (optional)
-        </p>
-        <label>
-          Employer legal name
-          <input
-            type="text"
-            disabled={fieldDisabled('employerName')}
-            value={value.employerName ?? ''}
-            onChange={(e) => set('employerName', e.target.value)}
-          />
-        </label>
-        <label>
-          Employer address
-          <input
-            type="text"
-            disabled={fieldDisabled('employerAddress')}
-            value={value.employerAddress ?? ''}
-            onChange={(e) => set('employerAddress', e.target.value)}
-          />
-        </label>
-        <label>
-          Employer registration no.
-          <input
-            type="text"
-            disabled={fieldDisabled('employerRegistrationNo')}
-            value={value.employerRegistrationNo ?? ''}
-            onChange={(e) => set('employerRegistrationNo', e.target.value)}
-          />
-        </label>
-        <label>
-          Contractor address
-          <input
-            type="text"
-            disabled={fieldDisabled('contractorAddress')}
-            value={value.contractorAddress ?? ''}
-            onChange={(e) => set('contractorAddress', e.target.value)}
-          />
-        </label>
-        <label>
-          Contractor registration no.
-          <input
-            type="text"
-            disabled={fieldDisabled('contractorRegistrationNo')}
-            value={value.contractorRegistrationNo ?? ''}
-            onChange={(e) =>
-              set('contractorRegistrationNo', e.target.value)
-            }
-          />
-        </label>
-        <label>
-          Contractor representative
-          <input
-            type="text"
-            disabled={fieldDisabled('contractorRepresentative')}
-            value={value.contractorRepresentative ?? ''}
-            onChange={(e) =>
-              set('contractorRepresentative', e.target.value)
-            }
-          />
-        </label>
+        {audience === 'client' && (
+          <>
+            <p className="tag-section-label bid-contract-terms-legal-label">
+              Employer legal details (optional)
+            </p>
+            <label>
+              Employer legal name
+              <input
+                type="text"
+                disabled={fieldDisabled('employerName')}
+                value={value.employerName ?? ''}
+                onChange={(e) => set('employerName', e.target.value)}
+              />
+            </label>
+            <label>
+              Employer address
+              <input
+                type="text"
+                disabled={fieldDisabled('employerAddress')}
+                value={value.employerAddress ?? ''}
+                onChange={(e) => set('employerAddress', e.target.value)}
+              />
+            </label>
+            <label>
+              Employer registration no.
+              <input
+                type="text"
+                disabled={fieldDisabled('employerRegistrationNo')}
+                value={value.employerRegistrationNo ?? ''}
+                onChange={(e) => set('employerRegistrationNo', e.target.value)}
+              />
+            </label>
+          </>
+        )}
+
+        {audience === 'contractor' && (
+          <>
+            <p className="tag-section-label bid-contract-terms-legal-label">
+              Contractor legal details (optional)
+            </p>
+            <label>
+              Contractor address
+              <input
+                type="text"
+                disabled={fieldDisabled('contractorAddress')}
+                value={value.contractorAddress ?? ''}
+                onChange={(e) => set('contractorAddress', e.target.value)}
+              />
+            </label>
+            <label>
+              Contractor registration no.
+              <input
+                type="text"
+                disabled={fieldDisabled('contractorRegistrationNo')}
+                value={value.contractorRegistrationNo ?? ''}
+                onChange={(e) =>
+                  set('contractorRegistrationNo', e.target.value)
+                }
+              />
+            </label>
+            <label>
+              Contractor representative
+              <input
+                type="text"
+                disabled={fieldDisabled('contractorRepresentative')}
+                value={value.contractorRepresentative ?? ''}
+                onChange={(e) =>
+                  set('contractorRepresentative', e.target.value)
+                }
+              />
+            </label>
+          </>
+        )}
       </div>
     </div>
   );
