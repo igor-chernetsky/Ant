@@ -1,5 +1,8 @@
 import { fetchWithAuth } from './auth-client';
 
+export type { ClarificationAttachment } from './clarification-attachments';
+import type { ClarificationAttachment } from './clarification-attachments';
+
 export type TenderStatus =
   | 'draft'
   | 'open'
@@ -111,6 +114,7 @@ export interface ClarificationQuestion {
   answer: string | null;
   answeredAt: string | null;
   sourceBidIds: string[];
+  attachments: ClarificationAttachment[];
   createdAt: string;
   updatedAt: string;
 }

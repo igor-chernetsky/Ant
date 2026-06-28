@@ -117,7 +117,7 @@ Rules — be CONSERVATIVE:
 
   async summarizeAnswers(
     projectTitle: string,
-    items: Array<{ question: string; answer: string }>,
+    items: Array<{ question: string; answer: string; attachments?: string[] }>,
   ): Promise<ClarificationSummaryResult | null> {
     if (!this.isConfigured() || items.length === 0) {
       return null;
@@ -126,6 +126,7 @@ Rules — be CONSERVATIVE:
     const system = `You write a concise supplementary project description for contractors based on Q&A clarifications.
 Return JSON only with key: summary (string, 2-8 sentences, factual, English).
 Integrate answers into flowing prose suitable for a tender document appendix.
+When answers include attached files, mention them briefly where relevant.
 Do not invent facts beyond the provided answers.`;
 
     const user = JSON.stringify({

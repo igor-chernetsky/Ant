@@ -7,6 +7,7 @@ import { BidMessagesService } from './bid-messages.service';
 import { BidAnalysisService } from './bid-analysis.service';
 import { BidOffersService } from './bid-offers.service';
 import { SendBidMessageDto, SubmitCounterOfferDto, UpdateBidContractTermsDto, AnswerClarificationQuestionDto } from './tendering.types';
+import { PresignClarificationAttachmentDto } from './clarification-attachments.types';
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
@@ -88,6 +89,77 @@ export class ProjectTenderController {
       projectId,
       questionId,
       body,
+    );
+  }
+
+  @Post('clarification-questions/:questionId/attachments/presign')
+  async presignClarificationAttachment(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('questionId') questionId: string,
+    @Body() body: PresignClarificationAttachmentDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.clarifications.presignAttachment(
+      user.id,
+      projectId,
+      questionId,
+      body,
+    );
+  }
+
+  @Post(
+    'clarification-questions/:questionId/attachments/:attachmentId/complete',
+  )
+  async completeClarificationAttachment(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('questionId') questionId: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.clarifications.completeAttachment(
+      user.id,
+      projectId,
+      questionId,
+      attachmentId,
+    );
+  }
+
+  @Get(
+    'clarification-questions/:questionId/attachments/:attachmentId/download-url',
+  )
+  async getClarificationAttachmentDownloadUrl(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('questionId') questionId: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.clarifications.getAttachmentDownloadUrl(
+      user.id,
+      projectId,
+      questionId,
+      attachmentId,
+    );
+  }
+
+  @Post(
+    'clarification-questions/:questionId/attachments/:attachmentId/delete',
+  )
+  @HttpCode(204)
+  async deleteClarificationAttachment(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('questionId') questionId: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    await this.clarifications.deleteAttachment(
+      user.id,
+      projectId,
+      questionId,
+      attachmentId,
     );
   }
 

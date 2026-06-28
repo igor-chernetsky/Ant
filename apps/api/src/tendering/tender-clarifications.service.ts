@@ -4,13 +4,28 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import {
   BidStatus,
   ClarificationMode,
+  DocumentStatus,
 } from '@prisma/client';
 import { OpenAiClarificationService } from '../ai/openai-clarification.service';
+import {
+  ALLOWED_CONTENT_TYPES,
+  MAX_UPLOAD_BYTES,
+} from '../documents/documents.types';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
+import {
+  buildClarificationAttachmentStorageKey,
+  ClarificationAttachmentDownloadResponse,
+  ClarificationAttachmentResponse,
+  MAX_CLARIFICATION_ATTACHMENTS_PER_QUESTION,
+  PresignClarificationAttachmentDto,
+  PresignClarificationAttachmentResponse,
+} from './clarification-attachments.types';
 import {
   AnswerClarificationQuestionDto,
   ClarificationQuestionResponse,
@@ -35,7 +50,28 @@ export class TenderClarificationsService {
     private readonly prisma: PrismaService,
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly openAi: OpenAiClarificationService,
+    private readonly storage: StorageService,
   ) {}
+
+  private mapAttachment(row: {
+    id: string;
+    originalName: string;
+    contentType: string;
+    sizeBytes: number | null;
+    status: DocumentStatus;
+    createdAt: Date;
+    uploadedAt: Date | null;
+  }): ClarificationAttachmentResponse {
+    return {
+      id: row.id,
+      originalName: row.originalName,
+      contentType: row.contentType,
+      sizeBytes: row.sizeBytes,
+      status: row.status,
+      createdAt: row.createdAt.toISOString(),
+      uploadedAt: row.uploadedAt?.toISOString() ?? null,
+    };
+  }
 
   private mapQuestion(row: {
     id: string;
@@ -46,6 +82,15 @@ export class TenderClarificationsService {
     sourceBidIds: string[];
     createdAt: Date;
     updatedAt: Date;
+    attachments?: Array<{
+      id: string;
+      originalName: string;
+      contentType: string;
+      sizeBytes: number | null;
+      status: DocumentStatus;
+      createdAt: Date;
+      uploadedAt: Date | null;
+    }>;
   }): ClarificationQuestionResponse {
     return {
       id: row.id,
@@ -54,9 +99,65 @@ export class TenderClarificationsService {
       answer: row.answer,
       answeredAt: row.answeredAt?.toISOString() ?? null,
       sourceBidIds: row.sourceBidIds,
+      attachments: (row.attachments ?? [])
+        .filter((item) => item.status !== DocumentStatus.deleted)
+        .map((item) => this.mapAttachment(item)),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  private validateAttachmentUploadInput(dto: PresignClarificationAttachmentDto) {
+    const fileName = dto.fileName?.trim();
+    if (!fileName || fileName.length < 1) {
+      throw new BadRequestException('fileName is required');
+    }
+
+    const contentType = dto.contentType?.trim().toLowerCase();
+    if (!contentType || !ALLOWED_CONTENT_TYPES.has(contentType)) {
+      throw new BadRequestException(
+        'Unsupported content type. Allowed: PDF, images, Word, Excel, plain text, ZIP',
+      );
+    }
+
+    if (
+      !Number.isFinite(dto.sizeBytes) ||
+      dto.sizeBytes < 1 ||
+      dto.sizeBytes > MAX_UPLOAD_BYTES
+    ) {
+      throw new BadRequestException(
+        `File size must be between 1 byte and ${MAX_UPLOAD_BYTES} bytes`,
+      );
+    }
+  }
+
+  private async loadQuestionForClient(
+    clientId: string,
+    projectId: string,
+    questionId: string,
+  ) {
+    await this.assertProjectOwner(projectId, clientId);
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+    });
+    if (!tender) {
+      throw new NotFoundException('Tender not found');
+    }
+
+    const question = await this.prisma.tenderClarificationQuestion.findFirst({
+      where: { id: questionId, tenderId: tender.id },
+      include: {
+        attachments: {
+          where: { status: { not: DocumentStatus.deleted } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+
+    return { tender, question };
   }
 
   async listForClient(
@@ -74,6 +175,12 @@ export class TenderClarificationsService {
     const rows = await this.prisma.tenderClarificationQuestion.findMany({
       where: { tenderId: tender.id },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        attachments: {
+          where: { status: { not: DocumentStatus.deleted } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     });
 
     return rows.map((row) => this.mapQuestion(row));
@@ -192,9 +299,173 @@ export class TenderClarificationsService {
         answeredAt: new Date(),
         answeredById: clientId,
       },
+      include: {
+        attachments: {
+          where: { status: { not: DocumentStatus.deleted } },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     });
 
     return this.mapQuestion(updated);
+  }
+
+  async presignAttachment(
+    clientId: string,
+    projectId: string,
+    questionId: string,
+    dto: PresignClarificationAttachmentDto,
+  ): Promise<PresignClarificationAttachmentResponse> {
+    const { question } = await this.loadQuestionForClient(
+      clientId,
+      projectId,
+      questionId,
+    );
+    this.validateAttachmentUploadInput(dto);
+
+    const uploadedCount = question.attachments.filter(
+      (item) => item.status === DocumentStatus.uploaded,
+    ).length;
+    const pendingCount = question.attachments.filter(
+      (item) => item.status === DocumentStatus.pending,
+    ).length;
+    if (
+      uploadedCount + pendingCount >=
+      MAX_CLARIFICATION_ATTACHMENTS_PER_QUESTION
+    ) {
+      throw new BadRequestException(
+        `At most ${MAX_CLARIFICATION_ATTACHMENTS_PER_QUESTION} files per answer`,
+      );
+    }
+
+    const attachmentId = randomUUID();
+    const fileName = dto.fileName.trim();
+    const contentType = dto.contentType.trim().toLowerCase();
+    const storageKey = buildClarificationAttachmentStorageKey(
+      projectId,
+      questionId,
+      attachmentId,
+      fileName,
+    );
+
+    await this.prisma.clarificationAnswerAttachment.create({
+      data: {
+        id: attachmentId,
+        questionId,
+        uploaderId: clientId,
+        originalName: fileName,
+        contentType,
+        sizeBytes: dto.sizeBytes,
+        storageKey,
+        status: DocumentStatus.pending,
+      },
+    });
+
+    const presigned = await this.storage.createPresignedUpload({
+      storageKey,
+      contentType,
+      sizeBytes: dto.sizeBytes,
+    });
+
+    return {
+      attachmentId,
+      uploadUrl: presigned.uploadUrl,
+      storageKey: presigned.storageKey,
+      expiresInSeconds: presigned.expiresInSeconds,
+    };
+  }
+
+  async completeAttachment(
+    clientId: string,
+    projectId: string,
+    questionId: string,
+    attachmentId: string,
+  ): Promise<ClarificationAttachmentResponse> {
+    await this.loadQuestionForClient(clientId, projectId, questionId);
+
+    const attachment = await this.prisma.clarificationAnswerAttachment.findFirst(
+      {
+        where: { id: attachmentId, questionId },
+      },
+    );
+    if (!attachment) {
+      throw new NotFoundException('Attachment not found');
+    }
+    if (attachment.status === DocumentStatus.uploaded) {
+      return this.mapAttachment(attachment);
+    }
+    if (attachment.status === DocumentStatus.deleted) {
+      throw new BadRequestException('Attachment was deleted');
+    }
+
+    const { sizeBytes } = await this.storage.verifyObject(attachment.storageKey);
+
+    const updated = await this.prisma.clarificationAnswerAttachment.update({
+      where: { id: attachmentId },
+      data: {
+        status: DocumentStatus.uploaded,
+        sizeBytes,
+        uploadedAt: new Date(),
+      },
+    });
+
+    return this.mapAttachment(updated);
+  }
+
+  async deleteAttachment(
+    clientId: string,
+    projectId: string,
+    questionId: string,
+    attachmentId: string,
+  ): Promise<void> {
+    await this.loadQuestionForClient(clientId, projectId, questionId);
+
+    const attachment = await this.prisma.clarificationAnswerAttachment.findFirst(
+      {
+        where: { id: attachmentId, questionId },
+      },
+    );
+    if (!attachment || attachment.status === DocumentStatus.deleted) {
+      throw new NotFoundException('Attachment not found');
+    }
+
+    await this.prisma.clarificationAnswerAttachment.update({
+      where: { id: attachmentId },
+      data: { status: DocumentStatus.deleted },
+    });
+  }
+
+  async getAttachmentDownloadUrl(
+    clientId: string,
+    projectId: string,
+    questionId: string,
+    attachmentId: string,
+  ): Promise<ClarificationAttachmentDownloadResponse> {
+    await this.loadQuestionForClient(clientId, projectId, questionId);
+
+    const attachment = await this.prisma.clarificationAnswerAttachment.findFirst(
+      {
+        where: {
+          id: attachmentId,
+          questionId,
+          status: DocumentStatus.uploaded,
+        },
+      },
+    );
+    if (!attachment) {
+      throw new NotFoundException('Attachment not found');
+    }
+
+    const presigned = await this.storage.createPresignedDownload(
+      attachment.storageKey,
+    );
+
+    return {
+      downloadUrl: presigned.downloadUrl,
+      expiresInSeconds: presigned.expiresInSeconds,
+      originalName: attachment.originalName,
+      contentType: attachment.contentType,
+    };
   }
 
   async hasSubmittedQuestions(bidId: string): Promise<boolean> {
@@ -397,6 +668,14 @@ export class TenderClarificationsService {
     const rows = await this.prisma.tenderClarificationQuestion.findMany({
       where: { tenderId: tender.id },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      include: {
+        attachments: {
+          where: {
+            status: DocumentStatus.uploaded,
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
     });
 
     const items = rows
@@ -404,6 +683,7 @@ export class TenderClarificationsService {
       .map((row) => ({
         question: row.questionText,
         answer: row.answer!.trim(),
+        attachments: row.attachments.map((file) => file.originalName),
       }));
 
     let summary: string | null = null;
@@ -412,9 +692,8 @@ export class TenderClarificationsService {
       const aiSummary = await this.openAi.summarizeAnswers(project.title, items);
       summary = aiSummary
         ? aiSummary.summary
-        : items
-            .map((item) => `Q: ${item.question} A: ${item.answer}`)
-            .join('\n\n');
+        : this.buildFallbackClarificationSummary(items);
+      summary = this.appendAttachmentIndex(summary, items);
     }
 
     await this.prisma.project.update({
@@ -423,6 +702,37 @@ export class TenderClarificationsService {
     });
 
     return summary;
+  }
+
+  private buildFallbackClarificationSummary(
+    items: Array<{ question: string; answer: string; attachments: string[] }>,
+  ): string {
+    return items
+      .map((item) => {
+        let block = `Q: ${item.question}\nA: ${item.answer}`;
+        if (item.attachments.length > 0) {
+          block += `\nFiles: ${item.attachments.join(', ')}`;
+        }
+        return block;
+      })
+      .join('\n\n');
+  }
+
+  private appendAttachmentIndex(
+    summary: string,
+    items: Array<{ question: string; attachments: string[] }>,
+  ): string {
+    const withFiles = items.filter((item) => item.attachments.length > 0);
+    if (withFiles.length === 0) {
+      return summary;
+    }
+
+    const lines = withFiles.map(
+      (item, index) =>
+        `${index + 1}. ${item.question} — ${item.attachments.join(', ')}`,
+    );
+
+    return `${summary.trim()}\n\nAttached files:\n${lines.join('\n')}`;
   }
 
   private async assertProjectOwner(projectId: string, clientId: string) {

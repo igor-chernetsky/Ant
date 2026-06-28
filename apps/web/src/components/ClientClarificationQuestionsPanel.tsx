@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { ClarificationAnswerAttachments } from '@/components/ClarificationAnswerAttachments';
 import {
   answerClarificationQuestion,
   fetchClarificationQuestions,
@@ -90,8 +91,9 @@ export function ClientClarificationQuestionsPanel({
       <p className="muted client-clarification-hint">
         Questions from all contractors are merged into one list (duplicates
         removed when they ask the same thing). Answer any items you can — you do
-        not need to answer every question. When you open the tender, answered
-        items are summarized for contractors and commercial proposals.
+        not need to answer every question. Attach photos or documents to an
+        answer when helpful. When you open the tender, answered items and file
+        lists are summarized for contractors and commercial proposals.
       </p>
 
       {questions.length === 0 ? (
@@ -141,6 +143,19 @@ export function ClientClarificationQuestionsPanel({
                       }
                     />
                   </div>
+                  <ClarificationAnswerAttachments
+                    projectId={projectId}
+                    questionId={question.id}
+                    attachments={question.attachments ?? []}
+                    disabled={savingId === question.id}
+                    onChange={(attachments) =>
+                      setQuestions((prev) =>
+                        prev.map((q) =>
+                          q.id === question.id ? { ...q, attachments } : q,
+                        ),
+                      )
+                    }
+                  />
                   <div className="client-clarification-actions">
                     <button
                       type="button"

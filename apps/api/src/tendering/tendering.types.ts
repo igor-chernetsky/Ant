@@ -1,4 +1,7 @@
 import { BidStatus, ProjectType, TenderStatus } from '@prisma/client';
+import type { ClarificationAttachmentResponse } from './clarification-attachments.types';
+
+export type { ClarificationAttachmentResponse } from './clarification-attachments.types';
 
 export interface BidLineItem {
   trade: string;
@@ -207,6 +210,7 @@ export interface ClarificationQuestionResponse {
   answer: string | null;
   answeredAt: string | null;
   sourceBidIds: string[];
+  attachments: ClarificationAttachmentResponse[];
   createdAt: string;
   updatedAt: string;
 }

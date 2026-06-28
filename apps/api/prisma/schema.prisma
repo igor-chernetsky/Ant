@@ -122,6 +122,7 @@ model User {
   bidOffers   BidOffer[]
   bidChatPresence BidChatPresence[]
   tenderClarificationAnswers TenderClarificationQuestion[] @relation("ClarificationAnsweredBy")
+  clarificationAnswerAttachments ClarificationAnswerAttachment[]
   notificationPreferences UserNotificationPreferences?
   notificationEmailLogs   NotificationEmailLog[]
 
@@ -456,9 +457,28 @@ model TenderClarificationQuestion {
   answeredById String?   @map("answered_by_id")
   answeredBy   User?     @relation("ClarificationAnsweredBy", fields: [answeredById], references: [id], onDelete: SetNull)
   sourceBidIds String[]  @default([]) @map("source_bid_ids")
+  attachments  ClarificationAnswerAttachment[]
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@index([tenderId, sortOrder])
   @@map("tender_clarification_questions")
+}
+
+model ClarificationAnswerAttachment {
+  id           String                      @id @default(uuid())
+  questionId   String                      @map("question_id")
+  question     TenderClarificationQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  uploaderId   String                      @map("uploader_id")
+  uploader     User                        @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  originalName String                      @map("original_name")
+  contentType  String                      @map("content_type")
+  sizeBytes    Int?                        @map("size_bytes")
+  storageKey   String                      @unique @map("storage_key")
+  status       DocumentStatus              @default(pending)
+  createdAt    DateTime                    @default(now()) @map("created_at")
+  uploadedAt   DateTime?                   @map("uploaded_at")
+
+  @@index([questionId])
+  @@map("clarification_answer_attachments")
 }

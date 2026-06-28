@@ -3,6 +3,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AiModule } from '../ai/ai.module';
 import { UsersModule } from '../users/users.module';
+import { StorageModule } from '../storage/storage.module';
 import { BidAnalysisService } from './bid-analysis.service';
 import { BidOffersService } from './bid-offers.service';
 import { BidMessagesService } from './bid-messages.service';
@@ -22,7 +23,7 @@ import { ImageThumbnailService } from './image-thumbnail.service';
 import { PublicContractorsController } from './public-contractors.controller';
 
 @Module({
-  imports: [UsersModule, AiModule, NotificationsModule, ScheduleModule.forRoot()],
+  imports: [UsersModule, AiModule, NotificationsModule, ScheduleModule.forRoot(), StorageModule],
   controllers: [
     ProjectTenderController,
     ContractorTenderController,
