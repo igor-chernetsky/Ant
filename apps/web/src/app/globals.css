@@ -2342,6 +2342,69 @@ select:disabled {
   line-height: 1.5;
 }
 
+.tender-publish-block {
+  gap: 0.85rem;
+}
+
+.tender-deadline-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.85rem 1.25rem;
+}
+
+.tender-deadline-date-label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--text-muted, var(--muted));
+}
+
+.tender-deadline-date-label input[type='date'] {
+  min-width: 11rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface, #fff);
+  color: var(--text);
+  font: inherit;
+}
+
+.tender-deadline-unlimited {
+  margin: 0;
+  padding-bottom: 0.45rem;
+}
+
+.tender-deadline-expired {
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--accent, #c45) 35%, var(--border));
+  border-radius: var(--radius-md, 8px);
+  background: color-mix(in srgb, var(--accent, #c45) 6%, transparent);
+}
+
+.tender-deadline-expired-lead {
+  margin: 0 0 0.85rem;
+  line-height: 1.5;
+  font-size: 0.925rem;
+}
+
+.tender-deadline-extend {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
+.tender-deadline-passed-notice {
+  margin: 1rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 8%, transparent);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-muted, var(--muted));
+}
+
 .tender-phase-hint {
   margin: 1.25rem 0 0;
   font-size: 0.9rem;

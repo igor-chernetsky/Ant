@@ -20,6 +20,7 @@ import { EstimatesService } from '../estimation/estimates.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { isPubliclyViewable, PUBLIC_VIEW_STATUSES } from './projects.constants';
+import { shouldHideProjectFromPublicDiscovery } from '../tendering/tender-deadline';
 
 import {
 
@@ -204,13 +205,28 @@ export class ProjectsService {
     const projects = await this.prisma.project.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
-      include: this.includeTags(),
+      include: {
+        ...this.includeTags(),
+        tender: { select: { status: true, closesAt: true } },
+      },
     });
 
-    const projectIds = projects.map((p) => p.id);
+    const now = new Date();
+    const visibleProjects = projects.filter((project) => {
+      if (!project.tender) {
+        return true;
+      }
+      return !shouldHideProjectFromPublicDiscovery({
+        tenderStatus: project.tender.status,
+        closesAt: project.tender.closesAt,
+        now,
+      });
+    });
+
+    const projectIds = visibleProjects.map((p) => p.id);
     const coverByProject = await this.loadCoverUrls(projectIds);
 
-    return projects.map((project) => ({
+    return visibleProjects.map((project) => ({
       id: project.id,
       title: project.title,
       description: project.description,
@@ -226,6 +242,99 @@ export class ProjectsService {
       coverImageUrl: coverByProject.get(project.id) ?? null,
       updatedAt: project.updatedAt.toISOString(),
     }));
+  }
+
+  private async userHasActiveTenderParticipation(
+    userId: string,
+    projectId: string,
+  ): Promise<boolean> {
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!profile) {
+      return false;
+    }
+
+    const bid = await this.prisma.bid.findFirst({
+      where: {
+        contractorId: profile.id,
+        status: { not: 'withdrawn' },
+        tender: { projectId },
+      },
+      select: { id: true },
+    });
+
+    return Boolean(bid);
+  }
+
+  async getPublicById(projectId: string): Promise<ProjectResponse> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        ...this.includeTags(),
+        tender: { select: { status: true, closesAt: true } },
+      },
+    });
+
+    if (!project || !isPubliclyViewable(project.status)) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (
+      project.tender &&
+      shouldHideProjectFromPublicDiscovery({
+        tenderStatus: project.tender.status,
+        closesAt: project.tender.closesAt,
+      })
+    ) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return this.buildPublicProjectResponse(project);
+  }
+
+  async getPublicByIdForParticipant(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectResponse> {
+    const hasParticipation = await this.userHasActiveTenderParticipation(
+      userId,
+      projectId,
+    );
+    if (!hasParticipation) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: this.includeTags(),
+    });
+
+    if (!project || !isPubliclyViewable(project.status)) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return this.buildPublicProjectResponse(project);
+  }
+
+  private async buildPublicProjectResponse(
+    project: Parameters<ProjectsService['toResponse']>[0],
+  ): Promise<ProjectResponse> {
+    const estimate = await this.prisma.estimate.findFirst({
+      where: { projectId: project.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const response = this.toResponse(
+      project,
+      estimate ? this.estimatesService.toResponse(estimate) : null,
+    );
+
+    return {
+      ...response,
+      brief: this.sanitizeBriefForPublic(response.brief),
+    };
   }
 
   private async loadCoverUrls(
@@ -275,34 +384,6 @@ export class ProjectsService {
       ai: aiPublic,
     };
   }
-
-  async getPublicById(projectId: string): Promise<ProjectResponse> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      include: this.includeTags(),
-    });
-
-    if (!project || !isPubliclyViewable(project.status)) {
-      throw new NotFoundException('Project not found');
-    }
-
-    const estimate = await this.prisma.estimate.findFirst({
-      where: { projectId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const response = this.toResponse(
-      project,
-      estimate ? this.estimatesService.toResponse(estimate) : null,
-    );
-
-    return {
-      ...response,
-      brief: this.sanitizeBriefForPublic(response.brief),
-    };
-  }
-
-
 
   async createForClient(
 

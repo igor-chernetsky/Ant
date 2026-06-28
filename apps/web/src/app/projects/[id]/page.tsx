@@ -46,6 +46,7 @@ import { useSession } from '@/components/SessionProvider';
 import { isContractorUser } from '@/lib/session';
 import {
   fetchPublicProject,
+  fetchContractorParticipantProject,
 } from '@/lib/public-projects';
 
 type AuthState = 'loading' | 'guest' | 'authenticated';
@@ -137,6 +138,37 @@ export default function ProjectDetailPage() {
       await loadDocuments(false);
       setPageReady(true);
     } catch (err: unknown) {
+      if (
+        err instanceof Error &&
+        err.message === 'NOT_FOUND' &&
+        profile &&
+        isContractorUser(profile)
+      ) {
+        try {
+          const participantProject =
+            await fetchContractorParticipantProject(projectId);
+          setProject(participantProject);
+          setIsOwner(false);
+          await loadDocuments(false);
+          setPageReady(true);
+          return;
+        } catch (participantErr: unknown) {
+          if (
+            participantErr instanceof Error &&
+            participantErr.message === 'NOT_FOUND'
+          ) {
+            setError('Project not found or not available for public viewing.');
+          } else {
+            setError(
+              participantErr instanceof Error
+                ? participantErr.message
+                : 'Failed to load project',
+            );
+          }
+          setPageReady(true);
+          return;
+        }
+      }
       if (err instanceof Error && err.message === 'NOT_FOUND') {
         setError('Project not found or not available for public viewing.');
       } else {

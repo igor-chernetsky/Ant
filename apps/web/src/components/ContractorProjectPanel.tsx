@@ -207,6 +207,12 @@ export function ContractorProjectPanel({
             <dd>#{myBid.contenderNumber}</dd>
           </div>
         )}
+        {participation.closesAt && (
+          <div>
+            <dt>Applications close</dt>
+            <dd>{new Date(participation.closesAt).toLocaleString()}</dd>
+          </div>
+        )}
         <div>
           <dt>Verification</dt>
           <dd>
@@ -214,6 +220,13 @@ export function ContractorProjectPanel({
           </dd>
         </div>
       </dl>
+
+      {participation.applicationsDeadlinePassed && (
+        <p className="tender-deadline-passed-notice">
+          The application deadline has passed. You can continue with your current
+          participation, but new applications are no longer accepted.
+        </p>
+      )}
 
       {waitingForPublish && (
         <p className="muted tender-phase-hint">

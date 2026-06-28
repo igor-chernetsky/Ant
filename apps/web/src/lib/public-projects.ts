@@ -67,6 +67,27 @@ export async function fetchPublicProject(id: string): Promise<Project> {
   return response.json() as Promise<Project>;
 }
 
+export async function fetchContractorParticipantProject(
+  id: string,
+): Promise<Project> {
+  const { fetchWithAuth } = await import('@/lib/auth-client');
+  const response = await fetchWithAuth(
+    `/api/contractor/projects/${encodeURIComponent(id)}/view`,
+  );
+
+  if (response.status === 404) {
+    throw new Error('NOT_FOUND');
+  }
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to load project');
+  }
+
+  return response.json() as Promise<Project>;
+}
+
 export async function fetchPublicTags(): Promise<
   Array<{
     slug: string;

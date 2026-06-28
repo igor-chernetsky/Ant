@@ -24,17 +24,22 @@ import { TenderClarificationsService } from './tender-clarifications.service';
 import { DefaultCostBreakdownService } from './default-cost-breakdown.service';
 import { normalizeContractTerms } from './commercial-proposal.template';
 import {
+  isApplicationsDeadlinePassed,
+  resolveApplicationsCloseAt,
+} from './tender-deadline';
+import {
   BidResponse,
   BidTermsV1,
-  DEFAULT_TENDER_DURATION_DAYS,
   DefaultCostBreakdownItem,
   MAX_BID_APPROACH_LENGTH,
   MAX_BID_LINE_ITEMS,
   MAX_BID_NOTES_LENGTH,
   MAX_BID_SCOPE_LENGTH,
   MAX_BID_SPECIAL_CONDITIONS_LENGTH,
+  PublishTenderDto,
   SubmitBidDto,
   UpdateBidContractTermsDto,
+  UpdateTenderDeadlineDto,
   TenderResponse,
   ContractorApplicationItem,
 } from './tendering.types';
@@ -89,6 +94,8 @@ export class TendersService {
       minBids: tender.minBids,
       opensAt: tender.opensAt?.toISOString() ?? null,
       closesAt: tender.closesAt?.toISOString() ?? null,
+      noApplicationsDeadline: tender.closesAt == null,
+      applicationsDeadlinePassed: isApplicationsDeadlinePassed(tender.closesAt),
       awardedBidId: tender.awardedBidId,
       bids,
       applicationCount: bids.length,
@@ -102,6 +109,41 @@ export class TendersService {
     };
   }
 
+  private assertWithinApplicationsDeadline(tender: Tender): void {
+    if (tender.status === TenderStatus.draft) {
+      return;
+    }
+    if (isApplicationsDeadlinePassed(tender.closesAt)) {
+      throw new BadRequestException('Application deadline has passed');
+    }
+  }
+
+  async hasActiveParticipation(
+    userId: string,
+    projectId: string,
+  ): Promise<boolean> {
+    const profile = await this.contractorProfiles.getByUserId(userId);
+    if (!profile) {
+      return false;
+    }
+
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+      select: {
+        bids: {
+          where: {
+            contractorId: profile.id,
+            status: { not: BidStatus.withdrawn },
+          },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    });
+
+    return Boolean(tender?.bids.length);
+  }
+
   private includeTenderRelations() {
     return {
       bids: {
@@ -111,13 +153,7 @@ export class TendersService {
     };
   }
 
-  private biddingDeadlineFrom(start: Date): Date {
-    const closesAt = new Date(start);
-    closesAt.setDate(closesAt.getDate() + DEFAULT_TENDER_DURATION_DAYS);
-    return closesAt;
-  }
-
-  /** Keep deadline in sync with whether bidding actually started. */
+  /** Re-open tenders that were closed without any submitted proposals. */
   private async reconcileDormantTender(tenderId: string): Promise<void> {
     const tender = await this.prisma.tender.findUnique({
       where: { id: tenderId },
@@ -134,28 +170,10 @@ export class TendersService {
 
     const hasSubmittedBids = tender.bids.length > 0;
 
-    if (
-      tender.status === TenderStatus.closed &&
-      !hasSubmittedBids
-    ) {
+    if (tender.status === TenderStatus.closed && !hasSubmittedBids) {
       await this.prisma.tender.update({
         where: { id: tenderId },
-        data: {
-          status: TenderStatus.open,
-          closesAt: null,
-        },
-      });
-      return;
-    }
-
-    if (
-      tender.status === TenderStatus.open &&
-      !hasSubmittedBids &&
-      tender.closesAt
-    ) {
-      await this.prisma.tender.update({
-        where: { id: tenderId },
-        data: { closesAt: null },
+        data: { status: TenderStatus.open },
       });
     }
   }
@@ -208,7 +226,11 @@ export class TendersService {
     return this.mapTender(await this.loadTender(tender.id));
   }
 
-  async createTender(clientId: string, projectId: string): Promise<TenderResponse> {
+  async createTender(
+    clientId: string,
+    projectId: string,
+    dto?: PublishTenderDto,
+  ): Promise<TenderResponse> {
     const project = await this.assertProjectOwner(projectId, clientId);
     this.matching.assertProjectEligibleForTender(project);
 
@@ -223,6 +245,7 @@ export class TendersService {
     const now = new Date();
     const structuredClarification =
       project.clarificationMode === ClarificationMode.structured_qa;
+    const closesAt = resolveApplicationsCloseAt(dto);
 
     const tender = await this.prisma.$transaction(async (tx) => {
       const created = await tx.tender.create({
@@ -230,7 +253,7 @@ export class TendersService {
           projectId,
           status: structuredClarification ? TenderStatus.draft : TenderStatus.open,
           opensAt: structuredClarification ? null : now,
-          closesAt: null,
+          closesAt,
         },
         include: this.includeTenderRelations(),
       });
@@ -252,7 +275,11 @@ export class TendersService {
     return this.mapTender(await this.loadTender(tender.id));
   }
 
-  async startTender(clientId: string, projectId: string): Promise<TenderResponse> {
+  async startTender(
+    clientId: string,
+    projectId: string,
+    dto?: PublishTenderDto,
+  ): Promise<TenderResponse> {
     const project = await this.assertProjectOwner(projectId, clientId);
     const tender = await this.prisma.tender.findUnique({
       where: { projectId },
@@ -278,6 +305,16 @@ export class TendersService {
     }
 
     const now = new Date();
+    const closesAt =
+      dto != null
+        ? resolveApplicationsCloseAt(dto)
+        : tender.closesAt ?? resolveApplicationsCloseAt();
+
+    if (isApplicationsDeadlinePassed(closesAt, now)) {
+      throw new BadRequestException(
+        'Application deadline is in the past. Choose a future date or extend the deadline.',
+      );
+    }
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const next = await tx.tender.update({
@@ -285,7 +322,8 @@ export class TendersService {
         data: {
           status: TenderStatus.open,
           opensAt: now,
-          closesAt: null,
+          closesAt,
+          deadlineNotifiedAt: null,
         },
         include: this.includeTenderRelations(),
       });
@@ -308,6 +346,49 @@ export class TendersService {
     this.notifications.dispatch(
       this.notifications.notifyMatchingContractorsForProject(projectId),
     );
+
+    return this.mapTender(await this.loadTender(updated.id));
+  }
+
+  async updateTenderDeadline(
+    clientId: string,
+    projectId: string,
+    dto: UpdateTenderDeadlineDto,
+  ): Promise<TenderResponse> {
+    await this.assertProjectOwner(projectId, clientId);
+
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+    });
+    if (!tender) {
+      throw new NotFoundException('Tender not found');
+    }
+
+    if (tender.status === TenderStatus.awarded || tender.status === TenderStatus.cancelled) {
+      throw new BadRequestException(
+        'Deadline cannot be changed after the tender is awarded or cancelled',
+      );
+    }
+
+    const closesAt = resolveApplicationsCloseAt(dto);
+    const now = new Date();
+    if (closesAt && isApplicationsDeadlinePassed(closesAt, now)) {
+      throw new BadRequestException('Application deadline must be in the future');
+    }
+
+    const reopen =
+      tender.status === TenderStatus.closed &&
+      (!closesAt || !isApplicationsDeadlinePassed(closesAt, now));
+
+    const updated = await this.prisma.tender.update({
+      where: { id: tender.id },
+      data: {
+        closesAt,
+        deadlineNotifiedAt: null,
+        ...(reopen ? { status: TenderStatus.open } : {}),
+      },
+      include: this.includeTenderRelations(),
+    });
 
     return this.mapTender(await this.loadTender(updated.id));
   }
@@ -548,7 +629,8 @@ export class TendersService {
 
     const clarificationMode =
       project.clarificationMode ?? ClarificationMode.open_chat;
-    const tenderOpen = tender?.status === TenderStatus.open;
+    const deadlinePassed = isApplicationsDeadlinePassed(tender?.closesAt);
+    const tenderOpen = tender?.status === TenderStatus.open && !deadlinePassed;
     const tenderCollectingClarifications = Boolean(
       tender?.status === TenderStatus.draft &&
         clarificationMode === ClarificationMode.structured_qa,
@@ -579,6 +661,7 @@ export class TendersService {
       tenderId: tender?.id ?? null,
       tenderStatus: tender?.status ?? null,
       closesAt: tender?.closesAt?.toISOString() ?? null,
+      applicationsDeadlinePassed: deadlinePassed,
       myBid: myBid ? this.mapBid(myBid) : null,
       verificationStatus: profile.verificationStatus,
       clarificationMode,
@@ -633,6 +716,8 @@ export class TendersService {
       throw new BadRequestException('Tender is not accepting clarification');
     }
 
+    this.assertWithinApplicationsDeadline(tender);
+
     const existing = tender.bids.find(
       (b) =>
         b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
@@ -660,6 +745,8 @@ export class TendersService {
     if (tender.status !== TenderStatus.open) {
       throw new BadRequestException('Tender is not open');
     }
+
+    this.assertWithinApplicationsDeadline(tender);
 
     const bid = tender.bids.find(
       (b) =>
@@ -832,6 +919,8 @@ export class TendersService {
       );
     }
 
+    this.assertWithinApplicationsDeadline(tender);
+
     const existing = tender.bids.find(
       (b) =>
         b.contractorId === profile.id &&
@@ -876,20 +965,6 @@ export class TendersService {
           note: dto.notes?.trim() || null,
         },
       });
-
-      if (!tender.closesAt) {
-        const submittedCount = await tx.bid.count({
-          where: { tenderId, status: BidStatus.submitted },
-        });
-        if (submittedCount > 0) {
-          await tx.tender.updateMany({
-            where: { id: tenderId, closesAt: null },
-            data: {
-              closesAt: this.biddingDeadlineFrom(new Date()),
-            },
-          });
-        }
-      }
 
       return nextBid;
     });
@@ -1003,19 +1078,6 @@ export class TendersService {
         data: { status: BidStatus.withdrawn },
         include: { contractor: true },
       });
-
-      const submittedCount = await tx.bid.count({
-        where: { tenderId, status: BidStatus.submitted },
-      });
-      if (submittedCount === 0) {
-        await tx.tender.update({
-          where: { id: tenderId },
-          data: {
-            closesAt: null,
-            status: TenderStatus.open,
-          },
-        });
-      }
 
       return nextBid;
     });

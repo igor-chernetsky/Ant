@@ -145,6 +145,7 @@ model UserNotificationPreferences {
 enum NotificationEmailKind {
   client_bid_enrolled
   client_bid_submitted
+  client_tender_deadline_reached
   contractor_counter_offer
   contractor_bid_message
   contractor_bid_selected
@@ -354,6 +355,7 @@ model Tender {
   minBids      Int          @default(1) @map("min_bids")
   opensAt      DateTime?    @map("opens_at")
   closesAt     DateTime?    @map("closes_at")
+  deadlineNotifiedAt DateTime? @map("deadline_notified_at")
   awardedBidId String?      @unique @map("awarded_bid_id")
   awardedBid   Bid?         @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
   bidAnalysisJson Json?       @map("bid_analysis_json")

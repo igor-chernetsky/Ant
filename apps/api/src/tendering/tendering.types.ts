@@ -132,6 +132,8 @@ export interface TenderResponse {
   minBids: number;
   opensAt: string | null;
   closesAt: string | null;
+  noApplicationsDeadline: boolean;
+  applicationsDeadlinePassed: boolean;
   awardedBidId: string | null;
   bids: BidResponse[];
   /** All active applications (clarifying, enrolled, submitted, etc.) */
@@ -221,6 +223,17 @@ export interface SubmitBidClarificationQuestionsDto {
 
 export interface AnswerClarificationQuestionDto {
   answer: string;
+}
+
+export interface PublishTenderDto {
+  /** YYYY-MM-DD or ISO datetime; ignored when noApplicationsDeadline is true */
+  applicationsCloseAt?: string;
+  noApplicationsDeadline?: boolean;
+}
+
+export interface UpdateTenderDeadlineDto {
+  applicationsCloseAt?: string;
+  noApplicationsDeadline?: boolean;
 }
 
 export const DEFAULT_TENDER_DURATION_DAYS = 7;

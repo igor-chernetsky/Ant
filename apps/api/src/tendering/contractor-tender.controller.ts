@@ -27,6 +27,7 @@ import {
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
+import { ProjectsService } from '../projects/projects.service';
 
 @Controller('v1/contractor')
 @UseGuards(JwtAuthGuard)
@@ -39,10 +40,20 @@ export class ContractorTenderController {
     private readonly usersService: UsersService,
     private readonly commercialProposal: CommercialProposalService,
     private readonly clarifications: TenderClarificationsService,
+    private readonly projectsService: ProjectsService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
     return this.usersService.findOrCreateFromJwt(req.user);
+  }
+
+  @Get('projects/:projectId/view')
+  async getParticipantProjectView(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.projectsService.getPublicByIdForParticipant(user.id, projectId);
   }
 
   @Get('profile')

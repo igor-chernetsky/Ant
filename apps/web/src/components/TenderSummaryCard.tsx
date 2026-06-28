@@ -10,9 +10,17 @@ import {
   formatTenderStatus,
   revertProjectTender,
   startProjectTender,
+  updateTenderDeadline,
   type Tender,
 } from '@/lib/tendering';
 import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificationQuestionsPanel';
+import {
+  applicationsDeadlineFromTender,
+  applicationsDeadlineToPayload,
+  defaultApplicationsCloseDateString,
+  TenderApplicationsDeadlineFields,
+  type ApplicationsDeadlineValue,
+} from '@/components/TenderApplicationsDeadlineFields';
 
 interface TenderSummaryCardProps {
   projectId: string;
@@ -24,6 +32,13 @@ function canPublishProject(project: Project): boolean {
   return ['estimated', 'in_tender'].includes(project.status);
 }
 
+function formatDeadlineLabel(tender: Tender): string {
+  if (tender.noApplicationsDeadline || !tender.closesAt) {
+    return 'No time limit';
+  }
+  return new Date(tender.closesAt).toLocaleString();
+}
+
 export function TenderSummaryCard({
   projectId,
   project,
@@ -33,6 +48,18 @@ export function TenderSummaryCard({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [publishDeadline, setPublishDeadline] = useState<ApplicationsDeadlineValue>(
+    () => ({
+      applicationsCloseAt: defaultApplicationsCloseDateString(),
+      noApplicationsDeadline: false,
+    }),
+  );
+  const [extendDeadline, setExtendDeadline] = useState<ApplicationsDeadlineValue>(
+    () => ({
+      applicationsCloseAt: defaultApplicationsCloseDateString(),
+      noApplicationsDeadline: false,
+    }),
+  );
 
   const loadTender = useCallback(async () => {
     setLoading(true);
@@ -40,6 +67,12 @@ export function TenderSummaryCard({
     try {
       const data = await fetchProjectTender(projectId);
       setTender(data);
+      if (data) {
+        setExtendDeadline(applicationsDeadlineFromTender(data));
+        if (data.status === 'draft') {
+          setPublishDeadline(applicationsDeadlineFromTender(data));
+        }
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load tender');
     } finally {
@@ -61,7 +94,10 @@ export function TenderSummaryCard({
     setBusy(true);
     setError(null);
     try {
-      const data = await createProjectTender(projectId);
+      const data = await createProjectTender(
+        projectId,
+        applicationsDeadlineToPayload(publishDeadline),
+      );
       setTender(data);
       await refreshProject();
     } catch (err: unknown) {
@@ -80,11 +116,33 @@ export function TenderSummaryCard({
     setBusy(true);
     setError(null);
     try {
-      const data = await startProjectTender(projectId);
+      const data = await startProjectTender(
+        projectId,
+        applicationsDeadlineToPayload(publishDeadline),
+      );
       setTender(data);
       await refreshProject();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to open tender');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleExtendDeadline = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await updateTenderDeadline(
+        projectId,
+        applicationsDeadlineToPayload(extendDeadline),
+      );
+      setTender(data);
+      setExtendDeadline(applicationsDeadlineFromTender(data));
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to update application deadline',
+      );
     } finally {
       setBusy(false);
     }
@@ -98,6 +156,7 @@ export function TenderSummaryCard({
     (tender.status === 'open' || tender.status === 'draft') &&
     (tender.applicationCount ?? tender.bids.length) === 0;
   const bidsHref = `/projects/${projectId}/bids`;
+  const deadlineExpired = Boolean(tender?.applicationsDeadlinePassed);
 
   const handleRevert = async () => {
     const confirmed = window.confirm(
@@ -151,7 +210,13 @@ export function TenderSummaryCard({
               ? 'Publish to collect contractor clarification questions. Answer what you can, then open the tender for commercial proposals.'
               : 'Publish the project for open bidding. Contractors clarify scope, enroll as contenders, then submit proposals.'}
           </p>
-          <div className="tender-actions-block">
+          <div className="tender-actions-block tender-publish-block">
+            <TenderApplicationsDeadlineFields
+              idPrefix="publish-deadline"
+              value={publishDeadline}
+              disabled={busy}
+              onChange={setPublishDeadline}
+            />
             <button
               type="button"
               className="primary"
@@ -192,18 +257,48 @@ export function TenderSummaryCard({
                 <dd>{tender.submittedBidCount}</dd>
               </div>
             )}
-            {tender.closesAt ? (
-              <div>
-                <dt>Closes</dt>
-                <dd>{new Date(tender.closesAt).toLocaleString()}</dd>
-              </div>
-            ) : (
-              <div>
-                <dt>Deadline</dt>
-                <dd>Starts with first application</dd>
-              </div>
-            )}
+            <div>
+              <dt>Applications close</dt>
+              <dd>{formatDeadlineLabel(tender)}</dd>
+            </div>
           </dl>
+
+          {deadlineExpired && tender.status !== 'awarded' && (
+            <div className="tender-deadline-expired">
+              <p className="tender-deadline-expired-lead">
+                The application deadline has passed. You received{' '}
+                <strong>{tender.applicationCount ?? tender.bids.length}</strong>{' '}
+                {(tender.applicationCount ?? tender.bids.length) === 1
+                  ? 'application'
+                  : 'applications'}
+                {(tender.submittedBidCount ?? 0) > 0 && (
+                  <>
+                    {' '}
+                    and <strong>{tender.submittedBidCount}</strong>{' '}
+                    {tender.submittedBidCount === 1 ? 'proposal' : 'proposals'}
+                  </>
+                )}
+                . Review current bids or extend the deadline if you need more
+                applications.
+              </p>
+              <div className="tender-deadline-extend">
+                <TenderApplicationsDeadlineFields
+                  idPrefix="extend-deadline"
+                  value={extendDeadline}
+                  disabled={busy}
+                  onChange={setExtendDeadline}
+                />
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => void handleExtendDeadline()}
+                >
+                  {busy ? 'Saving…' : 'Extend deadline'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {tender.bids.length > 0 && (
             <div className="tender-summary-actions">
@@ -251,12 +346,18 @@ export function TenderSummaryCard({
           )}
 
           {collectingQuestions && (
-            <div className="tender-actions-block">
+            <div className="tender-actions-block tender-publish-block">
               <p className="muted tender-phase-hint">
                 Contractors are submitting clarification questions. Answer any
                 you are ready to — you do not need to answer all of them before
                 opening the tender.
               </p>
+              <TenderApplicationsDeadlineFields
+                idPrefix="open-deadline"
+                value={publishDeadline}
+                disabled={busy}
+                onChange={setPublishDeadline}
+              />
               <button
                 type="button"
                 className="primary"

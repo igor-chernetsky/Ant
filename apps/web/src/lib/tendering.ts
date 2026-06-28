@@ -82,6 +82,8 @@ export interface Tender {
   minBids: number;
   opensAt: string | null;
   closesAt: string | null;
+  noApplicationsDeadline: boolean;
+  applicationsDeadlinePassed: boolean;
   awardedBidId: string | null;
   bids: Bid[];
   applicationCount: number;
@@ -119,10 +121,16 @@ export interface ClarificationQuestion {
   updatedAt: string;
 }
 
+export interface PublishTenderOptions {
+  applicationsCloseAt?: string;
+  noApplicationsDeadline?: boolean;
+}
+
 export interface ContractorProjectParticipation {
   tenderId: string | null;
   tenderStatus: TenderStatus | null;
   closesAt: string | null;
+  applicationsDeadlinePassed?: boolean;
   myBid: Bid | null;
   verificationStatus: string;
   clarificationMode: ClarificationMode;
@@ -223,10 +231,17 @@ export async function fetchProjectTender(
   };
 }
 
-export async function createProjectTender(projectId: string): Promise<Tender> {
+export async function createProjectTender(
+  projectId: string,
+  options?: PublishTenderOptions,
+): Promise<Tender> {
   const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/tender`,
-    { method: 'POST' },
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options ?? {}),
+    },
   );
   if (!response.ok) {
     await parseError(response, 'Failed to create tender');
@@ -234,13 +249,38 @@ export async function createProjectTender(projectId: string): Promise<Tender> {
   return response.json() as Promise<Tender>;
 }
 
-export async function startProjectTender(projectId: string): Promise<Tender> {
+export async function startProjectTender(
+  projectId: string,
+  options?: PublishTenderOptions,
+): Promise<Tender> {
   const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/tender/start`,
-    { method: 'POST' },
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options ?? {}),
+    },
   );
   if (!response.ok) {
     await parseError(response, 'Failed to start tender');
+  }
+  return response.json() as Promise<Tender>;
+}
+
+export async function updateTenderDeadline(
+  projectId: string,
+  options: PublishTenderOptions,
+): Promise<Tender> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/deadline`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options),
+    },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to update application deadline');
   }
   return response.json() as Promise<Tender>;
 }

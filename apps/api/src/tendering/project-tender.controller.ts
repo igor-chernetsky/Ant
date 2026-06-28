@@ -6,7 +6,7 @@ import { UsersService } from '../users/users.service';
 import { BidMessagesService } from './bid-messages.service';
 import { BidAnalysisService } from './bid-analysis.service';
 import { BidOffersService } from './bid-offers.service';
-import { SendBidMessageDto, SubmitCounterOfferDto, UpdateBidContractTermsDto, AnswerClarificationQuestionDto } from './tendering.types';
+import { SendBidMessageDto, SubmitCounterOfferDto, UpdateBidContractTermsDto, AnswerClarificationQuestionDto, PublishTenderDto, UpdateTenderDeadlineDto } from './tendering.types';
 import { PresignClarificationAttachmentDto } from './clarification-attachments.types';
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
@@ -43,18 +43,20 @@ export class ProjectTenderController {
   async createTender(
     @Req() req: Request & { user: JwtPayload },
     @Param('projectId') projectId: string,
+    @Body() body: PublishTenderDto,
   ) {
     const user = await this.resolveUser(req);
-    return this.tendersService.createTender(user.id, projectId);
+    return this.tendersService.createTender(user.id, projectId, body);
   }
 
   @Post('start')
   async startTender(
     @Req() req: Request & { user: JwtPayload },
     @Param('projectId') projectId: string,
+    @Body() body: PublishTenderDto,
   ) {
     const user = await this.resolveUser(req);
-    return this.tendersService.startTender(user.id, projectId);
+    return this.tendersService.startTender(user.id, projectId, body);
   }
 
   @Post('revert')
@@ -65,6 +67,16 @@ export class ProjectTenderController {
   ) {
     const user = await this.resolveUser(req);
     await this.tendersService.revertTenderToEstimated(user.id, projectId);
+  }
+
+  @Patch('deadline')
+  async updateTenderDeadline(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: UpdateTenderDeadlineDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.tendersService.updateTenderDeadline(user.id, projectId, body);
   }
 
   @Get('clarification-questions')

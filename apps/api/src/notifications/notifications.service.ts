@@ -229,6 +229,34 @@ export class NotificationsService {
     });
   }
 
+  async notifyClientTenderDeadlineReached(params: {
+    clientId: string;
+    projectId: string;
+    projectTitle: string;
+    applicationCount: number;
+    submittedBidCount: number;
+  }): Promise<void> {
+    const appsLabel =
+      params.applicationCount === 1 ? 'application' : 'applications';
+    const proposalsPart =
+      params.submittedBidCount > 0
+        ? ` ${params.submittedBidCount} commercial proposal${params.submittedBidCount === 1 ? '' : 's'} received.`
+        : '';
+
+    await this.sendToUser({
+      userId: params.clientId,
+      prefFlag: 'emailClientBidActivity',
+      kind: NotificationEmailKind.client_tender_deadline_reached,
+      projectId: params.projectId,
+      subject: `Application deadline reached — ${params.projectTitle}`,
+      title: 'Tender application deadline reached',
+      bodyHtml: `<p>The application deadline for <strong>${escapeHtml(params.projectTitle)}</strong> has passed.</p><p>You received <strong>${params.applicationCount}</strong> ${appsLabel}.${proposalsPart}</p><p>Review applications and select a contractor, or extend the deadline if you need more time.</p>`,
+      ctaHref: this.bidsUrl(params.projectId),
+      ctaLabel: 'Review applications',
+      textBody: `Application deadline reached for ${params.projectTitle}. ${params.applicationCount} ${appsLabel}.${proposalsPart}`,
+    });
+  }
+
   async notifyContractorCounterOffer(params: {
     contractorUserId: string;
     projectId: string;
