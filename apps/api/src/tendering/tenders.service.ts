@@ -263,15 +263,24 @@ export class TendersService {
       project.tenderContractTermsJson,
     );
 
-    const contractTerms: BidContractTerms = normalizeContractTerms({
-      ...storedTerms,
-      siteAddress: storedTerms.siteAddress ?? project.district ?? undefined,
-      subjectOfContract:
-        storedTerms.subjectOfContract ?? scopeSummary ?? undefined,
-    }) ?? {
-      siteAddress: project.district ?? undefined,
-      subjectOfContract: scopeSummary,
-    };
+    const contractTerms: BidContractTerms =
+      normalizeContractTerms({
+        retentionPercent: 10,
+        retentionLimitPercent: 10,
+        defectNotificationMonths: 24,
+        advancePaymentPercent: 0,
+        ...storedTerms,
+        siteAddress: storedTerms.siteAddress ?? project.district ?? undefined,
+        subjectOfContract:
+          storedTerms.subjectOfContract ?? scopeSummary ?? undefined,
+      }) ?? {
+        retentionPercent: 10,
+        retentionLimitPercent: 10,
+        defectNotificationMonths: 24,
+        advancePaymentPercent: 0,
+        siteAddress: project.district ?? undefined,
+        subjectOfContract: scopeSummary,
+      };
 
     return {
       scopeSummary,

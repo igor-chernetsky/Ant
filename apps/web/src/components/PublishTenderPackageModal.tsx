@@ -1,7 +1,9 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { BidContractTermsFields } from '@/components/BidContractTermsFields';
 import { CostBreakdownTemplateEditor } from '@/components/CostBreakdownTemplateEditor';
+import { DEFAULT_CONTRACT_TERMS } from '@/lib/contract-terms-fields';
 import {
   applicationsDeadlineToPayload,
   TenderApplicationsDeadlineFields,
@@ -44,6 +46,7 @@ function emptyPreview(project: Project): TenderPublishPreview {
     clarificationSummary: project.clarificationSummary,
     defaultCostBreakdown: [{ trade: '', description: '' }],
     contractTerms: {
+      ...DEFAULT_CONTRACT_TERMS,
       siteAddress: project.district ?? undefined,
       subjectOfContract:
         project.description?.trim() ||
@@ -82,6 +85,10 @@ export function PublishTenderPackageModal({
         const data = await fetchTenderPublishPreview(projectId);
         setPreview({
           ...data,
+          contractTerms: {
+            ...DEFAULT_CONTRACT_TERMS,
+            ...data.contractTerms,
+          },
           defaultCostBreakdown:
             data.defaultCostBreakdown.length > 0
               ? data.defaultCostBreakdown
@@ -101,16 +108,6 @@ export function PublishTenderPackageModal({
   if (!isOpen) {
     return null;
   }
-
-  const setContractTerm = <K extends keyof BidContractTerms>(
-    key: K,
-    value: BidContractTerms[K],
-  ) => {
-    setPreview((current) => ({
-      ...current,
-      contractTerms: { ...current.contractTerms, [key]: value },
-    }));
-  };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -241,67 +238,39 @@ export function PublishTenderPackageModal({
                 }
               />
 
-              <p className="tag-section-label">Contract document fields</p>
-
               <label>
                 Subject of contract
+                <span className="field-hint muted">
+                  Legal scope definition used in Clause 1 of the commercial
+                  proposal
+                </span>
                 <textarea
                   rows={2}
                   disabled={busy}
                   value={preview.contractTerms.subjectOfContract ?? ''}
                   onChange={(e) =>
-                    setContractTerm('subjectOfContract', e.target.value)
+                    setPreview((current) => ({
+                      ...current,
+                      contractTerms: {
+                        ...current.contractTerms,
+                        subjectOfContract: e.target.value,
+                      },
+                    }))
                   }
                 />
               </label>
 
-              <label>
-                Site address
-                <input
-                  type="text"
-                  disabled={busy}
-                  value={preview.contractTerms.siteAddress ?? ''}
-                  placeholder={project.district ?? 'Full property address'}
-                  onChange={(e) => setContractTerm('siteAddress', e.target.value)}
-                />
-              </label>
-
-              <label>
-                Property ownership / site rights
-                <textarea
-                  rows={2}
-                  disabled={busy}
-                  value={preview.contractTerms.propertyOwnership ?? ''}
-                  placeholder="Title deed, lease, developer consent, etc."
-                  onChange={(e) =>
-                    setContractTerm('propertyOwnership', e.target.value)
-                  }
-                />
-              </label>
-
-              <label>
-                Employer address
-                <input
-                  type="text"
-                  disabled={busy}
-                  value={preview.contractTerms.employerAddress ?? ''}
-                  onChange={(e) =>
-                    setContractTerm('employerAddress', e.target.value)
-                  }
-                />
-              </label>
-
-              <label>
-                Employer registration no.
-                <input
-                  type="text"
-                  disabled={busy}
-                  value={preview.contractTerms.employerRegistrationNo ?? ''}
-                  onChange={(e) =>
-                    setContractTerm('employerRegistrationNo', e.target.value)
-                  }
-                />
-              </label>
+              <BidContractTermsFields
+                value={preview.contractTerms}
+                onChange={(contractTerms) =>
+                  setPreview((current) => ({ ...current, contractTerms }))
+                }
+                audience="client"
+                projectTitle={project.title}
+                projectDistrict={project.district}
+                disabled={busy}
+                hideSubjectOfContract
+              />
             </>
           )}
 

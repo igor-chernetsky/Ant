@@ -54,8 +54,8 @@ export function BidContractTermsFields({
         <div className="bid-contract-terms-header">
           <p className="tag-section-label">Commercial proposal document</p>
           <p className="muted bid-contract-terms-hint">
-            {audience === 'contractor'
-              ? 'Fields filled by the client are shown for reference. Site address and employer details come from the project.'
+            {audience === 'client'
+              ? 'Default values for the commercial proposal document. Contractors will see these fields when preparing their bids.'
               : 'Propose changes to payment and schedule terms. Contractor proposal fields are shown for reference.'}
           </p>
         </div>
@@ -221,6 +221,34 @@ export function BidContractTermsFields({
             value={value.retentionReleaseNotes ?? ''}
             placeholder="5% on Taking-Over Certificate; 5% after 12 months from Practical Completion."
             onChange={(e) => set('retentionReleaseNotes', e.target.value)}
+          />
+        </label>
+
+        <label>
+          Warranty period notes
+          <span className="field-hint muted">
+            Optional — overrides default defect notification wording in the CP
+          </span>
+          <textarea
+            rows={2}
+            disabled={fieldDisabled('warrantyPeriodNotes')}
+            value={value.warrantyPeriodNotes ?? ''}
+            placeholder={`Defect Notification Period: ${value.defectNotificationMonths ?? 24} months from Practical Completion.`}
+            onChange={(e) => set('warrantyPeriodNotes', e.target.value)}
+          />
+        </label>
+
+        <label>
+          Delay damages
+          <span className="field-hint muted">
+            Optional — liquidated damages for late completion
+          </span>
+          <textarea
+            rows={2}
+            disabled={fieldDisabled('delayDamagesNotes')}
+            value={value.delayDamagesNotes ?? ''}
+            placeholder="Delay damages at 0.2% per day of the Contract Amount, maximum 20% of the Contract Amount."
+            onChange={(e) => set('delayDamagesNotes', e.target.value)}
           />
         </label>
 
