@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {
+  formatDateTime,
   formatProjectStatus,
   formatProjectType,
   formatPropertyType,
@@ -39,10 +40,6 @@ export function ProjectHero({
             <Link href="/" className="project-hero-back-link">
               Projects
             </Link>
-            <span className="project-hero-kicker-sep" aria-hidden>
-              /
-            </span>
-            <span>Overview</span>
           </p>
           <h1 id="project-hero-title">{project.title}</h1>
           {project.description ? (
@@ -59,6 +56,11 @@ export function ProjectHero({
               ))}
             </ul>
           )}
+          <p className="muted project-hero-timestamps">
+            Created {formatDateTime(project.createdAt)}
+            {' · '}
+            Updated {formatDateTime(project.updatedAt)}
+          </p>
         </div>
         <div className="project-hero-aside">
           <span className="status-pill status-pill-lg project-hero-status">

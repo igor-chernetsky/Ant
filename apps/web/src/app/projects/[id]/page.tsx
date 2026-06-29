@@ -5,8 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
-import { DocumentImage } from '@/components/DocumentImage';
-import { DocumentInsightCollapsible } from '@/components/DocumentInsightCollapsible';
+import { DocumentTile, OrphanScopePackages } from '@/components/DocumentTile';
 import { ClientAmendments } from '@/components/ClientAmendments';
 import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
@@ -21,7 +20,6 @@ import {
   deleteProjectDocument,
   fetchProjectDocuments,
   fetchPublicProjectDocuments,
-  formatFileSize,
   getDocumentDownloadUrl,
   getPublicDocumentDownloadUrl,
   MAX_UPLOAD_BYTES,
@@ -29,17 +27,14 @@ import {
   type DocumentCategory,
   type ProjectDocument,
 } from '@/lib/documents';
-import { isImageDocument } from '@/lib/document-images';
 import { formatConfidence, formatThb } from '@/lib/estimate';
 import { isIntakeActive } from '@/lib/intake';
 import {
-  canDeleteProject,
-  canDeleteDocument,
-  deleteProject,
   fetchProject,
   formatDateTime,
-  formatProjectType,
-  formatPropertyType,
+  deleteProject,
+  canDeleteProject,
+  canDeleteDocument,
   type Project,
 } from '@/lib/projects';
 import { useSession } from '@/components/SessionProvider';
@@ -267,25 +262,23 @@ export default function ProjectDetailPage() {
   const insightByDocumentId = new Map(
     documentInsights.map((insight) => [insight.documentId, insight]),
   );
+  const packagesByDocumentId = new Map<string, typeof packages>();
+  const orphanPackages: typeof packages = [];
+  for (const pkg of packages) {
+    if (pkg.sourceDocumentId) {
+      const list = packagesByDocumentId.get(pkg.sourceDocumentId) ?? [];
+      list.push(pkg);
+      packagesByDocumentId.set(pkg.sourceDocumentId, list);
+    } else {
+      orphanPackages.push(pkg);
+    }
+  }
   const estimate = project?.estimate ?? null;
-  const imageDocuments = documents.filter(isImageDocument);
-  const fileDocuments = documents.filter((d) => !isImageDocument(d));
   const intakeActive = isOwner && project ? isIntakeActive(project) : false;
   const showDelete = isOwner && project ? canDeleteProject(project) : false;
   const showDocDelete =
     isOwner && project ? canDeleteDocument(project) : false;
   const brief = project?.brief ?? null;
-
-  const overviewItems = project
-    ? [
-        { label: 'Project type', value: formatProjectType(project.projectType) },
-        { label: 'Property', value: formatPropertyType(project.propertyType) },
-        { label: 'District', value: project.district ?? '—' },
-        { label: 'Region', value: project.regionCode },
-        { label: 'Created', value: formatDateTime(project.createdAt) },
-        { label: 'Last updated', value: formatDateTime(project.updatedAt) },
-      ]
-    : [];
 
   const briefPropertyItems = brief?.property
     ? [
@@ -363,17 +356,12 @@ export default function ProjectDetailPage() {
               }
             />
 
-            <section className="card project-overview-card">
-              <h2 className="section-title">Overview</h2>
-              <MetaSpecGrid items={overviewItems} />
-            </section>
-
             <section className="card">
               <h2 className="section-title">Documents</h2>
               <p className="muted doc-hint">
                 {isOwner
-                  ? `Upload blueprints, photos, and specifications (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Files are stored in private object storage. PDFs and images are analyzed automatically — a short summary is added to the project brief.`
-                  : 'Plans, photos, and specifications attached to this project.'}
+                  ? `Upload blueprints, photos, and specifications (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Files are stored in private object storage. PDFs and images are analyzed automatically — scope items and a short summary are shown under each file.`
+                  : 'Plans, photos, and specifications attached to this project, with inferred scope where available.'}
               </p>
               {isOwner && (
                 <div className="doc-upload-row">
@@ -416,82 +404,24 @@ export default function ProjectDetailPage() {
                 <p className="muted">No documents uploaded yet.</p>
               ) : (
                 <>
-                  {imageDocuments.length > 0 && (
-                    <div className="doc-gallery">
-                      {imageDocuments.map((doc) => (
-                        <figure key={doc.id} className="doc-gallery-item">
-                          <DocumentImage
-                            projectId={projectId}
-                            document={doc}
-                            variant="gallery"
-                            publicView={!isOwner}
-                            onOpen={() => void handleDownload(doc)}
-                          />
-                          <figcaption className="doc-gallery-caption">
-                            {doc.originalName}
-                          </figcaption>
-                          {insightByDocumentId.get(doc.id) && (
-                            <DocumentInsightCollapsible
-                              insight={insightByDocumentId.get(doc.id)!}
-                            />
-                          )}
-                          {showDocDelete && (
-                            <button
-                              type="button"
-                              className="text-link doc-remove"
-                              disabled={deletingDocId === doc.id}
-                              onClick={() => void handleDeleteDocument(doc)}
-                            >
-                              {deletingDocId === doc.id ? 'Removing…' : 'Remove'}
-                            </button>
-                          )}
-                        </figure>
-                      ))}
-                    </div>
-                  )}
-
-                  {fileDocuments.length > 0 && (
-                    <ul className="doc-list">
-                      {fileDocuments.map((doc) => {
-                        const insight = insightByDocumentId.get(doc.id);
-                        return (
-                        <li key={doc.id} className="doc-item">
-                          <div className="doc-item-main">
-                            <button
-                              type="button"
-                              className="doc-link"
-                              onClick={() => void handleDownload(doc)}
-                            >
-                              {doc.originalName}
-                            </button>
-                            <p className="muted doc-meta">
-                              {DOCUMENT_CATEGORY_OPTIONS.find(
-                                (o) => o.value === doc.category,
-                              )?.label ?? doc.category}
-                              {' · '}
-                              {formatFileSize(doc.sizeBytes)}
-                              {doc.uploadedAt &&
-                                ` · ${formatDateTime(doc.uploadedAt)}`}
-                            </p>
-                            {insight && (
-                              <DocumentInsightCollapsible insight={insight} />
-                            )}
-                          </div>
-                          {showDocDelete && (
-                            <button
-                              type="button"
-                              className="secondary doc-remove-btn"
-                              disabled={deletingDocId === doc.id}
-                              onClick={() => void handleDeleteDocument(doc)}
-                            >
-                              {deletingDocId === doc.id ? 'Removing…' : 'Remove'}
-                            </button>
-                          )}
-                        </li>
-                        );
-                      })}
-                    </ul>
-                  )}
+                  <div className="doc-tiles-grid">
+                    {documents.map((doc) => (
+                      <DocumentTile
+                        key={doc.id}
+                        projectId={projectId}
+                        document={doc}
+                        publicView={!isOwner}
+                        scopePackages={packagesByDocumentId.get(doc.id) ?? []}
+                        insight={insightByDocumentId.get(doc.id)}
+                        showDelete={showDocDelete}
+                        deleting={deletingDocId === doc.id}
+                        formatDateTime={formatDateTime}
+                        onDownload={() => void handleDownload(doc)}
+                        onDelete={() => void handleDeleteDocument(doc)}
+                      />
+                    ))}
+                  </div>
+                  <OrphanScopePackages packages={orphanPackages} />
                 </>
               )}
             </section>
@@ -557,30 +487,8 @@ export default function ProjectDetailPage() {
                 projectTitle={project.title}
                 projectDistrict={project.district}
                 projectDescription={project.description}
+                clarificationSummary={project.clarificationSummary}
               />
-            )}
-
-            {packages.length > 0 && (
-              <section className="card">
-                <h2 className="section-title">Scope packages</h2>
-                <p className="muted">
-                  Work items inferred from documents and project details.
-                </p>
-                <ul className="package-list">
-                  {packages.map((pkg, index) => (
-                    <li key={`${pkg.trade}-${index}`} className="package-item">
-                      <span className="package-trade">{pkg.trade}</span>
-                      <span>{pkg.description}</span>
-                      {(pkg.quantity ?? pkg.areaSqm) && (
-                        <span className="muted package-qty">
-                          {pkg.quantity ?? pkg.areaSqm}{' '}
-                          {pkg.unit ?? (pkg.areaSqm ? 'sqm' : '')}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </section>
             )}
 
             {brief && (

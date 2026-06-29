@@ -26,6 +26,24 @@ interface ContractorProjectPanelProps {
   projectTitle?: string;
   projectDistrict?: string | null;
   projectDescription?: string | null;
+  clarificationSummary?: string | null;
+}
+
+function hasActiveContractorParticipation(
+  participation: ContractorProjectParticipation,
+): boolean {
+  const bid = participation.myBid;
+  if (!bid || bid.status === 'withdrawn') {
+    return false;
+  }
+
+  return (
+    bid.status === 'clarifying' ||
+    bid.status === 'enrolled' ||
+    bid.status === 'submitted' ||
+    bid.status === 'selected' ||
+    bid.status === 'rejected'
+  );
 }
 
 function formatParticipationStatus(participation: ContractorProjectParticipation): string {
@@ -46,6 +64,7 @@ export function ContractorProjectPanel({
   projectTitle,
   projectDistrict,
   projectDescription,
+  clarificationSummary = null,
 }: ContractorProjectPanelProps) {
   const { me } = useSession();
   const [participation, setParticipation] =
@@ -178,6 +197,9 @@ export function ContractorProjectPanel({
   const enrolled = myBid?.status === 'enrolled';
   const submitted = myBid?.status === 'submitted';
   const selected = myBid?.status === 'selected';
+  const showClarificationSummary = Boolean(
+    clarificationSummary?.trim() && hasActiveContractorParticipation(participation),
+  );
 
   return (
     <section className="card contractor-project-card">
@@ -228,6 +250,13 @@ export function ContractorProjectPanel({
           The application deadline has passed. You can continue with your current
           participation, but new applications are no longer accepted.
         </p>
+      )}
+
+      {showClarificationSummary && (
+        <div className="client-clarification-summary contractor-clarification-summary">
+          <h3 className="tender-subsection-title">Clarification summary</h3>
+          <p>{clarificationSummary}</p>
+        </div>
       )}
 
       {waitingForPublish && (

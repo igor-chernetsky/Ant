@@ -1126,6 +1126,12 @@ pre {
   font-style: italic;
 }
 
+.project-hero-timestamps {
+  margin: 0.85rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .project-hero-chips {
   display: flex;
   flex-wrap: wrap;
@@ -1871,6 +1877,138 @@ pre {
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 0.85rem;
   margin-bottom: 1.25rem;
+}
+
+.doc-tiles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.doc-tile {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.doc-tile-preview {
+  width: 100%;
+}
+
+.doc-tile-caption {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-tile-meta {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.doc-file-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.doc-file-tile:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+}
+
+.doc-file-tile-ext {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.5rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.doc-file-tile-label {
+  font-size: 0.78rem;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.doc-tile-scope {
+  margin-top: 0.15rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+}
+
+.doc-tile-scope-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.doc-tile-scope-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.doc-tile-scope-list--standalone {
+  margin-top: 0.5rem;
+}
+
+.doc-tile-scope-item {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.doc-scope-orphans {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.doc-scope-orphans-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.doc-scope-orphans-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.doc-tile .doc-insight-details {
+  margin-top: 0.1rem;
 }
 
 .doc-gallery-item {
@@ -3254,6 +3392,22 @@ select:disabled {
   padding: 0.85rem;
   border-radius: 10px;
   background: var(--surface-muted, #f6f7f8);
+}
+
+.contractor-clarification-summary {
+  margin-top: 0.85rem;
+}
+
+.contractor-clarification-summary .tender-subsection-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.contractor-clarification-summary p {
+  margin: 0;
+  line-height: 1.55;
+  font-size: 0.92rem;
+  white-space: pre-wrap;
 }
 
 .clarification-answer-attachments {
