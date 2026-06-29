@@ -753,7 +753,6 @@ export class TendersService {
       const enrolled = await this.maybeAutoEnrollOpenChatParticipant(
         tender,
         existing,
-        project?.clarificationMode,
       );
       return this.mapBid(enrolled);
     }
@@ -767,7 +766,6 @@ export class TendersService {
       const enrolled = await this.maybeAutoEnrollOpenChatParticipant(
         tender,
         reopened,
-        project?.clarificationMode,
       );
       return this.mapBid(enrolled);
     }
@@ -784,7 +782,6 @@ export class TendersService {
     const enrolled = await this.maybeAutoEnrollOpenChatParticipant(
       tender,
       bid,
-      project?.clarificationMode,
     );
     return this.mapBid(enrolled);
   }
@@ -810,10 +807,8 @@ export class TendersService {
   private async maybeAutoEnrollOpenChatParticipant(
     tender: Tender & { bids: Bid[] },
     bid: Bid & { contractor: ContractorProfile },
-    clarificationMode?: ClarificationMode | null,
   ): Promise<Bid & { contractor: ContractorProfile }> {
     if (
-      clarificationMode === ClarificationMode.structured_qa ||
       tender.status !== TenderStatus.open ||
       bid.status !== BidStatus.clarifying
     ) {

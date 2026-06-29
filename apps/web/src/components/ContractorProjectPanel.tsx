@@ -201,7 +201,7 @@ export function ContractorProjectPanel({
         {structuredQa
           ? participation.tenderCollectingClarifications
             ? 'Submit your clarification questions once. The client will open the tender for proposals when ready.'
-            : 'Submit your clarification questions once. When the tender opens, you are enrolled automatically and can submit your commercial proposal.'
+            : 'The tender is open. Apply to participate and submit your commercial proposal.'
           : 'Ask clarifying questions in the discussion. You are enrolled automatically and can submit your commercial proposal when ready.'}
       </p>
 
@@ -282,7 +282,7 @@ export function ContractorProjectPanel({
         <div className="participation-actions">
           <p className="muted participation-actions-hint">
             {structuredQa
-              ? 'Apply to submit your clarification questions and participate in the tender.'
+              ? 'Apply to participate in the tender and submit your commercial proposal.'
               : 'Apply to join the discussion and submit your commercial proposal when ready.'}
           </p>
           <div className="participation-toolbar">
@@ -300,7 +300,7 @@ export function ContractorProjectPanel({
 
       {myBid && (inClarification || enrolled || submitted) && me?.id && (
         <div className="tender-subsection">
-          {structuredQa && inClarification ? (
+          {structuredQa && inClarification && participation.tenderCollectingClarifications ? (
             <>
               <h3 className="tender-subsection-title">Your question list</h3>
               <StructuredClarificationForm
