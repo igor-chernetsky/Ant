@@ -102,7 +102,7 @@ export function ContractorProjectPanel({
     void loadParticipation();
   }, [loadParticipation]);
 
-  const handleStartClarification = async () => {
+  const handleApply = async () => {
     if (!participation?.tenderId) return;
     setBusy(true);
     setError(null);
@@ -111,7 +111,7 @@ export function ContractorProjectPanel({
       await loadParticipation();
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : 'Failed to start clarification',
+        err instanceof Error ? err.message : 'Failed to apply for participation',
       );
     } finally {
       setBusy(false);
@@ -270,9 +270,29 @@ export function ContractorProjectPanel({
               type="button"
               className="primary"
               disabled={busy}
-              onClick={() => void handleStartClarification()}
+              onClick={() => void handleApply()}
             >
               {busy ? 'Starting…' : 'Start clarification'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {participation.canApply && (
+        <div className="participation-actions">
+          <p className="muted participation-actions-hint">
+            {structuredQa
+              ? 'Apply to submit your clarification questions and participate in the tender.'
+              : 'Apply to join the discussion and submit your commercial proposal when ready.'}
+          </p>
+          <div className="participation-toolbar">
+            <button
+              type="button"
+              className="primary"
+              disabled={busy}
+              onClick={() => void handleApply()}
+            >
+              {busy ? 'Applying…' : 'Apply'}
             </button>
           </div>
         </div>

@@ -182,6 +182,7 @@ export interface ContractorProjectParticipation {
   tenderCollectingClarifications: boolean;
   defaultCostBreakdown: DefaultCostBreakdownItem[];
   canStartClarification: boolean;
+  canApply: boolean;
   canEnroll: boolean;
   canSubmitProposal: boolean;
   canWithdraw: boolean;

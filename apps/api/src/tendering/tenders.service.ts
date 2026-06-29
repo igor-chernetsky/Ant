@@ -696,8 +696,9 @@ export class TendersService {
       tenderCollectingClarifications,
       defaultCostBreakdown: this.defaultCostBreakdownForTender(tender),
       canStartClarification: Boolean(
-        (tenderOpen || tenderCollectingClarifications) && !myBid,
+        tenderCollectingClarifications && !myBid,
       ),
+      canApply: Boolean(tenderOpen && !myBid),
       canEnroll: Boolean(
         tenderOpen &&
           myBid?.status === BidStatus.clarifying &&
