@@ -95,6 +95,40 @@ export class DefaultCostBreakdownService {
     return normalized;
   }
 
+  async generateForProject(projectId: string): Promise<DefaultCostBreakdownItem[]> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        tags: { include: { tag: true } },
+        estimates: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+
+    if (!project) {
+      return [];
+    }
+
+    const estimate = project.estimates[0];
+    const estimateLines = estimate
+      ? (estimate.linesJson as EstimateLine[] | null) ?? []
+      : [];
+    const brief = (project.briefJson as ProjectBriefV1 | null) ?? null;
+
+    const items =
+      (await this.generateWithOpenAi({
+        title: project.title,
+        description: project.description,
+        projectType: project.projectType,
+        propertyType: project.propertyType,
+        district: project.district,
+        tagSlugs: project.tags.map((pt) => pt.tag.slug),
+        brief,
+        estimateLines,
+      })) ?? this.generateFallback(brief, estimateLines, project.projectType);
+
+    return this.normalizeItems(items);
+  }
+
   private normalizeItems(items: DefaultCostBreakdownItem[]): DefaultCostBreakdownItem[] {
     const seen = new Set<string>();
     const result: DefaultCostBreakdownItem[] = [];

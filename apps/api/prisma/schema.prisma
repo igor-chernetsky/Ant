@@ -209,6 +209,8 @@ model Project {
   briefJson      Json?         @map("brief_json")
   clarificationMode ClarificationMode @default(open_chat) @map("clarification_mode")
   clarificationSummary String?  @map("clarification_summary") @db.Text
+  scopeSummary         String?  @map("scope_summary") @db.Text
+  tenderContractTermsJson Json? @map("tender_contract_terms_json")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
   tags           ProjectTag[]

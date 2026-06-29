@@ -28,6 +28,8 @@ interface BidProposalFormProps {
   projectDistrict?: string | null;
   projectDescription?: string | null;
   defaultCostBreakdown?: DefaultCostBreakdownItem[];
+  projectScopeSummary?: string | null;
+  projectContractTerms?: BidContractTerms;
   /** Who fills commercial proposal fields — `none` hides contract terms. */
   contractTermsAudience?: ContractTermsAudience | 'none';
   onSubmit: (input: BidProposalInput) => Promise<void>;
@@ -76,11 +78,20 @@ export function BidProposalForm({
   projectDistrict,
   projectDescription,
   defaultCostBreakdown = [],
+  projectScopeSummary = null,
+  projectContractTerms,
   contractTermsAudience = 'contractor',
   onSubmit,
   onWithdraw,
 }: BidProposalFormProps) {
   const terms = existingBid?.terms;
+  const projectTermsSeed = {
+    scopeSummary: terms?.scopeSummary ?? projectScopeSummary ?? undefined,
+    contractTerms: {
+      ...projectContractTerms,
+      ...terms?.contractTerms,
+    },
+  };
   const projectContext = buildContractTermsProjectContext(
     projectTitle,
     projectDistrict,
@@ -95,7 +106,7 @@ export function BidProposalForm({
   const [notes, setNotes] = useState(terms?.notes ?? '');
   const [approach, setApproach] = useState(terms?.approach ?? '');
   const [scopeSummary, setScopeSummary] = useState(() =>
-    defaultScopeSummary(terms, projectContext),
+    defaultScopeSummary(projectTermsSeed, projectContext),
   );
   const [lineItems, setLineItems] = useState<BidLineItem[]>(() =>
     lineItemsFromTerms(terms, defaultCostBreakdown),
@@ -104,7 +115,7 @@ export function BidProposalForm({
     (terms?.lineItems?.length ?? 0) > 0 || defaultCostBreakdown.length > 0,
   );
   const [contractTerms, setContractTerms] = useState<BidContractTerms>(() =>
-    contractTermsFromBid(terms, projectContext, existingBid?.durationDays),
+    contractTermsFromBid(projectTermsSeed, projectContext, existingBid?.durationDays),
   );
   const [error, setError] = useState<string | null>(null);
 

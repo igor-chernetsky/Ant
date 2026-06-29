@@ -404,6 +404,8 @@ export function ContractorProjectPanel({
               projectDistrict={projectDistrict}
               projectDescription={projectDescription}
               defaultCostBreakdown={participation.defaultCostBreakdown ?? []}
+              projectScopeSummary={participation.projectScopeSummary}
+              projectContractTerms={participation.projectContractTerms}
               onSubmit={handleSubmitBid}
               onWithdraw={participation.canWithdraw ? handleWithdraw : undefined}
             />

@@ -5,15 +5,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { formatThb } from '@/lib/estimate';
 import type { Project } from '@/lib/projects';
 import {
-  createProjectTender,
   fetchProjectTender,
   formatTenderStatus,
   revertProjectTender,
-  startProjectTender,
   updateTenderDeadline,
   type Tender,
 } from '@/lib/tendering';
 import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificationQuestionsPanel';
+import { PublishTenderPackageModal } from '@/components/PublishTenderPackageModal';
 import {
   applicationsDeadlineFromTender,
   applicationsDeadlineToPayload,
@@ -60,6 +59,9 @@ export function TenderSummaryCard({
       noApplicationsDeadline: false,
     }),
   );
+  const [publishModalMode, setPublishModalMode] = useState<
+    'create' | 'start' | null
+  >(null);
 
   const loadTender = useCallback(async () => {
     setLoading(true);
@@ -91,42 +93,16 @@ export function TenderSummaryCard({
   };
 
   const handleCreate = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const data = await createProjectTender(
-        projectId,
-        applicationsDeadlineToPayload(publishDeadline),
-      );
-      setTender(data);
-      await refreshProject();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create tender');
-    } finally {
-      setBusy(false);
-    }
+    setPublishModalMode('create');
   };
 
   const handleOpenTender = async () => {
-    const confirmed = window.confirm(
-      'Open the tender for commercial proposals? Answered clarification questions will be summarized into the project description.',
-    );
-    if (!confirmed) return;
+    setPublishModalMode('start');
+  };
 
-    setBusy(true);
-    setError(null);
-    try {
-      const data = await startProjectTender(
-        projectId,
-        applicationsDeadlineToPayload(publishDeadline),
-      );
-      setTender(data);
-      await refreshProject();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to open tender');
-    } finally {
-      setBusy(false);
-    }
+  const handlePublishComplete = async () => {
+    await loadTender();
+    await refreshProject();
   };
 
   const handleExtendDeadline = async () => {
@@ -211,23 +187,13 @@ export function TenderSummaryCard({
               : 'Publish the project for open bidding. Contractors clarify scope, enroll as contenders, then submit proposals.'}
           </p>
           <div className="tender-actions-block tender-publish-block">
-            <TenderApplicationsDeadlineFields
-              idPrefix="publish-deadline"
-              value={publishDeadline}
-              disabled={busy}
-              onChange={setPublishDeadline}
-            />
             <button
               type="button"
               className="primary"
               disabled={busy || !canPublish}
               onClick={() => void handleCreate()}
             >
-              {busy
-                ? 'Publishing…'
-                : structuredQa
-                  ? 'Publish for clarification'
-                  : 'Publish for bids'}
+              {structuredQa ? 'Publish for clarification' : 'Publish for bids'}
             </button>
             {!canPublish && (
               <p className="muted tender-hint">
@@ -352,19 +318,13 @@ export function TenderSummaryCard({
                 you are ready to — you do not need to answer all of them before
                 opening the tender.
               </p>
-              <TenderApplicationsDeadlineFields
-                idPrefix="open-deadline"
-                value={publishDeadline}
-                disabled={busy}
-                onChange={setPublishDeadline}
-              />
               <button
                 type="button"
                 className="primary"
                 disabled={busy}
                 onClick={() => void handleOpenTender()}
               >
-                {busy ? 'Opening…' : 'Open tender for bids'}
+                Open tender for bids
               </button>
             </div>
           )}
@@ -402,6 +362,19 @@ export function TenderSummaryCard({
             />
           )}
         </>
+      )}
+
+      {publishModalMode && (
+        <PublishTenderPackageModal
+          projectId={projectId}
+          project={project}
+          mode={publishModalMode}
+          structuredQa={structuredQa}
+          deadline={publishDeadline}
+          isOpen
+          onClose={() => setPublishModalMode(null)}
+          onPublished={handlePublishComplete}
+        />
       )}
     </section>
   );

@@ -117,6 +117,7 @@ export interface Project {
   brief: ProjectBriefV1 | null;
   clarificationMode: ClarificationMode;
   clarificationSummary: string | null;
+  scopeSummary: string | null;
   tags: ProjectTag[];
   estimate: BallparkEstimate | null;
   createdAt: string;

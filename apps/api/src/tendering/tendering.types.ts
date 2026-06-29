@@ -174,6 +174,8 @@ export interface ContractorProjectParticipation {
   };
   tenderCollectingClarifications: boolean;
   defaultCostBreakdown: DefaultCostBreakdownItem[];
+  projectScopeSummary: string | null;
+  projectContractTerms: BidContractTerms;
   canStartClarification: boolean;
   canApply: boolean;
   canEnroll: boolean;
@@ -237,6 +239,17 @@ export interface PublishTenderDto {
   /** YYYY-MM-DD or ISO datetime; ignored when noApplicationsDeadline is true */
   applicationsCloseAt?: string;
   noApplicationsDeadline?: boolean;
+  scopeSummary?: string;
+  clarificationSummary?: string;
+  defaultCostBreakdown?: DefaultCostBreakdownItem[];
+  contractTerms?: BidContractTerms;
+}
+
+export interface TenderPublishPreview {
+  scopeSummary: string;
+  clarificationSummary: string | null;
+  defaultCostBreakdown: DefaultCostBreakdownItem[];
+  contractTerms: BidContractTerms;
 }
 
 export interface UpdateTenderDeadlineDto {

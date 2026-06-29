@@ -4519,3 +4519,21 @@ select:disabled {
   cursor: pointer;
 }
 
+.cost-breakdown-template-editor {
+  margin-top: 1rem;
+}
+
+.cost-breakdown-template-hint {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.bid-line-item-row--template {
+  grid-template-columns: 1fr 1.2fr auto;
+}
+
+.publish-tender-modal .modal-form {
+  max-height: min(72vh, 720px);
+  overflow-y: auto;
+}
+

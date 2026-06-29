@@ -38,6 +38,7 @@ export interface ProjectResponse {
   brief: ProjectBriefV1 | null;
   clarificationMode: ClarificationMode;
   clarificationSummary: string | null;
+  scopeSummary: string | null;
   tags: ProjectTagResponse[];
   estimate: EstimateResponse | null;
   createdAt: string;

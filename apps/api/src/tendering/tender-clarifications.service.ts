@@ -788,6 +788,21 @@ export class TenderClarificationsService {
   }
 
   async summarizeAnsweredForProject(projectId: string): Promise<string | null> {
+    const summary = await this.buildAnsweredSummary(projectId);
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: { clarificationSummary: summary },
+    });
+    return summary;
+  }
+
+  async previewAnsweredSummaryForProject(
+    projectId: string,
+  ): Promise<string | null> {
+    return this.buildAnsweredSummary(projectId);
+  }
+
+  private async buildAnsweredSummary(projectId: string): Promise<string | null> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -823,22 +838,15 @@ export class TenderClarificationsService {
         attachments: row.attachments.map((file) => file.originalName),
       }));
 
-    let summary: string | null = null;
-
-    if (items.length > 0) {
-      const aiSummary = await this.openAi.summarizeAnswers(project.title, items);
-      summary = aiSummary
-        ? aiSummary.summary
-        : this.buildFallbackClarificationSummary(items);
-      summary = this.appendAttachmentIndex(summary, items);
+    if (items.length === 0) {
+      return null;
     }
 
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: { clarificationSummary: summary },
-    });
-
-    return summary;
+    const aiSummary = await this.openAi.summarizeAnswers(project.title, items);
+    const summary = aiSummary
+      ? aiSummary.summary
+      : this.buildFallbackClarificationSummary(items);
+    return this.appendAttachmentIndex(summary, items);
   }
 
   private buildFallbackClarificationSummary(

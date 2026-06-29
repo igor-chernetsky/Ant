@@ -136,6 +136,8 @@ export class ProjectsService {
 
       clarificationSummary: project.clarificationSummary,
 
+      scopeSummary: project.scopeSummary,
+
       tags: this.mapTags(project),
 
       estimate,

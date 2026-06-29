@@ -12,7 +12,8 @@ import {
   buildCommercialProposalData,
   renderCommercialProposalHtml,
 } from './commercial-proposal.template';
-import { BidTermsV1 } from './tendering.types';
+import { BidTermsV1, BidContractTerms } from './tendering.types';
+import { normalizeContractTerms } from './commercial-proposal.template';
 
 const CLIENT_DOWNLOADABLE_BID_STATUSES: BidStatus[] = [
   BidStatus.submitted,
@@ -91,6 +92,26 @@ export class CommercialProposalService {
     }
 
     const terms = (bid.termsJson as BidTermsV1 | null) ?? null;
+    const project = bid.tender.project;
+    const projectTerms =
+      normalizeContractTerms(
+        project.tenderContractTermsJson as BidContractTerms | undefined,
+      ) ?? {};
+    const mergedTerms: BidTermsV1 | null = terms
+      ? {
+          ...terms,
+          scopeSummary: terms.scopeSummary ?? project.scopeSummary ?? undefined,
+          contractTerms: {
+            ...projectTerms,
+            ...terms.contractTerms,
+          },
+        }
+      : project.scopeSummary || Object.keys(projectTerms).length > 0
+        ? {
+            scopeSummary: project.scopeSummary ?? undefined,
+            contractTerms: projectTerms,
+          }
+        : null;
     const projectDocuments = await this.prisma.document.findMany({
       where: {
         projectId: bid.tender.projectId,
@@ -107,17 +128,17 @@ export class CommercialProposalService {
       clarificationSummary: bid.tender.project.clarificationSummary,
       bidAmount: Number(bid.amount),
       durationDays: bid.durationDays,
-      terms,
+      terms: mergedTerms,
       projectDocuments: projectDocuments.map((doc) => ({
         originalName: doc.originalName,
         category: doc.category,
       })),
       employerName:
-        terms?.contractTerms?.employerName?.trim() ||
-        bid.tender.project.client.displayName ||
+        mergedTerms?.contractTerms?.employerName?.trim() ||
+        project.client.displayName ||
         bid.tender.project.client.email ||
         'Employer',
-      employerEmail: bid.tender.project.client.email,
+      employerEmail: project.client.email,
       contractorCompanyName: bid.contractor.companyName ?? 'Contractor',
       submittedAt: bid.submittedAt?.toISOString() ?? null,
     });

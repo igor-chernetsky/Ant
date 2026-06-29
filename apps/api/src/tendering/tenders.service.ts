@@ -40,8 +40,10 @@ import {
   SubmitBidDto,
   UpdateBidContractTermsDto,
   UpdateTenderDeadlineDto,
+  TenderPublishPreview,
   TenderResponse,
   ContractorApplicationItem,
+  BidContractTerms,
 } from './tendering.types';
 
 type TenderWithRelations = Tender & {
@@ -226,6 +228,59 @@ export class TendersService {
     return this.mapTender(await this.loadTender(tender.id));
   }
 
+  async getPublishPreview(
+    clientId: string,
+    projectId: string,
+  ): Promise<TenderPublishPreview> {
+    const project = await this.assertProjectOwner(projectId, clientId);
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+    });
+
+    const defaultCostBreakdown =
+      tender && this.costBreakdown.parseStored(tender.defaultCostBreakdown).length > 0
+        ? this.costBreakdown.parseStored(tender.defaultCostBreakdown)
+        : await this.costBreakdown.generateForProject(projectId);
+
+    let clarificationSummary = project.clarificationSummary;
+    if (
+      project.clarificationMode === ClarificationMode.structured_qa &&
+      tender?.status === TenderStatus.draft
+    ) {
+      const preview =
+        await this.clarifications.previewAnsweredSummaryForProject(projectId);
+      if (preview) {
+        clarificationSummary = preview;
+      }
+    }
+
+    const scopeSummary =
+      project.scopeSummary?.trim() ||
+      project.description?.trim() ||
+      `Construction works for ${project.title}`;
+
+    const storedTerms = this.parseProjectContractTerms(
+      project.tenderContractTermsJson,
+    );
+
+    const contractTerms: BidContractTerms = normalizeContractTerms({
+      ...storedTerms,
+      siteAddress: storedTerms.siteAddress ?? project.district ?? undefined,
+      subjectOfContract:
+        storedTerms.subjectOfContract ?? scopeSummary ?? undefined,
+    }) ?? {
+      siteAddress: project.district ?? undefined,
+      subjectOfContract: scopeSummary,
+    };
+
+    return {
+      scopeSummary,
+      clarificationSummary,
+      defaultCostBreakdown,
+      contractTerms,
+    };
+  }
+
   async createTender(
     clientId: string,
     projectId: string,
@@ -254,23 +309,36 @@ export class TendersService {
           status: structuredClarification ? TenderStatus.draft : TenderStatus.open,
           opensAt: structuredClarification ? null : now,
           closesAt,
+          ...(dto?.defaultCostBreakdown?.length
+            ? {
+                defaultCostBreakdown:
+                  this.normalizePublishCostBreakdown(
+                    dto.defaultCostBreakdown,
+                  ) as unknown as Prisma.InputJsonValue,
+              }
+            : {}),
         },
         include: this.includeTenderRelations(),
       });
 
       await tx.project.update({
         where: { id: projectId },
-        data: { status: ProjectStatus.in_tender },
+        data: {
+          status: ProjectStatus.in_tender,
+          ...this.projectPublishPackageUpdate(dto),
+        },
       });
 
       return created;
     });
 
+    if (!dto?.defaultCostBreakdown?.length) {
+      await this.costBreakdown.generateAndStoreForTender(tender.id, projectId);
+    }
+
     this.notifications.dispatch(
       this.notifications.notifyMatchingContractorsForProject(projectId),
     );
-
-    await this.costBreakdown.generateAndStoreForTender(tender.id, projectId);
 
     return this.mapTender(await this.loadTender(tender.id));
   }
@@ -324,13 +392,24 @@ export class TendersService {
           opensAt: now,
           closesAt,
           deadlineNotifiedAt: null,
+          ...(dto?.defaultCostBreakdown?.length
+            ? {
+                defaultCostBreakdown:
+                  this.normalizePublishCostBreakdown(
+                    dto.defaultCostBreakdown,
+                  ) as unknown as Prisma.InputJsonValue,
+              }
+            : {}),
         },
         include: this.includeTenderRelations(),
       });
 
       await tx.project.update({
         where: { id: project.id },
-        data: { status: ProjectStatus.in_tender },
+        data: {
+          status: ProjectStatus.in_tender,
+          ...this.projectPublishPackageUpdate(dto),
+        },
       });
 
       return next;
@@ -695,6 +774,10 @@ export class TendersService {
       clarificationProgress,
       tenderCollectingClarifications,
       defaultCostBreakdown: this.defaultCostBreakdownForTender(tender),
+      projectScopeSummary: project.scopeSummary,
+      projectContractTerms: this.parseProjectContractTerms(
+        project.tenderContractTermsJson,
+      ),
       canStartClarification: Boolean(
         tenderCollectingClarifications && !myBid,
       ),
@@ -1234,5 +1317,50 @@ export class TendersService {
       ) ?? null;
 
     return { tender: this.mapTender(tender), myBid: myBid ? this.mapBid(myBid) : null };
+  }
+
+  private projectPublishPackageUpdate(
+    dto?: PublishTenderDto,
+  ): Prisma.ProjectUpdateInput {
+    if (!dto) {
+      return {};
+    }
+
+    const data: Prisma.ProjectUpdateInput = {};
+
+    if (dto.scopeSummary !== undefined) {
+      const scopeSummary = dto.scopeSummary.trim();
+      if (scopeSummary.length > MAX_BID_SCOPE_LENGTH) {
+        throw new BadRequestException(
+          `Scope must be at most ${MAX_BID_SCOPE_LENGTH} characters`,
+        );
+      }
+      data.scopeSummary = scopeSummary || null;
+    }
+
+    if (dto.clarificationSummary !== undefined) {
+      data.clarificationSummary = dto.clarificationSummary.trim() || null;
+    }
+
+    if (dto.contractTerms !== undefined) {
+      data.tenderContractTermsJson = normalizeContractTerms(
+        dto.contractTerms,
+      ) as unknown as Prisma.InputJsonValue;
+    }
+
+    return data;
+  }
+
+  private normalizePublishCostBreakdown(
+    items: DefaultCostBreakdownItem[],
+  ): DefaultCostBreakdownItem[] {
+    return this.costBreakdown.parseStored(items);
+  }
+
+  private parseProjectContractTerms(raw: unknown): BidContractTerms {
+    if (!raw || typeof raw !== 'object') {
+      return {};
+    }
+    return normalizeContractTerms(raw as BidContractTerms) ?? {};
   }
 }

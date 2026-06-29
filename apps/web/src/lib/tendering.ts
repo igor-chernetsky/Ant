@@ -163,6 +163,17 @@ function computeClarificationContractorStats(
 export interface PublishTenderOptions {
   applicationsCloseAt?: string;
   noApplicationsDeadline?: boolean;
+  scopeSummary?: string;
+  clarificationSummary?: string;
+  defaultCostBreakdown?: DefaultCostBreakdownItem[];
+  contractTerms?: BidContractTerms;
+}
+
+export interface TenderPublishPreview {
+  scopeSummary: string;
+  clarificationSummary: string | null;
+  defaultCostBreakdown: DefaultCostBreakdownItem[];
+  contractTerms: BidContractTerms;
 }
 
 export interface ContractorProjectParticipation {
@@ -181,6 +192,8 @@ export interface ContractorProjectParticipation {
   };
   tenderCollectingClarifications: boolean;
   defaultCostBreakdown: DefaultCostBreakdownItem[];
+  projectScopeSummary: string | null;
+  projectContractTerms: BidContractTerms;
   canStartClarification: boolean;
   canApply: boolean;
   canEnroll: boolean;
@@ -305,6 +318,18 @@ export async function startProjectTender(
     await parseError(response, 'Failed to start tender');
   }
   return response.json() as Promise<Tender>;
+}
+
+export async function fetchTenderPublishPreview(
+  projectId: string,
+): Promise<TenderPublishPreview> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/publish-preview`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load publish preview');
+  }
+  return response.json() as Promise<TenderPublishPreview>;
 }
 
 export async function updateTenderDeadline(
