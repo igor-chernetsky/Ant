@@ -47,6 +47,15 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
 
   const pendingCount = amendments.filter((a) => !a.processedAt).length;
 
+  if (!amendable) {
+    if (loading) {
+      return null;
+    }
+    if (amendments.length === 0) {
+      return null;
+    }
+  }
+
   const handleCreate = async (event: FormEvent) => {
     event.preventDefault();
     if (!amendable) return;

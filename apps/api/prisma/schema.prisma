@@ -152,6 +152,7 @@ enum NotificationEmailKind {
   contractor_bid_rejected
   contractor_project_awarded
   contractor_matching_project
+  contractor_tender_opened
 }
 
 model NotificationEmailLog {

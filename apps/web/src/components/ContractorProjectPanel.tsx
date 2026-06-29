@@ -8,7 +8,6 @@ import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { StructuredClarificationForm } from '@/components/StructuredClarificationForm';
 import { useSession } from '@/components/SessionProvider';
 import {
-  enrollContractorInTender,
   fetchBidCounterOffers,
   fetchContractorProjectParticipation,
   formatTenderStatus,
@@ -46,7 +45,9 @@ function hasActiveContractorParticipation(
   );
 }
 
-function formatParticipationStatus(participation: ContractorProjectParticipation): string {
+function formatParticipationStatus(
+  participation: ContractorProjectParticipation,
+): string {
   const bid = participation.myBid;
   if (!bid) return 'Not started';
   if (bid.status === 'clarifying') return 'Clarifying scope';
@@ -117,20 +118,6 @@ export function ContractorProjectPanel({
     }
   };
 
-  const handleEnroll = async () => {
-    if (!participation?.tenderId) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await enrollContractorInTender(participation.tenderId);
-      await loadParticipation();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to enroll');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const handleSubmitBid = async (
     input: Parameters<typeof submitContractorBid>[1],
   ) => {
@@ -192,14 +179,20 @@ export function ContractorProjectPanel({
 
   const myBid = participation.myBid;
   const inClarification = myBid?.status === 'clarifying';
-  const structuredQa =
-    participation.clarificationMode === 'structured_qa';
+  const structuredQa = participation.clarificationMode === 'structured_qa';
   const enrolled = myBid?.status === 'enrolled';
   const submitted = myBid?.status === 'submitted';
   const selected = myBid?.status === 'selected';
   const showClarificationSummary = Boolean(
-    clarificationSummary?.trim() && hasActiveContractorParticipation(participation),
+    clarificationSummary?.trim() &&
+      hasActiveContractorParticipation(participation),
   );
+  const canLeaveDiscussion =
+    participation.canWithdraw &&
+    myBid &&
+    (inClarification || enrolled) &&
+    !submitted &&
+    !selected;
 
   return (
     <section className="card contractor-project-card">
@@ -208,8 +201,8 @@ export function ContractorProjectPanel({
         {structuredQa
           ? participation.tenderCollectingClarifications
             ? 'Submit your clarification questions once. The client will open the tender for proposals when ready.'
-            : 'Submit your clarification questions once, then enroll and submit your commercial proposal when the tender is open.'
-          : 'Ask clarifying questions first, enroll as a contender, then submit your commercial proposal. The client may send counter-offers until a winner is chosen.'}
+            : 'Submit your clarification questions once. When the tender opens, you are enrolled automatically and can submit your commercial proposal.'
+          : 'Ask clarifying questions in the discussion. You are enrolled automatically and can submit your commercial proposal when ready.'}
       </p>
 
       <dl className="meta-grid contractor-participation-meta">
@@ -270,7 +263,7 @@ export function ContractorProjectPanel({
           <p className="muted participation-actions-hint">
             {structuredQa
               ? 'Start clarification to compose your one-time question list for the client.'
-              : 'Ask the client questions about scope, access, or timeline before enrolling.'}
+              : 'Start the discussion to ask the client about scope, access, or timeline.'}
           </p>
           <div className="participation-toolbar">
             <button
@@ -304,10 +297,10 @@ export function ContractorProjectPanel({
               {participation.hasSubmittedClarificationQuestions &&
                 !participation.tenderCollectingClarifications &&
                 participation.tenderStatus === 'open' &&
-                participation.canEnroll && (
+                enrolled && (
                   <p className="muted structured-clarification-waiting">
-                    The tender is open — you can enroll and submit your
-                    proposal.
+                    You are enrolled as contender #{myBid.contenderNumber} —
+                    submit your commercial proposal below.
                   </p>
                 )}
             </>
@@ -324,22 +317,9 @@ export function ContractorProjectPanel({
         </div>
       )}
 
-      {participation.canEnroll && (
+      {canLeaveDiscussion && (
         <div className="participation-actions">
-          <p className="muted participation-actions-hint">
-            {structuredQa
-              ? 'The tender is open for proposals. Enroll to receive your contender number.'
-              : 'Receive your contender number and proceed to submit a commercial proposal. You can leave the discussion at any time before enrolling.'}
-          </p>
           <div className="participation-toolbar">
-            <button
-              type="button"
-              className="primary"
-              disabled={busy}
-              onClick={() => void handleEnroll()}
-            >
-              {busy ? 'Enrolling…' : 'Apply for participation'}
-            </button>
             <button
               type="button"
               className="secondary"

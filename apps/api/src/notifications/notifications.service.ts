@@ -350,6 +350,45 @@ export class NotificationsService {
     });
   }
 
+  async notifyContractorsTenderOpened(params: {
+    contractorUserIds: string[];
+    projectId: string;
+    projectTitle: string;
+    district?: string | null;
+    clarificationSummary?: string | null;
+  }): Promise<void> {
+    const uniqueUserIds = [...new Set(params.contractorUserIds)];
+    if (uniqueUserIds.length === 0) return;
+
+    const locationPart = params.district
+      ? ` in ${escapeHtml(params.district)}`
+      : '';
+    const summaryBlock = params.clarificationSummary?.trim()
+      ? `<div style="margin-top:16px;padding:14px 16px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;">
+<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.04em;">Clarification summary</p>
+<p style="margin:0;font-size:14px;line-height:1.55;color:#475569;white-space:pre-wrap;">${escapeHtml(params.clarificationSummary.trim())}</p>
+</div>`
+      : '';
+    const summaryText = params.clarificationSummary?.trim()
+      ? `\n\nClarification summary:\n${params.clarificationSummary.trim()}`
+      : '';
+
+    for (const userId of uniqueUserIds) {
+      await this.sendToUser({
+        userId,
+        prefFlag: 'emailContractorUpdates',
+        kind: NotificationEmailKind.contractor_tender_opened,
+        projectId: params.projectId,
+        subject: `Tender open for bids — ${params.projectTitle}`,
+        title: 'Tender open for commercial proposals',
+        bodyHtml: `<p>The client opened <strong>${escapeHtml(params.projectTitle)}</strong>${locationPart} for commercial proposals. You are enrolled as a contender and can submit your proposal.</p>${summaryBlock}`,
+        ctaHref: this.projectUrl(params.projectId),
+        ctaLabel: 'View project',
+        textBody: `Tender open for bids: ${params.projectTitle}. You are enrolled as a contender.${summaryText}`,
+      });
+    }
+  }
+
   async notifyMatchingContractorsForProject(projectId: string): Promise<void> {
     if (!this.mail.isConfigured()) return;
 

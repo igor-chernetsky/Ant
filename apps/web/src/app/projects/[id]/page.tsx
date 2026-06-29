@@ -541,19 +541,6 @@ export default function ProjectDetailPage() {
               </section>
             )}
 
-            <section className="card">
-              <h2 className="section-title">Next steps</h2>
-              <p className="muted">
-                {intakeActive
-                  ? 'Upload plans and photos above, then complete the intake questions below.'
-                  : !isOwner
-                    ? 'Interested in this scope? Contractor matching and detailed quotes will be available in a future release.'
-                    : estimate
-                      ? 'Review the ballpark estimate above. Contractor matching and detailed quotes will follow in a future release.'
-                      : 'Submit intake to receive a ballpark cost estimate.'}
-              </p>
-            </section>
-
             {showDelete && (
               <section className="card danger-zone">
                 <h2 className="section-title">Delete project</h2>

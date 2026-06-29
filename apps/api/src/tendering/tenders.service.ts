@@ -336,11 +336,37 @@ export class TendersService {
       return next;
     });
 
+    const enrolledUserIds = await this.enrollDiscussionParticipants(
+      updated.id,
+      project.clarificationMode,
+    );
+
     const existingBreakdown = this.costBreakdown.parseStored(
       updated.defaultCostBreakdown,
     );
     if (existingBreakdown.length === 0) {
       await this.costBreakdown.generateAndStoreForTender(updated.id, projectId);
+    }
+
+    const projectAfterOpen = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        title: true,
+        district: true,
+        clarificationSummary: true,
+      },
+    });
+
+    if (projectAfterOpen) {
+      this.notifications.dispatch(
+        this.notifications.notifyContractorsTenderOpened({
+          contractorUserIds: enrolledUserIds,
+          projectId,
+          projectTitle: projectAfterOpen.title,
+          district: projectAfterOpen.district,
+          clarificationSummary: projectAfterOpen.clarificationSummary,
+        }),
+      );
     }
 
     this.notifications.dispatch(
@@ -723,7 +749,12 @@ export class TendersService {
         b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
     );
     if (existing) {
-      return this.mapBid(existing);
+      const enrolled = await this.maybeAutoEnrollOpenChatParticipant(
+        tender,
+        existing,
+        project?.clarificationMode,
+      );
+      return this.mapBid(enrolled);
     }
 
     const bid = await this.prisma.bid.create({
@@ -735,7 +766,126 @@ export class TendersService {
       include: { contractor: true },
     });
 
-    return this.mapBid(bid);
+    const enrolled = await this.maybeAutoEnrollOpenChatParticipant(
+      tender,
+      bid,
+      project?.clarificationMode,
+    );
+    return this.mapBid(enrolled);
+  }
+
+  private async maybeAutoEnrollOpenChatParticipant(
+    tender: Tender & { bids: Bid[] },
+    bid: Bid & { contractor: ContractorProfile },
+    clarificationMode?: ClarificationMode | null,
+  ): Promise<Bid & { contractor: ContractorProfile }> {
+    if (
+      clarificationMode === ClarificationMode.structured_qa ||
+      tender.status !== TenderStatus.open ||
+      bid.status !== BidStatus.clarifying
+    ) {
+      return bid;
+    }
+
+    return this.promoteBidToEnrolled(tender.id, bid.id);
+  }
+
+  private async enrollDiscussionParticipants(
+    tenderId: string,
+    clarificationMode: ClarificationMode,
+  ): Promise<string[]> {
+    const tender = await this.prisma.tender.findUnique({
+      where: { id: tenderId },
+      include: {
+        bids: {
+          where: { status: BidStatus.clarifying },
+          include: { contractor: true },
+        },
+      },
+    });
+    if (!tender) {
+      return [];
+    }
+
+    const enrolledUserIds: string[] = [];
+
+    for (const bid of tender.bids) {
+      if (clarificationMode === ClarificationMode.structured_qa) {
+        const submitted = await this.clarifications.hasSubmittedQuestions(
+          bid.id,
+        );
+        if (!submitted) {
+          continue;
+        }
+      }
+
+      const updated = await this.promoteBidToEnrolled(tenderId, bid.id);
+      enrolledUserIds.push(updated.contractor.userId);
+    }
+
+    return enrolledUserIds;
+  }
+
+  private async promoteBidToEnrolled(
+    tenderId: string,
+    bidId: string,
+  ): Promise<Bid & { contractor: ContractorProfile }> {
+    const current = await this.prisma.bid.findUnique({
+      where: { id: bidId },
+      include: { contractor: true },
+    });
+    if (!current) {
+      throw new NotFoundException('Bid not found');
+    }
+    if (current.status === BidStatus.enrolled) {
+      return current;
+    }
+    if (current.status !== BidStatus.clarifying) {
+      throw new BadRequestException('Bid cannot be enrolled in its current status');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const currentTender = await tx.tender.findUnique({
+        where: { id: tenderId },
+      });
+      if (!currentTender) {
+        throw new NotFoundException('Tender not found');
+      }
+
+      const contenderNumber = currentTender.nextContenderNumber;
+      await tx.tender.update({
+        where: { id: tenderId },
+        data: { nextContenderNumber: contenderNumber + 1 },
+      });
+
+      return tx.bid.update({
+        where: { id: bidId },
+        data: {
+          status: BidStatus.enrolled,
+          contenderNumber,
+          enrolledAt: new Date(),
+        },
+        include: { contractor: true },
+      });
+    });
+
+    const tenderRow = await this.prisma.tender.findUnique({
+      where: { id: tenderId },
+      include: { project: { select: { id: true, title: true, clientId: true } } },
+    });
+    if (tenderRow && updated.contenderNumber != null) {
+      this.notifications.dispatch(
+        this.notifications.notifyClientBidEnrolled({
+          clientId: tenderRow.project.clientId,
+          projectId: tenderRow.project.id,
+          projectTitle: tenderRow.project.title,
+          companyName: updated.contractor.companyName ?? 'Contractor',
+          contenderNumber: updated.contenderNumber,
+        }),
+      );
+    }
+
+    return updated;
   }
 
   async enrollInTender(userId: string, tenderId: string): Promise<BidResponse> {
@@ -770,47 +920,7 @@ export class TendersService {
       }
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const currentTender = await tx.tender.findUnique({
-        where: { id: tenderId },
-      });
-      if (!currentTender) {
-        throw new NotFoundException('Tender not found');
-      }
-
-      const contenderNumber = currentTender.nextContenderNumber;
-      await tx.tender.update({
-        where: { id: tenderId },
-        data: { nextContenderNumber: contenderNumber + 1 },
-      });
-
-      return tx.bid.update({
-        where: { id: bid.id },
-        data: {
-          status: BidStatus.enrolled,
-          contenderNumber,
-          enrolledAt: new Date(),
-        },
-        include: { contractor: true },
-      });
-    });
-
-    const tenderRow = await this.prisma.tender.findUnique({
-      where: { id: tenderId },
-      include: { project: { select: { id: true, title: true, clientId: true } } },
-    });
-    if (tenderRow && updated.contenderNumber != null) {
-      this.notifications.dispatch(
-        this.notifications.notifyClientBidEnrolled({
-          clientId: tenderRow.project.clientId,
-          projectId: tenderRow.project.id,
-          projectTitle: tenderRow.project.title,
-          companyName: updated.contractor.companyName ?? 'Contractor',
-          contenderNumber: updated.contenderNumber,
-        }),
-      );
-    }
-
+    const updated = await this.promoteBidToEnrolled(tenderId, bid.id);
     return this.mapBid(updated);
   }
 
