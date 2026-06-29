@@ -214,7 +214,8 @@ export function BidProposalForm({
               step="1"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="850 000"
+              placeholder="e.g. 850000"
+              inputMode="numeric"
             />
           </label>
           <label className="bid-proposal-field bid-proposal-field--duration">
@@ -224,7 +225,8 @@ export function BidProposalForm({
               min="1"
               value={durationDays}
               onChange={(e) => handleDurationChange(e.target.value)}
-              placeholder="45"
+              placeholder="e.g. 45"
+              inputMode="numeric"
             />
           </label>
         </div>

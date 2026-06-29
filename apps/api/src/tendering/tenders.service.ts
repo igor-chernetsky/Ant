@@ -757,6 +757,20 @@ export class TendersService {
       return this.mapBid(enrolled);
     }
 
+    const withdrawnBid = tender.bids.find(
+      (b) =>
+        b.contractorId === profile.id && b.status === BidStatus.withdrawn,
+    );
+    if (withdrawnBid) {
+      const reopened = await this.reopenWithdrawnBid(withdrawnBid.id);
+      const enrolled = await this.maybeAutoEnrollOpenChatParticipant(
+        tender,
+        reopened,
+        project?.clarificationMode,
+      );
+      return this.mapBid(enrolled);
+    }
+
     const bid = await this.prisma.bid.create({
       data: {
         tenderId,
@@ -772,6 +786,24 @@ export class TendersService {
       project?.clarificationMode,
     );
     return this.mapBid(enrolled);
+  }
+
+  private async reopenWithdrawnBid(
+    bidId: string,
+  ): Promise<Bid & { contractor: ContractorProfile }> {
+    return this.prisma.bid.update({
+      where: { id: bidId },
+      data: {
+        status: BidStatus.clarifying,
+        contenderNumber: null,
+        enrolledAt: null,
+        submittedAt: null,
+        amount: null,
+        durationDays: null,
+        termsJson: Prisma.DbNull,
+      },
+      include: { contractor: true },
+    });
   }
 
   private async maybeAutoEnrollOpenChatParticipant(
