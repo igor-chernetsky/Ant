@@ -1,6 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import {
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import { formatFileSize } from '@/lib/documents';
 import {
   deleteClarificationAttachment,
@@ -10,24 +15,51 @@ import {
 } from '@/lib/clarification-attachments';
 import { ensureSessionFresh } from '@/lib/session';
 
+export interface ClarificationAnswerAttachmentsHandle {
+  openFilePicker: () => void;
+}
+
 interface ClarificationAnswerAttachmentsProps {
   projectId: string;
   questionId: string;
   attachments: ClarificationAttachment[];
   onChange: (attachments: ClarificationAttachment[]) => void;
   disabled?: boolean;
+  hideAddButton?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }
 
-export function ClarificationAnswerAttachments({
-  projectId,
-  questionId,
-  attachments,
-  onChange,
-  disabled = false,
-}: ClarificationAnswerAttachmentsProps) {
+export const ClarificationAnswerAttachments = forwardRef<
+  ClarificationAnswerAttachmentsHandle,
+  ClarificationAnswerAttachmentsProps
+>(function ClarificationAnswerAttachments(
+  {
+    projectId,
+    questionId,
+    attachments,
+    onChange,
+    disabled = false,
+    hideAddButton = false,
+    onBusyChange,
+  },
+  ref,
+) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const setBusyState = (next: boolean) => {
+    setBusy(next);
+    onBusyChange?.(next);
+  };
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      openFilePicker: () => inputRef.current?.click(),
+    }),
+    [],
+  );
 
   const uploaded = attachments.filter((item) => item.status === 'uploaded');
 
@@ -36,7 +68,7 @@ export function ClarificationAnswerAttachments({
       return;
     }
 
-    setBusy(true);
+    setBusyState(true);
     setError(null);
     try {
       await ensureSessionFresh();
@@ -53,7 +85,7 @@ export function ClarificationAnswerAttachments({
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
-      setBusy(false);
+      setBusyState(false);
       if (inputRef.current) {
         inputRef.current.value = '';
       }
@@ -78,7 +110,7 @@ export function ClarificationAnswerAttachments({
     if (disabled || busy) {
       return;
     }
-    setBusy(true);
+    setBusyState(true);
     setError(null);
     try {
       await deleteClarificationAttachment(projectId, questionId, attachmentId);
@@ -86,34 +118,51 @@ export function ClarificationAnswerAttachments({
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to remove file');
     } finally {
-      setBusy(false);
+      setBusyState(false);
     }
   };
 
+  if (hideAddButton && uploaded.length === 0 && !error) {
+    return (
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+        className="sr-only"
+        disabled={disabled || busy}
+        onChange={(e) => void handleFiles(e.target.files)}
+      />
+    );
+  }
+
   return (
     <div className="clarification-answer-attachments">
-      <div className="clarification-answer-attachments-header">
-        <span className="client-clarification-answer-label">
-          Attachments (optional)
-        </span>
-        <button
-          type="button"
-          className="secondary clarification-answer-attachments-add"
-          disabled={disabled || busy}
-          onClick={() => inputRef.current?.click()}
-        >
-          {busy ? 'Uploading…' : 'Add files'}
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          multiple
-          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
-          className="sr-only"
-          disabled={disabled || busy}
-          onChange={(e) => void handleFiles(e.target.files)}
-        />
-      </div>
+      {!hideAddButton && (
+        <div className="clarification-answer-attachments-header">
+          <span className="client-clarification-answer-label">
+            Attachments (optional)
+          </span>
+          <button
+            type="button"
+            className="secondary clarification-answer-attachments-add"
+            disabled={disabled || busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            {busy ? 'Uploading…' : 'Add files'}
+          </button>
+        </div>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+        className="sr-only"
+        disabled={disabled || busy}
+        onChange={(e) => void handleFiles(e.target.files)}
+      />
 
       {uploaded.length > 0 ? (
         <ul className="clarification-answer-attachments-list">
@@ -144,12 +193,14 @@ export function ClarificationAnswerAttachments({
           ))}
         </ul>
       ) : (
-        <p className="muted clarification-answer-attachments-empty">
-          Photos, PDFs, or documents linked to this answer.
-        </p>
+        !hideAddButton && (
+          <p className="muted clarification-answer-attachments-empty">
+            Photos, PDFs, or documents linked to this answer.
+          </p>
+        )
       )}
 
       {error && <p className="form-error">{error}</p>}
     </div>
   );
-}
+});

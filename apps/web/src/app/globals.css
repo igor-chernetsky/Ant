@@ -3132,6 +3132,32 @@ select:disabled {
   font-size: 0.9rem;
 }
 
+.client-clarification-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin-bottom: 0.15rem;
+}
+
+.client-clarification-nav-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.client-clarification-nav-status {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  flex: 1;
+  min-width: 10rem;
+}
+
+.client-clarification-nav-answered {
+  font-weight: 400;
+}
+
 .client-clarification-list {
   list-style: none;
   margin: 0;
@@ -3214,7 +3240,8 @@ select:disabled {
 }
 
 .clarification-answer-attachments {
-  margin-top: 0.65rem;
+  margin-top: 0.35rem;
+  margin-bottom: 0.15rem;
 }
 
 .clarification-answer-attachments-header {
