@@ -183,15 +183,6 @@ export function ClientClarificationQuestionsPanel({
                 : ''
             }`}
           >
-            {totalContractorCount > 0 && (
-              <p className="client-clarification-contractor-stats">
-                Fully answered for{' '}
-                <strong>{fullyAnsweredContractorCount}</strong> of{' '}
-                <strong>{totalContractorCount}</strong>{' '}
-                {totalContractorCount === 1 ? 'contractor' : 'contractors'}
-              </p>
-            )}
-
             <div className="client-clarification-nav">
               <button
                 type="button"
@@ -205,6 +196,17 @@ export function ClientClarificationQuestionsPanel({
                 Question {activeIndex + 1} of {total}
                 <span className="client-clarification-nav-answered muted">
                   · {answeredCount} answered
+                  {totalContractorCount > 0 && (
+                    <>
+                      {' '}
+                      · Fully answered for{' '}
+                      <strong>{fullyAnsweredContractorCount}</strong> of{' '}
+                      <strong>{totalContractorCount}</strong>{' '}
+                      {totalContractorCount === 1
+                        ? 'contractor'
+                        : 'contractors'}
+                    </>
+                  )}
                 </span>
               </span>
               <button

@@ -3158,6 +3158,11 @@ select:disabled {
   font-weight: 400;
 }
 
+.client-clarification-nav-answered strong {
+  font-weight: 600;
+  color: inherit;
+}
+
 .client-clarification-list {
   list-style: none;
   margin: 0;
@@ -3207,12 +3212,6 @@ select:disabled {
 .client-clarification-asked-by {
   margin: 0;
   font-size: 0.85rem;
-}
-
-.client-clarification-contractor-stats {
-  margin: 0 0 0.65rem;
-  font-size: 0.9rem;
-  line-height: 1.45;
 }
 
 .client-clarification-index {
