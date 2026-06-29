@@ -14,7 +14,7 @@ import {
 } from './commercial-proposal.template';
 import { BidTermsV1 } from './tendering.types';
 
-const DOWNLOADABLE_BID_STATUSES: BidStatus[] = [
+const CLIENT_DOWNLOADABLE_BID_STATUSES: BidStatus[] = [
   BidStatus.submitted,
   BidStatus.selected,
   BidStatus.rejected,
@@ -63,12 +63,6 @@ export class CommercialProposalService {
       throw new NotFoundException('Bid not found for this project');
     }
 
-    if (!DOWNLOADABLE_BID_STATUSES.includes(bid.status)) {
-      throw new BadRequestException(
-        'Commercial proposal document is available after the bid is submitted',
-      );
-    }
-
     if (bid.amount == null) {
       throw new BadRequestException('Bid has no contract amount');
     }
@@ -79,6 +73,21 @@ export class CommercialProposalService {
 
     if (!isClient && !isContractor) {
       throw new ForbiddenException('Access denied');
+    }
+
+    if (isClient) {
+      if (!CLIENT_DOWNLOADABLE_BID_STATUSES.includes(bid.status)) {
+        throw new BadRequestException(
+          'Commercial proposal document is available after the bid is submitted',
+        );
+      }
+    } else if (
+      bid.status !== BidStatus.selected ||
+      bid.tender.awardedBidId !== bidId
+    ) {
+      throw new ForbiddenException(
+        'Commercial proposal download is available only to the selected contractor',
+      );
     }
 
     const terms = (bid.termsJson as BidTermsV1 | null) ?? null;

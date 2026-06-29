@@ -10,7 +10,6 @@ import {
   pickContractorContractTerms,
   type ContractTermsAudience,
 } from '@/components/BidContractTermsFields';
-import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 
 export interface BidProposalInput {
   amount: number;
@@ -28,7 +27,6 @@ interface BidProposalFormProps {
   projectTitle?: string;
   projectDistrict?: string | null;
   projectDescription?: string | null;
-  downloadBidId?: string;
   defaultCostBreakdown?: DefaultCostBreakdownItem[];
   /** Who fills commercial proposal fields — `none` hides contract terms. */
   contractTermsAudience?: ContractTermsAudience | 'none';
@@ -77,7 +75,6 @@ export function BidProposalForm({
   projectTitle,
   projectDistrict,
   projectDescription,
-  downloadBidId,
   defaultCostBreakdown = [],
   contractTermsAudience = 'contractor',
   onSubmit,
@@ -199,10 +196,6 @@ export function BidProposalForm({
     (sum, item) => sum + (Number(item.amount) || 0),
     0,
   );
-
-  const proposalDownloadable =
-    existingBid?.status === 'submitted' ||
-    existingBid?.status === 'selected';
 
   return (
     <div className="bid-proposal-form bid-proposal-form--compact">
@@ -392,16 +385,6 @@ export function BidProposalForm({
                 )}
             </p>
           )}
-        </div>
-      )}
-
-      {proposalDownloadable && downloadBidId && (
-        <div className="bid-contract-terms-actions">
-          <CommercialProposalDownload bidId={downloadBidId} />
-          <p className="muted bid-contract-terms-download-hint">
-            Document reflects the last saved proposal. Submit updates to refresh
-            the download.
-          </p>
         </div>
       )}
 

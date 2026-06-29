@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
+import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { StructuredClarificationForm } from '@/components/StructuredClarificationForm';
@@ -176,6 +177,7 @@ export function ContractorProjectPanel({
     participation.clarificationMode === 'structured_qa';
   const enrolled = myBid?.status === 'enrolled';
   const submitted = myBid?.status === 'submitted';
+  const selected = myBid?.status === 'selected';
 
   return (
     <section className="card contractor-project-card">
@@ -349,6 +351,17 @@ export function ContractorProjectPanel({
         </div>
       )}
 
+      {selected && myBid?.id && (
+        <div className="tender-subsection">
+          <h3 className="tender-subsection-title">Commercial proposal</h3>
+          <p className="muted participation-actions-hint">
+            You were selected for this project. Download your commercial
+            proposal document.
+          </p>
+          <CommercialProposalDownload bidId={myBid.id} />
+        </div>
+      )}
+
       {participation.canSubmitProposal && participation.tenderId && (
         <div className="tender-subsection tender-subsection--proposal">
           <h3 className="tender-subsection-title">
@@ -362,7 +375,6 @@ export function ContractorProjectPanel({
               projectDistrict={projectDistrict}
               projectDescription={projectDescription}
               defaultCostBreakdown={participation.defaultCostBreakdown ?? []}
-              downloadBidId={submitted ? myBid?.id : undefined}
               onSubmit={handleSubmitBid}
               onWithdraw={participation.canWithdraw ? handleWithdraw : undefined}
             />
