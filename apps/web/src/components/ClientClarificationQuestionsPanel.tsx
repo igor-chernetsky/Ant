@@ -11,6 +11,33 @@ import {
   type ClarificationQuestion,
 } from '@/lib/tendering';
 
+function computeContractorStats(questions: ClarificationQuestion[]) {
+  const bidIds = new Set<string>();
+  for (const question of questions) {
+    for (const bidId of question.sourceBidIds) {
+      bidIds.add(bidId);
+    }
+  }
+
+  let fullyAnsweredContractorCount = 0;
+  for (const bidId of bidIds) {
+    const relevant = questions.filter((question) =>
+      question.sourceBidIds.includes(bidId),
+    );
+    if (
+      relevant.length > 0 &&
+      relevant.every((question) => question.answer?.trim())
+    ) {
+      fullyAnsweredContractorCount += 1;
+    }
+  }
+
+  return {
+    fullyAnsweredContractorCount,
+    totalContractorCount: bidIds.size,
+  };
+}
+
 interface ClientClarificationQuestionsPanelProps {
   projectId: string;
   clarificationSummary?: string | null;
@@ -28,6 +55,9 @@ export function ClientClarificationQuestionsPanel({
   onUpdated,
 }: ClientClarificationQuestionsPanelProps) {
   const [questions, setQuestions] = useState<ClarificationQuestion[]>([]);
+  const [fullyAnsweredContractorCount, setFullyAnsweredContractorCount] =
+    useState(0);
+  const [totalContractorCount, setTotalContractorCount] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -41,11 +71,15 @@ export function ClientClarificationQuestionsPanel({
     setError(null);
     try {
       const data = await fetchClarificationQuestions(projectId);
-      setQuestions(data);
+      setQuestions(data.questions);
+      setFullyAnsweredContractorCount(data.fullyAnsweredContractorCount);
+      setTotalContractorCount(data.totalContractorCount);
       setDrafts(
-        Object.fromEntries(data.map((q) => [q.id, q.answer ?? ''])),
+        Object.fromEntries(
+          data.questions.map((q) => [q.id, q.answer ?? '']),
+        ),
       );
-      setActiveIndex(firstUnansweredIndex(data));
+      setActiveIndex(firstUnansweredIndex(data.questions));
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : 'Failed to load questions',
@@ -90,6 +124,9 @@ export function ClientClarificationQuestionsPanel({
         q.id === questionId ? updated : q,
       );
       setQuestions(nextQuestions);
+      const stats = computeContractorStats(nextQuestions);
+      setFullyAnsweredContractorCount(stats.fullyAnsweredContractorCount);
+      setTotalContractorCount(stats.totalContractorCount);
 
       const savedIndex = nextQuestions.findIndex((q) => q.id === questionId);
       const nextUnanswered = nextQuestions.findIndex(
@@ -146,6 +183,15 @@ export function ClientClarificationQuestionsPanel({
                 : ''
             }`}
           >
+            {totalContractorCount > 0 && (
+              <p className="client-clarification-contractor-stats">
+                Fully answered for{' '}
+                <strong>{fullyAnsweredContractorCount}</strong> of{' '}
+                <strong>{totalContractorCount}</strong>{' '}
+                {totalContractorCount === 1 ? 'contractor' : 'contractors'}
+              </p>
+            )}
+
             <div className="client-clarification-nav">
               <button
                 type="button"
@@ -175,7 +221,18 @@ export function ClientClarificationQuestionsPanel({
               <span className="client-clarification-index">
                 {activeIndex + 1}.
               </span>
-              <p>{question.questionText}</p>
+              <div className="client-clarification-question-body">
+                <p>{question.questionText}</p>
+                <p className="muted client-clarification-asked-by">
+                  Asked by{' '}
+                  <strong>
+                    {question.askedByCount ?? question.sourceBidIds.length}
+                  </strong>{' '}
+                  {(question.askedByCount ?? question.sourceBidIds.length) === 1
+                    ? 'contractor'
+                    : 'contractors'}
+                </p>
+              </div>
             </div>
 
             <div className="client-clarification-answer-field">

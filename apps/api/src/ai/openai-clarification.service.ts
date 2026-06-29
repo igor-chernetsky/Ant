@@ -28,11 +28,11 @@ export class OpenAiClarificationService {
       return null;
     }
 
-    const system = `You deduplicate contractor clarification questions for a construction tender.
+    const system = `You deduplicate and normalize contractor clarification questions for a construction tender.
 Return JSON only with keys: mergeIntoExisting, novelQuestions.
 
-mergeIntoExisting: array of { existingIndex (0-based into existing list), duplicateTexts (subset of NEW questions that mean the same) }
-novelQuestions: NEW questions that are not duplicates of any existing or each other
+mergeIntoExisting: array of { existingIndex (0-based into existing list), duplicateTexts (subset of NEW questions that mean the same), canonicalText (optional — one clear normalized question line combining the intent; use when wording should be improved) }
+novelQuestions: NEW questions that are not duplicates of any existing or each other — each as one clear normalized question line
 
 Rules — be CONSERVATIVE:
 - Merge only when two questions clearly ask for the same information (same topic AND same intent).
@@ -40,7 +40,8 @@ Rules — be CONSERVATIVE:
 - Do NOT merge questions that differ in specificity (general vs detailed).
 - When unsure, put the question in novelQuestions.
 - Each new question must appear exactly once: either in one duplicateTexts array or in novelQuestions.
-- Write in English.`;
+- Normalize wording: single sentence, proper punctuation, no duplicate phrasing, professional English.
+- canonicalText must not change the meaning of the existing question.`;
 
     const user = JSON.stringify({
       existingQuestions: input.existingQuestions,
@@ -83,6 +84,7 @@ Rules — be CONSERVATIVE:
         mergeIntoExisting?: Array<{
           existingIndex?: number;
           duplicateTexts?: string[];
+          canonicalText?: string;
         }>;
         novelQuestions?: string[];
       };
@@ -98,13 +100,17 @@ Rules — be CONSERVATIVE:
           )
           .map((item) => ({
             existingIndex: item.existingIndex as number,
-            duplicateTexts: (item.duplicateTexts ?? []).filter(
-              (text): text is string => typeof text === 'string' && text.trim().length > 0,
-            ),
+            duplicateTexts: (item.duplicateTexts ?? [])
+              .map((text) => (typeof text === 'string' ? text.trim() : ''))
+              .filter((text) => text.length > 0),
+            canonicalText:
+              typeof item.canonicalText === 'string'
+                ? item.canonicalText.trim()
+                : undefined,
           })),
-        novelQuestions: (parsed.novelQuestions ?? []).filter(
-          (text): text is string => typeof text === 'string' && text.trim().length > 0,
-        ),
+        novelQuestions: (parsed.novelQuestions ?? [])
+          .map((text) => (typeof text === 'string' ? text.trim() : ''))
+          .filter((text) => text.length > 0),
         provider: 'openai',
       };
     } catch (err) {

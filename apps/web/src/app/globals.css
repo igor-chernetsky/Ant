@@ -3197,6 +3197,24 @@ select:disabled {
   min-width: 0;
 }
 
+.client-clarification-question-body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.client-clarification-asked-by {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.client-clarification-contractor-stats {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .client-clarification-index {
   flex-shrink: 0;
   color: var(--muted, #6b7280);

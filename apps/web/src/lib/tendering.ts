@@ -116,9 +116,48 @@ export interface ClarificationQuestion {
   answer: string | null;
   answeredAt: string | null;
   sourceBidIds: string[];
+  askedByCount: number;
   attachments: ClarificationAttachment[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ClarificationQuestionsList {
+  questions: ClarificationQuestion[];
+  fullyAnsweredContractorCount: number;
+  totalContractorCount: number;
+}
+
+function computeClarificationContractorStats(
+  questions: ClarificationQuestion[],
+): Pick<
+  ClarificationQuestionsList,
+  'fullyAnsweredContractorCount' | 'totalContractorCount'
+> {
+  const bidIds = new Set<string>();
+  for (const question of questions) {
+    for (const bidId of question.sourceBidIds) {
+      bidIds.add(bidId);
+    }
+  }
+
+  let fullyAnsweredContractorCount = 0;
+  for (const bidId of bidIds) {
+    const relevant = questions.filter((question) =>
+      question.sourceBidIds.includes(bidId),
+    );
+    if (
+      relevant.length > 0 &&
+      relevant.every((question) => question.answer?.trim())
+    ) {
+      fullyAnsweredContractorCount += 1;
+    }
+  }
+
+  return {
+    fullyAnsweredContractorCount,
+    totalContractorCount: bidIds.size,
+  };
 }
 
 export interface PublishTenderOptions {
@@ -297,14 +336,29 @@ export async function revertProjectTender(projectId: string): Promise<void> {
 
 export async function fetchClarificationQuestions(
   projectId: string,
-): Promise<ClarificationQuestion[]> {
+): Promise<ClarificationQuestionsList> {
   const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/tender/clarification-questions`,
   );
   if (!response.ok) {
     await parseError(response, 'Failed to load clarification questions');
   }
-  return response.json() as Promise<ClarificationQuestion[]>;
+  const data = (await response.json()) as
+    | ClarificationQuestionsList
+    | ClarificationQuestion[];
+
+  if (Array.isArray(data)) {
+    return {
+      questions: data,
+      ...computeClarificationContractorStats(data),
+    };
+  }
+
+  return {
+    questions: data.questions ?? [],
+    fullyAnsweredContractorCount: data.fullyAnsweredContractorCount ?? 0,
+    totalContractorCount: data.totalContractorCount ?? 0,
+  };
 }
 
 export async function answerClarificationQuestion(

@@ -212,9 +212,16 @@ export interface ClarificationQuestionResponse {
   answer: string | null;
   answeredAt: string | null;
   sourceBidIds: string[];
+  askedByCount: number;
   attachments: ClarificationAttachmentResponse[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ClarificationQuestionsForClientResponse {
+  questions: ClarificationQuestionResponse[];
+  fullyAnsweredContractorCount: number;
+  totalContractorCount: number;
 }
 
 export interface SubmitBidClarificationQuestionsDto {

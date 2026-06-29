@@ -29,6 +29,7 @@ import {
 import {
   AnswerClarificationQuestionDto,
   ClarificationQuestionResponse,
+  ClarificationQuestionsForClientResponse,
   SubmitBidClarificationQuestionsDto,
 } from './tendering.types';
 
@@ -42,6 +43,61 @@ function normalizeQuestionText(text: string): string {
 
 function normalizeQuestionKey(text: string): string {
   return normalizeQuestionText(text).toLowerCase();
+}
+
+function isQuestionAnswered(answer: string | null | undefined): boolean {
+  return Boolean(answer?.trim());
+}
+
+type ClarificationQuestionRow = {
+  id: string;
+  questionText: string;
+  sortOrder: number;
+  answer: string | null;
+  answeredAt: Date | null;
+  sourceBidIds: string[];
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+function sortQuestionsByAskCount<T extends ClarificationQuestionRow>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => {
+    const countDiff = b.sourceBidIds.length - a.sourceBidIds.length;
+    if (countDiff !== 0) {
+      return countDiff;
+    }
+    if (a.sortOrder !== b.sortOrder) {
+      return a.sortOrder - b.sortOrder;
+    }
+    return a.createdAt.getTime() - b.createdAt.getTime();
+  });
+}
+
+function computeContractorAnswerStats(
+  rows: Array<{ sourceBidIds: string[]; answer: string | null }>,
+): { fullyAnsweredContractorCount: number; totalContractorCount: number } {
+  const bidIds = new Set<string>();
+  for (const row of rows) {
+    for (const bidId of row.sourceBidIds) {
+      bidIds.add(bidId);
+    }
+  }
+
+  let fullyAnsweredContractorCount = 0;
+  for (const bidId of bidIds) {
+    const relevant = rows.filter((row) => row.sourceBidIds.includes(bidId));
+    if (
+      relevant.length > 0 &&
+      relevant.every((row) => isQuestionAnswered(row.answer))
+    ) {
+      fullyAnsweredContractorCount += 1;
+    }
+  }
+
+  return {
+    fullyAnsweredContractorCount,
+    totalContractorCount: bidIds.size,
+  };
 }
 
 @Injectable()
@@ -99,6 +155,7 @@ export class TenderClarificationsService {
       answer: row.answer,
       answeredAt: row.answeredAt?.toISOString() ?? null,
       sourceBidIds: row.sourceBidIds,
+      askedByCount: row.sourceBidIds.length,
       attachments: (row.attachments ?? [])
         .filter((item) => item.status !== DocumentStatus.deleted)
         .map((item) => this.mapAttachment(item)),
@@ -163,18 +220,21 @@ export class TenderClarificationsService {
   async listForClient(
     clientId: string,
     projectId: string,
-  ): Promise<ClarificationQuestionResponse[]> {
+  ): Promise<ClarificationQuestionsForClientResponse> {
     await this.assertProjectOwner(projectId, clientId);
     const tender = await this.prisma.tender.findUnique({
       where: { projectId },
     });
     if (!tender) {
-      return [];
+      return {
+        questions: [],
+        fullyAnsweredContractorCount: 0,
+        totalContractorCount: 0,
+      };
     }
 
     const rows = await this.prisma.tenderClarificationQuestion.findMany({
       where: { tenderId: tender.id },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       include: {
         attachments: {
           where: { status: { not: DocumentStatus.deleted } },
@@ -183,7 +243,13 @@ export class TenderClarificationsService {
       },
     });
 
-    return rows.map((row) => this.mapQuestion(row));
+    const sorted = sortQuestionsByAskCount(rows);
+    const stats = computeContractorAnswerStats(sorted);
+
+    return {
+      questions: sorted.map((row) => this.mapQuestion(row)),
+      ...stats,
+    };
   }
 
   async getSubmissionForContractor(
@@ -558,6 +624,53 @@ export class TenderClarificationsService {
     return normalized;
   }
 
+  private async reorderQuestionsByAskCount(tenderId: string): Promise<void> {
+    const rows = await this.prisma.tenderClarificationQuestion.findMany({
+      where: { tenderId },
+    });
+    const sorted = sortQuestionsByAskCount(rows);
+    await Promise.all(
+      sorted.map((row, index) =>
+        row.sortOrder === index
+          ? Promise.resolve()
+          : this.prisma.tenderClarificationQuestion.update({
+              where: { id: row.id },
+              data: { sortOrder: index },
+            }),
+      ),
+    );
+  }
+
+  private collectNovelQuestions(
+    candidates: string[],
+    existingKeys: Set<string>,
+    mergedKeys: Set<string>,
+  ): string[] {
+    const toInsert: string[] = [];
+    const seen = new Set<string>();
+
+    for (const raw of candidates) {
+      const text = normalizeQuestionText(raw);
+      if (!text || text.length > MAX_CLARIFICATION_QUESTION_LENGTH) {
+        continue;
+      }
+      const key = normalizeQuestionKey(text);
+      if (
+        existingKeys.has(key) ||
+        mergedKeys.has(key) ||
+        seen.has(key)
+      ) {
+        continue;
+      }
+      seen.add(key);
+      mergedKeys.add(key);
+      existingKeys.add(key);
+      toInsert.push(text);
+    }
+
+    return toInsert;
+  }
+
   private async mergeQuestionsIntoTender(
     tenderId: string,
     bidId: string,
@@ -591,6 +704,7 @@ export class TenderClarificationsService {
     }
 
     if (exactNovel.length === 0) {
+      await this.reorderQuestionsByAskCount(tenderId);
       return;
     }
 
@@ -615,39 +729,62 @@ export class TenderClarificationsService {
         if (!nextBidIds.includes(bidId)) {
           nextBidIds.push(bidId);
         }
+
+        const updateData: {
+          sourceBidIds: string[];
+          questionText?: string;
+        } = { sourceBidIds: nextBidIds };
+
+        if (merge.canonicalText) {
+          const canonical = normalizeQuestionText(merge.canonicalText);
+          if (
+            canonical &&
+            canonical.length <= MAX_CLARIFICATION_QUESTION_LENGTH
+          ) {
+            updateData.questionText = canonical;
+          }
+        }
+
         await this.prisma.tenderClarificationQuestion.update({
           where: { id: row.id },
-          data: { sourceBidIds: nextBidIds },
+          data: updateData,
         });
       }
     }
 
-    const toInsert: string[] = [];
-    for (const question of exactNovel) {
-      const key = normalizeQuestionKey(question);
-      if (mergedKeys.has(key)) {
-        continue;
-      }
-      toInsert.push(question);
-    }
+    const novelCandidates = aiResult
+      ? aiResult.novelQuestions.length > 0
+        ? aiResult.novelQuestions
+        : exactNovel.filter(
+            (question) => !mergedKeys.has(normalizeQuestionKey(question)),
+          )
+      : exactNovel.filter(
+          (question) => !mergedKeys.has(normalizeQuestionKey(question)),
+        );
 
-    if (toInsert.length === 0) {
-      return;
-    }
-
-    const maxSort = existingRows.reduce(
-      (max, row) => Math.max(max, row.sortOrder),
-      -1,
+    const toInsert = this.collectNovelQuestions(
+      novelCandidates,
+      existingKeys,
+      mergedKeys,
     );
 
-    await this.prisma.tenderClarificationQuestion.createMany({
-      data: toInsert.map((questionText, index) => ({
-        tenderId,
-        questionText,
-        sortOrder: maxSort + 1 + index,
-        sourceBidIds: [...mergedBidIds],
-      })),
-    });
+    if (toInsert.length > 0) {
+      const maxSort = existingRows.reduce(
+        (max, row) => Math.max(max, row.sortOrder),
+        -1,
+      );
+
+      await this.prisma.tenderClarificationQuestion.createMany({
+        data: toInsert.map((questionText, index) => ({
+          tenderId,
+          questionText,
+          sortOrder: maxSort + 1 + index,
+          sourceBidIds: [...mergedBidIds],
+        })),
+      });
+    }
+
+    await this.reorderQuestionsByAskCount(tenderId);
   }
 
   async summarizeAnsweredForProject(projectId: string): Promise<string | null> {
@@ -667,7 +804,6 @@ export class TenderClarificationsService {
 
     const rows = await this.prisma.tenderClarificationQuestion.findMany({
       where: { tenderId: tender.id },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       include: {
         attachments: {
           where: {
@@ -678,7 +814,8 @@ export class TenderClarificationsService {
       },
     });
 
-    const items = rows
+    const sorted = sortQuestionsByAskCount(rows);
+    const items = sorted
       .filter((row) => row.answer?.trim())
       .map((row) => ({
         question: row.questionText,
