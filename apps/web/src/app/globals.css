@@ -4106,6 +4106,8 @@ select:disabled {
   margin-top: 0.15rem;
   font-size: 0.72rem;
   line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .bids-compare-breakdown-amount {
@@ -4140,6 +4142,7 @@ select:disabled {
   vertical-align: top;
   max-width: 12rem;
   line-height: 1.35;
+  white-space: normal;
 }
 
 .bids-compare-breakdown-subtotal-row th,

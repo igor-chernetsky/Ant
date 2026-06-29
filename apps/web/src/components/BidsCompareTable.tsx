@@ -58,29 +58,35 @@ export function BidsCompareTable({
   );
 
   const breakdownRows = useMemo(() => {
-    if (defaultCostBreakdown.length > 0) {
-      return defaultCostBreakdown;
-    }
-
     const seen = new Set<string>();
     const merged: DefaultCostBreakdownItem[] = [];
+
+    const addRow = (item: DefaultCostBreakdownItem | BidLineItem) => {
+      const trade = item.trade?.trim();
+      if (!trade) {
+        return;
+      }
+      const key = normalizeTrade(trade);
+      if (seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      merged.push({
+        trade,
+        description: item.description?.trim() || undefined,
+      });
+    };
+
+    for (const item of defaultCostBreakdown) {
+      addRow(item);
+    }
+
     for (const bid of selectedBids) {
       for (const item of bid.terms?.lineItems ?? []) {
-        const trade = item.trade?.trim();
-        if (!trade) {
-          continue;
-        }
-        const key = normalizeTrade(trade);
-        if (seen.has(key)) {
-          continue;
-        }
-        seen.add(key);
-        merged.push({
-          trade,
-          description: item.description?.trim() || undefined,
-        });
+        addRow(item);
       }
     }
+
     return merged;
   }, [defaultCostBreakdown, selectedBids]);
 
@@ -185,7 +191,7 @@ export function BidsCompareTable({
                   </th>
                 </tr>
                 {breakdownRows.map((row) => (
-                  <tr key={row.trade}>
+                  <tr key={normalizeTrade(row.trade)}>
                     <th scope="row" className="bids-compare-breakdown-row-label">
                       <span className="bids-compare-breakdown-trade-name">
                         {row.trade}
