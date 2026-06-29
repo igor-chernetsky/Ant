@@ -64,7 +64,7 @@ export function ProjectHero({
         </div>
         <div className="project-hero-aside">
           <span className="status-pill status-pill-lg project-hero-status">
-            {formatProjectStatus(project.status)}
+            {project.isHidden ? 'Hidden' : formatProjectStatus(project.status)}
           </span>
           <div className="project-hero-aside-metrics">
             <span className="readiness-badge readiness-badge-lg project-hero-readiness">

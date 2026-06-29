@@ -13,6 +13,7 @@ export interface PublicProjectCard {
   district: string | null;
   regionCode: string;
   status: string;
+  isHidden: boolean;
   readinessScore: number;
   tags: PublicProjectTag[];
   coverImageUrl: string | null;

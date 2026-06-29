@@ -33,6 +33,7 @@ export interface ProjectResponse {
   district: string | null;
   regionCode: string;
   status: string;
+  isHidden: boolean;
   readinessScore: number;
   brief: ProjectBriefV1 | null;
   clarificationMode: ClarificationMode;
@@ -69,8 +70,43 @@ export interface PublicProjectCard {
   district: string | null;
   regionCode: string;
   status: string;
+  isHidden: boolean;
   readinessScore: number;
   tags: PublicProjectTag[];
   coverImageUrl: string | null;
   updatedAt: string;
+}
+
+export interface ProjectCompletionContext {
+  canComplete: boolean;
+  contractorName: string | null;
+  reason: string | null;
+}
+
+export interface CompleteProjectDto {
+  comment?: string;
+  ratings: Record<string, number>;
+  attachmentIds?: string[];
+}
+
+export interface PresignProjectReviewAttachmentDto {
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+}
+
+export interface ProjectReviewAttachmentResponse {
+  id: string;
+  originalName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: string;
+  uploadedAt: string | null;
+}
+
+export interface PresignProjectReviewAttachmentResponse {
+  attachmentId: string;
+  uploadUrl: string;
+  storageKey: string;
+  expiresInSeconds: number;
 }

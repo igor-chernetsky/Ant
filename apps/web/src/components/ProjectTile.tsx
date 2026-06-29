@@ -52,7 +52,9 @@ export function ProjectTile({
           </div>
         )}
         <span className="project-tile-status">
-          {formatProjectStatus(project.status)}
+          {project.isHidden
+            ? 'Hidden'
+            : formatProjectStatus(project.status)}
         </span>
         {isOwned && <span className="project-tile-owned-badge">My project</span>}
         {participationLabel && !isOwned && (

@@ -1,4 +1,8 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
+import { JwtPayload } from '../auth/jwt-payload';
+import { UsersService } from '../users/users.service';
 import { TagsService } from '../tags/tags.service';
 import { ProjectsService } from './projects.service';
 
@@ -7,16 +11,22 @@ export class PublicProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,
     private readonly tagsService: TagsService,
+    private readonly usersService: UsersService,
   ) {}
 
   @Get('projects')
-  listProjects(
+  @UseGuards(OptionalJwtAuthGuard)
+  async listProjects(
+    @Req() req: Request & { user?: JwtPayload | null },
     @Query('tag') tagQuery?: string | string[],
     @Query('status') statusQuery?: string | string[],
   ) {
     const tagSlugs = normalizeTagQuery(tagQuery);
     const statuses = normalizeTagQuery(statusQuery);
-    return this.projectsService.listPublic(tagSlugs, statuses);
+    const userId = req.user
+      ? (await this.usersService.findOrCreateFromJwt(req.user)).id
+      : null;
+    return this.projectsService.listDiscover(userId, tagSlugs, statuses);
   }
 
   @Get('projects/:id')

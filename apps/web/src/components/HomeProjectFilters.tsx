@@ -8,6 +8,7 @@ const STATUS_OPTIONS = [
   { value: 'contractor_selected', label: 'Contractor selected' },
   { value: 'active', label: 'Active' },
   { value: 'completed', label: 'Completed' },
+  { value: 'hidden', label: 'Hidden projects' },
 ] as const;
 
 interface HomeProjectFiltersProps {
@@ -17,6 +18,7 @@ interface HomeProjectFiltersProps {
   selectedStatuses: string[];
   onStatusesChange: (statuses: string[]) => void;
   resultCount?: number;
+  showHiddenFilter?: boolean;
 }
 
 export function HomeProjectFilters({
@@ -26,6 +28,7 @@ export function HomeProjectFilters({
   selectedStatuses,
   onStatusesChange,
   resultCount,
+  showHiddenFilter = false,
 }: HomeProjectFiltersProps) {
   const activeCount = selectedTags.length + selectedStatuses.length;
   const hasFilters = activeCount > 0;
@@ -65,6 +68,10 @@ export function HomeProjectFilters({
     );
   }
 
+  const visibleStatusOptions = STATUS_OPTIONS.filter(
+    (option) => option.value !== 'hidden' || showHiddenFilter,
+  );
+
   return (
     <section className="project-filters" aria-label="Project filters">
       <div className="project-filters-header">
@@ -100,7 +107,7 @@ export function HomeProjectFilters({
             Status
           </p>
           <div className="project-filters-chips">
-            {STATUS_OPTIONS.map((option) => {
+            {visibleStatusOptions.map((option) => {
               const active = selectedStatuses.includes(option.value);
               return (
                 <button

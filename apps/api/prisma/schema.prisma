@@ -124,6 +124,8 @@ model User {
   tenderClarificationAnswers TenderClarificationQuestion[] @relation("ClarificationAnsweredBy")
   clarificationAnswerAttachments ClarificationAnswerAttachment[]
   notificationPreferences UserNotificationPreferences?
+  contractorReviewsSubmitted ContractorProjectReview[] @relation("ReviewClient")
+  projectReviewAttachments ProjectReviewAttachment[]
   notificationEmailLogs   NotificationEmailLog[]
 
   @@map("users")
@@ -202,6 +204,7 @@ model Project {
   district       String?
   regionCode     String        @default("TH") @map("region_code")
   status         ProjectStatus @default(draft)
+  isHidden       Boolean       @default(false) @map("is_hidden")
   readinessScore Int           @default(0) @map("readiness_score")
   briefJson      Json?         @map("brief_json")
   clarificationMode ClarificationMode @default(open_chat) @map("clarification_mode")
@@ -213,8 +216,11 @@ model Project {
   estimates      Estimate[]
   tender         Tender?
   amendments     ProjectAmendment[]
+  contractorReview ContractorProjectReview?
+  reviewAttachments ProjectReviewAttachment[]
 
   @@index([clientId])
+  @@index([clientId, isHidden])
   @@index([projectType])
   @@map("projects")
 }
@@ -302,6 +308,7 @@ model ContractorProfile {
   bids                    Bid[]
   verificationDocuments   ContractorVerificationDocument[]
   portfolioItems          ContractorPortfolioItem[]
+  projectReviews          ContractorProjectReview[]
 
   @@index([regionCode])
   @@index([verificationStatus])
@@ -390,6 +397,7 @@ model Bid {
   offers       BidOffer[]
   chatPresence BidChatPresence[]
   clarificationSubmission BidClarificationSubmission?
+  projectReview           ContractorProjectReview?
 
   @@unique([tenderId, contractorId])
   @@index([tenderId])
@@ -484,4 +492,45 @@ model ClarificationAnswerAttachment {
 
   @@index([questionId])
   @@map("clarification_answer_attachments")
+}
+
+model ContractorProjectReview {
+  id           String            @id @default(uuid())
+  projectId    String            @unique @map("project_id")
+  project      Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clientId     String            @map("client_id")
+  client       User              @relation("ReviewClient", fields: [clientId], references: [id], onDelete: Cascade)
+  contractorId String            @map("contractor_id")
+  contractor   ContractorProfile @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+  bidId        String            @unique @map("bid_id")
+  bid          Bid               @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  comment      String?           @db.Text
+  ratingsJson  Json              @map("ratings_json")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  attachments  ProjectReviewAttachment[]
+
+  @@index([contractorId])
+  @@index([clientId])
+  @@map("contractor_project_reviews")
+}
+
+model ProjectReviewAttachment {
+  id           String                   @id @default(uuid())
+  projectId    String                   @map("project_id")
+  project      Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clientId     String                   @map("client_id")
+  client       User                     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  reviewId     String?                  @map("review_id")
+  review       ContractorProjectReview? @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  originalName String                   @map("original_name")
+  contentType  String                   @map("content_type")
+  sizeBytes    Int                      @map("size_bytes")
+  storageKey   String                   @unique @map("storage_key")
+  status       DocumentStatus           @default(pending)
+  uploadedAt   DateTime?                @map("uploaded_at")
+  createdAt    DateTime                 @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@index([reviewId])
+  @@map("project_review_attachments")
 }

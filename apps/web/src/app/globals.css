@@ -4410,3 +4410,112 @@ select:disabled {
   line-height: 1.45;
 }
 
+.project-lifecycle-card {
+  margin-top: 1rem;
+}
+
+.project-lifecycle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.modal--wide {
+  max-width: 560px;
+}
+
+.complete-project-intro {
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.complete-project-ratings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.star-rating-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.star-rating-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+
+.star-rating-control {
+  display: flex;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.star-rating-star {
+  background: transparent;
+  border: none;
+  padding: 0.1rem;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #cbd5e1;
+  cursor: pointer;
+}
+
+.star-rating-star-active {
+  color: #f59e0b;
+}
+
+.star-rating-star:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.complete-project-comment textarea {
+  width: 100%;
+  min-height: 6rem;
+}
+
+.complete-project-attachments {
+  margin-top: 1rem;
+}
+
+.complete-project-attachments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.complete-project-attachment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.complete-project-attachment-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.file-input-button {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+

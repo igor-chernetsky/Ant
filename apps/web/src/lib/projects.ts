@@ -112,6 +112,7 @@ export interface Project {
   district: string | null;
   regionCode: string;
   status: string;
+  isHidden: boolean;
   readinessScore: number;
   brief: ProjectBriefV1 | null;
   clarificationMode: ClarificationMode;
@@ -238,6 +239,61 @@ export function canDeleteProject(project: Pick<Project, 'status'>): boolean {
   return DELETABLE_STATUSES.has(project.status);
 }
 
+export function canManageProjectLifecycle(
+  project: Pick<Project, 'status'>,
+): boolean {
+  return !DELETABLE_STATUSES.has(project.status);
+}
+
+export async function hideProject(id: string): Promise<Project> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(id)}/hide`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to hide project');
+  }
+  return response.json() as Promise<Project>;
+}
+
+export async function unhideProject(id: string): Promise<Project> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(id)}/unhide`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to unhide project');
+  }
+  return response.json() as Promise<Project>;
+}
+
+export async function closeProject(
+  id: string,
+  input: import('@/lib/project-reviews').CompleteProjectInput,
+): Promise<Project> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(id)}/close`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to complete project');
+  }
+  return response.json() as Promise<Project>;
+}
+
 export function canDeleteDocument(project: Pick<Project, 'status'>): boolean {
   return DELETABLE_DOCUMENT_STATUSES.has(project.status);
 }
@@ -257,6 +313,9 @@ export async function deleteProject(id: string): Promise<void> {
 }
 
 export function formatProjectStatus(status: string): string {
+  if (status === 'hidden') {
+    return 'Hidden projects';
+  }
   return status.replaceAll('_', ' ');
 }
 

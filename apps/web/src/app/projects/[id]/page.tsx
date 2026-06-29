@@ -35,8 +35,10 @@ import {
   deleteProject,
   canDeleteProject,
   canDeleteDocument,
+  canManageProjectLifecycle,
   type Project,
 } from '@/lib/projects';
+import { ProjectLifecyclePanel } from '@/components/ProjectLifecyclePanel';
 import { useSession } from '@/components/SessionProvider';
 import { isContractorUser } from '@/lib/session';
 import {
@@ -276,6 +278,8 @@ export default function ProjectDetailPage() {
   const estimate = project?.estimate ?? null;
   const intakeActive = isOwner && project ? isIntakeActive(project) : false;
   const showDelete = isOwner && project ? canDeleteProject(project) : false;
+  const showLifecycle =
+    isOwner && project ? canManageProjectLifecycle(project) : false;
   const showDocDelete =
     isOwner && project ? canDeleteDocument(project) : false;
   const brief = project?.brief ?? null;
@@ -539,6 +543,13 @@ export default function ProjectDetailPage() {
                   </div>
                 )}
               </section>
+            )}
+
+            {showLifecycle && project && (
+              <ProjectLifecyclePanel
+                project={project}
+                onUpdated={setProject}
+              />
             )}
 
             {showDelete && (

@@ -230,6 +230,7 @@ export default function HomePage() {
           selectedStatuses={selectedStatuses}
           onStatusesChange={setSelectedStatuses}
           resultCount={!loading && !error ? projects.length : undefined}
+          showHiddenFilter={canAddProject}
         />
 
         {loading && (

@@ -70,7 +70,7 @@ export class DocumentsService {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
-    if (!project || !isPubliclyViewable(project.status)) {
+    if (!project || !isPubliclyViewable(project.status) || project.isHidden) {
       throw new NotFoundException('Project not found');
     }
     return project;

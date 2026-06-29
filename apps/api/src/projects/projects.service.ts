@@ -19,7 +19,7 @@ import { IntakeService } from '../intake/intake.service';
 import { EstimatesService } from '../estimation/estimates.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { isPubliclyViewable, PUBLIC_VIEW_STATUSES } from './projects.constants';
+import { isPubliclyDiscoverable, isPubliclyViewable, DISCOVERY_FILTER_HIDDEN, DISCOVERY_STATUSES } from './projects.constants';
 import { shouldHideProjectFromPublicDiscovery } from '../tendering/tender-deadline';
 
 import {
@@ -40,7 +40,11 @@ import {
 
   PublicProjectCard,
 
+  CompleteProjectDto,
+
 } from './projects.types';
+
+import { ProjectReviewsService } from './project-reviews.service';
 
 const DELETABLE_STATUSES: ProjectStatus[] = [
   ProjectStatus.draft,
@@ -76,6 +80,7 @@ export class ProjectsService {
     @Inject(forwardRef(() => IntakeService))
     private readonly intakeService: IntakeService,
     private readonly estimatesService: EstimatesService,
+    private readonly projectReviews: ProjectReviewsService,
   ) {}
 
 
@@ -120,6 +125,8 @@ export class ProjectsService {
       regionCode: project.regionCode,
 
       status: project.status,
+
+      isHidden: project.isHidden,
 
       readinessScore: project.readinessScore,
 
@@ -183,15 +190,126 @@ export class ProjectsService {
     tagSlugs: string[] = [],
     statuses: string[] = [],
   ): Promise<PublicProjectCard[]> {
-    const allowedStatuses: ProjectStatus[] =
-      statuses.length > 0
-        ? statuses.filter((status): status is ProjectStatus =>
-            PUBLIC_VIEW_STATUSES.includes(status as ProjectStatus),
-          )
-        : PUBLIC_VIEW_STATUSES;
+    return this.listDiscover(null, tagSlugs, statuses);
+  }
+
+  async listDiscover(
+    userId: string | null,
+    tagSlugs: string[] = [],
+    statuses: string[] = [],
+  ): Promise<PublicProjectCard[]> {
+    const includesHidden = statuses.includes(DISCOVERY_FILTER_HIDDEN);
+    const includesCompleted = statuses.includes(ProjectStatus.completed);
+    const statusFilters = statuses.filter(
+      (status) =>
+        status !== DISCOVERY_FILTER_HIDDEN &&
+        status !== ProjectStatus.completed,
+    ) as ProjectStatus[];
+
+    if (includesHidden) {
+      if (!userId) {
+        return [];
+      }
+      return this.listHiddenForClient(userId, tagSlugs);
+    }
+
+    const participantProjectIds = userId
+      ? await this.loadParticipantProjectIds(userId)
+      : new Set<string>();
+
+    const tagFilter: Prisma.ProjectWhereInput | undefined =
+      tagSlugs.length > 0
+        ? {
+            tags: {
+              some: {
+                tag: { slug: { in: tagSlugs } },
+              },
+            },
+          }
+        : undefined;
+
+    const orClauses: Prisma.ProjectWhereInput[] = [];
+
+    if (statusFilters.length > 0) {
+      const allowed = statusFilters.filter((status): status is ProjectStatus =>
+        DISCOVERY_STATUSES.includes(status),
+      );
+      if (allowed.length > 0) {
+        orClauses.push({
+          status: { in: allowed },
+          isHidden: false,
+        });
+      }
+    } else if (!includesCompleted) {
+      orClauses.push({
+        status: { in: DISCOVERY_STATUSES },
+        isHidden: false,
+      });
+    }
+
+    if (includesCompleted) {
+      if (!userId) {
+        if (orClauses.length === 0) {
+          return [];
+        }
+      } else {
+        orClauses.push({
+          status: ProjectStatus.completed,
+          isHidden: false,
+          OR: [
+            { clientId: userId },
+            { id: { in: [...participantProjectIds] } },
+          ],
+        });
+      }
+    }
+
+    if (orClauses.length === 0) {
+      return [];
+    }
 
     const where: Prisma.ProjectWhereInput = {
-      status: { in: allowedStatuses },
+      OR: orClauses,
+      ...(tagFilter ?? {}),
+    };
+
+    const projects = await this.prisma.project.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        ...this.includeTags(),
+        tender: { select: { status: true, closesAt: true } },
+      },
+    });
+
+    const now = new Date();
+    const visibleProjects = projects.filter((project) => {
+      if (project.isHidden) {
+        return false;
+      }
+      if (project.status === ProjectStatus.completed) {
+        return true;
+      }
+      if (!project.tender) {
+        return true;
+      }
+      return !shouldHideProjectFromPublicDiscovery({
+        tenderStatus: project.tender.status,
+        closesAt: project.tender.closesAt,
+        now,
+      });
+    });
+
+    return this.mapPublicProjectCards(visibleProjects);
+  }
+
+  private async listHiddenForClient(
+    clientId: string,
+    tagSlugs: string[],
+  ): Promise<PublicProjectCard[]> {
+    const where: Prisma.ProjectWhereInput = {
+      clientId,
+      isHidden: true,
     };
 
     if (tagSlugs.length > 0) {
@@ -205,28 +323,23 @@ export class ProjectsService {
     const projects = await this.prisma.project.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
-      include: {
-        ...this.includeTags(),
-        tender: { select: { status: true, closesAt: true } },
-      },
+      include: this.includeTags(),
     });
 
-    const now = new Date();
-    const visibleProjects = projects.filter((project) => {
-      if (!project.tender) {
-        return true;
+    return this.mapPublicProjectCards(projects);
+  }
+
+  private async mapPublicProjectCards(
+    projects: Array<
+      ProjectWithTags & {
+        tender?: { status: string; closesAt: Date | null } | null;
       }
-      return !shouldHideProjectFromPublicDiscovery({
-        tenderStatus: project.tender.status,
-        closesAt: project.tender.closesAt,
-        now,
-      });
-    });
-
-    const projectIds = visibleProjects.map((p) => p.id);
+    >,
+  ): Promise<PublicProjectCard[]> {
+    const projectIds = projects.map((p) => p.id);
     const coverByProject = await this.loadCoverUrls(projectIds);
 
-    return visibleProjects.map((project) => ({
+    return projects.map((project) => ({
       id: project.id,
       title: project.title,
       description: project.description,
@@ -234,6 +347,7 @@ export class ProjectsService {
       district: project.district,
       regionCode: project.regionCode,
       status: project.status,
+      isHidden: project.isHidden,
       readinessScore: project.readinessScore,
       tags: this.mapTags(project).map((t) => ({
         slug: t.slug,
@@ -242,6 +356,30 @@ export class ProjectsService {
       coverImageUrl: coverByProject.get(project.id) ?? null,
       updatedAt: project.updatedAt.toISOString(),
     }));
+  }
+
+  private async loadParticipantProjectIds(
+    userId: string,
+  ): Promise<Set<string>> {
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!profile) {
+      return new Set();
+    }
+
+    const bids = await this.prisma.bid.findMany({
+      where: {
+        contractorId: profile.id,
+        status: { not: 'withdrawn' },
+      },
+      select: {
+        tender: { select: { projectId: true } },
+      },
+    });
+
+    return new Set(bids.map((bid) => bid.tender.projectId));
   }
 
   private async userHasActiveTenderParticipation(
@@ -277,7 +415,7 @@ export class ProjectsService {
       },
     });
 
-    if (!project || !isPubliclyViewable(project.status)) {
+    if (!project || !isPubliclyDiscoverable(project)) {
       throw new NotFoundException('Project not found');
     }
 
@@ -311,7 +449,7 @@ export class ProjectsService {
       include: this.includeTags(),
     });
 
-    if (!project || !isPubliclyViewable(project.status)) {
+    if (!project || !isPubliclyViewable(project.status) || project.isHidden) {
       throw new NotFoundException('Project not found');
     }
 
@@ -550,5 +688,65 @@ export class ProjectsService {
     }
 
     await this.prisma.project.delete({ where: { id: projectId } });
+  }
+
+  async hideForClient(clientId: string, projectId: string): Promise<ProjectResponse> {
+    const project = await this.assertClientProject(clientId, projectId);
+    if (project.isHidden) {
+      return this.getForClient(clientId, projectId);
+    }
+    if (project.status === ProjectStatus.completed) {
+      throw new BadRequestException('Completed projects cannot be hidden');
+    }
+
+    const updated = await this.prisma.project.update({
+      where: { id: projectId },
+      data: { isHidden: true },
+      include: this.includeTags(),
+    });
+
+    return this.getForClient(clientId, updated.id);
+  }
+
+  async unhideForClient(
+    clientId: string,
+    projectId: string,
+  ): Promise<ProjectResponse> {
+    await this.assertClientProject(clientId, projectId);
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: { isHidden: false },
+    });
+
+    return this.getForClient(clientId, projectId);
+  }
+
+  async closeForClient(
+    clientId: string,
+    projectId: string,
+    dto: CompleteProjectDto,
+  ): Promise<ProjectResponse> {
+    await this.projectReviews.completeProject(clientId, projectId, dto);
+    return this.getForClient(clientId, projectId);
+  }
+
+  private async assertClientProject(
+    clientId: string,
+    projectId: string,
+  ): Promise<Project> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.clientId !== clientId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return project;
   }
 }
