@@ -68,7 +68,6 @@ export function ProjectTile({
         <p className="project-tile-meta muted">
           {formatProjectType(project.projectType as ProjectType)}
           {project.district ? ` · ${project.district}` : ''}
-          {project.regionCode ? ` · ${project.regionCode}` : ''}
         </p>
         {participationLabel && (
           <p className="project-tile-participation muted">{participationLabel}</p>

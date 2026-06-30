@@ -11,6 +11,9 @@ export interface PublicProjectCard {
   description: string | null;
   projectType: string;
   district: string | null;
+  locationRegionSlug?: string;
+  locationAreaSlug?: string | null;
+  locationNote?: string | null;
   regionCode: string;
   status: string;
   isHidden: boolean;
@@ -20,16 +23,30 @@ export interface PublicProjectCard {
   updatedAt: string;
 }
 
+export interface PublicProjectListFilters {
+  tags?: string[];
+  statuses?: string[];
+  regionSlug?: string;
+  areaSlug?: string;
+}
+
 export async function fetchPublicProjects(
-  tagSlugs: string[] = [],
-  statuses: string[] = [],
+  filters: PublicProjectListFilters = {},
 ): Promise<PublicProjectCard[]> {
+  const tagSlugs = filters.tags ?? [];
+  const statuses = filters.statuses ?? [];
   const params = new URLSearchParams();
   for (const slug of tagSlugs) {
     params.append('tag', slug);
   }
   for (const status of statuses) {
     params.append('status', status);
+  }
+  if (filters.regionSlug?.trim()) {
+    params.append('region', filters.regionSlug.trim());
+  }
+  if (filters.areaSlug?.trim()) {
+    params.append('area', filters.areaSlug.trim());
   }
   const qs = params.toString();
   const response = await fetch(

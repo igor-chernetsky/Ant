@@ -10,7 +10,10 @@ import { ProjectTile } from '@/components/ProjectTile';
 import { useSession } from '@/components/SessionProvider';
 import { canCreateProject, isContractorUser } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
-import { HomeProjectFilters } from '@/components/HomeProjectFilters';
+import {
+  HomeProjectFilters,
+  type HomeProjectFilterState,
+} from '@/components/HomeProjectFilters';
 import {
   fetchContractorApplications,
   fetchContractorProfile,
@@ -25,6 +28,10 @@ import {
   fetchPublicTags,
   type PublicProjectCard,
 } from '@/lib/public-projects';
+import {
+  fetchLocationCatalog,
+  type LocationCatalog,
+} from '@/lib/locations';
 
 export default function HomePage() {
   const router = useRouter();
@@ -37,8 +44,14 @@ export default function HomePage() {
   const [allTags, setAllTags] = useState<Array<{ slug: string; label: string }>>(
     [],
   );
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [locationCatalog, setLocationCatalog] =
+    useState<LocationCatalog | null>(null);
+  const [filters, setFilters] = useState<HomeProjectFilterState>({
+    tags: [],
+    statuses: [],
+    regionSlug: '',
+    areaSlug: '',
+  });
   const [contractorFilterInitialized, setContractorFilterInitialized] =
     useState(false);
   const [loading, setLoading] = useState(true);
@@ -47,11 +60,16 @@ export default function HomePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingCreate, setPendingCreate] = useState(false);
 
-  const loadProjects = useCallback(async (tagSlugs: string[], statuses: string[]) => {
+  const loadProjects = useCallback(async (next: HomeProjectFilterState) => {
     setLoading(true);
     setError(null);
     try {
-      const list = await fetchPublicProjects(tagSlugs, statuses);
+      const list = await fetchPublicProjects({
+        tags: next.tags,
+        statuses: next.statuses,
+        regionSlug: next.regionSlug || undefined,
+        areaSlug: next.areaSlug || undefined,
+      });
       setProjects(list);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load projects');
@@ -64,25 +82,35 @@ export default function HomePage() {
   useEffect(() => {
     void (async () => {
       try {
-        const tags = await fetchPublicTags();
+        const [tags, locations] = await Promise.all([
+          fetchPublicTags(),
+          fetchLocationCatalog(),
+        ]);
         setAllTags(tags.map((t) => ({ slug: t.slug, label: t.label })));
+        setLocationCatalog(locations);
       } catch {
         setAllTags([]);
+        setLocationCatalog(null);
       }
     })();
   }, []);
 
   useEffect(() => {
     if (!sessionReady) return;
-    void loadProjects(selectedTags, selectedStatuses);
-  }, [sessionReady, selectedTags, selectedStatuses, loadProjects]);
+    void loadProjects(filters);
+  }, [sessionReady, filters, loadProjects]);
 
   useEffect(() => {
     if (!sessionReady) return;
 
     if (!me) {
       setContractorFilterInitialized(false);
-      setSelectedTags([]);
+      setFilters({
+        tags: [],
+        statuses: [],
+        regionSlug: '',
+        areaSlug: '',
+      });
       return;
     }
 
@@ -93,9 +121,15 @@ export default function HomePage() {
     void (async () => {
       try {
         const profile = await fetchContractorProfile();
-        if (profile?.tagSlugs?.length) {
-          setSelectedTags(profile.tagSlugs);
-        }
+        if (!profile) return;
+        setFilters((current) => ({
+          ...current,
+          tags: profile.tagSlugs?.length ? profile.tagSlugs : current.tags,
+          regionSlug:
+            profile.serviceLocations?.[0]?.regionSlug ?? current.regionSlug,
+          areaSlug:
+            profile.serviceLocations?.[0]?.areaSlug ?? current.areaSlug,
+        }));
       } catch {
         // Keep empty filter when profile is unavailable.
       } finally {
@@ -225,10 +259,9 @@ export default function HomePage() {
 
         <HomeProjectFilters
           tags={allTags}
-          selectedTags={selectedTags}
-          onTagsChange={setSelectedTags}
-          selectedStatuses={selectedStatuses}
-          onStatusesChange={setSelectedStatuses}
+          locationCatalog={locationCatalog}
+          filters={filters}
+          onChange={setFilters}
           resultCount={!loading && !error ? projects.length : undefined}
           showHiddenFilter={canAddProject}
         />

@@ -17,6 +17,7 @@ import {
 import { DocumentStatus, Prisma, Project, ProjectStatus, ProjectTag, ProjectType, Tag } from '@prisma/client';
 import { IntakeService } from '../intake/intake.service';
 import { EstimatesService } from '../estimation/estimates.service';
+import { LocationsService } from '../locations/locations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { isPubliclyDiscoverable, isPubliclyViewable, DISCOVERY_FILTER_HIDDEN, DISCOVERY_STATUSES } from './projects.constants';
@@ -45,6 +46,7 @@ import {
 } from './projects.types';
 
 import { ProjectReviewsService } from './project-reviews.service';
+import type { DiscoverLocationFilter } from './discover.types';
 
 const DELETABLE_STATUSES: ProjectStatus[] = [
   ProjectStatus.draft,
@@ -81,6 +83,7 @@ export class ProjectsService {
     private readonly intakeService: IntakeService,
     private readonly estimatesService: EstimatesService,
     private readonly projectReviews: ProjectReviewsService,
+    private readonly locations: LocationsService,
   ) {}
 
 
@@ -121,6 +124,10 @@ export class ProjectsService {
       propertyType: project.propertyType,
 
       district: project.district,
+
+      locationRegionSlug: project.locationRegionSlug,
+      locationAreaSlug: project.locationAreaSlug,
+      locationNote: project.locationNote,
 
       regionCode: project.regionCode,
 
@@ -191,14 +198,16 @@ export class ProjectsService {
   async listPublic(
     tagSlugs: string[] = [],
     statuses: string[] = [],
+    location?: DiscoverLocationFilter,
   ): Promise<PublicProjectCard[]> {
-    return this.listDiscover(null, tagSlugs, statuses);
+    return this.listDiscover(null, tagSlugs, statuses, location);
   }
 
   async listDiscover(
     userId: string | null,
     tagSlugs: string[] = [],
     statuses: string[] = [],
+    location?: DiscoverLocationFilter,
   ): Promise<PublicProjectCard[]> {
     const includesHidden = statuses.includes(DISCOVERY_FILTER_HIDDEN);
     const includesCompleted = statuses.includes(ProjectStatus.completed);
@@ -212,7 +221,7 @@ export class ProjectsService {
       if (!userId) {
         return [];
       }
-      return this.listHiddenForClient(userId, tagSlugs);
+      return this.listHiddenForClient(userId, tagSlugs, location);
     }
 
     const participantProjectIds = userId
@@ -273,6 +282,7 @@ export class ProjectsService {
     const where: Prisma.ProjectWhereInput = {
       OR: orClauses,
       ...(tagFilter ?? {}),
+      ...(this.buildLocationFilter(location) ?? {}),
     };
 
     const projects = await this.prisma.project.findMany({
@@ -305,13 +315,36 @@ export class ProjectsService {
     return this.mapPublicProjectCards(visibleProjects);
   }
 
+  private buildLocationFilter(
+    location?: DiscoverLocationFilter,
+  ): Prisma.ProjectWhereInput | undefined {
+    const regionSlug = location?.regionSlug?.trim();
+    if (!regionSlug) {
+      return undefined;
+    }
+
+    this.locations.assertRegionSlug(regionSlug);
+    const areaSlug = location?.areaSlug?.trim();
+    if (areaSlug) {
+      this.locations.assertAreaSlug(regionSlug, areaSlug);
+      return {
+        locationRegionSlug: regionSlug,
+        OR: [{ locationAreaSlug: areaSlug }, { locationAreaSlug: null }],
+      };
+    }
+
+    return { locationRegionSlug: regionSlug };
+  }
+
   private async listHiddenForClient(
     clientId: string,
     tagSlugs: string[],
+    location?: DiscoverLocationFilter,
   ): Promise<PublicProjectCard[]> {
     const where: Prisma.ProjectWhereInput = {
       clientId,
       isHidden: true,
+      ...(this.buildLocationFilter(location) ?? {}),
     };
 
     if (tagSlugs.length > 0) {
@@ -347,6 +380,9 @@ export class ProjectsService {
       description: project.description,
       projectType: project.projectType,
       district: project.district,
+      locationRegionSlug: project.locationRegionSlug,
+      locationAreaSlug: project.locationAreaSlug,
+      locationNote: project.locationNote,
       regionCode: project.regionCode,
       status: project.status,
       isHidden: project.isHidden,
@@ -553,6 +589,12 @@ export class ProjectsService {
 
     });
 
+    const location = this.locations.normalizeProjectLocation({
+      locationRegionSlug: dto.locationRegionSlug,
+      locationAreaSlug: dto.locationAreaSlug,
+      locationNote: dto.locationNote,
+    });
+
 
 
     const project = await this.prisma.project.create({
@@ -569,9 +611,13 @@ export class ProjectsService {
 
         propertyType: dto.propertyType ?? null,
 
-        district: dto.district?.trim() || null,
+        district: location.district,
 
-        regionCode: dto.regionCode?.trim() || 'TH',
+        locationRegionSlug: location.locationRegionSlug,
+        locationAreaSlug: location.locationAreaSlug,
+        locationNote: location.locationNote,
+
+        regionCode: location.regionCode,
 
         clarificationMode:
           dto.clarificationMode ?? undefined,
@@ -586,7 +632,7 @@ export class ProjectsService {
 
           propertyType: dto.propertyType ?? null,
 
-          district: dto.district,
+          district: location.district,
 
           tagCount: 0,
 

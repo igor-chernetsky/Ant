@@ -20,7 +20,11 @@ export interface CreateProjectDto {
   regionCode?: string;
   projectType?: ProjectType;
   propertyType?: PropertyType;
+  /** @deprecated use locationRegionSlug / locationAreaSlug / locationNote */
   district?: string;
+  locationRegionSlug?: string;
+  locationAreaSlug?: string;
+  locationNote?: string;
   clarificationMode?: ClarificationMode;
 }
 
@@ -31,6 +35,9 @@ export interface ProjectResponse {
   projectType: ProjectType;
   propertyType: PropertyType | null;
   district: string | null;
+  locationRegionSlug: string;
+  locationAreaSlug: string | null;
+  locationNote: string | null;
   regionCode: string;
   status: string;
   isHidden: boolean;
@@ -69,6 +76,9 @@ export interface PublicProjectCard {
   description: string | null;
   projectType: ProjectType;
   district: string | null;
+  locationRegionSlug: string;
+  locationAreaSlug: string | null;
+  locationNote: string | null;
   regionCode: string;
   status: string;
   isHidden: boolean;

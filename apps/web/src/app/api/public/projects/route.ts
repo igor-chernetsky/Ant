@@ -6,9 +6,13 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const tagParams = url.searchParams.getAll('tag');
   const statusParams = url.searchParams.getAll('status');
+  const region = url.searchParams.get('region');
+  const area = url.searchParams.get('area');
   const qs = [
     ...tagParams.map((tag) => `tag=${encodeURIComponent(tag)}`),
     ...statusParams.map((status) => `status=${encodeURIComponent(status)}`),
+    ...(region ? [`region=${encodeURIComponent(region)}`] : []),
+    ...(area ? [`area=${encodeURIComponent(area)}`] : []),
   ].join('&');
 
   const headers: HeadersInit = { Accept: 'application/json' };

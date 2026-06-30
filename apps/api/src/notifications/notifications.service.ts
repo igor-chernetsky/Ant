@@ -6,6 +6,7 @@ import {
   UserNotificationPreferences,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { LocationsService } from '../locations/locations.service';
 import { MailService } from './mail.service';
 import {
   MATCHING_PROJECT_EMAILS_DAILY_CAP,
@@ -28,6 +29,7 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
+    private readonly locations: LocationsService,
     private readonly config: ConfigService,
   ) {}
 
@@ -411,7 +413,24 @@ export class NotificationsService {
       include: { user: true },
     });
 
+    const projectLocation = {
+      regionSlug: project.locationRegionSlug,
+      areaSlug: project.locationAreaSlug,
+    };
+
     for (const contractor of contractors) {
+      const serviceLocations = this.locations.normalizeServiceLocations(
+        contractor.serviceLocationsJson,
+      );
+      if (
+        !this.locations.contractorMatchesProject(
+          serviceLocations,
+          projectLocation,
+        )
+      ) {
+        continue;
+      }
+
       const tagSlugs = contractor.tagSlugs ?? [];
       const tagMatch =
         tagSlugs.length === 0 ||

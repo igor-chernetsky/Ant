@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ContractorProfile, ContractorVerificationStatus } from '@prisma/client';
+import { ContractorProfile, ContractorVerificationStatus, Prisma } from '@prisma/client';
+import { LocationsService } from '../locations/locations.service';
+import type { ServiceLocation } from '../locations/locations.catalog';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   ContractorProfileResponse,
@@ -8,14 +10,21 @@ import {
 
 @Injectable()
 export class ContractorProfilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly locations: LocationsService,
+  ) {}
 
   toResponse(profile: ContractorProfile): ContractorProfileResponse {
+    const serviceLocations = this.parseServiceLocations(
+      profile.serviceLocationsJson,
+    );
     return {
       id: profile.id,
       userId: profile.userId,
       companyName: profile.companyName,
       regionCode: profile.regionCode,
+      serviceLocations,
       projectTypes: profile.projectTypes,
       tagSlugs: profile.tagSlugs,
       verificationStatus: profile.verificationStatus,
@@ -26,6 +35,10 @@ export class ContractorProfilesService {
         profile.verificationReviewedAt?.toISOString() ?? null,
       createdAt: profile.createdAt.toISOString(),
     };
+  }
+
+  parseServiceLocations(raw: Prisma.JsonValue): ServiceLocation[] {
+    return this.locations.normalizeServiceLocations(raw);
   }
 
   private async normalizeTagSlugs(
@@ -75,20 +88,30 @@ export class ContractorProfilesService {
       ? [...new Set(dto.projectTypes)]
       : undefined;
     const tagSlugs = await this.normalizeTagSlugs(dto.tagSlugs);
+    const serviceLocations = this.locations.normalizeServiceLocations(
+      dto.serviceLocations,
+    );
+    const primaryRegion = this.locations.assertRegionSlug(
+      serviceLocations[0].regionSlug,
+    );
 
     const profile = await this.prisma.contractorProfile.upsert({
       where: { userId },
       create: {
         userId,
         companyName: dto.companyName?.trim() || null,
-        regionCode: dto.regionCode?.trim() || 'TH',
+        regionCode: primaryRegion.countryCode,
+        serviceLocationsJson:
+          serviceLocations as unknown as Prisma.InputJsonValue,
         projectTypes: projectTypes ?? [],
         tagSlugs: tagSlugs ?? [],
         verificationStatus: ContractorVerificationStatus.pending,
       },
       update: {
         companyName: dto.companyName?.trim() || null,
-        regionCode: dto.regionCode?.trim() || undefined,
+        regionCode: primaryRegion.countryCode,
+        serviceLocationsJson:
+          serviceLocations as unknown as Prisma.InputJsonValue,
         projectTypes: projectTypes ?? undefined,
         tagSlugs: tagSlugs ?? undefined,
       },

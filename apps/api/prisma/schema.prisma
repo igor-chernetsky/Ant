@@ -202,6 +202,9 @@ model Project {
   projectType    ProjectType   @default(other) @map("project_type")
   propertyType   PropertyType? @map("property_type")
   district       String?
+  locationRegionSlug String   @default("bangkok") @map("location_region_slug")
+  locationAreaSlug   String?  @map("location_area_slug")
+  locationNote       String?  @map("location_note")
   regionCode     String        @default("TH") @map("region_code")
   status         ProjectStatus @default(draft)
   isHidden       Boolean       @default(false) @map("is_hidden")
@@ -224,6 +227,7 @@ model Project {
   @@index([clientId])
   @@index([clientId, isHidden])
   @@index([projectType])
+  @@index([locationRegionSlug])
   @@map("projects")
 }
 
@@ -297,6 +301,7 @@ model ContractorProfile {
   user                    User                         @relation("ContractorProfileUser", fields: [userId], references: [id], onDelete: Cascade)
   companyName             String?                      @map("company_name")
   regionCode              String                       @default("TH") @map("region_code")
+  serviceLocationsJson    Json                         @default("[{\"regionSlug\":\"bangkok\"}]") @map("service_locations_json")
   projectTypes            ProjectType[]                @default([]) @map("project_types")
   tagSlugs                String[]                     @default([]) @map("tag_slugs")
   verificationStatus      ContractorVerificationStatus @default(pending) @map("verification_status")

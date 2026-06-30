@@ -1,7 +1,13 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { ProjectLocationFields } from '@/components/ProjectLocationFields';
 import { isSessionExpiredError } from '@/lib/auth-client';
+import {
+  DEFAULT_SERVICE_LOCATION,
+  fetchLocationCatalog,
+  type LocationCatalog,
+} from '@/lib/locations';
 import { ensureSessionFresh } from '@/lib/session';
 import {
   CLARIFICATION_MODE_OPTIONS,
@@ -30,7 +36,14 @@ export function CreateProjectModal({
   const [description, setDescription] = useState('');
   const [projectType, setProjectType] = useState<ProjectType>('renovation');
   const [propertyType, setPropertyType] = useState<PropertyType | ''>('');
-  const [district, setDistrict] = useState('');
+  const [locationCatalog, setLocationCatalog] = useState<LocationCatalog | null>(
+    null,
+  );
+  const [locationRegionSlug, setLocationRegionSlug] = useState(
+    DEFAULT_SERVICE_LOCATION.regionSlug,
+  );
+  const [locationAreaSlug, setLocationAreaSlug] = useState('');
+  const [locationNote, setLocationNote] = useState('');
   const [clarificationMode, setClarificationMode] =
     useState<ClarificationMode>('open_chat');
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +54,12 @@ export function CreateProjectModal({
       return;
     }
     void ensureSessionFresh();
+    void fetchLocationCatalog()
+      .then((catalog) => {
+        setLocationCatalog(catalog);
+        setLocationRegionSlug(catalog.defaultRegionSlug);
+      })
+      .catch(() => setLocationCatalog(null));
   }, [isOpen]);
 
   if (!isOpen) {
@@ -64,7 +83,9 @@ export function CreateProjectModal({
         description: description.trim() || undefined,
         projectType,
         propertyType: propertyType || undefined,
-        district: district.trim() || undefined,
+        locationRegionSlug,
+        locationAreaSlug: locationAreaSlug || undefined,
+        locationNote: locationNote.trim() || undefined,
         clarificationMode,
       });
       onCreated(project.id);
@@ -167,15 +188,20 @@ export function CreateProjectModal({
               </select>
             </label>
           </div>
-          <label>
-            District / area
-            <input
-              type="text"
-              value={district}
-              onChange={(e) => setDistrict(e.target.value)}
-              placeholder="e.g. Sukhumvit, Bangkok"
+          {locationCatalog ? (
+            <ProjectLocationFields
+              catalog={locationCatalog}
+              regionSlug={locationRegionSlug}
+              areaSlug={locationAreaSlug}
+              note={locationNote}
+              disabled={creating}
+              onRegionChange={setLocationRegionSlug}
+              onAreaChange={setLocationAreaSlug}
+              onNoteChange={setLocationNote}
             />
-          </label>
+          ) : (
+            <p className="muted">Loading locations…</p>
+          )}
 
           <div className="clarification-mode-field">
             <span className="clarification-mode-label">Contractor clarification</span>

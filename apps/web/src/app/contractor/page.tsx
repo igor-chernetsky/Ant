@@ -6,9 +6,17 @@ import { ContractorVerificationPanel } from '@/components/ContractorVerification
 import { ContractorPortfolioPanel } from '@/components/ContractorPortfolioPanel';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
+import { ServiceLocationEditor } from '@/components/ServiceLocationEditor';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TradeTagPicker } from '@/components/TradeTagPicker';
 import { useSession } from '@/components/SessionProvider';
+import {
+  DEFAULT_SERVICE_LOCATION,
+  fetchLocationCatalog,
+  formatServiceLocation,
+  type LocationCatalog,
+  type ServiceLocation,
+} from '@/lib/locations';
 import { formatThb } from '@/lib/estimate';
 import { fetchPublicTags } from '@/lib/public-projects';
 import {
@@ -29,7 +37,12 @@ export default function ContractorPage() {
     [],
   );
   const [companyName, setCompanyName] = useState('');
-  const [regionCode, setRegionCode] = useState('TH');
+  const [locationCatalog, setLocationCatalog] = useState<LocationCatalog | null>(
+    null,
+  );
+  const [serviceLocations, setServiceLocations] = useState<ServiceLocation[]>([
+    DEFAULT_SERVICE_LOCATION,
+  ]);
   const [selectedTagSlugs, setSelectedTagSlugs] = useState<string[]>([]);
   const [tradeTags, setTradeTags] = useState<
     Array<{
@@ -51,25 +64,35 @@ export default function ContractorPage() {
       return;
     }
 
-    const [prof, apps, tags] = await Promise.all([
+    const [prof, apps, tags, locations] = await Promise.all([
       fetchContractorProfile(),
       fetchContractorApplications(),
       fetchPublicTags(),
+      fetchLocationCatalog(),
     ]);
     setTradeTags(tags);
+    setLocationCatalog(locations);
     setProfile(prof);
     setApplications(apps);
     if (prof?.companyName) setCompanyName(prof.companyName);
-    if (prof?.regionCode) setRegionCode(prof.regionCode);
+    if (prof?.serviceLocations?.length) {
+      setServiceLocations(prof.serviceLocations);
+    }
     if (prof?.tagSlugs) setSelectedTagSlugs(prof.tagSlugs);
     setReady(true);
   }, [me, sessionReady]);
 
   useEffect(() => {
     if (!sessionReady || me) return;
-    void fetchPublicTags()
-      .then(setTradeTags)
-      .catch(() => setTradeTags([]));
+    void Promise.all([fetchPublicTags(), fetchLocationCatalog()])
+      .then(([tags, locations]) => {
+        setTradeTags(tags);
+        setLocationCatalog(locations);
+      })
+      .catch(() => {
+        setTradeTags([]);
+        setLocationCatalog(null);
+      });
   }, [sessionReady, me]);
 
   useEffect(() => {
@@ -86,10 +109,11 @@ export default function ContractorPage() {
     try {
       const prof = await upsertContractorProfile({
         companyName: companyName.trim() || undefined,
-        regionCode: regionCode.trim() || 'TH',
+        serviceLocations,
         tagSlugs: selectedTagSlugs,
       });
       setProfile(prof);
+      setServiceLocations(prof.serviceLocations);
       setSelectedTagSlugs(prof.tagSlugs);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save profile');
@@ -105,6 +129,13 @@ export default function ContractorPage() {
   const selectedTagLabels = selectedTagSlugs
     .map((slug) => tradeTags.find((tag) => tag.slug === slug)?.label ?? slug)
     .join(', ');
+
+  const serviceLocationSummary =
+    locationCatalog && serviceLocations.length > 0
+      ? serviceLocations
+          .map((location) => formatServiceLocation(locationCatalog, location))
+          .join('; ')
+      : '';
 
   const handleLogout = async () => {
     await signOut();
@@ -163,14 +194,16 @@ export default function ContractorPage() {
                   placeholder="Your company"
                 />
               </label>
-              <label>
-                Region code
-                <input
-                  value={regionCode}
-                  onChange={(e) => setRegionCode(e.target.value)}
-                  placeholder="TH"
+              {locationCatalog ? (
+                <ServiceLocationEditor
+                  catalog={locationCatalog}
+                  value={serviceLocations}
+                  onChange={setServiceLocations}
+                  disabled={busy}
                 />
-              </label>
+              ) : (
+                <p className="muted">Loading locations…</p>
+              )}
               <fieldset className="tag-fieldset">
                 <legend>Your specialties</legend>
                 <p className="muted tag-hint">
@@ -201,7 +234,7 @@ export default function ContractorPage() {
             <section className="card">
               <h2 className="section-title">Your profile</h2>
               <p className="muted doc-hint">
-                Update company details and the trades you want to work on.
+                Update company details, service areas, and the trades you want to work on.
               </p>
               <div className="modal-form">
                 <label>
@@ -212,20 +245,25 @@ export default function ContractorPage() {
                     placeholder="Your company"
                   />
                 </label>
-                <label>
-                  Region code
-                  <input
-                    value={regionCode}
-                    onChange={(e) => setRegionCode(e.target.value)}
-                    placeholder="TH"
+                {locationCatalog ? (
+                  <ServiceLocationEditor
+                    catalog={locationCatalog}
+                    value={serviceLocations}
+                    onChange={setServiceLocations}
+                    disabled={busy}
                   />
-                </label>
+                ) : (
+                  <p className="muted">Loading locations…</p>
+                )}
                 <fieldset className="tag-fieldset">
                   <legend>Your specialties</legend>
                   <p className="muted tag-hint">
                     {selectedTagLabels
                       ? `Selected: ${selectedTagLabels}`
                       : 'None selected — home page shows all projects.'}
+                    {serviceLocationSummary
+                      ? ` · Notifications: ${serviceLocationSummary}`
+                      : ''}
                   </p>
                   <TradeTagPicker
                     tags={tradeTags}

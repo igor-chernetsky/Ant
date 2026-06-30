@@ -110,6 +110,9 @@ export interface Project {
   projectType: ProjectType;
   propertyType: PropertyType | null;
   district: string | null;
+  locationRegionSlug: string;
+  locationAreaSlug: string | null;
+  locationNote: string | null;
   regionCode: string;
   status: string;
   isHidden: boolean;
@@ -131,6 +134,9 @@ export interface CreateProjectInput {
   projectType?: ProjectType;
   propertyType?: PropertyType;
   district?: string;
+  locationRegionSlug?: string;
+  locationAreaSlug?: string;
+  locationNote?: string;
   clarificationMode?: ClarificationMode;
 }
 
