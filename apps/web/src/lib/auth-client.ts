@@ -35,7 +35,7 @@ export async function fetchWithAuth(
     return response;
   }
 
-  const refreshed = await refreshSessionTokens();
+  const refreshed = await refreshSessionTokens({ force: true });
   if (refreshed) {
     response = await fetch(input, requestInit);
     if (response.status !== 401) {

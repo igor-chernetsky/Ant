@@ -15,6 +15,7 @@ import { isFilePickerActive } from '@/lib/file-picker-guard';
 import {
   fetchSessionProfile,
   logoutSession,
+  PROACTIVE_REFRESH_INTERVAL_MS,
   refreshSessionTokens,
   type MeResponse,
 } from '@/lib/session';
@@ -73,23 +74,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       void refreshSessionTokens();
     };
 
-    const onFocus = () => {
-      window.setTimeout(refreshIfNeeded, 800);
-    };
-
-    const intervalId = window.setInterval(refreshIfNeeded, 4 * 60 * 1000);
+    const intervalId = window.setInterval(
+      refreshIfNeeded,
+      PROACTIVE_REFRESH_INTERVAL_MS,
+    );
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
-        window.setTimeout(refreshIfNeeded, 800);
+        refreshIfNeeded();
       }
     };
 
-    window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       window.clearInterval(intervalId);
-      window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [me]);

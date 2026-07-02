@@ -29,6 +29,13 @@ export function headerUserLabel(me: MeResponse): string {
 }
 
 let clientRefreshFlight: Promise<boolean> | null = null;
+let lastProactiveRefreshAt = 0;
+
+/** Minimum gap between background refresh calls (focus / interval). */
+export const PROACTIVE_REFRESH_MIN_INTERVAL_MS = 3 * 60 * 1000;
+
+/** Background refresh while the tab stays open. */
+export const PROACTIVE_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -42,7 +49,18 @@ async function callRefreshEndpoint(): Promise<boolean> {
   return response.ok;
 }
 
-export async function refreshSessionTokens(): Promise<boolean> {
+export async function refreshSessionTokens(options?: {
+  force?: boolean;
+}): Promise<boolean> {
+  const force = options?.force ?? false;
+  if (
+    !force &&
+    lastProactiveRefreshAt > 0 &&
+    Date.now() - lastProactiveRefreshAt < PROACTIVE_REFRESH_MIN_INTERVAL_MS
+  ) {
+    return true;
+  }
+
   if (clientRefreshFlight) {
     return clientRefreshFlight;
   }
@@ -50,11 +68,16 @@ export async function refreshSessionTokens(): Promise<boolean> {
   clientRefreshFlight = (async () => {
     try {
       if (await callRefreshEndpoint()) {
+        lastProactiveRefreshAt = Date.now();
         return true;
       }
       // Another tab/request may have rotated the refresh token first.
       await sleep(400);
-      return callRefreshEndpoint();
+      const retryOk = await callRefreshEndpoint();
+      if (retryOk) {
+        lastProactiveRefreshAt = Date.now();
+      }
+      return retryOk;
     } finally {
       clientRefreshFlight = null;
     }
@@ -65,13 +88,13 @@ export async function refreshSessionTokens(): Promise<boolean> {
 
 /** Refresh cookies before a user action (forms, uploads). */
 export async function ensureSessionFresh(): Promise<boolean> {
-  return refreshSessionTokens();
+  return refreshSessionTokens({ force: true });
 }
 
 export async function fetchSessionProfile(): Promise<MeResponse | null> {
   const response = await fetch('/api/auth/me', { credentials: 'include' });
   if (response.status === 401) {
-    const refreshed = await refreshSessionTokens();
+    const refreshed = await refreshSessionTokens({ force: true });
     if (!refreshed) {
       return null;
     }
