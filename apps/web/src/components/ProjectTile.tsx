@@ -56,6 +56,15 @@ export function ProjectTile({
             ? 'Hidden'
             : formatProjectStatus(project.status)}
         </span>
+        {isOwned && project.applicationsDeadlinePassed && (
+          <span
+            className="project-tile-expired-badge"
+            title="Application deadline expired"
+            aria-label="Application deadline expired"
+          >
+            !
+          </span>
+        )}
         {isOwned && <span className="project-tile-owned-badge">My project</span>}
         {participationLabel && !isOwned && (
           <span className="project-tile-contractor-badge">

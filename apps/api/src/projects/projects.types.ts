@@ -86,6 +86,7 @@ export interface PublicProjectCard {
   tags: PublicProjectTag[];
   coverImageUrl: string | null;
   updatedAt: string;
+  applicationsDeadlinePassed: boolean;
 }
 
 export interface ProjectCompletionContext {

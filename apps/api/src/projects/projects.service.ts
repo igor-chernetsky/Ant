@@ -251,7 +251,9 @@ export class ProjectsService {
           isHidden: false,
         });
       }
-    } else if (!includesCompleted) {
+    }
+
+    if (orClauses.length === 0 && !includesCompleted) {
       orClauses.push({
         status: { in: DISCOVERY_STATUSES },
         isHidden: false,
@@ -296,6 +298,10 @@ export class ProjectsService {
         return false;
       }
       if (project.status === ProjectStatus.completed) {
+        return true;
+      }
+      const isOwner = Boolean(userId && project.clientId === userId);
+      if (isOwner) {
         return true;
       }
       if (!project.tender) {
@@ -418,7 +424,21 @@ export class ProjectsService {
       })),
       coverImageUrl: coverByProject.get(project.id) ?? null,
       updatedAt: project.updatedAt.toISOString(),
+      applicationsDeadlinePassed:
+        this.isApplicationsDeadlinePassedForProject(project),
     }));
+  }
+
+  private isApplicationsDeadlinePassedForProject(project: {
+    tender?: { status: string; closesAt: Date | null } | null;
+  }): boolean {
+    if (!project.tender) {
+      return false;
+    }
+    return shouldHideProjectFromPublicDiscovery({
+      tenderStatus: project.tender.status,
+      closesAt: project.tender.closesAt,
+    });
   }
 
   private async loadParticipantProjectIds(
