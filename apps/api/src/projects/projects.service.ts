@@ -300,18 +300,22 @@ export class ProjectsService {
       if (project.status === ProjectStatus.completed) {
         return true;
       }
-      const isOwner = Boolean(userId && project.clientId === userId);
-      if (isOwner) {
-        return true;
-      }
       if (!project.tender) {
         return true;
       }
-      return !shouldHideProjectFromPublicDiscovery({
+      const deadlinePassed = shouldHideProjectFromPublicDiscovery({
         tenderStatus: project.tender.status,
         closesAt: project.tender.closesAt,
         now,
       });
+      if (!deadlinePassed) {
+        return true;
+      }
+      return this.canViewExpiredDiscoverProject(
+        project,
+        userId,
+        participantProjectIds,
+      );
     });
 
     return this.mapPublicProjectCards(visibleProjects);
@@ -425,8 +429,33 @@ export class ProjectsService {
       coverImageUrl: coverByProject.get(project.id) ?? null,
       updatedAt: project.updatedAt.toISOString(),
       applicationsDeadlinePassed:
+        this.shouldShowApplicationDeadlineWarning(project) &&
         this.isApplicationsDeadlinePassedForProject(project),
     }));
+  }
+
+  private shouldShowApplicationDeadlineWarning(project: {
+    status: ProjectStatus;
+  }): boolean {
+    return (
+      project.status !== ProjectStatus.contractor_selected &&
+      project.status !== ProjectStatus.active &&
+      project.status !== ProjectStatus.completed
+    );
+  }
+
+  private canViewExpiredDiscoverProject(
+    project: { id: string; clientId: string },
+    userId: string | null,
+    participantProjectIds: Set<string>,
+  ): boolean {
+    if (!userId) {
+      return false;
+    }
+    if (project.clientId === userId) {
+      return true;
+    }
+    return participantProjectIds.has(project.id);
   }
 
   private isApplicationsDeadlinePassedForProject(project: {
@@ -489,7 +518,10 @@ export class ProjectsService {
     return Boolean(bid);
   }
 
-  async getPublicById(projectId: string): Promise<ProjectResponse> {
+  async getPublicById(
+    projectId: string,
+    userId: string | null = null,
+  ): Promise<ProjectResponse> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -509,7 +541,18 @@ export class ProjectsService {
         closesAt: project.tender.closesAt,
       })
     ) {
-      throw new NotFoundException('Project not found');
+      const participantProjectIds = userId
+        ? await this.loadParticipantProjectIds(userId)
+        : new Set<string>();
+      if (
+        !this.canViewExpiredDiscoverProject(
+          project,
+          userId,
+          participantProjectIds,
+        )
+      ) {
+        throw new NotFoundException('Project not found');
+      }
     }
 
     return this.buildPublicProjectResponse(project);

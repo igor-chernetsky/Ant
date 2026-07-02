@@ -43,8 +43,15 @@ export class PublicProjectsController {
   }
 
   @Get('projects/:id')
-  getProject(@Param('id') id: string) {
-    return this.projectsService.getPublicById(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  async getProject(
+    @Req() req: Request & { user?: JwtPayload | null },
+    @Param('id') id: string,
+  ) {
+    const userId = req.user
+      ? (await this.usersService.findOrCreateFromJwt(req.user)).id
+      : null;
+    return this.projectsService.getPublicById(id, userId);
   }
 
   @Get('tags')

@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server';
 import { getBackendApiUrl } from '@/lib/auth-server';
+import { getValidAccessToken } from '@/lib/auth-tokens';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
 
+  const headers: HeadersInit = { Accept: 'application/json' };
+  const auth = await getValidAccessToken();
+  if (auth.ok) {
+    headers.Authorization = `Bearer ${auth.accessToken}`;
+  }
+
   try {
     const backendResponse = await fetch(
       `${getBackendApiUrl()}/v1/public/projects/${encodeURIComponent(id)}`,
-      { cache: 'no-store' },
+      { cache: 'no-store', headers },
     );
     const text = await backendResponse.text();
     let body: unknown = text;
