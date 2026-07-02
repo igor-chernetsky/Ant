@@ -279,11 +279,7 @@ export class ProjectsService {
       return [];
     }
 
-    const where: Prisma.ProjectWhereInput = {
-      OR: orClauses,
-      ...(tagFilter ?? {}),
-      ...(this.buildLocationFilter(location) ?? {}),
-    };
+    const where = this.buildDiscoverWhere(orClauses, tagFilter, location);
 
     const projects = await this.prisma.project.findMany({
       where,
@@ -315,6 +311,25 @@ export class ProjectsService {
     return this.mapPublicProjectCards(visibleProjects);
   }
 
+  private buildDiscoverWhere(
+    orClauses: Prisma.ProjectWhereInput[],
+    tagFilter: Prisma.ProjectWhereInput | undefined,
+    location?: DiscoverLocationFilter,
+  ): Prisma.ProjectWhereInput {
+    const andParts: Prisma.ProjectWhereInput[] = [{ OR: orClauses }];
+
+    if (tagFilter) {
+      andParts.push(tagFilter);
+    }
+
+    const locationFilter = this.buildLocationFilter(location);
+    if (locationFilter) {
+      andParts.push(locationFilter);
+    }
+
+    return andParts.length === 1 ? andParts[0] : { AND: andParts };
+  }
+
   private buildLocationFilter(
     location?: DiscoverLocationFilter,
   ): Prisma.ProjectWhereInput | undefined {
@@ -329,7 +344,9 @@ export class ProjectsService {
       this.locations.assertAreaSlug(regionSlug, areaSlug);
       return {
         locationRegionSlug: regionSlug,
-        OR: [{ locationAreaSlug: areaSlug }, { locationAreaSlug: null }],
+        AND: {
+          OR: [{ locationAreaSlug: areaSlug }, { locationAreaSlug: null }],
+        },
       };
     }
 
@@ -341,19 +358,27 @@ export class ProjectsService {
     tagSlugs: string[],
     location?: DiscoverLocationFilter,
   ): Promise<PublicProjectCard[]> {
-    const where: Prisma.ProjectWhereInput = {
-      clientId,
-      isHidden: true,
-      ...(this.buildLocationFilter(location) ?? {}),
-    };
+    const andParts: Prisma.ProjectWhereInput[] = [
+      { clientId, isHidden: true },
+    ];
+
+    const locationFilter = this.buildLocationFilter(location);
+    if (locationFilter) {
+      andParts.push(locationFilter);
+    }
 
     if (tagSlugs.length > 0) {
-      where.tags = {
-        some: {
-          tag: { slug: { in: tagSlugs } },
+      andParts.push({
+        tags: {
+          some: {
+            tag: { slug: { in: tagSlugs } },
+          },
         },
-      };
+      });
     }
+
+    const where: Prisma.ProjectWhereInput =
+      andParts.length === 1 ? andParts[0] : { AND: andParts };
 
     const projects = await this.prisma.project.findMany({
       where,
