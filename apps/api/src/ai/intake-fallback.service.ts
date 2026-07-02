@@ -1,12 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import { FinalIntakeResult, InitialIntakeResult, IntakeQuestion, NextQuestionResult, ProjectIntakeContext } from './intake.types';
+import {
+  FinalIntakeResult,
+  InitialIntakeResult,
+  IntakeQuestion,
+  NextQuestionResult,
+  ProjectIntakeContext,
+} from './intake.types';
 import { sanitizeIntakeQuestion } from './intake-question.utils';
+import { hasDocumentIntakeContext } from '../intake/intake-document-context';
 import { suggestTagSlugsFromText } from '../projects/project-brief';
 
 @Injectable()
 export class IntakeFallbackService {
   runInitialIntake(context: ProjectIntakeContext): InitialIntakeResult {
-    const narrative = [context.title, context.description ?? ''].join(' ').trim();
+    const documentNarrative =
+      context.documents?.map((doc) => doc.summary).join(' ') ?? '';
+    const narrative = [context.title, context.description ?? '', documentNarrative]
+      .join(' ')
+      .trim();
     const tagSlugs = suggestTagSlugsFromText(narrative).filter((slug) =>
       context.availableTagSlugs.includes(slug),
     );
@@ -49,9 +60,20 @@ export class IntakeFallbackService {
   }
 
   finalizeIntake(context: ProjectIntakeContext): FinalIntakeResult {
+    const documentNarrative =
+      context.documents
+        ?.map((doc) => {
+          const facts = doc.keyFacts?.length
+            ? ` Key facts: ${doc.keyFacts.join('; ')}.`
+            : '';
+          return `${doc.fileName}: ${doc.summary}.${facts}`;
+        })
+        .join(' ') ?? '';
+
     const narrative = [
       context.title,
       context.improvedDescription ?? context.description ?? '',
+      documentNarrative,
       ...context.answers.map((a) => {
         if (a.skipped) return '';
         const base = Array.isArray(a.value) ? a.value.join(', ') : a.value;
@@ -105,8 +127,17 @@ export class IntakeFallbackService {
   private fallbackQuestionQueue(
     context: ProjectIntakeContext,
   ): IntakeQuestion[] {
-    return [
-      {
+    const hasDocArea = Boolean(
+      context.documents?.some(
+        (doc) =>
+          doc.summary.match(/\d+\s*(sqm|m2|sq\.?\s*m)/i) ||
+          doc.keyFacts?.some((fact) => /\d+\s*(sqm|m2)/i.test(fact)),
+      ),
+    );
+
+    const queue: IntakeQuestion[] = [];
+    if (!hasDocArea) {
+      queue.push({
         id: 'approx-area',
         type: 'single',
         prompt: 'What is the approximate area involved?',
@@ -119,7 +150,10 @@ export class IntakeFallbackService {
           { id: '80-150', label: '80–150 sqm' },
           { id: '150-plus', label: 'Over 150 sqm' },
         ],
-      },
+      });
+    }
+
+    queue.push(
       {
         id: 'timeline',
         type: 'single',
@@ -136,11 +170,15 @@ export class IntakeFallbackService {
       {
         id: 'materials-notes',
         type: 'text',
-        prompt: 'Any material preferences or constraints? (optional)',
+        prompt: hasDocumentIntakeContext(context.documents)
+          ? 'Anything missing from the uploaded documents that contractors should know? (optional)'
+          : 'Any material preferences or constraints? (optional)',
         required: false,
         allowSkip: true,
         placeholder: 'e.g. premium tiles, client-supplied fixtures…',
       },
-    ];
+    );
+
+    return queue;
   }
 }

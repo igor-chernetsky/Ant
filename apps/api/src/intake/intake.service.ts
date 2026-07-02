@@ -24,6 +24,7 @@ import {
   buildInitialBrief,
   computeReadinessScore,
 } from '../projects/project-brief';
+import { buildDocumentIntakeContext } from './intake-document-context';
 import { ProjectResponse } from '../projects/projects.types';
 import { EstimatesService } from '../estimation/estimates.service';
 import { ProjectsService } from '../projects/projects.service';
@@ -45,7 +46,10 @@ export class IntakeService {
     });
     if (!project) return;
 
-    const context = await this.buildContext(project);
+    const context = await this.buildContext(
+      project,
+      (project.briefJson ?? null) as unknown as ProjectBriefV1 | null,
+    );
     let result: InitialIntakeResult | null = null;
 
     if (this.openAi.isConfigured()) {
@@ -133,10 +137,13 @@ export class IntakeService {
       },
     ];
 
-    const context = await this.buildContext({
-      ...project,
-      description: brief.ai?.improvedDescription ?? project.description,
-    });
+    const context = await this.buildContext(
+      {
+        ...project,
+        description: brief.ai?.improvedDescription ?? project.description,
+      },
+      brief,
+    );
     context.improvedDescription =
       brief.ai?.improvedDescription ?? project.description ?? undefined;
     context.answers = answers;
@@ -231,7 +238,7 @@ export class IntakeService {
       throw new BadRequestException('Please answer the current question first');
     }
 
-    const context = await this.buildContext(project);
+    const context = await this.buildContext(project, brief);
     context.improvedDescription =
       brief.ai?.improvedDescription ?? project.description ?? undefined;
     context.answers = intake.answers;
@@ -321,14 +328,18 @@ export class IntakeService {
     return resolved;
   }
 
-  private async buildContext(project: {
-    title: string;
-    description: string | null;
-    projectType: string;
-    propertyType: string | null;
-    district: string | null;
-  }): Promise<ProjectIntakeContext> {
+  private async buildContext(
+    project: {
+      title: string;
+      description: string | null;
+      projectType: string;
+      propertyType: string | null;
+      district: string | null;
+    },
+    brief?: ProjectBriefV1 | null,
+  ): Promise<ProjectIntakeContext> {
     const tags = await this.prisma.tag.findMany({ select: { slug: true } });
+    const documents = buildDocumentIntakeContext(brief);
     return {
       title: project.title,
       description: project.description,
@@ -337,6 +348,7 @@ export class IntakeService {
       district: project.district,
       answers: [],
       availableTagSlugs: tags.map((t) => t.slug),
+      ...(documents.length > 0 ? { documents } : {}),
     };
   }
 

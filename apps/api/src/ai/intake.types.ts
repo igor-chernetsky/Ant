@@ -68,6 +68,13 @@ export interface SubmitAnswerDto {
 /** Reserved option id — user supplies customText */
 export const INTAKE_OTHER_OPTION_ID = '__other__';
 
+export interface IntakeDocumentContext {
+  fileName: string;
+  summary: string;
+  keyFacts?: string[];
+  scopeLines?: Array<{ trade: string; description: string }>;
+}
+
 export interface ProjectIntakeContext {
   title: string;
   description: string | null;
@@ -78,4 +85,6 @@ export interface ProjectIntakeContext {
   answers: IntakeAnswer[];
   askedQuestionIds?: string[];
   availableTagSlugs: string[];
+  /** Summaries and scope extracted from uploaded project documents. */
+  documents?: IntakeDocumentContext[];
 }

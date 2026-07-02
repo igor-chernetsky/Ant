@@ -91,6 +91,28 @@ export class OpenAiIntakeService {
 - Never use "info" type. Never ask the user to upload plans, photos, or documents — the UI shows a static reminder instead.`;
   }
 
+  private documentContextRules(): string {
+    return `When uploadedDocuments is non-empty:
+- Treat summaries, keyFacts, and scopeLines as facts already known about the project
+- keyFacts may include room dimensions, areas, storey counts, and materials — use them in improvedDescription and to avoid redundant questions
+- Do not ask questions that those documents already answer clearly
+- Ask follow-ups only for gaps, ambiguities, or missing scope/timeline/material details
+- You may weave document facts into improvedDescription when relevant`;
+  }
+
+  private serializeContextForPrompt(context: ProjectIntakeContext) {
+    return {
+      title: context.title,
+      description: context.description,
+      projectType: context.projectType,
+      propertyType: context.propertyType,
+      district: context.district,
+      improvedDescription: context.improvedDescription,
+      allowedTagSlugs: context.availableTagSlugs,
+      uploadedDocuments: context.documents ?? [],
+    };
+  }
+
   async runInitialIntake(
     context: ProjectIntakeContext,
   ): Promise<InitialIntakeResult | null> {
@@ -98,21 +120,15 @@ export class OpenAiIntakeService {
 Return JSON only with keys: improvedDescription, tagSlugs, confidence, nextQuestion.
 ${this.questionSchemaHint()}
 Rules:
-- improvedDescription: clear professional English, 2-5 sentences, do not invent facts not implied by input
+- improvedDescription: clear professional English, 2-5 sentences, do not invent facts not implied by input or uploadedDocuments
 - tagSlugs: subset of allowed tags only
 - confidence: 0-1
 - nextQuestion: first follow-up question to clarify scope, or null if nothing needed
 - Ask at most ONE question in nextQuestion
-- Prefer practical construction questions (area, timeline, materials)`;
+- Prefer practical construction questions (area, timeline, materials)
+${this.documentContextRules()}`;
 
-    const user = JSON.stringify({
-      title: context.title,
-      description: context.description,
-      projectType: context.projectType,
-      propertyType: context.propertyType,
-      district: context.district,
-      allowedTagSlugs: context.availableTagSlugs,
-    });
+    const user = JSON.stringify(this.serializeContextForPrompt(context));
 
     const result = await this.chatJson<{
       improvedDescription?: string;
@@ -164,20 +180,14 @@ Rules:
 - Return exactly ONE next question or null when intake is complete
 - Do not repeat question ids already asked: ${JSON.stringify(context.askedQuestionIds ?? context.answers.map((a) => a.questionId))}
 - Never ask about uploading plans, photos, or documents
-- Adapt next question based on previous answers
-- improvedDescription: optionally refine project description with new facts from answers`;
+- Adapt next question based on previous answers and uploadedDocuments
+- improvedDescription: optionally refine project description with new facts from answers or documents
+${this.documentContextRules()}`;
 
     const user = JSON.stringify({
-      project: {
-        title: context.title,
-        projectType: context.projectType,
-        propertyType: context.propertyType,
-        district: context.district,
-        improvedDescription: context.improvedDescription,
-      },
+      project: this.serializeContextForPrompt(context),
       answers: context.answers,
       lastAnswer,
-      allowedTagSlugs: context.availableTagSlugs,
     });
 
     const result = await this.chatJson<{
@@ -204,18 +214,13 @@ Rules:
 - finalDescription: polished scope description for contractors (English)
 - summary: shorter version for brief (1-3 sentences)
 - tagSlugs: from allowed list only
-- confidence: 0-1`;
+- confidence: 0-1
+- Incorporate uploadedDocuments when present; do not contradict them
+${this.documentContextRules()}`;
 
     const user = JSON.stringify({
-      project: {
-        title: context.title,
-        projectType: context.projectType,
-        propertyType: context.propertyType,
-        district: context.district,
-      },
-      improvedDescription: context.improvedDescription,
+      project: this.serializeContextForPrompt(context),
       answers: context.answers,
-      allowedTagSlugs: context.availableTagSlugs,
     });
 
     const result = await this.chatJson<{
