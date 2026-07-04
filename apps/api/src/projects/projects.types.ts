@@ -107,6 +107,17 @@ export interface PresignProjectReviewAttachmentDto {
   sizeBytes: number;
 }
 
+export interface ContractorReviewItem {
+  id: string;
+  projectId: string;
+  projectTitle: string;
+  comment: string | null;
+  ratings: Record<string, number>;
+  averageRating: number;
+  createdAt: string;
+  clientName: string | null;
+}
+
 export interface ProjectReviewAttachmentResponse {
   id: string;
   originalName: string;

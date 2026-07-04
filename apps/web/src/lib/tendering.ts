@@ -222,6 +222,10 @@ export interface ContractorApplicationItem {
   projectId: string;
   projectTitle: string;
   projectDistrict: string | null;
+  projectStatus: string;
+  projectType: string;
+  description: string | null;
+  coverImageUrl: string | null;
   tenderStatus: TenderStatus;
   bidStatus: BidStatus;
   contenderNumber: number | null;
@@ -643,6 +647,25 @@ export async function fetchContractorApplications(): Promise<
   return response.json() as Promise<ContractorApplicationItem[]>;
 }
 
+export interface ContractorReviewItem {
+  id: string;
+  projectId: string;
+  projectTitle: string;
+  comment: string | null;
+  ratings: Record<string, number>;
+  averageRating: number;
+  createdAt: string;
+  clientName: string | null;
+}
+
+export async function fetchContractorReviews(): Promise<ContractorReviewItem[]> {
+  const response = await fetchWithAuth('/api/contractor/reviews');
+  if (!response.ok) {
+    await parseError(response, 'Failed to load reviews');
+  }
+  return response.json() as Promise<ContractorReviewItem[]>;
+}
+
 /** @deprecated Use fetchContractorApplications */
 export async function fetchContractorInvitations(): Promise<
   ContractorApplicationItem[]
@@ -746,6 +769,11 @@ export async function withdrawContractorBid(tenderId: string): Promise<Bid> {
 export function formatContractorParticipationLabel(
   application: ContractorApplicationItem,
 ): string {
+  if (application.projectStatus === 'completed') {
+    return application.bidStatus === 'selected'
+      ? 'Completed project'
+      : 'Project completed';
+  }
   if (application.isActiveProject || application.bidStatus === 'selected') {
     return 'Active project';
   }

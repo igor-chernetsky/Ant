@@ -601,6 +601,12 @@ export class ProjectsService {
     };
   }
 
+  async getCoverUrlsForProjects(
+    projectIds: string[],
+  ): Promise<Map<string, string>> {
+    return this.loadCoverUrls(projectIds);
+  }
+
   private async loadCoverUrls(
     projectIds: string[],
   ): Promise<Map<string, string>> {

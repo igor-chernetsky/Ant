@@ -28,6 +28,7 @@ import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { ProjectsService } from '../projects/projects.service';
+import { ProjectReviewsService } from '../projects/project-reviews.service';
 
 @Controller('v1/contractor')
 @UseGuards(JwtAuthGuard)
@@ -41,6 +42,7 @@ export class ContractorTenderController {
     private readonly commercialProposal: CommercialProposalService,
     private readonly clarifications: TenderClarificationsService,
     private readonly projectsService: ProjectsService,
+    private readonly projectReviews: ProjectReviewsService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
@@ -76,6 +78,12 @@ export class ContractorTenderController {
   async listApplications(@Req() req: Request & { user: JwtPayload }) {
     const user = await this.resolveUser(req);
     return this.tendersService.listApplicationsForContractor(user.id);
+  }
+
+  @Get('reviews')
+  async listReviews(@Req() req: Request & { user: JwtPayload }) {
+    const user = await this.resolveUser(req);
+    return this.projectReviews.listForContractor(user.id);
   }
 
   @Get('invitations')

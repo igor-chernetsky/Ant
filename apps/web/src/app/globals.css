@@ -4757,3 +4757,126 @@ select:disabled {
   overflow-y: auto;
 }
 
+.contractor-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.contractor-section-header .section-title {
+  margin-bottom: 0;
+}
+
+.contractor-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.contractor-toggle input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.contractor-reviews-summary {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.contractor-reviews-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.contractor-review-item {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fafbfd;
+}
+
+.contractor-review-item-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.65rem;
+}
+
+.contractor-review-project {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.contractor-review-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+}
+
+.contractor-review-average {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.contractor-review-average-value {
+  font-weight: 700;
+  color: #b45309;
+}
+
+.contractor-review-comment {
+  margin: 0 0 0.75rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.contractor-review-ratings {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.contractor-review-rating-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.contractor-review-rating-row dt {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.contractor-review-rating-row dd {
+  margin: 0;
+}
+
+.contractor-review-stars {
+  display: inline-flex;
+  gap: 0.05rem;
+  line-height: 1;
+}
+
+.contractor-review-star {
+  color: #d1d5db;
+  font-size: 0.95rem;
+}
+
+.contractor-review-star-active {
+  color: #f59e0b;
+}
+

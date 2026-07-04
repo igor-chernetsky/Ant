@@ -22,6 +22,7 @@ import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { DefaultCostBreakdownService } from './default-cost-breakdown.service';
+import { ProjectsService } from '../projects/projects.service';
 import { normalizeContractTerms } from './commercial-proposal.template';
 import {
   isApplicationsDeadlinePassed,
@@ -65,6 +66,7 @@ export class TendersService {
     private readonly notifications: NotificationsService,
     private readonly clarifications: TenderClarificationsService,
     private readonly costBreakdown: DefaultCostBreakdownService,
+    private readonly projectsService: ProjectsService,
   ) {}
 
   private mapBid(bid: Bid & { contractor: ContractorProfile }): BidResponse {
@@ -684,25 +686,50 @@ export class TendersService {
       include: {
         tender: { include: { project: true } },
       },
-      orderBy: { submittedAt: 'desc' },
+      orderBy: [{ submittedAt: 'desc' }, { enrolledAt: 'desc' }],
     });
 
-    return bids.map((bid) => ({
+    const projectIds = [...new Set(bids.map((bid) => bid.tender.projectId))];
+    const coverByProject =
+      await this.projectsService.getCoverUrlsForProjects(projectIds);
+
+    const items = bids.map((bid) => ({
       bidId: bid.id,
       tenderId: bid.tenderId,
       projectId: bid.tender.projectId,
       projectTitle: bid.tender.project.title,
       projectDistrict: bid.tender.project.district,
+      projectStatus: bid.tender.project.status,
+      projectType: bid.tender.project.projectType,
+      description: bid.tender.project.description,
+      coverImageUrl: coverByProject.get(bid.tender.projectId) ?? null,
       tenderStatus: bid.tender.status,
       bidStatus: bid.status,
       contenderNumber: bid.contenderNumber,
       bidAmount:
         bid.amount != null && bid.status === BidStatus.submitted
           ? bid.amount.toString()
-          : null,
+          : bid.status === BidStatus.selected && bid.amount != null
+            ? bid.amount.toString()
+            : null,
       submittedAt: bid.submittedAt?.toISOString() ?? null,
-      isActiveProject: bid.status === BidStatus.selected,
+      isActiveProject:
+        bid.status === BidStatus.selected &&
+        bid.tender.project.status !== ProjectStatus.completed,
     }));
+
+    items.sort((a, b) => {
+      const aCompleted = a.projectStatus === ProjectStatus.completed ? 1 : 0;
+      const bCompleted = b.projectStatus === ProjectStatus.completed ? 1 : 0;
+      if (aCompleted !== bCompleted) {
+        return aCompleted - bCompleted;
+      }
+      const aTime = a.submittedAt ?? '';
+      const bTime = b.submittedAt ?? '';
+      return bTime.localeCompare(aTime);
+    });
+
+    return items;
   }
 
   async listInvitationsForContractor(userId: string): Promise<unknown[]> {

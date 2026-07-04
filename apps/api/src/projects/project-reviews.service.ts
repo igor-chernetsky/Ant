@@ -23,9 +23,10 @@ import {
 } from './project-review.constants';
 import {
   CompleteProjectDto,
+  ContractorReviewItem,
+  PresignProjectReviewAttachmentDto,
   ProjectCompletionContext,
   ProjectReviewAttachmentResponse,
-  PresignProjectReviewAttachmentDto,
 } from './projects.types';
 
 const COMPLETABLE_STATUSES: ProjectStatus[] = [
@@ -76,6 +77,50 @@ export class ProjectReviewsService {
       contractorName: awarded.contractor.companyName ?? 'Contractor',
       reason: null,
     };
+  }
+
+  async listForContractor(userId: string): Promise<ContractorReviewItem[]> {
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!profile) {
+      return [];
+    }
+
+    const reviews = await this.prisma.contractorProjectReview.findMany({
+      where: { contractorId: profile.id },
+      include: {
+        project: { select: { title: true } },
+        client: { select: { displayName: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return reviews.map((review) => {
+      const ratings = review.ratingsJson as Record<string, number>;
+      const values = REVIEW_RATING_KEYS.map((key) => ratings[key]).filter(
+        (value) => typeof value === 'number' && Number.isFinite(value),
+      );
+      const averageRating =
+        values.length > 0
+          ? Math.round(
+              (values.reduce((sum, value) => sum + value, 0) / values.length) *
+                10,
+            ) / 10
+          : 0;
+
+      return {
+        id: review.id,
+        projectId: review.projectId,
+        projectTitle: review.project.title,
+        comment: review.comment,
+        ratings,
+        averageRating,
+        createdAt: review.createdAt.toISOString(),
+        clientName: review.client.displayName ?? review.client.email,
+      };
+    });
   }
 
   async presignAttachment(

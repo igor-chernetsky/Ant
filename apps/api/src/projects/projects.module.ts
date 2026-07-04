@@ -15,6 +15,6 @@ import { ProjectReviewsService } from './project-reviews.service';
   imports: [UsersModule, TagsModule, LocationsModule, EstimationModule, forwardRef(() => IntakeModule)],
   controllers: [ProjectsController, PublicProjectsController],
   providers: [ProjectsService, ProjectReviewsService],
-  exports: [ProjectsService],
+  exports: [ProjectsService, ProjectReviewsService],
 })
 export class ProjectsModule {}

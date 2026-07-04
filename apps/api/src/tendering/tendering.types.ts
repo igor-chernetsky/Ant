@@ -159,6 +159,10 @@ export interface ContractorApplicationItem {
   bidAmount: string | null;
   submittedAt: string | null;
   isActiveProject: boolean;
+  projectStatus: string;
+  projectType: string;
+  description: string | null;
+  coverImageUrl: string | null;
 }
 
 export interface ContractorProjectParticipation {

@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { ContractorApplicationTile } from '@/components/ContractorApplicationTile';
+import { ContractorReviewsPanel } from '@/components/ContractorReviewsPanel';
 import { ContractorVerificationPanel } from '@/components/ContractorVerificationPanel';
 import { ContractorPortfolioPanel } from '@/components/ContractorPortfolioPanel';
 import { LoginModal } from '@/components/LoginModal';
@@ -17,13 +19,10 @@ import {
   type LocationCatalog,
   type ServiceLocation,
 } from '@/lib/locations';
-import { formatThb } from '@/lib/estimate';
 import { fetchPublicTags } from '@/lib/public-projects';
 import {
   fetchContractorApplications,
   fetchContractorProfile,
-  formatContractorParticipationLabel,
-  formatTenderStatus,
   upsertContractorProfile,
   type ContractorApplicationItem,
   type ContractorProfile,
@@ -55,6 +54,8 @@ export default function ContractorPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [showCompletedApplications, setShowCompletedApplications] =
+    useState(false);
 
   const loadAll = useCallback(async () => {
     setError(null);
@@ -142,6 +143,13 @@ export default function ContractorPage() {
     setProfile(null);
     setApplications([]);
   };
+
+  const completedApplications = applications.filter(
+    (app) => app.projectStatus === 'completed',
+  );
+  const visibleApplications = showCompletedApplications
+    ? applications
+    : applications.filter((app) => app.projectStatus !== 'completed');
 
   return (
     <PageShell>
@@ -291,8 +299,24 @@ export default function ContractorPage() {
 
             <ContractorPortfolioPanel />
 
+            <ContractorReviewsPanel />
+
             <section className="card">
-              <h2 className="section-title">My applications</h2>
+              <div className="contractor-section-header">
+                <h2 className="section-title">My applications</h2>
+                {applications.length > 0 && completedApplications.length > 0 && (
+                  <label className="contractor-toggle">
+                    <input
+                      type="checkbox"
+                      checked={showCompletedApplications}
+                      onChange={(event) =>
+                        setShowCompletedApplications(event.target.checked)
+                      }
+                    />
+                    Show completed
+                  </label>
+                )}
+              </div>
               {applications.length === 0 ? (
                 <p className="muted">
                   No applications yet. Browse{' '}
@@ -301,32 +325,18 @@ export default function ContractorPage() {
                   </Link>{' '}
                   and submit a bid when the client publishes for bidding.
                 </p>
+              ) : visibleApplications.length === 0 ? (
+                <p className="muted">
+                  No active applications. Turn on{' '}
+                  <strong>Show completed</strong> to see finished projects (
+                  {completedApplications.length}).
+                </p>
               ) : (
-                <ul className="tender-invite-list">
-                  {applications.map((app) => (
-                    <li key={app.bidId} className="tender-invite-item">
-                      <div>
-                        <strong>{app.projectTitle}</strong>
-                        <p className="muted doc-meta">
-                          {app.projectDistrict ?? app.projectId} ·{' '}
-                          {formatTenderStatus(app.tenderStatus)} ·{' '}
-                          {formatContractorParticipationLabel(app)}
-                          {app.bidAmount
-                            ? ` · ${formatThb(Number(app.bidAmount))}`
-                            : ''}
-                        </p>
-                      </div>
-                      <div className="bid-line-actions">
-                        <Link
-                          href={`/projects/${app.projectId}`}
-                          className="text-link"
-                        >
-                          View project
-                        </Link>
-                      </div>
-                    </li>
+                <div className="project-grid" aria-label="My applications">
+                  {visibleApplications.map((app) => (
+                    <ContractorApplicationTile key={app.bidId} application={app} />
                   ))}
-                </ul>
+                </div>
               )}
             </section>
           </>
