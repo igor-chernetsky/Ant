@@ -12,6 +12,7 @@ import {
   type Tender,
 } from '@/lib/tendering';
 import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificationQuestionsPanel';
+import { ContractorCoverageNotice } from '@/components/ContractorCoverageNotice';
 import { PublishTenderPackageModal } from '@/components/PublishTenderPackageModal';
 import {
   applicationsDeadlineFromTender,
@@ -125,6 +126,7 @@ export function TenderSummaryCard({
   };
 
   const structuredQa = project.clarificationMode === 'structured_qa';
+  const tagKey = project.tags.map((tag) => tag.slug).join(',');
   const collectingQuestions = structuredQa && tender?.status === 'draft';
   const canPublish = canPublishProject(project);
   const canRevert =
@@ -187,6 +189,11 @@ export function TenderSummaryCard({
               : 'Publish the project for open bidding. Contractors clarify scope, enroll as contenders, then submit proposals.'}
           </p>
           <div className="tender-actions-block tender-publish-block">
+            <ContractorCoverageNotice
+              projectId={projectId}
+              enabled={canPublish}
+              tagKey={tagKey}
+            />
             <button
               type="button"
               className="primary"
@@ -318,6 +325,11 @@ export function TenderSummaryCard({
                 you are ready to — you do not need to answer all of them before
                 opening the tender.
               </p>
+              <ContractorCoverageNotice
+                projectId={projectId}
+                enabled={canPublish}
+                tagKey={tagKey}
+              />
               <button
                 type="button"
                 className="primary"

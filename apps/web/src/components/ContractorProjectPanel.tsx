@@ -18,6 +18,7 @@ import {
   type ContractorProjectParticipation,
 } from '@/lib/tendering';
 import { formatVerificationStatus } from '@/lib/verification';
+import type { ProjectBriefV1 } from '@/lib/projects';
 
 interface ContractorProjectPanelProps {
   projectId: string;
@@ -25,6 +26,7 @@ interface ContractorProjectPanelProps {
   projectTitle?: string;
   projectDistrict?: string | null;
   projectDescription?: string | null;
+  projectBrief?: ProjectBriefV1 | null;
   clarificationSummary?: string | null;
 }
 
@@ -65,6 +67,7 @@ export function ContractorProjectPanel({
   projectTitle,
   projectDistrict,
   projectDescription,
+  projectBrief = null,
   clarificationSummary = null,
 }: ContractorProjectPanelProps) {
   const { me } = useSession();
@@ -403,6 +406,7 @@ export function ContractorProjectPanel({
               projectTitle={projectTitle}
               projectDistrict={projectDistrict}
               projectDescription={projectDescription}
+              projectBrief={projectBrief}
               defaultCostBreakdown={participation.defaultCostBreakdown ?? []}
               projectScopeSummary={participation.projectScopeSummary}
               projectContractTerms={participation.projectContractTerms}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import type { ProjectBriefV1 } from '@/lib/projects';
 import { formatThb } from '@/lib/estimate';
 import type { Bid, BidContractTerms, BidLineItem, BidTerms, DefaultCostBreakdownItem } from '@/lib/tendering';
 import {
@@ -10,6 +11,7 @@ import {
   pickContractorContractTerms,
   type ContractTermsAudience,
 } from '@/components/BidContractTermsFields';
+import { inferContractPeriodMonths } from '@/lib/contract-terms-inference';
 
 export interface BidProposalInput {
   amount: number;
@@ -27,6 +29,7 @@ interface BidProposalFormProps {
   projectTitle?: string;
   projectDistrict?: string | null;
   projectDescription?: string | null;
+  projectBrief?: ProjectBriefV1 | null;
   defaultCostBreakdown?: DefaultCostBreakdownItem[];
   projectScopeSummary?: string | null;
   projectContractTerms?: BidContractTerms;
@@ -63,11 +66,13 @@ function buildContractTermsProjectContext(
   projectTitle?: string,
   projectDistrict?: string | null,
   projectDescription?: string | null,
+  projectBrief?: ProjectBriefV1 | null,
 ) {
   return {
     title: projectTitle,
     district: projectDistrict,
     description: projectDescription,
+    brief: projectBrief,
   };
 }
 
@@ -77,6 +82,7 @@ export function BidProposalForm({
   projectTitle,
   projectDistrict,
   projectDescription,
+  projectBrief = null,
   defaultCostBreakdown = [],
   projectScopeSummary = null,
   projectContractTerms,
@@ -96,6 +102,7 @@ export function BidProposalForm({
     projectTitle,
     projectDistrict,
     projectDescription,
+    projectBrief,
   );
   const [amount, setAmount] = useState(
     existingBid?.amount != null ? String(existingBid.amount) : '',
@@ -130,7 +137,9 @@ export function BidProposalForm({
     ) {
       setContractTerms((current) => ({
         ...current,
-        contractPeriodMonths: Math.max(1, Math.round(parsed / 30)),
+        contractPeriodMonths:
+          inferContractPeriodMonths({ durationDays: parsed, brief: projectBrief }) ??
+          Math.max(1, Math.round(parsed / 30)),
       }));
     }
   };

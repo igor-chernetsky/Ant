@@ -3,6 +3,10 @@ import type {
   BidContractTerms,
   CommercialProposalRenderData,
 } from './commercial-proposal.types';
+import {
+  DEFAULT_PROPERTY_OWNERSHIP,
+  DEFAULT_RETENTION_RELEASE_NOTES,
+} from './contract-terms.defaults';
 
 export function escapeHtml(value: string): string {
   return value
@@ -186,8 +190,7 @@ export function buildCommercialProposalData(input: {
     contractorBlock,
     subjectOfContract: subject,
     propertyOwnership:
-      contract?.propertyOwnership?.trim() ||
-      'The Employer confirms lawful right to carry out the Works at the Site.',
+      contract?.propertyOwnership?.trim() || DEFAULT_PROPERTY_OWNERSHIP,
     scopeSummary:
       input.terms?.scopeSummary?.trim() ||
       'As shown and described in the Contract Documents, Drawings and Specifications (Annex #2).',
@@ -201,8 +204,7 @@ export function buildCommercialProposalData(input: {
     retentionText: buildRetentionText(contract),
     retentionReleaseText:
       contract?.retentionReleaseNotes?.trim() ||
-      'a) Release 50% of retention upon issuance of the Taking-Over Certificate;\n' +
-        'b) Release the balance after 12 months from Practical Completion.',
+      DEFAULT_RETENTION_RELEASE_NOTES,
     warrantyText:
       contract?.warrantyPeriodNotes?.trim() ||
       `Defect Notification Period: ${contract?.defectNotificationMonths ?? 24} months from Practical Completion.`,

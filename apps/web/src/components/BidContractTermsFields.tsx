@@ -3,6 +3,7 @@
 import type { BidContractTerms } from '@/lib/tendering';
 import {
   canEditContractTermField,
+  CONTRACT_TERMS_TEXT_PLACEHOLDER,
   type ContractTermsAudience,
 } from '@/lib/contract-terms-fields';
 
@@ -102,7 +103,7 @@ export function BidContractTermsFields({
             rows={2}
             disabled={fieldDisabled('propertyOwnership')}
             value={value.propertyOwnership ?? ''}
-            placeholder="The Employer holds lawful title to the Site and right to commission the Works."
+            placeholder={CONTRACT_TERMS_TEXT_PLACEHOLDER}
             onChange={(e) => set('propertyOwnership', e.target.value)}
           />
         </label>
@@ -219,7 +220,7 @@ export function BidContractTermsFields({
             rows={2}
             disabled={fieldDisabled('retentionReleaseNotes')}
             value={value.retentionReleaseNotes ?? ''}
-            placeholder="5% on Taking-Over Certificate; 5% after 12 months from Practical Completion."
+            placeholder={CONTRACT_TERMS_TEXT_PLACEHOLDER}
             onChange={(e) => set('retentionReleaseNotes', e.target.value)}
           />
         </label>

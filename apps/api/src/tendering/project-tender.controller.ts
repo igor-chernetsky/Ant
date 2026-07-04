@@ -48,6 +48,15 @@ export class ProjectTenderController {
     return this.tendersService.getPublishPreview(user.id, projectId);
   }
 
+  @Get('contractor-coverage')
+  async getContractorCoverage(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.tendersService.getContractorCoverage(user.id, projectId);
+  }
+
   @Post()
   async createTender(
     @Req() req: Request & { user: JwtPayload },

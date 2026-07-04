@@ -258,6 +258,14 @@ export interface TenderPublishPreview {
   contractTerms: BidContractTerms;
 }
 
+export interface ContractorCoveragePreview {
+  locationLabel: string;
+  projectTags: Array<{ slug: string; label: string }>;
+  contractorCount: number;
+  multipleTrades: boolean;
+  suggestSplitProject: boolean;
+}
+
 export interface UpdateTenderDeadlineDto {
   applicationsCloseAt?: string;
   noApplicationsDeadline?: boolean;

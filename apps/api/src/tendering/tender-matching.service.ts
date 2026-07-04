@@ -11,6 +11,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationsService } from '../locations/locations.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
+import { contractorTagsMatchProject } from './contractor-project-matching.util';
+import type { ContractorCoveragePreview } from './tendering.types';
 
 const MAX_TENDER_INVITATIONS = 8;
 
@@ -65,5 +67,72 @@ export class TenderMatchingService {
         'Project must be estimated before starting a tender',
       );
     }
+  }
+
+  async getContractorCoverageForProject(
+    project: Project & {
+      tags: Array<{ tag: { slug: string; label: string } }>;
+    },
+    excludeUserId: string,
+  ): Promise<ContractorCoveragePreview> {
+    const projectTags = project.tags.map((row) => ({
+      slug: row.tag.slug,
+      label: row.tag.label,
+    }));
+    const projectTagSlugs = projectTags.map((tag) => tag.slug);
+    const projectLocation = {
+      regionSlug: project.locationRegionSlug,
+      areaSlug: project.locationAreaSlug,
+    };
+    const locationLabel =
+      this.locations.formatProjectDistrict({
+        regionSlug: project.locationRegionSlug,
+        areaSlug: project.locationAreaSlug,
+        note: project.locationNote,
+      }) ||
+      this.locations.formatLocationLabel(
+        project.locationRegionSlug,
+        project.locationAreaSlug,
+      );
+
+    const contractors = await this.prisma.contractorProfile.findMany({
+      where: {
+        regionCode: project.regionCode,
+        userId: { not: excludeUserId },
+        OR: [
+          { projectTypes: { isEmpty: true } },
+          { projectTypes: { has: project.projectType } },
+        ],
+      },
+      select: {
+        tagSlugs: true,
+        projectTypes: true,
+        serviceLocationsJson: true,
+      },
+    });
+
+    const locationMatched = contractors.filter((contractor) => {
+      const serviceLocations = this.contractorProfiles.parseServiceLocations(
+        contractor.serviceLocationsJson,
+      );
+      return this.locations.contractorMatchesProject(
+        serviceLocations,
+        projectLocation,
+      );
+    });
+
+    const contractorCount = locationMatched.filter((contractor) =>
+      contractorTagsMatchProject(contractor.tagSlugs ?? [], projectTagSlugs),
+    ).length;
+
+    const multipleTrades = projectTagSlugs.length > 1;
+
+    return {
+      locationLabel,
+      projectTags,
+      contractorCount,
+      multipleTrades,
+      suggestSplitProject: multipleTrades && contractorCount === 0,
+    };
   }
 }

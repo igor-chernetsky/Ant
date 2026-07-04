@@ -177,6 +177,14 @@ export interface TenderPublishPreview {
   contractTerms: BidContractTerms;
 }
 
+export interface ContractorCoveragePreview {
+  locationLabel: string;
+  projectTags: Array<{ slug: string; label: string }>;
+  contractorCount: number;
+  multipleTrades: boolean;
+  suggestSplitProject: boolean;
+}
+
 export interface ContractorProjectParticipation {
   tenderId: string | null;
   tenderStatus: TenderStatus | null;
@@ -335,6 +343,18 @@ export async function fetchTenderPublishPreview(
     await parseError(response, 'Failed to load publish preview');
   }
   return response.json() as Promise<TenderPublishPreview>;
+}
+
+export async function fetchContractorCoverage(
+  projectId: string,
+): Promise<ContractorCoveragePreview> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/contractor-coverage`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load contractor coverage');
+  }
+  return response.json() as Promise<ContractorCoveragePreview>;
 }
 
 export async function updateTenderDeadline(

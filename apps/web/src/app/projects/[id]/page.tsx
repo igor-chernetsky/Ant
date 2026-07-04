@@ -491,6 +491,7 @@ export default function ProjectDetailPage() {
                 projectTitle={project.title}
                 projectDistrict={project.district}
                 projectDescription={project.description}
+                projectBrief={project.brief ?? null}
                 clarificationSummary={project.clarificationSummary}
               />
             )}

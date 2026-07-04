@@ -3,7 +3,10 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { BidContractTermsFields } from '@/components/BidContractTermsFields';
 import { CostBreakdownTemplateEditor } from '@/components/CostBreakdownTemplateEditor';
-import { DEFAULT_CONTRACT_TERMS } from '@/lib/contract-terms-fields';
+import {
+  contractTermsFromProject,
+  type ContractTermsProjectContext,
+} from '@/lib/contract-terms-fields';
 import {
   applicationsDeadlineToPayload,
   TenderApplicationsDeadlineFields,
@@ -38,6 +41,15 @@ interface PublishTenderPackageModalProps {
   onPublished: () => void | Promise<void>;
 }
 
+function buildProjectContext(project: Project): ContractTermsProjectContext {
+  return {
+    title: project.title,
+    district: project.district,
+    description: project.description,
+    brief: project.brief ?? null,
+  };
+}
+
 function emptyPreview(project: Project): TenderPublishPreview {
   return {
     scopeSummary:
@@ -45,13 +57,9 @@ function emptyPreview(project: Project): TenderPublishPreview {
       `Construction works for ${project.title}`,
     clarificationSummary: project.clarificationSummary,
     defaultCostBreakdown: [{ trade: '', description: '' }],
-    contractTerms: {
-      ...DEFAULT_CONTRACT_TERMS,
-      siteAddress: project.district ?? undefined,
-      subjectOfContract:
-        project.description?.trim() ||
-        `Construction works for ${project.title}`,
-    },
+    contractTerms: contractTermsFromProject({
+      project: buildProjectContext(project),
+    }),
   };
 }
 
@@ -85,10 +93,10 @@ export function PublishTenderPackageModal({
         const data = await fetchTenderPublishPreview(projectId);
         setPreview({
           ...data,
-          contractTerms: {
-            ...DEFAULT_CONTRACT_TERMS,
-            ...data.contractTerms,
-          },
+          contractTerms: contractTermsFromProject({
+            contractTerms: data.contractTerms,
+            project: buildProjectContext(project),
+          }),
           defaultCostBreakdown:
             data.defaultCostBreakdown.length > 0
               ? data.defaultCostBreakdown

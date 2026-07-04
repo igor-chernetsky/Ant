@@ -1,10 +1,25 @@
 import type { BidContractTerms } from '@/lib/tendering';
+import type { ProjectBriefV1 } from '@/lib/projects';
+import {
+  inferContractPeriodMonths,
+  inferWorksStartDate,
+} from '@/lib/contract-terms-inference';
+
+export const DEFAULT_PROPERTY_OWNERSHIP =
+  'The Employer holds lawful title to the Site and right to commission the Works.';
+
+export const DEFAULT_RETENTION_RELEASE_NOTES =
+  '5% on Taking-Over Certificate; 5% after 12 months from Practical Completion.';
+
+export const CONTRACT_TERMS_TEXT_PLACEHOLDER = 'Enter details';
 
 export const DEFAULT_CONTRACT_TERMS: BidContractTerms = {
   retentionPercent: 10,
   retentionLimitPercent: 10,
   defectNotificationMonths: 24,
   advancePaymentPercent: 0,
+  propertyOwnership: DEFAULT_PROPERTY_OWNERSHIP,
+  retentionReleaseNotes: DEFAULT_RETENTION_RELEASE_NOTES,
 };
 
 export type ContractTermsAudience = 'contractor' | 'client';
@@ -15,6 +30,7 @@ export interface ContractTermsProjectContext {
   title?: string;
   district?: string | null;
   description?: string | null;
+  brief?: ProjectBriefV1 | null;
 }
 
 const SHARED_KEYS: ContractTermsFieldKey[] = [
@@ -80,11 +96,6 @@ export function pickClientContractTerms(
   return pickKeys(terms, [...CLIENT_ONLY_KEYS, ...SHARED_KEYS]);
 }
 
-function monthsFromDurationDays(days?: number | null): number | undefined {
-  if (days == null || days < 1) return undefined;
-  return Math.max(1, Math.round(days / 30));
-}
-
 export function defaultScopeSummary(
   terms?: {
     scopeSummary?: string;
@@ -113,7 +124,29 @@ export function contractTermsFromBid(
     ...existing,
     siteAddress: existing.siteAddress ?? project?.district ?? undefined,
     subjectOfContract: existing.subjectOfContract ?? defaultSubject,
+    worksStartDate:
+      existing.worksStartDate?.trim() || inferWorksStartDate(project?.brief),
     contractPeriodMonths:
-      existing.contractPeriodMonths ?? monthsFromDurationDays(durationDays),
+      existing.contractPeriodMonths ??
+      inferContractPeriodMonths({
+        durationDays,
+        brief: project?.brief,
+      }),
+    propertyOwnership:
+      existing.propertyOwnership?.trim() || DEFAULT_PROPERTY_OWNERSHIP,
+    retentionReleaseNotes:
+      existing.retentionReleaseNotes?.trim() || DEFAULT_RETENTION_RELEASE_NOTES,
   };
+}
+
+export function contractTermsFromProject(input: {
+  contractTerms?: BidContractTerms;
+  project?: ContractTermsProjectContext;
+  durationDays?: number | null;
+}): BidContractTerms {
+  return contractTermsFromBid(
+    { contractTerms: input.contractTerms },
+    input.project,
+    input.durationDays,
+  );
 }

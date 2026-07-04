@@ -23,6 +23,15 @@ import { TenderMatchingService } from './tender-matching.service';
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { DefaultCostBreakdownService } from './default-cost-breakdown.service';
 import { ProjectsService } from '../projects/projects.service';
+import type { ProjectBriefV1 } from '../projects/project-brief';
+import {
+  inferContractPeriodMonths,
+  inferWorksStartDate,
+} from './contract-terms-inference';
+import {
+  DEFAULT_PROPERTY_OWNERSHIP,
+  DEFAULT_RETENTION_RELEASE_NOTES,
+} from './contract-terms.defaults';
 import { normalizeContractTerms } from './commercial-proposal.template';
 import {
   isApplicationsDeadlinePassed,
@@ -45,6 +54,7 @@ import {
   TenderResponse,
   ContractorApplicationItem,
   BidContractTerms,
+  ContractorCoveragePreview,
 } from './tendering.types';
 
 type TenderWithRelations = Tender & {
@@ -275,21 +285,58 @@ export class TendersService {
         siteAddress: storedTerms.siteAddress ?? project.district ?? undefined,
         subjectOfContract:
           storedTerms.subjectOfContract ?? scopeSummary ?? undefined,
+        propertyOwnership:
+          storedTerms.propertyOwnership?.trim() || DEFAULT_PROPERTY_OWNERSHIP,
+        retentionReleaseNotes:
+          storedTerms.retentionReleaseNotes?.trim() ||
+          DEFAULT_RETENTION_RELEASE_NOTES,
       }) ?? {
         retentionPercent: 10,
         retentionLimitPercent: 10,
         defectNotificationMonths: 24,
         advancePaymentPercent: 0,
+        propertyOwnership: DEFAULT_PROPERTY_OWNERSHIP,
+        retentionReleaseNotes: DEFAULT_RETENTION_RELEASE_NOTES,
         siteAddress: project.district ?? undefined,
         subjectOfContract: scopeSummary,
       };
+
+    const brief = (project.briefJson ?? null) as ProjectBriefV1 | null;
+    const contractTermsWithSchedule: BidContractTerms = {
+      ...contractTerms,
+      worksStartDate:
+        contractTerms.worksStartDate?.trim() || inferWorksStartDate(brief),
+      contractPeriodMonths:
+        contractTerms.contractPeriodMonths ??
+        inferContractPeriodMonths({ brief }),
+    };
 
     return {
       scopeSummary,
       clarificationSummary,
       defaultCostBreakdown,
-      contractTerms,
+      contractTerms: contractTermsWithSchedule,
     };
+  }
+
+  async getContractorCoverage(
+    clientId: string,
+    projectId: string,
+  ): Promise<ContractorCoveragePreview> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        tags: { include: { tag: true } },
+      },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.clientId !== clientId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return this.matching.getContractorCoverageForProject(project, clientId);
   }
 
   async createTender(

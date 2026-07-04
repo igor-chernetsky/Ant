@@ -2,12 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   NotificationEmailKind,
+  TenderStatus,
   User,
   UserNotificationPreferences,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationsService } from '../locations/locations.service';
 import { MailService } from './mail.service';
+import {
+  contractorProjectTypeMatches,
+  contractorTagsMatchProject,
+} from '../tendering/contractor-project-matching.util';
 import {
   MATCHING_PROJECT_EMAILS_DAILY_CAP,
   NotificationPreferencesDto,
@@ -409,6 +414,10 @@ export class NotificationsService {
       where: {
         regionCode: project.regionCode,
         userId: { not: project.clientId },
+        OR: [
+          { projectTypes: { isEmpty: true } },
+          { projectTypes: { has: project.projectType } },
+        ],
       },
       include: { user: true },
     });
@@ -417,6 +426,8 @@ export class NotificationsService {
       regionSlug: project.locationRegionSlug,
       areaSlug: project.locationAreaSlug,
     };
+    const isClarificationPhase = project.tender.status === TenderStatus.draft;
+    let notifiedCount = 0;
 
     for (const contractor of contractors) {
       const serviceLocations = this.locations.normalizeServiceLocations(
@@ -431,11 +442,23 @@ export class NotificationsService {
         continue;
       }
 
-      const tagSlugs = contractor.tagSlugs ?? [];
-      const tagMatch =
-        tagSlugs.length === 0 ||
-        tagSlugs.some((slug) => projectTagSlugs.includes(slug));
-      if (!tagMatch) continue;
+      if (
+        !contractorProjectTypeMatches(
+          contractor.projectTypes ?? [],
+          project.projectType,
+        )
+      ) {
+        continue;
+      }
+
+      if (
+        !contractorTagsMatchProject(
+          contractor.tagSlugs ?? [],
+          projectTagSlugs,
+        )
+      ) {
+        continue;
+      }
 
       const existingBid = await this.prisma.bid.findFirst({
         where: {
@@ -455,19 +478,36 @@ export class NotificationsService {
 
       if (!(await this.canSendMatchingToday(contractor.userId))) continue;
 
+      const locationPart = project.district
+        ? ` in ${escapeHtml(project.district)}`
+        : '';
+
       await this.sendToUser({
         userId: contractor.userId,
         prefFlag: 'emailMatchingProjects',
         kind: NotificationEmailKind.contractor_matching_project,
         projectId,
-        subject: `New project: ${project.title}`,
-        title: 'New project matching your specialties',
-        bodyHtml: `<p>A new project <strong>${escapeHtml(project.title)}</strong>${project.district ? ` in ${escapeHtml(project.district)}` : ''} is open for bids and matches your profile.</p>`,
+        subject: isClarificationPhase
+          ? `New project for clarification — ${project.title}`
+          : `New project: ${project.title}`,
+        title: isClarificationPhase
+          ? 'New project open for clarification'
+          : 'New project matching your specialties',
+        bodyHtml: isClarificationPhase
+          ? `<p>A new project <strong>${escapeHtml(project.title)}</strong>${locationPart} is open for clarification questions. Review the brief and ask anything you need before commercial proposals open.</p>`
+          : `<p>A new project <strong>${escapeHtml(project.title)}</strong>${locationPart} is open for bids and matches your profile.</p>`,
         ctaHref: this.projectUrl(projectId),
         ctaLabel: 'View project',
-        textBody: `New matching project: ${project.title}.`,
+        textBody: isClarificationPhase
+          ? `New project for clarification: ${project.title}.`
+          : `New matching project: ${project.title}.`,
       });
+      notifiedCount += 1;
     }
+
+    this.logger.log(
+      `Matching project notifications for ${projectId}: sent ${notifiedCount} (tender ${project.tender.status})`,
+    );
   }
 
   dispatch(promise: Promise<void>): void {
