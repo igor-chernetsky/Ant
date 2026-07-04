@@ -5,9 +5,10 @@ import { formatThb } from '@/lib/estimate';
 import { BidChat } from '@/components/BidChat';
 import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
 import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
+import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { ContractorPortfolioGallery } from '@/components/ContractorPortfolioGallery';
-import type { Bid } from '@/lib/tendering';
+import type { Bid, DefaultCostBreakdownItem } from '@/lib/tendering';
 
 interface BidApplicationCardProps {
   bid: Bid;
@@ -25,6 +26,7 @@ interface BidApplicationCardProps {
     tenderOpen: boolean;
     projectTitle?: string;
     projectDistrict?: string | null;
+    defaultCostBreakdown?: DefaultCostBreakdownItem[];
     onBidUpdated?: (bid: Bid) => void;
   };
   clarificationMode?: 'open_chat' | 'structured_qa';
@@ -131,7 +133,8 @@ export function BidApplicationCard({
           {clientCounterOffer &&
             (bid.status === 'submitted' ||
               bid.status === 'selected' ||
-              bid.status === 'rejected') && (
+              bid.status === 'rejected') &&
+            tenderStatus !== 'awarded' && (
               <ClientCommercialProposalPanel
                 projectId={clientCounterOffer.projectId}
                 bid={bid}
@@ -140,6 +143,20 @@ export function BidApplicationCard({
                 onBidUpdated={clientCounterOffer.onBidUpdated}
               />
             )}
+
+          {bid.status === 'selected' && (
+            <div className="contract-draft-panel">
+              <h4 className="tender-subsection-title">Contract draft</h4>
+              <p className="muted contract-draft-panel-hint">
+                Tender complete. Download the draft contract for the selected
+                proposal.
+              </p>
+              <CommercialProposalDownload
+                bidId={bid.id}
+                projectId={projectId}
+              />
+            </div>
+          )}
 
           <div className="bid-line-actions bid-proposal-actions">
             {canSelect && onSelect && (
@@ -168,6 +185,7 @@ export function BidApplicationCard({
               projectId={clientCounterOffer.projectId}
               bid={bid}
               tenderOpen={clientCounterOffer.tenderOpen}
+              defaultCostBreakdown={clientCounterOffer.defaultCostBreakdown}
             />
           )}
         </div>

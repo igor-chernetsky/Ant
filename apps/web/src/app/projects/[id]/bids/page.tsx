@@ -242,6 +242,7 @@ export default function ProjectBidsPage() {
                               tender.status === 'closed',
                             projectTitle: project?.title,
                             projectDistrict: project?.district,
+                            defaultCostBreakdown: tender.defaultCostBreakdown,
                             onBidUpdated: handleBidUpdated,
                           }}
                           clarificationMode={project?.clarificationMode}

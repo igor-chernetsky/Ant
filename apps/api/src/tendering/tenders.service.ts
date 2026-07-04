@@ -1175,6 +1175,25 @@ export class TendersService {
     };
   }
 
+  private assertBreakdownMatchesTotal(
+    amount: number,
+    lineItems?: Array<{ amount: number }>,
+  ): void {
+    if (!lineItems?.length) {
+      return;
+    }
+
+    const subtotal = lineItems.reduce(
+      (sum, item) => sum + (Number(item.amount) || 0),
+      0,
+    );
+    if (subtotal > 0 && Math.abs(subtotal - amount) > 1) {
+      throw new BadRequestException(
+        'Breakdown subtotal does not match the total. Please check your calculations.',
+      );
+    }
+  }
+
   private normalizeAndValidateContractTerms(
     raw?: SubmitBidDto['contractTerms'],
   ) {
@@ -1244,6 +1263,7 @@ export class TendersService {
         dto.contractTerms,
       ),
     });
+    this.assertBreakdownMatchesTotal(dto.amount, terms.lineItems);
 
     const bid = await this.prisma.$transaction(async (tx) => {
       const nextBid = await tx.bid.update({

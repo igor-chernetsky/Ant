@@ -8,18 +8,21 @@ import {
   submitClientCounterOffer,
   type Bid,
   type BidOffer,
+  type DefaultCostBreakdownItem,
 } from '@/lib/tendering';
 
 interface ClientCounterOfferPanelProps {
   projectId: string;
   bid: Bid;
   tenderOpen: boolean;
+  defaultCostBreakdown?: DefaultCostBreakdownItem[];
 }
 
 export function ClientCounterOfferPanel({
   projectId,
   bid,
   tenderOpen,
+  defaultCostBreakdown = [],
 }: ClientCounterOfferPanelProps) {
   const [offers, setOffers] = useState<BidOffer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +89,16 @@ export function ClientCounterOfferPanel({
       {tenderOpen && (
         <div className="client-counter-offer-form-wrap">
           <h4 className="bid-analysis-subtitle">Send counter-offer</h4>
-          <BidProposalForm busy={busy} contractTermsAudience="none" onSubmit={handleSubmit} />
+          <BidProposalForm
+            prefillBid={bid}
+            defaultCostBreakdown={defaultCostBreakdown}
+            busy={busy}
+            contractTermsAudience="none"
+            notesLabel="Comment for the contractor"
+            breakdownMode="adjust"
+            submitLabel="Send counter-offer"
+            onSubmit={handleSubmit}
+          />
         </div>
       )}
 

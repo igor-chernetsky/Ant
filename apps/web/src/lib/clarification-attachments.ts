@@ -90,6 +90,40 @@ export async function getClarificationAttachmentDownloadUrl(
   return response.json() as Promise<{ downloadUrl: string; originalName: string }>;
 }
 
+export interface ContractorClarificationAttachmentQuestion {
+  id: string;
+  questionText: string;
+  attachments: ClarificationAttachment[];
+}
+
+export async function fetchContractorClarificationAttachments(
+  projectId: string,
+): Promise<{ questions: ContractorClarificationAttachmentQuestion[] }> {
+  const response = await fetchWithAuth(
+    `/api/contractor/projects/${encodeURIComponent(projectId)}/clarification-attachments`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load clarification attachments');
+  }
+  return response.json() as Promise<{
+    questions: ContractorClarificationAttachmentQuestion[];
+  }>;
+}
+
+export async function getContractorClarificationAttachmentDownloadUrl(
+  projectId: string,
+  questionId: string,
+  attachmentId: string,
+): Promise<{ downloadUrl: string; originalName: string }> {
+  const response = await fetchWithAuth(
+    `/api/contractor/projects/${encodeURIComponent(projectId)}/clarification-questions/${encodeURIComponent(questionId)}/attachments/${encodeURIComponent(attachmentId)}/download-url`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to get download link');
+  }
+  return response.json() as Promise<{ downloadUrl: string; originalName: string }>;
+}
+
 export async function uploadClarificationAttachment(
   projectId: string,
   questionId: string,

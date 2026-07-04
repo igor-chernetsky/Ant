@@ -6,6 +6,7 @@ import { CommercialProposalDownload } from '@/components/CommercialProposalDownl
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { StructuredClarificationForm } from '@/components/StructuredClarificationForm';
+import { ContractorClarificationAttachments } from '@/components/ContractorClarificationAttachments';
 import { useSession } from '@/components/SessionProvider';
 import {
   fetchBidCounterOffers,
@@ -255,6 +256,10 @@ export function ContractorProjectPanel({
         </div>
       )}
 
+      {hasActiveContractorParticipation(participation) && (
+        <ContractorClarificationAttachments projectId={projectId} />
+      )}
+
       {waitingForPublish && (
         <p className="muted tender-phase-hint">
           The client has not published this project for bids yet.
@@ -385,10 +390,10 @@ export function ContractorProjectPanel({
 
       {selected && myBid?.id && (
         <div className="tender-subsection">
-          <h3 className="tender-subsection-title">Commercial proposal</h3>
+          <h3 className="tender-subsection-title">Contract draft</h3>
           <p className="muted participation-actions-hint">
-            You were selected for this project. Download your commercial
-            proposal document.
+            You were selected for this project. Download the draft contract
+            document.
           </p>
           <CommercialProposalDownload bidId={myBid.id} />
         </div>

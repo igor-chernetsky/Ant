@@ -233,6 +233,16 @@ export interface ClarificationQuestionsForClientResponse {
   totalContractorCount: number;
 }
 
+export interface ContractorClarificationAttachmentQuestion {
+  id: string;
+  questionText: string;
+  attachments: ClarificationAttachmentResponse[];
+}
+
+export interface ContractorClarificationAttachmentsResponse {
+  questions: ContractorClarificationAttachmentQuestion[];
+}
+
 export interface SubmitBidClarificationQuestionsDto {
   questions: string[];
 }

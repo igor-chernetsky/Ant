@@ -149,7 +149,7 @@ export class CommercialProposalService {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
       .slice(0, 40);
-    const fileName = `commercial-proposal-${slug || bidId.slice(0, 8)}.pdf`;
+    const fileName = `contract-draft-${slug || bidId.slice(0, 8)}.pdf`;
 
     return { html, fileName };
   }

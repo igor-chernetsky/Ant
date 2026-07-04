@@ -102,6 +102,11 @@ export function StructuredClarificationForm({
           {new Date(submitted.submittedAt).toLocaleString()} and cannot be
           changed.
         </p>
+        <p className="muted structured-clarification-waiting">
+          Please wait for the answers summary and the commercial proposal form
+          — they will be available soon. You will receive a notification when
+          the client opens the tender.
+        </p>
         <ol className="structured-clarification-list">
           {submitted.questions.map((question) => (
             <li key={question}>{question}</li>

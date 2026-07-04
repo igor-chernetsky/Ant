@@ -25,6 +25,8 @@ export interface BidProposalInput {
 
 interface BidProposalFormProps {
   existingBid?: Bid | null;
+  /** Seed form fields from another bid (e.g. client counter-offer from contractor proposal). */
+  prefillBid?: Bid | null;
   busy?: boolean;
   projectTitle?: string;
   projectDistrict?: string | null;
@@ -35,6 +37,11 @@ interface BidProposalFormProps {
   projectContractTerms?: BidContractTerms;
   /** Who fills commercial proposal fields — `none` hides contract terms. */
   contractTermsAudience?: ContractTermsAudience | 'none';
+  /** Label for the notes / comment field. */
+  notesLabel?: string;
+  /** `adjust` — edit a breakdown copied from the contractor proposal. */
+  breakdownMode?: 'create' | 'adjust';
+  submitLabel?: string;
   onSubmit: (input: BidProposalInput) => Promise<void>;
   onWithdraw?: () => Promise<void>;
 }
@@ -45,6 +52,30 @@ const emptyLineItem = (): BidLineItem => ({
   amount: 0,
 });
 
+const BREAKDOWN_TOTAL_TOLERANCE_THB = 1;
+
+const BREAKDOWN_TOTAL_MISMATCH_MESSAGE =
+  'Breakdown subtotal does not match the total. Please check your calculations.';
+
+function lineItemsSubtotal(items: BidLineItem[]): number {
+  return items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+}
+
+function activeLineItemsFrom(
+  showBreakdown: boolean,
+  lineItems: BidLineItem[],
+): BidLineItem[] {
+  if (!showBreakdown) {
+    return [];
+  }
+  return lineItems.filter(
+    (item) =>
+      item.trade.trim() ||
+      (item.description?.trim() ?? '') ||
+      item.amount > 0,
+  );
+}
+
 function lineItemsFromTerms(
   terms: BidTerms | null | undefined,
   defaults?: DefaultCostBreakdownItem[],
@@ -52,14 +83,21 @@ function lineItemsFromTerms(
   if (terms?.lineItems?.length) {
     return terms.lineItems.map((item) => ({ ...item }));
   }
-  if (defaults?.length) {
-    return defaults.map((item) => ({
-      trade: item.trade,
-      description: item.description ?? '',
+  const template = (defaults ?? []).filter((item) => item.trade.trim());
+  if (template.length > 0) {
+    return template.map((item) => ({
+      trade: item.trade.trim(),
+      description: item.description?.trim() ?? '',
       amount: 0,
     }));
   }
   return [];
+}
+
+function hasProjectBreakdownTemplate(
+  defaults?: DefaultCostBreakdownItem[],
+): boolean {
+  return (defaults ?? []).some((item) => item.trade.trim());
 }
 
 function buildContractTermsProjectContext(
@@ -78,6 +116,7 @@ function buildContractTermsProjectContext(
 
 export function BidProposalForm({
   existingBid,
+  prefillBid = null,
   busy = false,
   projectTitle,
   projectDistrict,
@@ -87,10 +126,14 @@ export function BidProposalForm({
   projectScopeSummary = null,
   projectContractTerms,
   contractTermsAudience = 'contractor',
+  notesLabel = 'Comment for the client',
+  breakdownMode = 'create',
+  submitLabel,
   onSubmit,
   onWithdraw,
 }: BidProposalFormProps) {
-  const terms = existingBid?.terms;
+  const seedBid = existingBid ?? prefillBid;
+  const terms = seedBid?.terms;
   const projectTermsSeed = {
     scopeSummary: terms?.scopeSummary ?? projectScopeSummary ?? undefined,
     contractTerms: {
@@ -105,10 +148,10 @@ export function BidProposalForm({
     projectBrief,
   );
   const [amount, setAmount] = useState(
-    existingBid?.amount != null ? String(existingBid.amount) : '',
+    seedBid?.amount != null ? String(seedBid.amount) : '',
   );
   const [durationDays, setDurationDays] = useState(
-    existingBid?.durationDays?.toString() ?? '',
+    seedBid?.durationDays?.toString() ?? '',
   );
   const [notes, setNotes] = useState(terms?.notes ?? '');
   const [approach, setApproach] = useState(terms?.approach ?? '');
@@ -118,11 +161,16 @@ export function BidProposalForm({
   const [lineItems, setLineItems] = useState<BidLineItem[]>(() =>
     lineItemsFromTerms(terms, defaultCostBreakdown),
   );
-  const [showBreakdown, setShowBreakdown] = useState(
-    (terms?.lineItems?.length ?? 0) > 0 || defaultCostBreakdown.length > 0,
-  );
+  const [showBreakdown, setShowBreakdown] = useState(() => {
+    const hasSavedBreakdown = (terms?.lineItems?.length ?? 0) > 0;
+    if (breakdownMode === 'adjust') {
+      return hasSavedBreakdown;
+    }
+    return hasSavedBreakdown || hasProjectBreakdownTemplate(defaultCostBreakdown);
+  });
+  const projectTemplateBreakdown = hasProjectBreakdownTemplate(defaultCostBreakdown);
   const [contractTerms, setContractTerms] = useState<BidContractTerms>(() =>
-    contractTermsFromBid(projectTermsSeed, projectContext, existingBid?.durationDays),
+    contractTermsFromBid(projectTermsSeed, projectContext, seedBid?.durationDays),
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -163,20 +211,22 @@ export function BidProposalForm({
       return;
     }
 
-    const activeLineItems = showBreakdown
-      ? lineItems.filter(
-          (item) =>
-            item.trade.trim() ||
-            (item.description?.trim() ?? '') ||
-            item.amount > 0,
-        )
-      : [];
+    const activeLineItems = activeLineItemsFrom(showBreakdown, lineItems);
 
     for (const item of activeLineItems) {
       if (!item.trade.trim()) {
         setError('Each cost line needs a trade');
         return;
       }
+    }
+
+    const breakdownSubtotal = lineItemsSubtotal(activeLineItems);
+    if (
+      breakdownSubtotal > 0 &&
+      Math.abs(breakdownSubtotal - parsedAmount) > BREAKDOWN_TOTAL_TOLERANCE_THB
+    ) {
+      setError(BREAKDOWN_TOTAL_MISMATCH_MESSAGE);
+      return;
     }
 
     const scopeText = scopeSummary.trim();
@@ -212,10 +262,14 @@ export function BidProposalForm({
     }
   };
 
-  const lineItemsTotal = lineItems.reduce(
-    (sum, item) => sum + (Number(item.amount) || 0),
-    0,
-  );
+  const activeLineItems = activeLineItemsFrom(showBreakdown, lineItems);
+  const breakdownSubtotal = lineItemsSubtotal(activeLineItems);
+  const parsedAmount = Number(amount);
+  const amountIsValid = Number.isFinite(parsedAmount) && parsedAmount > 0;
+  const breakdownMismatch =
+    breakdownSubtotal > 0 &&
+    amountIsValid &&
+    Math.abs(breakdownSubtotal - parsedAmount) > BREAKDOWN_TOTAL_TOLERANCE_THB;
 
   return (
     <div className="bid-proposal-form bid-proposal-form--compact">
@@ -268,7 +322,7 @@ export function BidProposalForm({
         </label>
 
         <label>
-          Comment for the client
+          {notesLabel}
           <span className="field-hint muted">
             Assumptions, payment terms, exclusions
           </span>
@@ -315,25 +369,40 @@ export function BidProposalForm({
             onChange={(e) => {
               setShowBreakdown(e.target.checked);
               if (e.target.checked && lineItems.length === 0) {
-                setLineItems(
-                  defaultCostBreakdown.length > 0
-                    ? defaultCostBreakdown.map((item) => ({
-                        trade: item.trade,
-                        description: item.description ?? '',
-                        amount: 0,
-                      }))
-                    : [emptyLineItem()],
-                );
+                const seeded = lineItemsFromTerms(terms, defaultCostBreakdown);
+                setLineItems(seeded.length > 0 ? seeded : [emptyLineItem()]);
               }
             }}
           />
-          Add cost breakdown by trade
+          {breakdownMode === 'adjust'
+            ? 'Adjust cost breakdown by trade'
+            : projectTemplateBreakdown
+              ? 'Fill in cost breakdown by trade'
+              : 'Add cost breakdown by trade'}
         </label>
       </div>
 
       {showBreakdown && (
         <div className="bid-line-items">
-          <p className="tag-section-label">Cost breakdown (optional)</p>
+          <p className="tag-section-label">
+            {breakdownMode === 'adjust'
+              ? 'Contractor cost breakdown'
+              : projectTemplateBreakdown
+                ? 'Project cost breakdown'
+                : 'Cost breakdown (optional)'}
+          </p>
+          {breakdownMode === 'adjust' && (
+            <p className="muted bid-line-items-hint">
+              Based on the contractor&apos;s proposal. Adjust amounts or add and
+              remove rows as needed.
+            </p>
+          )}
+          {breakdownMode === 'create' && projectTemplateBreakdown && (
+            <p className="muted bid-line-items-hint">
+              From the project template. Enter amounts for each trade and adjust
+              rows as needed.
+            </p>
+          )}
           <ul className="bid-line-items-list">
             {lineItems.map((item, index) => (
               <li key={index} className="bid-line-item-row">
@@ -395,16 +464,14 @@ export function BidProposalForm({
           >
             Add line
           </button>
-          {lineItemsTotal > 0 && (
+          {breakdownSubtotal > 0 && (
             <p className="muted bid-line-items-total">
-              Breakdown subtotal: {formatThb(lineItemsTotal)}
-              {amount &&
-                Math.abs(lineItemsTotal - Number(amount)) > 1 && (
-                  <span className="bid-line-items-warn">
-                    {' '}
-                    (differs from total bid)
-                  </span>
-                )}
+              Breakdown subtotal: {formatThb(breakdownSubtotal)}
+            </p>
+          )}
+          {breakdownMismatch && (
+            <p className="form-error bid-line-items-total-error" role="alert">
+              {BREAKDOWN_TOTAL_MISMATCH_MESSAGE}
             </p>
           )}
         </div>
@@ -421,9 +488,10 @@ export function BidProposalForm({
         >
           {busy
             ? 'Saving…'
-            : existingBid?.status === 'submitted'
-              ? 'Update proposal'
-              : 'Submit proposal'}
+            : submitLabel ??
+              (existingBid?.status === 'submitted'
+                ? 'Update proposal'
+                : 'Submit proposal')}
         </button>
         {existingBid?.status === 'submitted' && onWithdraw && (
           <button

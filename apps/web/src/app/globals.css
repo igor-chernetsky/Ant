@@ -3343,6 +3343,17 @@ select:disabled {
   font-size: 0.88rem;
 }
 
+.contract-draft-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.contract-draft-panel-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+}
+
 .bid-contract-terms-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3630,6 +3641,37 @@ select:disabled {
   white-space: pre-wrap;
 }
 
+.contractor-clarification-attachments {
+  margin-top: 0.85rem;
+}
+
+.contractor-clarification-attachments-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.85rem;
+}
+
+.contractor-clarification-attachments-groups {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.contractor-clarification-attachments-group {
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  background: var(--surface-muted, #f6f7f8);
+}
+
+.contractor-clarification-attachments-question {
+  margin: 0 0 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .clarification-answer-attachments {
   margin-top: 0.35rem;
   margin-bottom: 0.15rem;
@@ -3776,6 +3818,11 @@ select:disabled {
 .bid-line-items-total {
   margin: 0.5rem 0 0;
   font-size: 0.9rem;
+}
+
+.bid-line-items-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.85rem;
 }
 
 .bid-chat {

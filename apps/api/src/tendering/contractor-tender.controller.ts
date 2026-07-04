@@ -153,6 +153,36 @@ export class ContractorTenderController {
     return participation ?? { participation: null };
   }
 
+  @Get('projects/:projectId/clarification-attachments')
+  async listClarificationAttachments(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.clarifications.listAnswerAttachmentsForContractor(
+      user.id,
+      projectId,
+    );
+  }
+
+  @Get(
+    'projects/:projectId/clarification-questions/:questionId/attachments/:attachmentId/download-url',
+  )
+  async getClarificationAttachmentDownloadUrl(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('questionId') questionId: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.clarifications.getAttachmentDownloadUrlForContractor(
+      user.id,
+      projectId,
+      questionId,
+      attachmentId,
+    );
+  }
+
   @Get('tenders/:tenderId')
   async getTender(
     @Req() req: Request & { user: JwtPayload },

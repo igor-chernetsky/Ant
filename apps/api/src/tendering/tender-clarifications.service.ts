@@ -30,6 +30,7 @@ import {
   AnswerClarificationQuestionDto,
   ClarificationQuestionResponse,
   ClarificationQuestionsForClientResponse,
+  ContractorClarificationAttachmentsResponse,
   SubmitBidClarificationQuestionsDto,
 } from './tendering.types';
 
@@ -508,7 +509,57 @@ export class TenderClarificationsService {
     attachmentId: string,
   ): Promise<ClarificationAttachmentDownloadResponse> {
     await this.loadQuestionForClient(clientId, projectId, questionId);
+    return this.presignAttachmentDownload(questionId, attachmentId);
+  }
 
+  async listAnswerAttachmentsForContractor(
+    userId: string,
+    projectId: string,
+  ): Promise<ContractorClarificationAttachmentsResponse> {
+    const { tender } = await this.assertContractorBidOnProject(
+      userId,
+      projectId,
+    );
+
+    const rows = await this.prisma.tenderClarificationQuestion.findMany({
+      where: {
+        tenderId: tender.id,
+        answer: { not: null },
+      },
+      include: {
+        attachments: {
+          where: { status: DocumentStatus.uploaded },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    const questions = rows
+      .filter((row) => isQuestionAnswered(row.answer) && row.attachments.length > 0)
+      .map((row) => ({
+        id: row.id,
+        questionText: row.questionText,
+        attachments: row.attachments.map((item) => this.mapAttachment(item)),
+      }));
+
+    return { questions };
+  }
+
+  async getAttachmentDownloadUrlForContractor(
+    userId: string,
+    projectId: string,
+    questionId: string,
+    attachmentId: string,
+  ): Promise<ClarificationAttachmentDownloadResponse> {
+    await this.loadAnsweredQuestionForContractor(userId, projectId, questionId);
+    return this.presignAttachmentDownload(questionId, attachmentId);
+  }
+
+  private async presignAttachmentDownload(
+    questionId: string,
+    attachmentId: string,
+  ): Promise<ClarificationAttachmentDownloadResponse> {
     const attachment = await this.prisma.clarificationAnswerAttachment.findFirst(
       {
         where: {
@@ -532,6 +583,52 @@ export class TenderClarificationsService {
       originalName: attachment.originalName,
       contentType: attachment.contentType,
     };
+  }
+
+  private async assertContractorBidOnProject(userId: string, projectId: string) {
+    const profile = await this.contractorProfiles.requireByUserId(userId);
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+    });
+    if (!tender) {
+      throw new NotFoundException('Tender not found');
+    }
+
+    const bid = await this.prisma.bid.findFirst({
+      where: {
+        tenderId: tender.id,
+        contractorId: profile.id,
+        status: { not: BidStatus.withdrawn },
+      },
+    });
+    if (!bid) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return { profile, tender, bid };
+  }
+
+  private async loadAnsweredQuestionForContractor(
+    userId: string,
+    projectId: string,
+    questionId: string,
+  ) {
+    const { tender } = await this.assertContractorBidOnProject(
+      userId,
+      projectId,
+    );
+
+    const question = await this.prisma.tenderClarificationQuestion.findFirst({
+      where: { id: questionId, tenderId: tender.id },
+    });
+    if (!question) {
+      throw new NotFoundException('Question not found');
+    }
+    if (!isQuestionAnswered(question.answer)) {
+      throw new ForbiddenException('This answer is not available yet');
+    }
+
+    return { tender, question };
   }
 
   async hasSubmittedQuestions(bidId: string): Promise<boolean> {

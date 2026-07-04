@@ -6,7 +6,6 @@ import {
   contractTermsFromBid,
   pickClientContractTerms,
 } from '@/components/BidContractTermsFields';
-import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 import type { BidContractTerms } from '@/lib/tendering';
 import { updateBidContractTerms, type Bid } from '@/lib/tendering';
 
@@ -82,7 +81,6 @@ export function ClientCommercialProposalPanel({
         >
           {busy ? 'Saving…' : 'Save terms'}
         </button>
-        <CommercialProposalDownload bidId={bid.id} projectId={projectId} />
         {saved && (
           <p className="muted bid-contract-terms-download-hint">Terms saved.</p>
         )}

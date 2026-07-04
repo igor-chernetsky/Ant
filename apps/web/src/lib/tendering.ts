@@ -758,14 +758,14 @@ export async function downloadCommercialProposal(
 
   const response = await fetchWithAuth(path);
   if (!response.ok) {
-    await parseError(response, 'Failed to download commercial proposal');
+    await parseError(response, 'Failed to download contract draft');
   }
 
   const blob = await response.blob();
   const fileName =
     parseContentDispositionFilename(
       response.headers.get('content-disposition'),
-    ) ?? `commercial-proposal-${bidId.slice(0, 8)}.pdf`;
+    ) ?? `contract-draft-${bidId.slice(0, 8)}.pdf`;
 
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
