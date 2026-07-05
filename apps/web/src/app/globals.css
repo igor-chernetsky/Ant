@@ -3999,6 +3999,18 @@ select:disabled {
   border-color: #c4b5fd;
 }
 
+.verification-documents-section {
+  margin-top: 1rem;
+}
+
+.verification-documents-section .tender-subsection-title {
+  margin: 0 0 0.5rem;
+}
+
+.verification-upload-row {
+  margin-top: 0.85rem;
+}
+
 .contractor-project-hero {
   position: relative;
   border-radius: 14px;

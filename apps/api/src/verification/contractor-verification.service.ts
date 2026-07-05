@@ -57,14 +57,15 @@ export class ContractorVerificationService {
     };
   }
 
-  private assertCanEditDocuments(status: ContractorVerificationStatus) {
-    if (
-      status === ContractorVerificationStatus.awaiting_review ||
-      status === ContractorVerificationStatus.verified ||
-      status === ContractorVerificationStatus.suspended
-    ) {
+  private assertCanUploadDocuments(status: ContractorVerificationStatus) {
+    if (status === ContractorVerificationStatus.awaiting_review) {
       throw new BadRequestException(
-        'Documents cannot be changed while verification is in review or approved',
+        'Documents cannot be added while verification is in review',
+      );
+    }
+    if (status === ContractorVerificationStatus.suspended) {
+      throw new BadRequestException(
+        'Documents cannot be added while your account is suspended',
       );
     }
   }
@@ -83,7 +84,7 @@ export class ContractorVerificationService {
 
   async presignUpload(userId: string, dto: PresignContractorDocDto) {
     const profile = await this.contractorProfiles.requireByUserId(userId);
-    this.assertCanEditDocuments(profile.verificationStatus);
+    this.assertCanUploadDocuments(profile.verificationStatus);
 
     const fileName = dto.fileName?.trim();
     if (!fileName) {
@@ -138,7 +139,7 @@ export class ContractorVerificationService {
 
   async completeUpload(userId: string, documentId: string) {
     const profile = await this.contractorProfiles.requireByUserId(userId);
-    this.assertCanEditDocuments(profile.verificationStatus);
+    this.assertCanUploadDocuments(profile.verificationStatus);
 
     const doc = await this.prisma.contractorVerificationDocument.findFirst({
       where: { id: documentId, contractorId: profile.id },

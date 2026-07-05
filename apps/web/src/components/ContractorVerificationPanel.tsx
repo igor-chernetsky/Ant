@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import type { ContractorProfile } from '@/lib/tendering';
+import { formatFileSize } from '@/lib/documents';
 import {
   fetchVerificationDocuments,
   formatVerificationStatus,
@@ -32,7 +33,12 @@ export function ContractorVerificationPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canEdit =
+  const canUploadDocuments =
+    profile.verificationStatus === 'pending' ||
+    profile.verificationStatus === 'rejected' ||
+    profile.verificationStatus === 'verified';
+
+  const canRequestApproval =
     profile.verificationStatus === 'pending' ||
     profile.verificationStatus === 'rejected';
 
@@ -108,7 +114,10 @@ export function ContractorVerificationPanel({
       </p>
 
       {profile.verificationStatus === 'verified' && (
-        <p className="muted">Your contractor account is verified.</p>
+        <p className="muted">
+          Your contractor account is verified. You can still add documents below
+          for your records.
+        </p>
       )}
 
       {profile.verificationStatus === 'awaiting_review' && (
@@ -125,78 +134,84 @@ export function ContractorVerificationPanel({
         </div>
       )}
 
-      {canEdit && (
-        <>
-          <div className="doc-upload-row">
-            <label>
-              Document type
-              <select
-                value={docCategory}
-                onChange={(e) =>
-                  setDocCategory(e.target.value as ContractorVerificationDocCategory)
-                }
-                disabled={busy}
-              >
-                {VERIFICATION_DOC_CATEGORIES.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="sr-only"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
-              onChange={handleFileChange}
-              disabled={busy}
-            />
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {busy ? 'Uploading…' : 'Upload document'}
-            </button>
-          </div>
+      <div className="verification-documents-section">
+        <h3 className="tender-subsection-title">Your documents</h3>
+        {loading ? (
+          <p className="muted">Loading documents…</p>
+        ) : documents.length === 0 ? (
+          <p className="muted">No verification documents uploaded yet.</p>
+        ) : (
+          <ul className="doc-list verification-doc-list">
+            {documents.map((doc) => (
+              <li key={doc.id} className="doc-item">
+                <button
+                  type="button"
+                  className="doc-link"
+                  onClick={() => void handleDownload(doc)}
+                >
+                  {doc.originalName}
+                </button>
+                <p className="muted doc-meta">
+                  {VERIFICATION_DOC_CATEGORIES.find((c) => c.value === doc.category)
+                    ?.label ?? doc.category}
+                  {doc.sizeBytes != null && ` · ${formatFileSize(doc.sizeBytes)}`}
+                  {doc.uploadedAt &&
+                    ` · ${new Date(doc.uploadedAt).toLocaleDateString()}`}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
-          {loading ? (
-            <p className="muted">Loading documents…</p>
-          ) : documents.length === 0 ? (
-            <p className="muted">No verification documents uploaded yet.</p>
-          ) : (
-            <ul className="doc-list">
-              {documents.map((doc) => (
-                <li key={doc.id} className="doc-item">
-                  <button
-                    type="button"
-                    className="doc-link"
-                    onClick={() => void handleDownload(doc)}
-                  >
-                    {doc.originalName}
-                  </button>
-                  <p className="muted doc-meta">
-                    {VERIFICATION_DOC_CATEGORIES.find((c) => c.value === doc.category)
-                      ?.label ?? doc.category}
-                  </p>
-                </li>
+      {canUploadDocuments && (
+        <div className="doc-upload-row verification-upload-row">
+          <label>
+            Document type
+            <select
+              value={docCategory}
+              onChange={(e) =>
+                setDocCategory(e.target.value as ContractorVerificationDocCategory)
+              }
+              disabled={busy}
+            >
+              {VERIFICATION_DOC_CATEGORIES.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
-            </ul>
-          )}
+            </select>
+          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="sr-only"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+            onChange={handleFileChange}
+            disabled={busy}
+          />
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {busy ? 'Uploading…' : 'Upload document'}
+          </button>
+        </div>
+      )}
 
-          <div className="tender-actions">
-            <button
-              type="button"
-              className="primary"
-              disabled={busy || documents.length === 0}
-              onClick={() => void handleRequestApproval()}
-            >
-              {busy ? 'Submitting…' : 'Request approval'}
-            </button>
-          </div>
-        </>
+      {canRequestApproval && (
+        <div className="tender-actions">
+          <button
+            type="button"
+            className="primary"
+            disabled={busy || documents.length === 0}
+            onClick={() => void handleRequestApproval()}
+          >
+            {busy ? 'Submitting…' : 'Request approval'}
+          </button>
+        </div>
       )}
 
       {error && <p className="form-error">{error}</p>}
