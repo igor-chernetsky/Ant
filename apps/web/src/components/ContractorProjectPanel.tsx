@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
 import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 import { BidProposalForm } from '@/components/BidProposalForm';
+import { BidOfferSummary } from '@/components/BidOfferSummary';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { StructuredClarificationForm } from '@/components/StructuredClarificationForm';
 import { ContractorClarificationAttachments } from '@/components/ContractorClarificationAttachments';
@@ -373,15 +374,7 @@ export function ContractorProjectPanel({
           <ul className="bid-offer-list">
             {counterOffers.map((offer) => (
               <li key={offer.id} className="bid-offer-item">
-                <p className="bid-offer-meta muted">
-                  {offer.authorRole === 'client' ? 'Client' : 'You'} ·{' '}
-                  {new Date(offer.createdAt).toLocaleString()}
-                </p>
-                <p className="bid-offer-amount">
-                  {Number(offer.amount).toLocaleString()} THB
-                  {offer.durationDays != null && ` · ${offer.durationDays} days`}
-                </p>
-                {offer.note && <p className="bid-offer-note">{offer.note}</p>}
+                <BidOfferSummary offer={offer} />
               </li>
             ))}
           </ul>

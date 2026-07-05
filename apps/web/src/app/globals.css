@@ -2959,6 +2959,10 @@ select:disabled {
   background: #fafafa;
 }
 
+.bid-offer-summary .bid-proposal-block:first-of-type {
+  margin-top: 0.65rem;
+}
+
 .bid-offer-meta {
   margin: 0 0 0.25rem;
   font-size: 0.85rem;
