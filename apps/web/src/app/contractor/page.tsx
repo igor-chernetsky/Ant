@@ -75,7 +75,11 @@ export default function ContractorPage() {
     setLocationCatalog(locations);
     setProfile(prof);
     setApplications(apps);
-    if (prof?.companyName) setCompanyName(prof.companyName);
+    if (prof?.companyName) {
+      setCompanyName(prof.companyName);
+    } else if (me.displayName) {
+      setCompanyName(me.displayName);
+    }
     if (prof?.serviceLocations?.length) {
       setServiceLocations(prof.serviceLocations);
     }
@@ -116,6 +120,7 @@ export default function ContractorPage() {
       setProfile(prof);
       setServiceLocations(prof.serviceLocations);
       setSelectedTagSlugs(prof.tagSlugs);
+      await refreshSession();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save profile');
     } finally {

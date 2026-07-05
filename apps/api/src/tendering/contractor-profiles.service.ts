@@ -95,11 +95,13 @@ export class ContractorProfilesService {
       serviceLocations[0].regionSlug,
     );
 
+    const companyName = dto.companyName?.trim() || null;
+
     const profile = await this.prisma.contractorProfile.upsert({
       where: { userId },
       create: {
         userId,
-        companyName: dto.companyName?.trim() || null,
+        companyName,
         regionCode: primaryRegion.countryCode,
         serviceLocationsJson:
           serviceLocations as unknown as Prisma.InputJsonValue,
@@ -108,7 +110,7 @@ export class ContractorProfilesService {
         verificationStatus: ContractorVerificationStatus.pending,
       },
       update: {
-        companyName: dto.companyName?.trim() || null,
+        companyName,
         regionCode: primaryRegion.countryCode,
         serviceLocationsJson:
           serviceLocations as unknown as Prisma.InputJsonValue,
@@ -116,6 +118,13 @@ export class ContractorProfilesService {
         tagSlugs: tagSlugs ?? undefined,
       },
     });
+
+    if (companyName) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { displayName: companyName },
+      });
+    }
 
     return this.toResponse(profile);
   }

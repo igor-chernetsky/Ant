@@ -11,6 +11,7 @@ export type ContractorVerificationDocCategory =
   | 'business_license'
   | 'registration'
   | 'insurance'
+  | 'owners_id'
   | 'portfolio'
   | 'other';
 
@@ -54,6 +55,7 @@ export const VERIFICATION_DOC_CATEGORIES: Array<{
   { value: 'business_license', label: 'Business license' },
   { value: 'registration', label: 'Company registration' },
   { value: 'insurance', label: 'Insurance' },
+  { value: 'owners_id', label: "Owner's ID" },
   { value: 'portfolio', label: 'Portfolio / references' },
   { value: 'other', label: 'Other' },
 ];

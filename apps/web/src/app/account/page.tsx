@@ -6,6 +6,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
+import { accountProfileLabel, accountProfileName } from '@/lib/session';
 import {
   fetchNotificationPreferences,
   updateNotificationPreferences,
@@ -125,8 +126,8 @@ export default function AccountPage() {
               <h2 className="section-title">Profile</h2>
               <dl className="meta-grid account-profile-meta">
                 <div>
-                  <dt>Name</dt>
-                  <dd>{me.displayName ?? '—'}</dd>
+                  <dt>{accountProfileLabel(me)}</dt>
+                  <dd>{accountProfileName(me) ?? '—'}</dd>
                 </div>
                 <div>
                   <dt>Email</dt>

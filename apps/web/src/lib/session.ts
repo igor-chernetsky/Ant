@@ -3,6 +3,7 @@ export interface MeResponse {
   keycloakSub: string;
   email: string | null;
   displayName: string | null;
+  companyName?: string | null;
   roles: string[];
   isContractor?: boolean;
 }
@@ -16,8 +17,27 @@ export function isContractorUser(me: MeResponse | null): boolean {
   return Boolean(me?.isContractor || me?.roles?.includes('contractor'));
 }
 
-/** Greeting in the site header — first name only (full displayName can repeat last name). */
+/** Profile name shown in account and header — company name for contractors. */
+export function accountProfileName(me: MeResponse): string | null {
+  if (isContractorUser(me)) {
+    const company = me.companyName?.trim();
+    if (company) return company;
+  }
+  const name = me.displayName?.trim();
+  return name || null;
+}
+
+export function accountProfileLabel(me: MeResponse): string {
+  return isContractorUser(me) ? 'Company name' : 'Name';
+}
+
+/** Greeting in the site header — company name for contractors, first name for clients. */
 export function headerUserLabel(me: MeResponse): string {
+  if (isContractorUser(me)) {
+    const company = me.companyName?.trim();
+    if (company) return company;
+  }
+
   const name = me.displayName?.trim();
   if (name) {
     const firstName = name.split(/\s+/)[0];

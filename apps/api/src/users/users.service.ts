@@ -58,4 +58,36 @@ export class UsersService {
     });
     return Boolean(profile);
   }
+
+  async buildMeResponse(
+    user: User,
+    payload: JwtPayload,
+  ): Promise<{
+    id: string;
+    keycloakSub: string;
+    email: string | null;
+    displayName: string | null;
+    companyName: string | null;
+    roles: string[];
+    isContractor: boolean;
+  }> {
+    const roles = payload.realm_access?.roles ?? [];
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { userId: user.id },
+      select: { companyName: true },
+    });
+    const hasContractorProfile = Boolean(profile);
+    const isContractor =
+      roles.includes('contractor') || hasContractorProfile;
+
+    return {
+      id: user.id,
+      keycloakSub: user.keycloakSub,
+      email: user.email,
+      displayName: user.displayName,
+      companyName: profile?.companyName ?? null,
+      roles,
+      isContractor,
+    };
+  }
 }
