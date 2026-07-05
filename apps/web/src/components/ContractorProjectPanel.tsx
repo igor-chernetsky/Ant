@@ -24,7 +24,6 @@ import type { ProjectBriefV1 } from '@/lib/projects';
 
 interface ContractorProjectPanelProps {
   projectId: string;
-  ballparkMid?: number | null;
   projectTitle?: string;
   projectDistrict?: string | null;
   projectDescription?: string | null;
@@ -63,9 +62,17 @@ function formatParticipationStatus(
   return bid.status.replaceAll('_', ' ');
 }
 
+function latestClientCounterOffer(offers: BidOffer[]): BidOffer | null {
+  for (let index = offers.length - 1; index >= 0; index -= 1) {
+    if (offers[index]?.authorRole === 'client') {
+      return offers[index] ?? null;
+    }
+  }
+  return null;
+}
+
 export function ContractorProjectPanel({
   projectId,
-  ballparkMid = null,
   projectTitle,
   projectDistrict,
   projectDescription,
@@ -76,6 +83,9 @@ export function ContractorProjectPanel({
   const [participation, setParticipation] =
     useState<ContractorProjectParticipation | null>(null);
   const [counterOffers, setCounterOffers] = useState<BidOffer[]>([]);
+  const [appliedCounterOfferId, setAppliedCounterOfferId] = useState<
+    string | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +141,7 @@ export function ContractorProjectPanel({
     setError(null);
     try {
       await submitContractorBid(participation.tenderId, input);
+      setAppliedCounterOfferId(null);
       await loadParticipation();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to submit proposal');
@@ -198,6 +209,12 @@ export function ContractorProjectPanel({
     (inClarification || enrolled) &&
     !submitted &&
     !selected;
+  const latestClientOffer = latestClientCounterOffer(counterOffers);
+  const appliedCounterOffer =
+    appliedCounterOfferId != null
+      ? (counterOffers.find((offer) => offer.id === appliedCounterOfferId) ??
+        null)
+      : null;
 
   return (
     <section className="card contractor-project-card">
@@ -364,7 +381,7 @@ export function ContractorProjectPanel({
       {submitted && myBid && (
         <div className="tender-subsection">
           <h3 className="tender-subsection-title">Your proposal</h3>
-          <BidProposalSummary bid={myBid} ballparkMid={ballparkMid} compact />
+          <BidProposalSummary bid={myBid} compact />
         </div>
       )}
 
@@ -378,6 +395,30 @@ export function ContractorProjectPanel({
               </li>
             ))}
           </ul>
+          {latestClientOffer && participation.canSubmitProposal && (
+            <div className="counter-offer-accept">
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy}
+                onClick={() =>
+                  setAppliedCounterOfferId(latestClientOffer.id)
+                }
+              >
+                Accept client&apos;s counter-offer
+              </button>
+              <p className="muted counter-offer-accept-hint">
+                Prefills the proposal form below with the latest counter-offer.
+                Review and edit any field before submitting.
+              </p>
+              {appliedCounterOffer?.id === latestClientOffer.id && (
+                <p className="counter-offer-accept-applied">
+                  Counter-offer applied to the form — adjust as needed, then
+                  update your proposal.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -399,7 +440,9 @@ export function ContractorProjectPanel({
           </h3>
           {(enrolled || submitted) && (
             <BidProposalForm
+              key={appliedCounterOfferId ?? `bid-${myBid?.id ?? 'new'}`}
               existingBid={submitted ? myBid : null}
+              prefillOffer={appliedCounterOffer}
               busy={busy}
               projectTitle={projectTitle}
               projectDistrict={projectDistrict}

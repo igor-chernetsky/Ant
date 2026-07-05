@@ -585,15 +585,7 @@ export class ProjectsService {
   private async buildPublicProjectResponse(
     project: Parameters<ProjectsService['toResponse']>[0],
   ): Promise<ProjectResponse> {
-    const estimate = await this.prisma.estimate.findFirst({
-      where: { projectId: project.id },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const response = this.toResponse(
-      project,
-      estimate ? this.estimatesService.toResponse(estimate) : null,
-    );
+    const response = this.toResponse(project, null);
 
     return {
       ...response,

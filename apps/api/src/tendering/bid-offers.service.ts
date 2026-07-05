@@ -16,6 +16,7 @@ import {
   MAX_BID_SCOPE_LENGTH,
   SubmitCounterOfferDto,
 } from './tendering.types';
+import { assertBreakdownMatchesTotal } from './bid-breakdown.util';
 
 @Injectable()
 export class BidOffersService {
@@ -137,6 +138,8 @@ export class BidOffersService {
     }
 
     const terms = this.buildTerms(dto);
+    assertBreakdownMatchesTotal(dto.amount, terms.lineItems);
+
     const offer = await this.prisma.bidOffer.create({
       data: {
         bidId,

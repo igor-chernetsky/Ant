@@ -348,7 +348,9 @@ export default function ProjectDetailPage() {
           <>
             <ProjectHero
               project={project}
-              estimateMidAmountThb={estimate?.totals.midAmount ?? null}
+              estimateMidAmountThb={
+                isOwner ? (estimate?.totals.midAmount ?? null) : null
+              }
               tags={project.tags}
               showTags={!intakeActive && project.tags.length > 0}
               tagsHint={
@@ -444,7 +446,7 @@ export default function ProjectDetailPage() {
               />
             )}
 
-            {estimate && (
+            {isOwner && estimate && (
               <section className="card estimate-card">
                 <h2 className="section-title">Ballpark estimate</h2>
                 <p className="estimate-range">
@@ -487,7 +489,6 @@ export default function ProjectDetailPage() {
             {!isOwner && isContractorUser(me) && (
               <ContractorProjectPanel
                 projectId={projectId}
-                ballparkMid={estimate?.totals.midAmount ?? null}
                 projectTitle={project.title}
                 projectDistrict={project.district}
                 projectDescription={project.description}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { ProjectBriefV1 } from '@/lib/projects';
 import { formatThb } from '@/lib/estimate';
-import type { Bid, BidContractTerms, BidLineItem, BidTerms, DefaultCostBreakdownItem } from '@/lib/tendering';
+import type { Bid, BidContractTerms, BidLineItem, BidOffer, BidTerms, DefaultCostBreakdownItem } from '@/lib/tendering';
 import {
   BidContractTermsFields,
   contractTermsFromBid,
@@ -12,6 +12,12 @@ import {
   type ContractTermsAudience,
 } from '@/components/BidContractTermsFields';
 import { inferContractPeriodMonths } from '@/lib/contract-terms-inference';
+import {
+  activeBreakdownLineItems,
+  BREAKDOWN_TOTAL_MISMATCH_MESSAGE,
+  breakdownLineItemsSubtotal,
+  breakdownTotalsMismatch,
+} from '@/lib/bid-breakdown-validation';
 
 export interface BidProposalInput {
   amount: number;
@@ -27,6 +33,8 @@ interface BidProposalFormProps {
   existingBid?: Bid | null;
   /** Seed form fields from another bid (e.g. client counter-offer from contractor proposal). */
   prefillBid?: Bid | null;
+  /** Prefill editable fields from a client counter-offer (keeps contract terms from existing bid). */
+  prefillOffer?: BidOffer | null;
   busy?: boolean;
   projectTitle?: string;
   projectDistrict?: string | null;
@@ -52,15 +60,6 @@ const emptyLineItem = (): BidLineItem => ({
   amount: 0,
 });
 
-const BREAKDOWN_TOTAL_TOLERANCE_THB = 1;
-
-const BREAKDOWN_TOTAL_MISMATCH_MESSAGE =
-  'Breakdown subtotal does not match the total. Please check your calculations.';
-
-function lineItemsSubtotal(items: BidLineItem[]): number {
-  return items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-}
-
 function activeLineItemsFrom(
   showBreakdown: boolean,
   lineItems: BidLineItem[],
@@ -68,12 +67,7 @@ function activeLineItemsFrom(
   if (!showBreakdown) {
     return [];
   }
-  return lineItems.filter(
-    (item) =>
-      item.trade.trim() ||
-      (item.description?.trim() ?? '') ||
-      item.amount > 0,
-  );
+  return activeBreakdownLineItems(lineItems);
 }
 
 function lineItemsFromTerms(
@@ -114,9 +108,44 @@ function buildContractTermsProjectContext(
   };
 }
 
+function proposalSeedFromInputs(
+  existingBid: Bid | null | undefined,
+  prefillBid: Bid | null | undefined,
+  prefillOffer: BidOffer | null | undefined,
+): {
+  amount: string | number | null | undefined;
+  durationDays: number | null | undefined;
+  terms: BidTerms | null | undefined;
+} {
+  if (prefillOffer) {
+    const offerTerms = prefillOffer.terms;
+    return {
+      amount: prefillOffer.amount,
+      durationDays: prefillOffer.durationDays,
+      terms: {
+        ...existingBid?.terms,
+        notes: prefillOffer.note ?? offerTerms?.notes ?? existingBid?.terms?.notes,
+        approach: offerTerms?.approach ?? existingBid?.terms?.approach,
+        scopeSummary:
+          offerTerms?.scopeSummary ?? existingBid?.terms?.scopeSummary,
+        lineItems: offerTerms?.lineItems ?? existingBid?.terms?.lineItems,
+        contractTerms: existingBid?.terms?.contractTerms,
+      },
+    };
+  }
+
+  const seedBid = existingBid ?? prefillBid;
+  return {
+    amount: seedBid?.amount,
+    durationDays: seedBid?.durationDays ?? null,
+    terms: seedBid?.terms,
+  };
+}
+
 export function BidProposalForm({
   existingBid,
   prefillBid = null,
+  prefillOffer = null,
   busy = false,
   projectTitle,
   projectDistrict,
@@ -132,8 +161,8 @@ export function BidProposalForm({
   onSubmit,
   onWithdraw,
 }: BidProposalFormProps) {
-  const seedBid = existingBid ?? prefillBid;
-  const terms = seedBid?.terms;
+  const seed = proposalSeedFromInputs(existingBid, prefillBid, prefillOffer);
+  const terms = seed.terms;
   const projectTermsSeed = {
     scopeSummary: terms?.scopeSummary ?? projectScopeSummary ?? undefined,
     contractTerms: {
@@ -148,10 +177,10 @@ export function BidProposalForm({
     projectBrief,
   );
   const [amount, setAmount] = useState(
-    seedBid?.amount != null ? String(seedBid.amount) : '',
+    seed.amount != null ? String(seed.amount) : '',
   );
   const [durationDays, setDurationDays] = useState(
-    seedBid?.durationDays?.toString() ?? '',
+    seed.durationDays?.toString() ?? '',
   );
   const [notes, setNotes] = useState(terms?.notes ?? '');
   const [approach, setApproach] = useState(terms?.approach ?? '');
@@ -163,14 +192,18 @@ export function BidProposalForm({
   );
   const [showBreakdown, setShowBreakdown] = useState(() => {
     const hasSavedBreakdown = (terms?.lineItems?.length ?? 0) > 0;
-    if (breakdownMode === 'adjust') {
+    if (breakdownMode === 'adjust' || prefillOffer) {
       return hasSavedBreakdown;
     }
     return hasSavedBreakdown || hasProjectBreakdownTemplate(defaultCostBreakdown);
   });
   const projectTemplateBreakdown = hasProjectBreakdownTemplate(defaultCostBreakdown);
   const [contractTerms, setContractTerms] = useState<BidContractTerms>(() =>
-    contractTermsFromBid(projectTermsSeed, projectContext, seedBid?.durationDays),
+    contractTermsFromBid(
+      projectTermsSeed,
+      projectContext,
+      seed.durationDays ?? existingBid?.durationDays,
+    ),
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -220,10 +253,11 @@ export function BidProposalForm({
       }
     }
 
-    const breakdownSubtotal = lineItemsSubtotal(activeLineItems);
+    const breakdownSubtotal = breakdownLineItemsSubtotal(activeLineItems);
     if (
-      breakdownSubtotal > 0 &&
-      Math.abs(breakdownSubtotal - parsedAmount) > BREAKDOWN_TOTAL_TOLERANCE_THB
+      showBreakdown &&
+      activeLineItems.length > 0 &&
+      breakdownTotalsMismatch(parsedAmount, activeLineItems)
     ) {
       setError(BREAKDOWN_TOTAL_MISMATCH_MESSAGE);
       return;
@@ -263,13 +297,14 @@ export function BidProposalForm({
   };
 
   const activeLineItems = activeLineItemsFrom(showBreakdown, lineItems);
-  const breakdownSubtotal = lineItemsSubtotal(activeLineItems);
+  const breakdownSubtotal = breakdownLineItemsSubtotal(activeLineItems);
   const parsedAmount = Number(amount);
   const amountIsValid = Number.isFinite(parsedAmount) && parsedAmount > 0;
   const breakdownMismatch =
-    breakdownSubtotal > 0 &&
+    showBreakdown &&
+    activeLineItems.length > 0 &&
     amountIsValid &&
-    Math.abs(breakdownSubtotal - parsedAmount) > BREAKDOWN_TOTAL_TOLERANCE_THB;
+    breakdownTotalsMismatch(parsedAmount, activeLineItems);
 
   return (
     <div className="bid-proposal-form bid-proposal-form--compact">
@@ -304,6 +339,12 @@ export function BidProposalForm({
             />
           </label>
         </div>
+
+        {breakdownMismatch && (
+          <p className="form-error bid-proposal-total-error" role="alert">
+            {BREAKDOWN_TOTAL_MISMATCH_MESSAGE}
+          </p>
+        )}
 
         <label>
           Subject / scope of works
@@ -464,12 +505,12 @@ export function BidProposalForm({
           >
             Add line
           </button>
-          {breakdownSubtotal > 0 && (
+          {showBreakdown && activeLineItems.length > 0 && (
             <p className="muted bid-line-items-total">
               Breakdown subtotal: {formatThb(breakdownSubtotal)}
             </p>
           )}
-          {breakdownMismatch && (
+          {breakdownMismatch && showBreakdown && (
             <p className="form-error bid-line-items-total-error" role="alert">
               {BREAKDOWN_TOTAL_MISMATCH_MESSAGE}
             </p>
@@ -477,13 +518,15 @@ export function BidProposalForm({
         </div>
       )}
 
-      {error && <p className="form-error bid-proposal-form-error">{error}</p>}
+      {error && !breakdownMismatch && (
+        <p className="form-error bid-proposal-form-error">{error}</p>
+      )}
 
       <div className="bid-proposal-form-footer participation-toolbar">
         <button
           type="button"
           className="primary"
-          disabled={busy}
+          disabled={busy || breakdownMismatch}
           onClick={() => void handleSubmit()}
         >
           {busy

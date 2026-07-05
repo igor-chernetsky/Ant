@@ -2988,6 +2988,26 @@ select:disabled {
   margin-top: 1rem;
 }
 
+.counter-offer-accept {
+  margin-top: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.counter-offer-accept-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  max-width: 36rem;
+}
+
+.counter-offer-accept-applied {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--accent, #2563eb);
+}
+
 .bid-application-card--expanded {
   background: #fff;
 }
@@ -3822,6 +3842,10 @@ select:disabled {
 .bid-line-items-total {
   margin: 0.5rem 0 0;
   font-size: 0.9rem;
+}
+
+.bid-proposal-total-error {
+  margin: 0.35rem 0 0.75rem;
 }
 
 .bid-line-items-hint {
