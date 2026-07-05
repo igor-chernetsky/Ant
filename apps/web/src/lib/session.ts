@@ -31,21 +31,9 @@ export function accountProfileLabel(me: MeResponse): string {
   return isContractorUser(me) ? 'Company name' : 'Name';
 }
 
-/** Greeting in the site header — company name for contractors, first name for clients. */
+/** Label in the site header — same full name as on the account page. */
 export function headerUserLabel(me: MeResponse): string {
-  if (isContractorUser(me)) {
-    const company = me.companyName?.trim();
-    if (company) return company;
-  }
-
-  const name = me.displayName?.trim();
-  if (name) {
-    const firstName = name.split(/\s+/)[0];
-    if (firstName) {
-      return firstName;
-    }
-  }
-  return me.email ?? 'Signed in';
+  return accountProfileName(me) ?? me.email ?? 'Signed in';
 }
 
 let clientRefreshFlight: Promise<boolean> | null = null;
