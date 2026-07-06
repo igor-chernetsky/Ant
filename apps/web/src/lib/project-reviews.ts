@@ -37,9 +37,7 @@ export interface ReviewAttachmentUpload {
 }
 
 export function canCompleteProject(project: { status: string }): boolean {
-  return (
   return project.status === 'active';
-  );
 }
 
 export async function fetchProjectCompletionContext(
