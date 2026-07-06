@@ -38,7 +38,7 @@ export interface ReviewAttachmentUpload {
 
 export function canCompleteProject(project: { status: string }): boolean {
   return (
-    project.status === 'contractor_selected' || project.status === 'active'
+  return project.status === 'active';
   );
 }
 

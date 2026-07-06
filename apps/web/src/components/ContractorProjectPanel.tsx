@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
-import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
+import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidOfferSummary } from '@/components/BidOfferSummary';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
@@ -424,12 +424,12 @@ export function ContractorProjectPanel({
 
       {selected && myBid?.id && (
         <div className="tender-subsection">
-          <h3 className="tender-subsection-title">Contract draft</h3>
-          <p className="muted participation-actions-hint">
-            You were selected for this project. Download the draft contract
-            document.
-          </p>
-          <CommercialProposalDownload bidId={myBid.id} />
+          <ContractSigningPanel
+            projectId={projectId}
+            bidId={myBid.id}
+            asContractor
+            onSigned={() => void loadParticipation()}
+          />
         </div>
       )}
 

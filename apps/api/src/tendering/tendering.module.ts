@@ -12,12 +12,14 @@ import { BidMessagesService } from './bid-messages.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import { ContractorTenderController } from './contractor-tender.controller';
 import { ProjectTenderController } from './project-tender.controller';
+import { ProjectContractController } from './project-contract.controller';
 import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { DefaultCostBreakdownService } from './default-cost-breakdown.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
+import { ContractsService } from './contracts.service';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 import { ContractorPortfolioController } from './contractor-portfolio.controller';
 import { ContractorPortfolioService } from './contractor-portfolio.service';
@@ -28,6 +30,7 @@ import { PublicContractorsController } from './public-contractors.controller';
   imports: [UsersModule, AiModule, NotificationsModule, LocationsModule, ScheduleModule.forRoot(), StorageModule, ProjectsModule],
   controllers: [
     ProjectTenderController,
+    ProjectContractController,
     ContractorTenderController,
     ContractorPortfolioController,
     PublicContractorsController,
@@ -41,6 +44,7 @@ import { PublicContractorsController } from './public-contractors.controller';
     TenderMatchingService,
     TenderAutoCloseService,
     CommercialProposalService,
+    ContractsService,
     HtmlToPdfService,
     TenderClarificationsService,
     DefaultCostBreakdownService,

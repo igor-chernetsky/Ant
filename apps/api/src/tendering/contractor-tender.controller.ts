@@ -27,6 +27,7 @@ import {
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
+import { ContractsService } from './contracts.service';
 import { ProjectsService } from '../projects/projects.service';
 import { ProjectReviewsService } from '../projects/project-reviews.service';
 
@@ -43,6 +44,7 @@ export class ContractorTenderController {
     private readonly clarifications: TenderClarificationsService,
     private readonly projectsService: ProjectsService,
     private readonly projectReviews: ProjectReviewsService,
+    private readonly contracts: ContractsService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
@@ -151,6 +153,26 @@ export class ContractorTenderController {
       projectId,
     );
     return participation ?? { participation: null };
+  }
+
+  @Get('projects/:projectId/contract')
+  async getContract(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    const contract = await this.contracts.getForProject(user.id, projectId);
+    return contract ?? { contract: null };
+  }
+
+  @Post('projects/:projectId/contract/sign')
+  @HttpCode(200)
+  async signContract(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contracts.signForProject(user.id, projectId);
   }
 
   @Get('projects/:projectId/clarification-attachments')

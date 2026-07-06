@@ -822,7 +822,7 @@ export function isTenderEligibleProjectStatus(status: string): boolean {
   return [
     'estimated',
     'in_tender',
-    'contractor_selected',
+    'awarded',
   ].includes(status);
 }
 

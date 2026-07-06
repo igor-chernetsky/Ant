@@ -16,7 +16,7 @@ const PRIMARY_STATUS_OPTIONS = [
 ] as const;
 
 const SECONDARY_STATUS_OPTIONS = [
-  { value: 'contractor_selected', label: 'Contractor selected' },
+  { value: 'awarded', label: 'Awarded' },
   { value: 'completed', label: 'Completed' },
   { value: 'hidden', label: 'Hidden projects' },
 ] as const;

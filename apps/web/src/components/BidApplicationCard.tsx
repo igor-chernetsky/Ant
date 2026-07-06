@@ -5,7 +5,7 @@ import { formatThb } from '@/lib/estimate';
 import { BidChat } from '@/components/BidChat';
 import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
 import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
-import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
+import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { ContractorPortfolioGallery } from '@/components/ContractorPortfolioGallery';
 import type { Bid, DefaultCostBreakdownItem } from '@/lib/tendering';
@@ -30,6 +30,7 @@ interface BidApplicationCardProps {
     onBidUpdated?: (bid: Bid) => void;
   };
   clarificationMode?: 'open_chat' | 'structured_qa';
+  onContractSigned?: () => void;
 }
 
 export function BidApplicationCard({
@@ -43,6 +44,7 @@ export function BidApplicationCard({
   alwaysExpanded = false,
   clientCounterOffer,
   clarificationMode = 'open_chat',
+  onContractSigned,
 }: BidApplicationCardProps) {
   const [expanded, setExpanded] = useState(alwaysExpanded);
   const isOpen = alwaysExpanded || expanded;
@@ -146,14 +148,10 @@ export function BidApplicationCard({
 
           {bid.status === 'selected' && (
             <div className="contract-draft-panel">
-              <h4 className="tender-subsection-title">Contract draft</h4>
-              <p className="muted contract-draft-panel-hint">
-                Tender complete. Download the draft contract for the selected
-                proposal.
-              </p>
-              <CommercialProposalDownload
-                bidId={bid.id}
+              <ContractSigningPanel
                 projectId={projectId}
+                bidId={bid.id}
+                onSigned={() => onContractSigned?.()}
               />
             </div>
           )}

@@ -438,7 +438,7 @@ export class ProjectsService {
     status: ProjectStatus;
   }): boolean {
     return (
-      project.status !== ProjectStatus.contractor_selected &&
+      project.status !== ProjectStatus.awarded &&
       project.status !== ProjectStatus.active &&
       project.status !== ProjectStatus.completed
     );

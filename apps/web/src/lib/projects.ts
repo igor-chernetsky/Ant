@@ -323,7 +323,12 @@ export function formatProjectStatus(status: string): string {
   if (status === 'hidden') {
     return 'Hidden projects';
   }
-  return status.replaceAll('_', ' ');
+  const labels: Record<string, string> = {
+    awarded: 'Awarded',
+    ready_for_estimate: 'Ready for estimate',
+    in_tender: 'In tender',
+  };
+  return labels[status] ?? status.replaceAll('_', ' ');
 }
 
 export function formatProjectType(type: ProjectType): string {

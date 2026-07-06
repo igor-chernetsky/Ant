@@ -5,7 +5,7 @@ export const DISCOVERY_STATUSES: ProjectStatus[] = [
   ProjectStatus.ready_for_estimate,
   ProjectStatus.estimated,
   ProjectStatus.in_tender,
-  ProjectStatus.contractor_selected,
+  ProjectStatus.awarded,
   ProjectStatus.active,
 ];
 

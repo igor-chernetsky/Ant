@@ -29,10 +29,7 @@ import {
   ProjectReviewAttachmentResponse,
 } from './projects.types';
 
-const COMPLETABLE_STATUSES: ProjectStatus[] = [
-  ProjectStatus.contractor_selected,
-  ProjectStatus.active,
-];
+const COMPLETABLE_STATUSES: ProjectStatus[] = [ProjectStatus.active];
 
 @Injectable()
 export class ProjectReviewsService {

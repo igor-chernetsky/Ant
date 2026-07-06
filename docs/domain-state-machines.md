@@ -14,8 +14,8 @@ stateDiagram-v2
   intake --> ready_for_estimate: readiness_threshold_met
   ready_for_estimate --> estimated: estimate_generated
   estimated --> in_tender: tender_published
-  in_tender --> contractor_selected: winning_bid_selected
-  contractor_selected --> active: contract_accepted
+  in_tender --> awarded: winning_bid_selected
+  awarded --> active: contract_signed_by_both
   active --> completed: project_closed
   completed --> [*]
 
@@ -30,8 +30,8 @@ stateDiagram-v2
 | `ready_for_estimate` | Required brief fields satisfied |
 | `estimated` | At least one estimate exists |
 | `in_tender` | Tender open or collecting bids |
-| `contractor_selected` | Winning bid chosen |
-| `active` | Contract accepted, work in progress |
+| `awarded` | Winning bid chosen; awaiting contract signatures |
+| `active` | Contract signed by both parties; work in progress |
 | `completed` | Project closed, reviews enabled |
 
 **Readiness threshold:** configurable score (e.g. 80/100) based on required `brief_json` fields and mandatory attachments.
@@ -87,7 +87,7 @@ stateDiagram-v2
 | `selected` | Chosen as winning bid |
 | `rejected` | Not selected after award |
 
-**Rule:** One `selected` bid per tender. Selecting a bid triggers project → `contractor_selected`.
+**Rule:** One `selected` bid per tender. Selecting a bid triggers project → `awarded` and creates a contract record awaiting signatures.
 
 ---
 

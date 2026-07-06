@@ -331,11 +331,73 @@ export class NotificationsService {
       projectId: params.projectId,
       subject: `You were selected — ${params.projectTitle}`,
       title: 'Your bid was selected',
-      bodyHtml: `<p>Congratulations! You were selected as the contractor for <strong>${escapeHtml(params.projectTitle)}</strong>.</p>`,
+      bodyHtml: `<p>Congratulations! You were selected as the contractor for <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Review the contract draft and sign it on the project page to start work.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'Sign contract',
+      textBody: `You were selected for ${params.projectTitle}. Sign the contract on the project page.`,
+    });
+  }
+
+  async notifyContractPartySigned(params: {
+    recipientUserId: string;
+    signerRole: 'client' | 'contractor';
+    projectId: string;
+    projectTitle: string;
+  }): Promise<void> {
+    const signerLabel =
+      params.signerRole === 'client' ? 'The client' : 'The contractor';
+    const isClientRecipient = params.signerRole === 'contractor';
+
+    await this.sendToUser({
+      userId: params.recipientUserId,
+      prefFlag: isClientRecipient
+        ? 'emailClientBidActivity'
+        : 'emailContractorUpdates',
+      kind: NotificationEmailKind.contract_party_signed,
+      projectId: params.projectId,
+      subject: `Contract signed — ${params.projectTitle}`,
+      title: 'Contract awaiting your signature',
+      bodyHtml: `<p>${signerLabel} signed the contract for <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Please review the contract draft and add your signature to activate the project.</p>`,
+      ctaHref: isClientRecipient
+        ? this.bidsUrl(params.projectId)
+        : this.projectUrl(params.projectId),
+      ctaLabel: 'Sign contract',
+      textBody: `${signerLabel} signed the contract for ${params.projectTitle}. Your signature is required.`,
+    });
+  }
+
+  async notifyContractFullySigned(params: {
+    clientUserId: string;
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+  }): Promise<void> {
+    const payload = {
+      projectId: params.projectId,
+      subject: `Contract active — ${params.projectTitle}`,
+      title: 'Contract fully signed',
+      bodyHtml: `<p>Both parties signed the contract for <strong>${escapeHtml(params.projectTitle)}</strong>. The project is now active.</p>`,
       ctaHref: this.projectUrl(params.projectId),
       ctaLabel: 'Open project',
-      textBody: `You were selected for ${params.projectTitle}.`,
-    });
+      textBody: `Contract fully signed for ${params.projectTitle}. The project is now active.`,
+    };
+
+    await Promise.all([
+      this.sendToUser({
+        userId: params.clientUserId,
+        prefFlag: 'emailClientBidActivity',
+        kind: NotificationEmailKind.contract_fully_signed,
+        ...payload,
+        ctaHref: this.bidsUrl(params.projectId),
+        ctaLabel: 'View project',
+      }),
+      this.sendToUser({
+        userId: params.contractorUserId,
+        prefFlag: 'emailContractorUpdates',
+        kind: NotificationEmailKind.contract_fully_signed,
+        ...payload,
+      }),
+    ]);
   }
 
   async notifyContractorBidRejected(params: {

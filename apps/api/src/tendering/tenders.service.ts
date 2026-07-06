@@ -33,6 +33,7 @@ import {
   DEFAULT_RETENTION_RELEASE_NOTES,
 } from './contract-terms.defaults';
 import { normalizeContractTerms } from './commercial-proposal.template';
+import { ContractsService } from './contracts.service';
 import { assertBreakdownMatchesTotal } from './bid-breakdown.util';
 import {
   isApplicationsDeadlinePassed,
@@ -78,6 +79,7 @@ export class TendersService {
     private readonly clarifications: TenderClarificationsService,
     private readonly costBreakdown: DefaultCostBreakdownService,
     private readonly projectsService: ProjectsService,
+    private readonly contracts: ContractsService,
   ) {}
 
   private mapBid(bid: Bid & { contractor: ContractorProfile }): BidResponse {
@@ -674,8 +676,10 @@ export class TendersService {
 
       await tx.project.update({
         where: { id: projectId },
-        data: { status: ProjectStatus.contractor_selected },
+        data: { status: ProjectStatus.awarded },
       });
+
+      await this.contracts.createForAwardedBid(tx, projectId, bidId);
 
       return nextTender;
     });
@@ -810,7 +814,7 @@ export class TendersService {
 
     const tenderAwarded =
       tender?.status === TenderStatus.awarded ||
-      project.status === ProjectStatus.contractor_selected;
+      project.status === ProjectStatus.awarded;
 
     const accessDenied = Boolean(
       myBid && tenderAwarded && myBid.status !== BidStatus.selected,

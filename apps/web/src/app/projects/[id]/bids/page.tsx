@@ -246,6 +246,7 @@ export default function ProjectBidsPage() {
                             onBidUpdated: handleBidUpdated,
                           }}
                           clarificationMode={project?.clarificationMode}
+                          onContractSigned={() => void loadData()}
                         />
                       ))}
                     </ul>
