@@ -26,6 +26,7 @@ interface ClarificationAnswerAttachmentsProps {
   onChange: (attachments: ClarificationAttachment[]) => void;
   disabled?: boolean;
   hideAddButton?: boolean;
+  readOnly?: boolean;
   onBusyChange?: (busy: boolean) => void;
 }
 
@@ -40,6 +41,7 @@ export const ClarificationAnswerAttachments = forwardRef<
     onChange,
     disabled = false,
     hideAddButton = false,
+    readOnly = false,
     onBusyChange,
   },
   ref,
@@ -121,6 +123,31 @@ export const ClarificationAnswerAttachments = forwardRef<
       setBusyState(false);
     }
   };
+
+  if (readOnly) {
+    if (uploaded.length === 0) {
+      return null;
+    }
+
+    return (
+      <ul className="clarification-answer-attachments-list clarification-answer-attachments-list--readonly">
+        {uploaded.map((file) => (
+          <li key={file.id} className="clarification-answer-attachments-item">
+            <button
+              type="button"
+              className="text-link clarification-answer-attachments-name"
+              onClick={() => void handleDownload(file.id)}
+            >
+              {file.originalName}
+            </button>
+            <span className="muted clarification-answer-attachments-meta">
+              {formatFileSize(file.sizeBytes)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   if (hideAddButton && uploaded.length === 0 && !error) {
     return (

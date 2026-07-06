@@ -818,6 +818,13 @@ export function formatTenderStatus(status: TenderStatus): string {
   return status.replaceAll('_', ' ');
 }
 
+/** Structured Q&A answers are collected only while the tender is still in draft. */
+export function isClarificationAnsweringPhase(
+  tenderStatus?: string | null,
+): boolean {
+  return tenderStatus == null || tenderStatus === 'draft';
+}
+
 export function isTenderEligibleProjectStatus(status: string): boolean {
   return [
     'estimated',

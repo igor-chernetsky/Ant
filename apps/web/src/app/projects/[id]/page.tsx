@@ -14,6 +14,7 @@ import { MetaSpecGrid } from '@/components/MetaSpecGrid';
 import { ProjectHero } from '@/components/ProjectHero';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
+import { ClientContractPanel, isContractProjectStatus } from '@/components/ClientContractPanel';
 import { isTenderEligibleProjectStatus } from '@/lib/tendering';
 import {
   DOCUMENT_CATEGORY_OPTIONS,
@@ -483,6 +484,14 @@ export default function ProjectDetailPage() {
                 projectId={projectId}
                 project={project}
                 onUpdated={setProject}
+              />
+            )}
+
+            {isOwner && isContractProjectStatus(project.status) && (
+              <ClientContractPanel
+                projectId={projectId}
+                project={project}
+                onProjectUpdated={setProject}
               />
             )}
 

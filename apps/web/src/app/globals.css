@@ -3373,6 +3373,43 @@ select:disabled {
   border-top: 1px solid var(--border);
 }
 
+.contract-signing-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.contract-signing-hint {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.contract-signing-meta {
+  margin: 0;
+}
+
+.contract-signing-actions-wrap {
+  margin-top: 0.25rem;
+}
+
+.contract-signing-toolbar {
+  margin: 0;
+}
+
+.contract-signing-inline-error {
+  flex-basis: 100%;
+  margin: 0.35rem 0 0;
+}
+
+.contract-signing-complete {
+  margin: 0;
+}
+
+.client-contract-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
 .contract-draft-panel-hint {
   margin: 0 0 0.75rem;
   font-size: 0.88rem;
@@ -3647,6 +3684,105 @@ select:disabled {
   padding: 0.85rem;
   border-radius: 10px;
   background: var(--surface-muted, #f6f7f8);
+}
+
+.client-clarification-summary-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.client-clarification-panel--readonly .client-clarification-summary p {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.client-clarification-readonly-meta {
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+}
+
+.client-clarification-readonly-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.client-clarification-readonly-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  overflow: hidden;
+}
+
+.client-clarification-readonly-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.client-clarification-readonly-summary::before {
+  content: '▸';
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: var(--text-muted, #667);
+}
+
+.client-clarification-readonly-item[open] > .client-clarification-readonly-summary::before {
+  content: '▾';
+}
+
+.client-clarification-readonly-summary::-webkit-details-marker {
+  display: none;
+}
+
+.client-clarification-readonly-question {
+  display: flex;
+  gap: 0.35rem;
+  line-height: 1.45;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+}
+
+.client-clarification-readonly-status {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted, #667);
+}
+
+.client-clarification-readonly-status--answered {
+  color: var(--success, #1a7f37);
+}
+
+.client-clarification-readonly-body {
+  padding: 0 0.85rem 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.client-clarification-readonly-answer {
+  margin: 0.75rem 0 0.35rem;
+  white-space: pre-wrap;
+  line-height: 1.55;
+}
+
+.client-clarification-readonly-answered-at {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+}
+
+.clarification-answer-attachments-list--readonly {
+  margin-top: 0.65rem;
 }
 
 .contractor-clarification-summary {

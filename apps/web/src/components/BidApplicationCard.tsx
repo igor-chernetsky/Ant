@@ -18,8 +18,8 @@ interface BidApplicationCardProps {
   currentUserId?: string;
   projectId: string;
   onSelect?: (bid: Bid) => void;
-  /** Show full bid details without collapse (bids comparison page). */
-  alwaysExpanded?: boolean;
+  /** Initial expanded state for collapsible cards. */
+  defaultExpanded?: boolean;
   /** Client-only: counter-offer negotiation on bids page */
   clientCounterOffer?: {
     projectId: string;
@@ -41,13 +41,13 @@ export function BidApplicationCard({
   currentUserId,
   projectId,
   onSelect,
-  alwaysExpanded = false,
+  defaultExpanded = false,
   clientCounterOffer,
   clarificationMode = 'open_chat',
   onContractSigned,
 }: BidApplicationCardProps) {
-  const [expanded, setExpanded] = useState(alwaysExpanded);
-  const isOpen = alwaysExpanded || expanded;
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const isOpen = expanded;
   const amount = bid.amount != null ? Number(bid.amount) : null;
   const delta =
     amount != null && ballparkMid && ballparkMid > 0
@@ -88,24 +88,20 @@ export function BidApplicationCard({
 
   return (
     <li
-      className={`bid-application-card${isOpen ? ' bid-application-card--expanded' : ''}${alwaysExpanded ? ' bid-application-card--flat' : ''}`}
+      className={`bid-application-card${isOpen ? ' bid-application-card--expanded' : ''}`}
     >
       <div className="bid-application-card-bar">
-        {alwaysExpanded ? (
-          <div className="bid-application-card-static-header">{headerContent}</div>
-        ) : (
-          <button
-            type="button"
-            className="bid-application-card-toggle"
-            aria-expanded={isOpen}
-            onClick={() => setExpanded((open) => !open)}
-          >
-            <span className="bid-application-card-chevron" aria-hidden>
-              {isOpen ? '▾' : '▸'}
-            </span>
-            {headerContent}
-          </button>
-        )}
+        <button
+          type="button"
+          className="bid-application-card-toggle"
+          aria-expanded={isOpen}
+          onClick={() => setExpanded((open) => !open)}
+        >
+          <span className="bid-application-card-chevron" aria-hidden>
+            {isOpen ? '▾' : '▸'}
+          </span>
+          {headerContent}
+        </button>
 
         <div className="bid-application-card-badges">
           {bid.status === 'clarifying' && (

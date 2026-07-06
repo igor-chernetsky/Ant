@@ -8,8 +8,10 @@ import {
 import {
   answerClarificationQuestion,
   fetchClarificationQuestions,
+  isClarificationAnsweringPhase,
   type ClarificationQuestion,
 } from '@/lib/tendering';
+import { formatDateTime } from '@/lib/projects';
 
 function computeContractorStats(questions: ClarificationQuestion[]) {
   const bidIds = new Set<string>();
@@ -41,6 +43,7 @@ function computeContractorStats(questions: ClarificationQuestion[]) {
 interface ClientClarificationQuestionsPanelProps {
   projectId: string;
   clarificationSummary?: string | null;
+  tenderStatus?: string | null;
   onUpdated?: () => void;
 }
 
@@ -49,9 +52,110 @@ function firstUnansweredIndex(items: ClarificationQuestion[]): number {
   return index >= 0 ? index : 0;
 }
 
+function ClarificationQuestionsSummary({
+  projectId,
+  questions,
+  clarificationSummary,
+}: {
+  projectId: string;
+  questions: ClarificationQuestion[];
+  clarificationSummary?: string | null;
+}) {
+  const answeredCount = questions.filter((q) => q.answer?.trim()).length;
+
+  return (
+    <div className="client-clarification-panel client-clarification-panel--readonly">
+      <h3 className="tender-subsection-title">Clarification Q&amp;A</h3>
+      <p className="muted client-clarification-hint">
+        The clarification phase is complete. Expand a question to read the answer
+        and download any attached files.
+      </p>
+
+      {clarificationSummary?.trim() && (
+        <div className="client-clarification-summary">
+          <h4 className="client-clarification-summary-title">Summary</h4>
+          <p>{clarificationSummary}</p>
+        </div>
+      )}
+
+      {questions.length === 0 ? (
+        <p className="muted">No clarification questions were submitted.</p>
+      ) : (
+        <>
+          <p className="muted client-clarification-readonly-meta">
+            {answeredCount} of {questions.length} questions answered
+          </p>
+          <ul className="client-clarification-readonly-list">
+            {questions.map((question, index) => {
+              const answered = Boolean(question.answer?.trim());
+              return (
+                <li key={question.id}>
+                  <details className="client-clarification-readonly-item">
+                    <summary className="client-clarification-readonly-summary">
+                      <span className="client-clarification-readonly-question">
+                        <span className="client-clarification-index">
+                          {index + 1}.
+                        </span>
+                        {question.questionText}
+                      </span>
+                      <span
+                        className={`client-clarification-readonly-status${
+                          answered
+                            ? ' client-clarification-readonly-status--answered'
+                            : ''
+                        }`}
+                      >
+                        {answered ? 'Answered' : 'No answer'}
+                      </span>
+                    </summary>
+                    <div className="client-clarification-readonly-body">
+                      {answered ? (
+                        <p className="client-clarification-readonly-answer">
+                          {question.answer}
+                        </p>
+                      ) : (
+                        <p className="muted client-clarification-readonly-answer">
+                          The client did not provide a written answer.
+                        </p>
+                      )}
+                      {question.answeredAt && (
+                        <p className="muted client-clarification-readonly-answered-at">
+                          Answered {formatDateTime(question.answeredAt)}
+                        </p>
+                      )}
+                      <p className="muted client-clarification-asked-by">
+                        Asked by{' '}
+                        <strong>
+                          {question.askedByCount ?? question.sourceBidIds.length}
+                        </strong>{' '}
+                        {(question.askedByCount ??
+                          question.sourceBidIds.length) === 1
+                          ? 'contractor'
+                          : 'contractors'}
+                      </p>
+                      <ClarificationAnswerAttachments
+                        projectId={projectId}
+                        questionId={question.id}
+                        attachments={question.attachments ?? []}
+                        onChange={() => {}}
+                        readOnly
+                      />
+                    </div>
+                  </details>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function ClientClarificationQuestionsPanel({
   projectId,
   clarificationSummary,
+  tenderStatus,
   onUpdated,
 }: ClientClarificationQuestionsPanelProps) {
   const [questions, setQuestions] = useState<ClarificationQuestion[]>([]);
@@ -65,6 +169,7 @@ export function ClientClarificationQuestionsPanel({
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const attachmentsRef = useRef<ClarificationAnswerAttachmentsHandle>(null);
+  const canAnswer = isClarificationAnsweringPhase(tenderStatus);
 
   const loadQuestions = useCallback(async () => {
     setLoading(true);
@@ -156,6 +261,16 @@ export function ClientClarificationQuestionsPanel({
       <div className="client-clarification-panel">
         <p className="muted">Loading contractor questions…</p>
       </div>
+    );
+  }
+
+  if (!canAnswer) {
+    return (
+      <ClarificationQuestionsSummary
+        projectId={projectId}
+        questions={questions}
+        clarificationSummary={clarificationSummary}
+      />
     );
   }
 
@@ -317,13 +432,6 @@ export function ClientClarificationQuestionsPanel({
             })()}
           </div>
         )
-      )}
-
-      {clarificationSummary && (
-        <div className="client-clarification-summary">
-          <h4 className="tender-subsection-title">Clarification summary</h4>
-          <p>{clarificationSummary}</p>
-        </div>
       )}
 
       {error && <p className="form-error">{error}</p>}

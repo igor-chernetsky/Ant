@@ -367,9 +367,8 @@ export function TenderSummaryCard({
           {project.clarificationMode === 'structured_qa' && tender && (
             <ClientClarificationQuestionsPanel
               projectId={projectId}
-              clarificationSummary={
-                collectingQuestions ? null : project.clarificationSummary
-              }
+              tenderStatus={tender.status}
+              clarificationSummary={project.clarificationSummary}
               onUpdated={() => void refreshProject()}
             />
           )}

@@ -13,6 +13,7 @@ interface ContractSigningPanelProps {
   projectId: string;
   bidId: string;
   asContractor?: boolean;
+  hideHeading?: boolean;
   onSigned?: (contract: ProjectContract) => void;
 }
 
@@ -20,6 +21,7 @@ export function ContractSigningPanel({
   projectId,
   bidId,
   asContractor = false,
+  hideHeading = false,
   onSigned,
 }: ContractSigningPanelProps) {
   const [contract, setContract] = useState<ProjectContract | null>(null);
@@ -74,11 +76,15 @@ export function ContractSigningPanel({
 
   return (
     <div className="contract-signing-panel">
-      <h4 className="tender-subsection-title">Contract signing</h4>
-      <p className="muted contract-signing-hint">
-        Both the client and the selected contractor must sign the contract draft
-        before the project becomes active.
-      </p>
+      {!hideHeading && (
+        <h4 className="tender-subsection-title">Contract signing</h4>
+      )}
+      {!hideHeading && (
+        <p className="muted contract-signing-hint">
+          Both the client and the selected contractor must sign the contract draft
+          before the project becomes active.
+        </p>
+      )}
 
       <dl className="meta-grid contract-signing-meta">
         <div>
@@ -107,24 +113,27 @@ export function ContractSigningPanel({
         </div>
       </dl>
 
-      <CommercialProposalDownload
-        bidId={bidId}
-        projectId={asContractor ? undefined : projectId}
-        label="Download contract draft"
-      />
-
-      {contract.canSign && (
-        <div className="contract-signing-actions">
-          <button
-            type="button"
-            className="primary"
-            disabled={busy}
-            onClick={() => void handleSign()}
-          >
-            {busy ? 'Signing…' : 'Sign contract'}
-          </button>
+      <div className="contract-signing-actions-wrap">
+        <div className="participation-toolbar contract-signing-toolbar">
+          <CommercialProposalDownload
+            bidId={bidId}
+            projectId={asContractor ? undefined : projectId}
+            label="Download contract draft"
+            className="secondary"
+            inline
+          />
+          {contract.canSign && (
+            <button
+              type="button"
+              className="primary"
+              disabled={busy}
+              onClick={() => void handleSign()}
+            >
+              {busy ? 'Signing…' : 'Sign contract'}
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {contract.fullySigned && (
         <p className="contract-signing-complete muted">

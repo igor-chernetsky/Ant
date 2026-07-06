@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BidAnalysisPanel } from '@/components/BidAnalysisPanel';
 import { BidApplicationCard } from '@/components/BidApplicationCard';
 import { BidsCompareTable } from '@/components/BidsCompareTable';
@@ -98,6 +98,18 @@ export default function ProjectBidsPage() {
 
   const ballparkMid = project?.estimate?.totals.midAmount ?? null;
   const projectHref = `/projects/${projectId}`;
+  const tenderAwarded = tender?.status === 'awarded';
+
+  const displayBids = useMemo(() => {
+    if (!tender) return [];
+    return [...tender.bids].sort((a, b) => {
+      if (a.status === 'selected') return -1;
+      if (b.status === 'selected') return 1;
+      if (a.status === 'submitted' && b.status !== 'submitted') return -1;
+      if (b.status === 'submitted' && a.status !== 'submitted') return 1;
+      return 0;
+    });
+  }, [tender]);
 
   return (
     <PageShell>
@@ -217,14 +229,15 @@ export default function ProjectBidsPage() {
                   {project?.clarificationMode === 'structured_qa' && (
                     <ClientClarificationQuestionsPanel
                       projectId={projectId}
+                      tenderStatus={tender.status}
                       clarificationSummary={project.clarificationSummary}
                       onUpdated={() => void loadData()}
                     />
                   )}
 
-                  {tender.bids.length > 0 ? (
+                  {displayBids.length > 0 ? (
                     <ul className="bid-proposal-list">
-                      {tender.bids.map((bid) => (
+                      {displayBids.map((bid) => (
                         <BidApplicationCard
                           key={bid.id}
                           bid={bid}
@@ -234,7 +247,9 @@ export default function ProjectBidsPage() {
                           currentUserId={me.id}
                           projectId={projectId}
                           onSelect={handleSelectBid}
-                          alwaysExpanded
+                          defaultExpanded={
+                            !tenderAwarded || bid.status === 'selected'
+                          }
                           clientCounterOffer={{
                             projectId,
                             tenderOpen:
