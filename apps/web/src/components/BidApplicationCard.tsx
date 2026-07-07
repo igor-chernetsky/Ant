@@ -26,6 +26,8 @@ interface BidApplicationCardProps {
     tenderOpen: boolean;
     projectTitle?: string;
     projectDistrict?: string | null;
+    projectDescription?: string | null;
+    projectScopeSummary?: string | null;
     projectContractTerms?: BidContractTerms;
     defaultCostBreakdown?: DefaultCostBreakdownItem[];
     onBidUpdated?: (bid: Bid) => void;
@@ -182,6 +184,11 @@ export function BidApplicationCard({
               projectId={clientCounterOffer.projectId}
               bid={bid}
               tenderOpen={clientCounterOffer.tenderOpen}
+              projectTitle={clientCounterOffer.projectTitle}
+              projectDistrict={clientCounterOffer.projectDistrict}
+              projectDescription={clientCounterOffer.projectDescription}
+              projectScopeSummary={clientCounterOffer.projectScopeSummary}
+              projectContractTerms={clientCounterOffer.projectContractTerms}
               defaultCostBreakdown={clientCounterOffer.defaultCostBreakdown}
             />
           )}

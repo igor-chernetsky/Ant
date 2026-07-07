@@ -7,6 +7,7 @@ import {
   fetchBidCounterOffers,
   submitClientCounterOffer,
   type Bid,
+  type BidContractTerms,
   type BidOffer,
   type DefaultCostBreakdownItem,
 } from '@/lib/tendering';
@@ -16,6 +17,11 @@ interface ClientCounterOfferPanelProps {
   bid: Bid;
   tenderOpen: boolean;
   defaultCostBreakdown?: DefaultCostBreakdownItem[];
+  projectTitle?: string;
+  projectDistrict?: string | null;
+  projectDescription?: string | null;
+  projectScopeSummary?: string | null;
+  projectContractTerms?: BidContractTerms;
 }
 
 export function ClientCounterOfferPanel({
@@ -23,6 +29,11 @@ export function ClientCounterOfferPanel({
   bid,
   tenderOpen,
   defaultCostBreakdown = [],
+  projectTitle,
+  projectDistrict,
+  projectDescription,
+  projectScopeSummary,
+  projectContractTerms,
 }: ClientCounterOfferPanelProps) {
   const [offers, setOffers] = useState<BidOffer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,10 +102,17 @@ export function ClientCounterOfferPanel({
           <h4 className="bid-analysis-subtitle">Send counter-offer</h4>
           <BidProposalForm
             prefillBid={bid}
+            projectTitle={projectTitle}
+            projectDistrict={projectDistrict}
+            projectDescription={projectDescription}
+            projectScopeSummary={projectScopeSummary}
+            projectContractTerms={projectContractTerms}
             defaultCostBreakdown={defaultCostBreakdown}
             busy={busy}
             contractTermsAudience="none"
             notesLabel="Comment for the contractor"
+            scopeLabel="Scope of works"
+            scopeHint="Pre-filled from the contractor's proposal. Edit if your counter-offer changes what is included."
             breakdownMode="adjust"
             submitLabel="Send counter-offer"
             onSubmit={handleSubmit}

@@ -49,6 +49,8 @@ interface BidProposalFormProps {
   notesLabel?: string;
   /** `adjust` — edit a breakdown copied from the contractor proposal. */
   breakdownMode?: 'create' | 'adjust';
+  scopeLabel?: string;
+  scopeHint?: string;
   submitLabel?: string;
   onSubmit: (input: BidProposalInput) => Promise<void>;
   onWithdraw?: () => Promise<void>;
@@ -157,6 +159,8 @@ export function BidProposalForm({
   contractTermsAudience = 'contractor',
   notesLabel = 'Comment for the client',
   breakdownMode = 'create',
+  scopeLabel = 'Scope of works',
+  scopeHint = 'What is included in this proposal — shown in the commercial proposal document.',
   submitLabel,
   onSubmit,
   onWithdraw,
@@ -347,17 +351,17 @@ export function BidProposalForm({
         )}
 
         <label>
-          Subject / scope of works
-          <span className="field-hint muted">
-            Used in the commercial proposal document and shared with the client
-          </span>
+          {scopeLabel}
+          <span className="field-hint muted">{scopeHint}</span>
           <textarea
             rows={3}
             value={scopeSummary}
             onChange={(e) => setScopeSummary(e.target.value)}
             placeholder={
               projectDescription?.trim() ||
-              'Full kitchen renovation including cabinets, countertops, plumbing…'
+              (projectTitle
+                ? `Construction works for ${projectTitle}`
+                : 'Describe the works included in this offer…')
             }
           />
         </label>

@@ -257,6 +257,8 @@ export default function ProjectBidsPage() {
                               tender.status === 'closed',
                             projectTitle: project?.title,
                             projectDistrict: project?.district,
+                            projectDescription: project?.description ?? undefined,
+                            projectScopeSummary: project?.scopeSummary,
                             projectContractTerms: tender.projectContractTerms,
                             defaultCostBreakdown: tender.defaultCostBreakdown,
                             onBidUpdated: handleBidUpdated,
