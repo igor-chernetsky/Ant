@@ -89,6 +89,7 @@ export interface Tender {
   applicationCount: number;
   submittedBidCount: number;
   defaultCostBreakdown: DefaultCostBreakdownItem[];
+  projectContractTerms?: BidContractTerms;
   createdAt: string;
   updatedAt: string;
 }

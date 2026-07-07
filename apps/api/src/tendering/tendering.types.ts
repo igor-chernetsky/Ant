@@ -143,6 +143,7 @@ export interface TenderResponse {
   /** Submitted commercial proposals only */
   submittedBidCount: number;
   defaultCostBreakdown: DefaultCostBreakdownItem[];
+  projectContractTerms: BidContractTerms;
   createdAt: string;
   updatedAt: string;
 }

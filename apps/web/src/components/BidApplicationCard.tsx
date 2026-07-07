@@ -8,7 +8,7 @@ import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { ContractorPortfolioGallery } from '@/components/ContractorPortfolioGallery';
-import type { Bid, DefaultCostBreakdownItem } from '@/lib/tendering';
+import type { Bid, BidContractTerms, DefaultCostBreakdownItem } from '@/lib/tendering';
 
 interface BidApplicationCardProps {
   bid: Bid;
@@ -26,6 +26,7 @@ interface BidApplicationCardProps {
     tenderOpen: boolean;
     projectTitle?: string;
     projectDistrict?: string | null;
+    projectContractTerms?: BidContractTerms;
     defaultCostBreakdown?: DefaultCostBreakdownItem[];
     onBidUpdated?: (bid: Bid) => void;
   };
@@ -132,12 +133,14 @@ export function BidApplicationCard({
             (bid.status === 'submitted' ||
               bid.status === 'selected' ||
               bid.status === 'rejected') &&
-            tenderStatus !== 'awarded' && (
+            (tenderStatus !== 'awarded' || bid.status === 'selected') && (
               <ClientCommercialProposalPanel
                 projectId={clientCounterOffer.projectId}
                 bid={bid}
                 projectTitle={clientCounterOffer.projectTitle}
                 projectDistrict={clientCounterOffer.projectDistrict}
+                projectContractTerms={clientCounterOffer.projectContractTerms}
+                readOnly={tenderStatus === 'awarded'}
                 onBidUpdated={clientCounterOffer.onBidUpdated}
               />
             )}

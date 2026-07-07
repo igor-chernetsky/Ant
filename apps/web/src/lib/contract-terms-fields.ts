@@ -115,27 +115,56 @@ export function contractTermsFromBid(
   terms?: { contractTerms?: BidContractTerms } | null,
   project?: ContractTermsProjectContext,
   durationDays?: number | null,
+  projectContractTerms?: BidContractTerms | null,
 ): BidContractTerms {
   const existing = terms?.contractTerms ?? {};
+  const projectDefaults = projectContractTerms ?? {};
   const defaultSubject = defaultScopeSummary(terms, project) || undefined;
 
   return {
     ...DEFAULT_CONTRACT_TERMS,
+    ...projectDefaults,
     ...existing,
-    siteAddress: existing.siteAddress ?? project?.district ?? undefined,
-    subjectOfContract: existing.subjectOfContract ?? defaultSubject,
+    siteAddress:
+      existing.siteAddress ??
+      projectDefaults.siteAddress ??
+      project?.district ??
+      undefined,
+    subjectOfContract:
+      existing.subjectOfContract ??
+      projectDefaults.subjectOfContract ??
+      defaultSubject,
     worksStartDate:
-      existing.worksStartDate?.trim() || inferWorksStartDate(project?.brief),
+      existing.worksStartDate?.trim() ||
+      projectDefaults.worksStartDate?.trim() ||
+      inferWorksStartDate(project?.brief),
     contractPeriodMonths:
       existing.contractPeriodMonths ??
+      projectDefaults.contractPeriodMonths ??
       inferContractPeriodMonths({
         durationDays,
         brief: project?.brief,
       }),
     propertyOwnership:
-      existing.propertyOwnership?.trim() || DEFAULT_PROPERTY_OWNERSHIP,
+      existing.propertyOwnership?.trim() ||
+      projectDefaults.propertyOwnership?.trim() ||
+      DEFAULT_PROPERTY_OWNERSHIP,
     retentionReleaseNotes:
-      existing.retentionReleaseNotes?.trim() || DEFAULT_RETENTION_RELEASE_NOTES,
+      existing.retentionReleaseNotes?.trim() ||
+      projectDefaults.retentionReleaseNotes?.trim() ||
+      DEFAULT_RETENTION_RELEASE_NOTES,
+    employerName:
+      existing.employerName?.trim() ||
+      projectDefaults.employerName?.trim() ||
+      undefined,
+    employerAddress:
+      existing.employerAddress?.trim() ||
+      projectDefaults.employerAddress?.trim() ||
+      undefined,
+    employerRegistrationNo:
+      existing.employerRegistrationNo?.trim() ||
+      projectDefaults.employerRegistrationNo?.trim() ||
+      undefined,
   };
 }
 

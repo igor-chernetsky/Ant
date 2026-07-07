@@ -98,7 +98,10 @@ export class TendersService {
     };
   }
 
-  private mapTender(tender: TenderWithRelations): TenderResponse {
+  private mapTender(
+    tender: TenderWithRelations,
+    projectContractTerms: BidContractTerms = {},
+  ): TenderResponse {
     const bids = tender.bids
       .filter((b) => b.status !== BidStatus.withdrawn)
       .map((b) => this.mapBid(b));
@@ -121,6 +124,7 @@ export class TendersService {
       defaultCostBreakdown: this.costBreakdown.parseStored(
         tender.defaultCostBreakdown,
       ),
+      projectContractTerms,
       createdAt: tender.createdAt.toISOString(),
       updatedAt: tender.updatedAt.toISOString(),
     };
@@ -240,35 +244,20 @@ export class TendersService {
       return null;
     }
 
-    return this.mapTender(await this.loadTender(tender.id));
+    return this.mapTender(
+      await this.loadTender(tender.id),
+      this.resolveProjectContractTerms(project),
+    );
   }
 
-  async getPublishPreview(
-    clientId: string,
-    projectId: string,
-  ): Promise<TenderPublishPreview> {
-    const project = await this.assertProjectOwner(projectId, clientId);
-    const tender = await this.prisma.tender.findUnique({
-      where: { projectId },
-    });
-
-    const defaultCostBreakdown =
-      tender && this.costBreakdown.parseStored(tender.defaultCostBreakdown).length > 0
-        ? this.costBreakdown.parseStored(tender.defaultCostBreakdown)
-        : await this.costBreakdown.generateForProject(projectId);
-
-    let clarificationSummary = project.clarificationSummary;
-    if (
-      project.clarificationMode === ClarificationMode.structured_qa &&
-      tender?.status === TenderStatus.draft
-    ) {
-      const preview =
-        await this.clarifications.previewAnsweredSummaryForProject(projectId);
-      if (preview) {
-        clarificationSummary = preview;
-      }
-    }
-
+  private resolveProjectContractTerms(project: {
+    title: string;
+    description: string | null;
+    district: string | null;
+    scopeSummary: string | null;
+    briefJson: unknown;
+    tenderContractTermsJson: unknown;
+  }): BidContractTerms {
     const scopeSummary =
       project.scopeSummary?.trim() ||
       project.description?.trim() ||
@@ -305,7 +294,7 @@ export class TendersService {
       };
 
     const brief = (project.briefJson ?? null) as ProjectBriefV1 | null;
-    const contractTermsWithSchedule: BidContractTerms = {
+    return {
       ...contractTerms,
       worksStartDate:
         contractTerms.worksStartDate?.trim() || inferWorksStartDate(brief),
@@ -313,12 +302,44 @@ export class TendersService {
         contractTerms.contractPeriodMonths ??
         inferContractPeriodMonths({ brief }),
     };
+  }
+
+  async getPublishPreview(
+    clientId: string,
+    projectId: string,
+  ): Promise<TenderPublishPreview> {
+    const project = await this.assertProjectOwner(projectId, clientId);
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+    });
+
+    const defaultCostBreakdown =
+      tender && this.costBreakdown.parseStored(tender.defaultCostBreakdown).length > 0
+        ? this.costBreakdown.parseStored(tender.defaultCostBreakdown)
+        : await this.costBreakdown.generateForProject(projectId);
+
+    let clarificationSummary = project.clarificationSummary;
+    if (
+      project.clarificationMode === ClarificationMode.structured_qa &&
+      tender?.status === TenderStatus.draft
+    ) {
+      const preview =
+        await this.clarifications.previewAnsweredSummaryForProject(projectId);
+      if (preview) {
+        clarificationSummary = preview;
+      }
+    }
+
+    const scopeSummary =
+      project.scopeSummary?.trim() ||
+      project.description?.trim() ||
+      `Construction works for ${project.title}`;
 
     return {
       scopeSummary,
       clarificationSummary,
       defaultCostBreakdown,
-      contractTerms: contractTermsWithSchedule,
+      contractTerms: this.resolveProjectContractTerms(project),
     };
   }
 
@@ -686,7 +707,6 @@ export class TendersService {
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      select: { title: true },
     });
     const selectedBid = updated.bids.find((b) => b.id === bidId);
     const rejectedBids = updated.bids.filter(
@@ -712,7 +732,10 @@ export class TendersService {
       }
     }
 
-    return this.mapTender(updated);
+    return this.mapTender(
+      updated,
+      project ? this.resolveProjectContractTerms(project) : {},
+    );
   }
 
   async listApplicationsForContractor(
@@ -1198,14 +1221,41 @@ export class TendersService {
   private mergeContractTerms(
     existingTerms: BidTermsV1 | null,
     incoming?: SubmitBidDto['contractTerms'],
+    projectTerms?: BidContractTerms,
   ): SubmitBidDto['contractTerms'] {
-    if (!incoming && !existingTerms?.contractTerms) {
+    if (!incoming && !existingTerms?.contractTerms && !projectTerms) {
       return undefined;
     }
-    return {
+
+    const merged: BidContractTerms = {
+      ...projectTerms,
       ...existingTerms?.contractTerms,
       ...incoming,
     };
+
+    const clientOnlyKeys: (keyof BidContractTerms)[] = [
+      'siteAddress',
+      'propertyOwnership',
+      'employerName',
+      'employerAddress',
+      'employerRegistrationNo',
+    ];
+
+    if (incoming) {
+      for (const key of clientOnlyKeys) {
+        if (incoming[key] === undefined) {
+          const preserved =
+            existingTerms?.contractTerms?.[key] ?? projectTerms?.[key];
+          if (preserved !== undefined) {
+            (merged as Record<string, BidContractTerms[keyof BidContractTerms]>)[
+              key
+            ] = preserved;
+          }
+        }
+      }
+    }
+
+    return merged;
   }
 
   async submitBid(
@@ -1219,6 +1269,12 @@ export class TendersService {
 
     const profile = await this.contractorProfiles.requireByUserId(userId);
     const tender = await this.loadTender(tenderId);
+    const project = await this.prisma.project.findUnique({
+      where: { id: tender.projectId },
+    });
+    const projectTerms = project
+      ? this.resolveProjectContractTerms(project)
+      : undefined;
 
     if (tender.status !== TenderStatus.open) {
       throw new BadRequestException(
@@ -1247,6 +1303,7 @@ export class TendersService {
       contractTerms: this.mergeContractTerms(
         (existing.termsJson as BidTermsV1 | null) ?? null,
         dto.contractTerms,
+        projectTerms,
       ),
     });
     assertBreakdownMatchesTotal(dto.amount, terms.lineItems);
@@ -1334,8 +1391,9 @@ export class TendersService {
     }
 
     const existingTerms = (bid.termsJson as BidTermsV1 | null) ?? {};
+    const projectTerms = this.resolveProjectContractTerms(project);
     const contractTerms = this.normalizeAndValidateContractTerms(
-      this.mergeContractTerms(existingTerms, dto.contractTerms),
+      this.mergeContractTerms(existingTerms, dto.contractTerms, projectTerms),
     );
 
     const updatedTerms: BidTermsV1 = {
