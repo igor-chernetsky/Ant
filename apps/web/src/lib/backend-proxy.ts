@@ -99,6 +99,7 @@ export async function proxyBackendJson(
   const contentType = backendResponse.headers.get('content-type') ?? '';
   if (
     contentType.includes('application/pdf') ||
+    contentType.includes('application/zip') ||
     contentType.includes('application/octet-stream')
   ) {
     const buffer = await backendResponse.arrayBuffer();

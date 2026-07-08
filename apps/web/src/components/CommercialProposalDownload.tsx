@@ -1,7 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { downloadCommercialProposal } from '@/lib/tendering';
+import { useEffect, useState } from 'react';
+import {
+  downloadCommercialProposal,
+  fetchCommercialProposalAttachmentCount,
+} from '@/lib/tendering';
 
 interface CommercialProposalDownloadProps {
   bidId: string;
@@ -21,12 +24,42 @@ export function CommercialProposalDownload({
 }: CommercialProposalDownloadProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attachmentCount, setAttachmentCount] = useState(0);
+  const [withAttachments, setWithAttachments] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const count = await fetchCommercialProposalAttachmentCount(
+          bidId,
+          projectId,
+        );
+        if (!cancelled) {
+          setAttachmentCount(count);
+          setWithAttachments(count > 0);
+        }
+      } catch {
+        if (!cancelled) {
+          setAttachmentCount(0);
+          setWithAttachments(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bidId, projectId]);
 
   const handleDownload = async () => {
     setBusy(true);
     setError(null);
     try {
-      await downloadCommercialProposal(bidId, projectId);
+      await downloadCommercialProposal(bidId, projectId, {
+        withAttachments: withAttachments && attachmentCount > 0,
+      });
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : 'Failed to download document',
@@ -35,6 +68,21 @@ export function CommercialProposalDownload({
       setBusy(false);
     }
   };
+
+  const checkbox = attachmentCount > 0 && (
+    <label className="commercial-proposal-download-option">
+      <input
+        type="checkbox"
+        checked={withAttachments}
+        onChange={(event) => setWithAttachments(event.target.checked)}
+        disabled={busy}
+      />
+      <span>
+        Include attachments ({attachmentCount}{' '}
+        {attachmentCount === 1 ? 'document' : 'documents'})
+      </span>
+    </label>
+  );
 
   const button = (
     <button
@@ -50,8 +98,13 @@ export function CommercialProposalDownload({
   if (inline) {
     return (
       <>
-        {button}
-        {error && <p className="form-error contract-signing-inline-error">{error}</p>}
+        <div className="commercial-proposal-download-inline">
+          {button}
+          {checkbox}
+        </div>
+        {error && (
+          <p className="form-error contract-signing-inline-error">{error}</p>
+        )}
       </>
     );
   }
@@ -59,6 +112,7 @@ export function CommercialProposalDownload({
   return (
     <div className="commercial-proposal-download">
       {button}
+      {checkbox}
       {error && <p className="form-error">{error}</p>}
     </div>
   );

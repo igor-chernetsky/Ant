@@ -124,6 +124,18 @@ export interface SubmitCounterOfferDto {
   approach?: string;
   scopeSummary?: string;
   lineItems?: BidLineItem[];
+  /** When true, send the same counter-offer to all submitted bids without a client counter-offer yet. */
+  applyToAllPending?: boolean;
+}
+
+export interface CounterOfferTargetsResponse {
+  count: number;
+  bidIds: string[];
+}
+
+export interface CreateCounterOfferResponse {
+  offer: BidOfferResponse;
+  sentToBidCount: number;
 }
 
 export interface TenderResponse {

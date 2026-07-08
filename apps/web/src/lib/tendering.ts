@@ -606,6 +606,18 @@ export async function fetchBidCounterOffers(
   return response.json() as Promise<BidOffer[]>;
 }
 
+export async function fetchCounterOfferTargets(
+  projectId: string,
+): Promise<{ count: number; bidIds: string[] }> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/counter-offer-targets`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load counter-offer targets');
+  }
+  return response.json() as Promise<{ count: number; bidIds: string[] }>;
+}
+
 export async function submitClientCounterOffer(
   projectId: string,
   bidId: string,
@@ -616,8 +628,9 @@ export async function submitClientCounterOffer(
     approach?: string;
     scopeSummary?: string;
     lineItems?: BidLineItem[];
+    applyToAllPending?: boolean;
   },
-): Promise<BidOffer> {
+): Promise<{ offer: BidOffer; sentToBidCount: number }> {
   const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/counter-offers`,
     {
@@ -629,7 +642,7 @@ export async function submitClientCounterOffer(
   if (!response.ok) {
     await parseError(response, 'Failed to submit counter-offer');
   }
-  return response.json() as Promise<BidOffer>;
+  return response.json() as Promise<{ offer: BidOffer; sentToBidCount: number }>;
 }
 
 export async function submitContractorBid(
@@ -749,13 +762,34 @@ function parseContentDispositionFilename(header: string | null): string | null {
   return match?.[1] ?? null;
 }
 
+export async function fetchCommercialProposalAttachmentCount(
+  bidId: string,
+  projectId?: string,
+): Promise<number> {
+  const path = projectId
+    ? `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/commercial-proposal/attachments-count`
+    : `/api/contractor/bids/${encodeURIComponent(bidId)}/commercial-proposal/attachments-count`;
+
+  const response = await fetchWithAuth(path);
+  if (!response.ok) {
+    await parseError(response, 'Failed to load attachment count');
+  }
+  const data = (await response.json()) as { count: number };
+  return data.count ?? 0;
+}
+
 export async function downloadCommercialProposal(
   bidId: string,
   projectId?: string,
+  options?: { withAttachments?: boolean },
 ): Promise<void> {
-  const path = projectId
+  const pathBase = projectId
     ? `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/commercial-proposal`
     : `/api/contractor/bids/${encodeURIComponent(bidId)}/commercial-proposal`;
+
+  const path = options?.withAttachments
+    ? `${pathBase}?withAttachments=1`
+    : pathBase;
 
   const response = await fetchWithAuth(path);
   if (!response.ok) {

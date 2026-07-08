@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -123,13 +124,44 @@ export class ContractorTenderController {
     await this.bidMessages.touchPresence(user.id, bidId);
   }
 
+  @Get('bids/:bidId/commercial-proposal/attachments-count')
+  async countCommercialProposalAttachments(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('bidId') bidId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    const count = await this.commercialProposal.countAttachments(
+      user.id,
+      bidId,
+    );
+    return { count };
+  }
+
   @Get('bids/:bidId/commercial-proposal')
   async downloadCommercialProposal(
     @Req() req: Request & { user: JwtPayload },
     @Param('bidId') bidId: string,
+    @Query('withAttachments') withAttachments: string | undefined,
     @Res() res: Response,
   ) {
     const user = await this.resolveUser(req);
+    const includeAttachments =
+      withAttachments === '1' || withAttachments === 'true';
+
+    if (includeAttachments) {
+      const { zip, fileName } = await this.commercialProposal.renderZip(
+        user.id,
+        bidId,
+      );
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${fileName}"`,
+      );
+      res.send(zip);
+      return;
+    }
+
     const { pdf, fileName } = await this.commercialProposal.renderPdf(
       user.id,
       bidId,

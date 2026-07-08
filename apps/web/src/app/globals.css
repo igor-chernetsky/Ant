@@ -3894,6 +3894,37 @@ select:disabled {
 
 .commercial-proposal-download {
   margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.commercial-proposal-download-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+}
+
+.commercial-proposal-download-option,
+.client-counter-offer-bulk-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.commercial-proposal-download-option input,
+.client-counter-offer-bulk-option input {
+  margin-top: 0.15rem;
+}
+
+.form-success {
+  margin: 0.5rem 0 0;
+  color: #166534;
+  font-size: 0.9rem;
 }
 
 .bid-contract-terms-actions {

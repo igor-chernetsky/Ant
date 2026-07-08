@@ -4,12 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { BidStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
   BidOfferResponse,
   BidTermsV1,
+  CounterOfferTargetsResponse,
+  CreateCounterOfferResponse,
   MAX_BID_APPROACH_LENGTH,
   MAX_BID_LINE_ITEMS,
   MAX_BID_NOTES_LENGTH,
@@ -17,6 +19,8 @@ import {
   SubmitCounterOfferDto,
 } from './tendering.types';
 import { assertBreakdownMatchesTotal } from './bid-breakdown.util';
+
+const MAX_BULK_COUNTER_OFFERS = 30;
 
 @Injectable()
 export class BidOffersService {
@@ -120,18 +124,29 @@ export class BidOffersService {
     return offers.map((offer) => this.mapOffer(offer));
   }
 
+  async listPendingCounterOfferTargets(
+    clientId: string,
+    projectId: string,
+  ): Promise<CounterOfferTargetsResponse> {
+    const bidIds = await this.findPendingCounterOfferBidIds(clientId, projectId);
+    return {
+      count: bidIds.length,
+      bidIds,
+    };
+  }
+
   async createClientCounterOffer(
     clientId: string,
     projectId: string,
     bidId: string,
     dto: SubmitCounterOfferDto,
-  ): Promise<BidOfferResponse> {
+  ): Promise<CreateCounterOfferResponse> {
     if (!Number.isFinite(dto.amount) || dto.amount <= 0) {
       throw new BadRequestException('Amount must be a positive number');
     }
 
     const bid = await this.assertClientBid(clientId, projectId, bidId);
-    if (bid.status !== 'submitted') {
+    if (bid.status !== BidStatus.submitted) {
       throw new BadRequestException(
         'Counter-offers are only allowed after a contractor proposal is submitted',
       );
@@ -140,28 +155,140 @@ export class BidOffersService {
     const terms = this.buildTerms(dto);
     assertBreakdownMatchesTotal(dto.amount, terms.lineItems);
 
-    const offer = await this.prisma.bidOffer.create({
-      data: {
-        bidId,
-        authorRole: 'client',
-        authorId: clientId,
-        amount: dto.amount,
-        durationDays: dto.durationDays ?? null,
-        termsJson: terms as unknown as Prisma.InputJsonValue,
-        note: dto.notes?.trim() || null,
+    const targetBidIds = dto.applyToAllPending
+      ? await this.findPendingCounterOfferBidIds(clientId, projectId)
+      : [bidId];
+
+    if (!targetBidIds.includes(bidId)) {
+      throw new BadRequestException(
+        'This bid already has a client counter-offer. Send a new one only to other contractors.',
+      );
+    }
+
+    if (targetBidIds.length > MAX_BULK_COUNTER_OFFERS) {
+      throw new BadRequestException(
+        `At most ${MAX_BULK_COUNTER_OFFERS} counter-offers can be sent at once`,
+      );
+    }
+
+    const bids = await this.prisma.bid.findMany({
+      where: {
+        id: { in: targetBidIds },
+        tender: { projectId },
+        status: BidStatus.submitted,
+      },
+      include: {
+        contractor: true,
+        tender: { include: { project: true } },
       },
     });
 
-    this.notifications.dispatch(
-      this.notifications.notifyContractorCounterOffer({
-        contractorUserId: bid.contractor.userId,
-        projectId: bid.tender.projectId,
-        projectTitle: bid.tender.project.title,
-        amount: String(dto.amount),
-      }),
-    );
+    if (bids.length === 0) {
+      throw new BadRequestException('No eligible bids found for counter-offer');
+    }
 
-    return this.mapOffer(offer);
+    const existingOffers = await this.prisma.bidOffer.findMany({
+      where: {
+        bidId: { in: targetBidIds },
+        authorRole: 'client',
+      },
+      select: { bidId: true },
+    });
+    const alreadyOffered = new Set(existingOffers.map((row) => row.bidId));
+    const eligibleBids = bids.filter((row) => !alreadyOffered.has(row.id));
+
+    if (eligibleBids.length === 0) {
+      throw new BadRequestException(
+        'All selected contractors already have a client counter-offer',
+      );
+    }
+
+    const note = dto.notes?.trim() || null;
+    const termsJson = terms as unknown as Prisma.InputJsonValue;
+    const createdOffers = await this.prisma.$transaction(async (tx) => {
+      const offers = [];
+      for (const targetBid of eligibleBids) {
+        const offer = await tx.bidOffer.create({
+          data: {
+            bidId: targetBid.id,
+            authorRole: 'client',
+            authorId: clientId,
+            amount: dto.amount,
+            durationDays: dto.durationDays ?? null,
+            termsJson,
+            note,
+          },
+        });
+        offers.push({ offer, bid: targetBid });
+      }
+      return offers;
+    });
+
+    for (const { bid: targetBid } of createdOffers) {
+      this.notifications.dispatch(
+        this.notifications.notifyContractorCounterOffer({
+          contractorUserId: targetBid.contractor.userId,
+          projectId: targetBid.tender.projectId,
+          projectTitle: targetBid.tender.project.title,
+          amount: String(dto.amount),
+        }),
+      );
+    }
+
+    const primary =
+      createdOffers.find((row) => row.offer.bidId === bidId) ?? createdOffers[0];
+
+    return {
+      offer: this.mapOffer(primary.offer),
+      sentToBidCount: createdOffers.length,
+    };
+  }
+
+  private async findPendingCounterOfferBidIds(
+    clientId: string,
+    projectId: string,
+  ): Promise<string[]> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { clientId: true },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.clientId !== clientId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+      select: { id: true },
+    });
+    if (!tender) {
+      return [];
+    }
+
+    const submittedBids = await this.prisma.bid.findMany({
+      where: {
+        tenderId: tender.id,
+        status: BidStatus.submitted,
+      },
+      select: { id: true },
+    });
+    if (submittedBids.length === 0) {
+      return [];
+    }
+
+    const bidIds = submittedBids.map((row) => row.id);
+    const clientOffers = await this.prisma.bidOffer.findMany({
+      where: {
+        bidId: { in: bidIds },
+        authorRole: 'client',
+      },
+      select: { bidId: true },
+    });
+    const offeredBidIds = new Set(clientOffers.map((row) => row.bidId));
+
+    return bidIds.filter((id) => !offeredBidIds.has(id));
   }
 
   private async assertClientBid(

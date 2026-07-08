@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
@@ -221,6 +221,15 @@ export class ProjectTenderController {
     return this.tendersService.selectBid(user.id, projectId, bidId);
   }
 
+  @Get('counter-offer-targets')
+  async listCounterOfferTargets(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.bidOffers.listPendingCounterOfferTargets(user.id, projectId);
+  }
+
   @Get('bids/:bidId/counter-offers')
   async listCounterOffers(
     @Req() req: Request & { user: JwtPayload },
@@ -295,14 +304,48 @@ export class ProjectTenderController {
     );
   }
 
+  @Get('bids/:bidId/commercial-proposal/attachments-count')
+  async countCommercialProposalAttachments(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('bidId') bidId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    const count = await this.commercialProposal.countAttachments(
+      user.id,
+      bidId,
+      projectId,
+    );
+    return { count };
+  }
+
   @Get('bids/:bidId/commercial-proposal')
   async downloadCommercialProposal(
     @Req() req: Request & { user: JwtPayload },
     @Param('projectId') projectId: string,
     @Param('bidId') bidId: string,
+    @Query('withAttachments') withAttachments: string | undefined,
     @Res() res: Response,
   ) {
     const user = await this.resolveUser(req);
+    const includeAttachments =
+      withAttachments === '1' || withAttachments === 'true';
+
+    if (includeAttachments) {
+      const { zip, fileName } = await this.commercialProposal.renderZip(
+        user.id,
+        bidId,
+        projectId,
+      );
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${fileName}"`,
+      );
+      res.send(zip);
+      return;
+    }
+
     const { pdf, fileName } = await this.commercialProposal.renderPdf(
       user.id,
       bidId,
