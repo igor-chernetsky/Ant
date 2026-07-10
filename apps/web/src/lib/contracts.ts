@@ -47,7 +47,7 @@ export async function signProjectContract(
   options?: { asContractor?: boolean },
 ): Promise<ProjectContract> {
   const response = await fetchWithAuth(
-    `${contractPath(projectId, Boolean(options?.asContractor))}/sign`,
+    contractPath(projectId, Boolean(options?.asContractor)),
     { method: 'POST' },
   );
   if (!response.ok) {
