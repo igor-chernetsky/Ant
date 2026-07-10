@@ -16,6 +16,7 @@ import {
   MAX_UPLOAD_BYTES,
 } from '../documents/documents.types';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { StorageService } from '../storage/storage.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
@@ -108,6 +109,7 @@ export class TenderClarificationsService {
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly openAi: OpenAiClarificationService,
     private readonly storage: StorageService,
+    private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
   private mapAttachment(row: {
@@ -890,6 +892,7 @@ export class TenderClarificationsService {
       where: { id: projectId },
       data: { clarificationSummary: summary },
     });
+    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
     return summary;
   }
 

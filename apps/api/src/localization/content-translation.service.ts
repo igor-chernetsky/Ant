@@ -15,7 +15,68 @@ export class ContentTranslationService {
     private readonly openAi: OpenAiTranslationService,
   ) {}
 
-  async getOrTranslateText(input: {
+  async getCachedText(input: {
+    projectId: string;
+    fieldKey: string;
+    sourceText: string;
+    targetLocale: SupportedLocale;
+  }): Promise<string | null> {
+    const { projectId, fieldKey, sourceText, targetLocale } = input;
+    if (!sourceText.trim()) {
+      return sourceText;
+    }
+
+    const cached = await this.prisma.contentTranslation.findUnique({
+      where: {
+        projectId_fieldKey_targetLocale: {
+          projectId,
+          fieldKey,
+          targetLocale,
+        },
+      },
+    });
+
+    if (cached && cached.sourceHash === hashSourceText(sourceText)) {
+      return cached.translatedText;
+    }
+
+    return null;
+  }
+
+  async getCachedJson<T>(input: {
+    projectId: string;
+    fieldKey: string;
+    sourceValue: T;
+    targetLocale: SupportedLocale;
+  }): Promise<T | null> {
+    const { projectId, fieldKey, sourceValue, targetLocale } = input;
+    const serialized = JSON.stringify(sourceValue);
+    if (!serialized || serialized === '{}' || serialized === 'null') {
+      return sourceValue;
+    }
+
+    const cached = await this.prisma.contentTranslation.findUnique({
+      where: {
+        projectId_fieldKey_targetLocale: {
+          projectId,
+          fieldKey,
+          targetLocale,
+        },
+      },
+    });
+
+    if (cached && cached.sourceHash === hashSourceText(serialized)) {
+      try {
+        return JSON.parse(cached.translatedText) as T;
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  async translateAndCacheText(input: {
     projectId: string;
     fieldKey: string;
     sourceText: string;
@@ -51,41 +112,19 @@ export class ContentTranslationService {
         targetLocale,
       )) ?? sourceText;
 
-    try {
-      await this.prisma.contentTranslation.upsert({
-        where: {
-          projectId_fieldKey_targetLocale: {
-            projectId,
-            fieldKey,
-            targetLocale,
-          },
-        },
-        create: {
-          projectId,
-          fieldKey,
-          targetLocale,
-          sourceLocale,
-          sourceHash,
-          translatedText: translated,
-          provider: this.openAi.isConfigured() ? 'openai' : 'fallback',
-        },
-        update: {
-          sourceLocale,
-          sourceHash,
-          translatedText: translated,
-          provider: this.openAi.isConfigured() ? 'openai' : 'fallback',
-        },
-      });
-    } catch (err) {
-      this.logger.warn(
-        `Failed to cache translation ${fieldKey}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
+    await this.upsertTranslation({
+      projectId,
+      fieldKey,
+      targetLocale,
+      sourceLocale,
+      sourceHash,
+      translatedText: translated,
+    });
 
     return translated;
   }
 
-  async getOrTranslateJson<T>(input: {
+  async translateAndCacheJson<T>(input: {
     projectId: string;
     fieldKey: string;
     sourceValue: T;
@@ -119,7 +158,7 @@ export class ContentTranslationService {
       try {
         return JSON.parse(cached.translatedText) as T;
       } catch {
-        // fall through to re-translate
+        // re-translate below
       }
     }
 
@@ -131,37 +170,55 @@ export class ContentTranslationService {
       )) ?? sourceValue;
     const translatedText = JSON.stringify(translated);
 
+    await this.upsertTranslation({
+      projectId,
+      fieldKey,
+      targetLocale,
+      sourceLocale,
+      sourceHash,
+      translatedText,
+    });
+
+    return translated;
+  }
+
+  private async upsertTranslation(input: {
+    projectId: string;
+    fieldKey: string;
+    targetLocale: SupportedLocale;
+    sourceLocale: SupportedLocale;
+    sourceHash: string;
+    translatedText: string;
+  }): Promise<void> {
     try {
       await this.prisma.contentTranslation.upsert({
         where: {
           projectId_fieldKey_targetLocale: {
-            projectId,
-            fieldKey,
-            targetLocale,
+            projectId: input.projectId,
+            fieldKey: input.fieldKey,
+            targetLocale: input.targetLocale,
           },
         },
         create: {
-          projectId,
-          fieldKey,
-          targetLocale,
-          sourceLocale,
-          sourceHash,
-          translatedText,
+          projectId: input.projectId,
+          fieldKey: input.fieldKey,
+          targetLocale: input.targetLocale,
+          sourceLocale: input.sourceLocale,
+          sourceHash: input.sourceHash,
+          translatedText: input.translatedText,
           provider: this.openAi.isConfigured() ? 'openai' : 'fallback',
         },
         update: {
-          sourceLocale,
-          sourceHash,
-          translatedText,
+          sourceLocale: input.sourceLocale,
+          sourceHash: input.sourceHash,
+          translatedText: input.translatedText,
           provider: this.openAi.isConfigured() ? 'openai' : 'fallback',
         },
       });
     } catch (err) {
       this.logger.warn(
-        `Failed to cache JSON translation ${fieldKey}: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to cache translation ${input.fieldKey}: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
-
-    return translated;
   }
 }

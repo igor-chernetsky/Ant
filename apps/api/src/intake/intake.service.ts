@@ -33,6 +33,7 @@ import { buildDocumentIntakeContext } from './intake-document-context';
 import { ProjectResponse } from '../projects/projects.types';
 import { EstimatesService } from '../estimation/estimates.service';
 import { ProjectsService } from '../projects/projects.service';
+import { ProjectLocalizationService } from '../localization/project-localization.service';
 
 @Injectable()
 export class IntakeService {
@@ -43,6 +44,7 @@ export class IntakeService {
     @Inject(forwardRef(() => ProjectsService))
     private readonly projectsService: ProjectsService,
     private readonly estimatesService: EstimatesService,
+    private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
   async runInitialIntakeForProject(projectId: string): Promise<void> {
@@ -97,6 +99,8 @@ export class IntakeService {
         }),
       },
     });
+
+    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
   }
 
   async submitAnswer(
@@ -221,6 +225,8 @@ export class IntakeService {
       },
     });
 
+    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
+
     return this.projectsService.getForClient(clientId, projectId, viewerLocale);
   }
 
@@ -299,6 +305,8 @@ export class IntakeService {
     });
 
     await this.estimatesService.generateAndStore(projectId);
+
+    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
     return this.projectsService.getForClient(clientId, projectId, viewerLocale);
   }

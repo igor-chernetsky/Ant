@@ -22,6 +22,7 @@ import {
   computeReadinessScore,
 } from '../projects/project-brief';
 import { ProjectsService } from '../projects/projects.service';
+import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { isAmendableStatus } from './amendments.constants';
 import {
@@ -38,6 +39,7 @@ export class AmendmentsService {
     private readonly fallback: AmendmentFallbackService,
     private readonly projectsService: ProjectsService,
     private readonly estimatesService: EstimatesService,
+    private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
   async listForProject(
@@ -218,6 +220,8 @@ export class AmendmentsService {
 
     if (previousStatus === ProjectStatus.estimated) {
       await this.estimatesService.generateAndStore(project.id);
+    } else {
+      this.projectLocalization.scheduleWarmProjectTranslations(project.id);
     }
 
     const updatedRows = await this.prisma.projectAmendment.findMany({

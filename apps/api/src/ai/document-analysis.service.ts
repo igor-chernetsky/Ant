@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, TagSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeSourceLocale } from '../localization/locale.utils';
+import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { StorageService } from '../storage/storage.service';
 import {
   ProjectBriefV1,
@@ -27,6 +28,7 @@ export class DocumentAnalysisService {
     private readonly storage: StorageService,
     private readonly openAiDocument: OpenAiDocumentService,
     private readonly pdfText: PdfTextService,
+    private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
   scheduleAnalysis(projectId: string, documentId: string): void {
@@ -171,6 +173,8 @@ export class DocumentAnalysisService {
         }),
       },
     });
+
+    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
   }
 
   private async analyzeTextDocument(input: {

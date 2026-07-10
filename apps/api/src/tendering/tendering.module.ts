@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { LocalizationModule } from '../localization/localization.module';
 import { LocationsModule } from '../locations/locations.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AiModule } from '../ai/ai.module';
@@ -27,7 +28,7 @@ import { ImageThumbnailService } from './image-thumbnail.service';
 import { PublicContractorsController } from './public-contractors.controller';
 
 @Module({
-  imports: [UsersModule, AiModule, NotificationsModule, LocationsModule, ScheduleModule.forRoot(), StorageModule, ProjectsModule],
+  imports: [UsersModule, AiModule, LocalizationModule, NotificationsModule, LocationsModule, ScheduleModule.forRoot(), StorageModule, ProjectsModule],
   controllers: [
     ProjectTenderController,
     ProjectContractController,

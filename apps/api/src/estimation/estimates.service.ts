@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { normalizeSourceLocale } from '../localization/locale.utils';
 import { ProjectBriefV1 } from '../projects/project-brief';
 import { BallparkEstimateService } from './ballpark-estimate.service';
+import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { EstimateResponse } from './estimates.types';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class EstimatesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ballpark: BallparkEstimateService,
+    private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
   toResponse(record: {
@@ -98,6 +100,8 @@ export class EstimatesService {
       where: { id: projectId },
       data: { status: ProjectStatus.estimated },
     });
+
+    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
     return this.toResponse(record);
   }

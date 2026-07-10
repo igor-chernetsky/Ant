@@ -606,18 +606,26 @@ export class ProjectsService {
 
   private async applyViewerLocale(
     response: ProjectResponse,
-    project: { sourceLocale?: string },
+    project: { id: string; sourceLocale?: string },
     viewerLocale?: SupportedLocale,
   ): Promise<ProjectResponse> {
     const sourceLocale = normalizeSourceLocale(project.sourceLocale);
     if (!viewerLocale || viewerLocale === sourceLocale) {
       return response;
     }
-    return this.projectLocalization.localizeProjectResponse(
-      response,
-      sourceLocale,
-      viewerLocale,
-    );
+
+    const { response: localized, cacheMiss } =
+      await this.projectLocalization.localizeProjectResponse(
+        response,
+        sourceLocale,
+        viewerLocale,
+      );
+
+    if (cacheMiss) {
+      this.projectLocalization.scheduleWarmProjectTranslations(project.id);
+    }
+
+    return localized;
   }
 
   async getCoverUrlsForProjects(
