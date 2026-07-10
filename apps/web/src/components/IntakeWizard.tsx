@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import type { Project } from '@/lib/projects';
 import { fetchProject } from '@/lib/projects';
 import {
@@ -18,6 +19,7 @@ interface IntakeWizardProps {
 }
 
 export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
+  const { t } = useTranslation();
   const intake = project.brief?.ai?.intake;
   const question = intake?.currentQuestion
     ? sanitizeIntakeQuestion(intake.currentQuestion)
@@ -105,14 +107,12 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
       onUpdated(updated);
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : 'Failed to submit answer';
+        err instanceof Error ? err.message : t('intake.submitAnswerFailed');
       if (message.includes('does not match the current question')) {
         try {
           const fresh = await fetchProject(project.id);
           onUpdated(fresh);
-          setError(
-            'The question changed while you were answering (e.g. after uploading a file). Please try again.',
-          );
+          setError(t('intake.questionChanged'));
         } catch {
           setError(message);
         }
@@ -131,7 +131,9 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
       const updated = await submitIntakeForProcessing(project.id);
       onUpdated(updated);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to submit intake');
+      setError(
+        err instanceof Error ? err.message : t('intake.submitIntakeFailed'),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -147,33 +149,26 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
 
   return (
     <section className="card intake-card">
-      <h2 className="section-title">Improve project description</h2>
-      <p className="muted intake-intro">
-        AI analyzed your project and suggested tags. Answer a few questions so
-        contractors receive an accurate scope. You can skip or enter your own
-        answer when needed.
-      </p>
+      <h2 className="section-title">{t('intake.title')}</h2>
+      <p className="muted intake-intro">{t('intake.intro')}</p>
 
       <div className="intake-docs-notice" role="note">
-        <p className="intake-docs-notice-title">Upload documents first</p>
-        <p className="intake-docs-notice-text">
-          Add all floor plans and photos in the <strong>Documents</strong>{' '}
-          section above before you complete intake.
-        </p>
+        <p className="intake-docs-notice-title">{t('intake.uploadDocsTitle')}</p>
+        <p className="intake-docs-notice-text">{t('intake.uploadDocsText')}</p>
       </div>
 
       <IntakeProgressBar progress={progress} />
 
       {project.brief?.ai?.improvedDescription && (
         <div className="intake-improved">
-          <h3 className="intake-subtitle">AI-improved description</h3>
+          <h3 className="intake-subtitle">{t('intake.improvedDescription')}</h3>
           <p>{project.brief.ai.improvedDescription}</p>
         </div>
       )}
 
       {project.tags.length > 0 && (
         <div className="intake-tags">
-          <h3 className="intake-subtitle">Suggested tags</h3>
+          <h3 className="intake-subtitle">{t('intake.suggestedTags')}</h3>
           <div className="tag-list">
             {project.tags.map((tag) => (
               <span
@@ -210,15 +205,15 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
                 disabled={submitting}
                 onClick={() => void handleSkip()}
               >
-                Skip
+                {t('intake.skip')}
               </button>
             )}
             <button type="submit" className="primary" disabled={submitting}>
               {submitting
-                ? 'Saving…'
+                ? t('common.saving')
                 : question.type === 'info'
-                  ? 'Continue'
-                  : 'Next'}
+                  ? t('intake.continue')
+                  : t('intake.next')}
             </button>
           </div>
         </form>
@@ -226,16 +221,16 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
 
       {showSubmit && (
         <div className="intake-final">
-          <p className="muted">
-            All questions answered. Submit to finalize the description and tags.
-          </p>
+          <p className="muted">{t('intake.allAnswered')}</p>
           <button
             type="button"
             className="primary"
             disabled={submitting}
             onClick={() => void handleFinalSubmit()}
           >
-            {submitting ? 'Processing…' : 'Submit for processing'}
+            {submitting
+              ? t('intake.processing')
+              : t('intake.submitForProcessing')}
           </button>
         </div>
       )}
@@ -250,6 +245,8 @@ function IntakeProgressBar({
 }: {
   progress: ReturnType<typeof getIntakeProgress>;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="intake-progress-block" aria-live="polite">
       <div className="intake-progress-header">
@@ -271,8 +268,10 @@ function IntakeProgressBar({
       </div>
       {!progress.isComplete && (
         <p className="intake-progress-hint muted">
-          {progress.answered} answered · ~{progress.estimatedTotal} questions
-          expected
+          {t('intake.progressAnswered', {
+            answered: progress.answered,
+            total: progress.estimatedTotal,
+          })}
         </p>
       )}
     </div>
@@ -304,6 +303,7 @@ function QuestionFields({
   onToggleMulti: (id: string) => void;
   onCustomTextChange: (v: string) => void;
 }) {
+  const { t } = useTranslation();
   const visibleOptions = question.options ?? [];
 
   return (
@@ -311,16 +311,14 @@ function QuestionFields({
       <legend>{question.prompt}</legend>
 
       {question.type === 'info' && (
-        <p className="intake-info-note muted">
-          No answer required — continue when ready.
-        </p>
+        <p className="intake-info-note muted">{t('intake.infoNote')}</p>
       )}
 
       {question.type === 'text' && (
         <textarea
           value={textValue}
           onChange={(e) => onTextChange(e.target.value)}
-          placeholder={question.placeholder ?? 'Your answer…'}
+          placeholder={question.placeholder ?? t('intake.yourAnswer')}
           rows={3}
         />
       )}
@@ -349,7 +347,7 @@ function QuestionFields({
                   checked={singleValue === INTAKE_OTHER_OPTION_ID}
                   onChange={() => onSingleChange(INTAKE_OTHER_OPTION_ID)}
                 />
-                Other — describe below
+                {t('intake.otherDescribe')}
               </label>
               <input
                 type="text"
@@ -361,7 +359,7 @@ function QuestionFields({
                     onSingleChange(INTAKE_OTHER_OPTION_ID);
                   }
                 }}
-                placeholder="Your answer…"
+                placeholder={t('intake.yourAnswer')}
               />
             </div>
           )}
@@ -388,7 +386,7 @@ function QuestionFields({
                   checked={multiValues.includes(INTAKE_OTHER_OPTION_ID)}
                   onChange={() => onToggleMulti(INTAKE_OTHER_OPTION_ID)}
                 />
-                Other — describe below
+                {t('intake.otherDescribe')}
               </label>
               <input
                 type="text"
@@ -400,7 +398,7 @@ function QuestionFields({
                     onToggleMulti(INTAKE_OTHER_OPTION_ID);
                   }
                 }}
-                placeholder="Your answer…"
+                placeholder={t('intake.yourAnswer')}
               />
             </div>
           )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from '@/components/LocaleProvider';
 import type { BidContractTerms } from '@/lib/tendering';
 import {
   canEditContractTermField,
@@ -23,9 +24,7 @@ interface BidContractTermsFieldsProps {
   projectTitle?: string;
   projectDistrict?: string | null;
   disabled?: boolean;
-  /** Hide subject field when scope is edited in the parent proposal form. */
   hideSubjectOfContract?: boolean;
-  /** Hide standalone section header when embedded in the main proposal form. */
   showSectionHeader?: boolean;
 }
 
@@ -39,6 +38,8 @@ export function BidContractTermsFields({
   hideSubjectOfContract = false,
   showSectionHeader = true,
 }: BidContractTermsFieldsProps) {
+  const { t } = useTranslation();
+
   const set = <K extends keyof BidContractTerms>(
     key: K,
     fieldValue: BidContractTerms[K],
@@ -53,11 +54,11 @@ export function BidContractTermsFields({
     <div className="bid-contract-terms">
       {showSectionHeader && (
         <div className="bid-contract-terms-header">
-          <p className="tag-section-label">Commercial proposal document</p>
+          <p className="tag-section-label">{t('contractTerms.sectionTitle')}</p>
           <p className="muted bid-contract-terms-hint">
             {audience === 'client'
-              ? 'Default values for the commercial proposal document. Contractors will see these fields when preparing their bids.'
-              : 'Propose changes to payment and schedule terms. Contractor proposal fields are shown for reference.'}
+              ? t('contractTerms.clientHint')
+              : t('contractTerms.contractorHint')}
           </p>
         </div>
       )}
@@ -65,9 +66,9 @@ export function BidContractTermsFields({
       <div className="modal-form bid-proposal-form-fields bid-contract-terms-fields">
         {!hideSubjectOfContract && (
           <label>
-            Subject of contract
+            {t('contractTerms.subjectOfContract')}
             <span className="field-hint muted">
-              Scope definition — what works are included
+              {t('contractTerms.subjectHint')}
             </span>
             <textarea
               rows={2}
@@ -75,8 +76,10 @@ export function BidContractTermsFields({
               value={value.subjectOfContract ?? ''}
               placeholder={
                 projectTitle
-                  ? `Construction works for ${projectTitle}`
-                  : 'Construction works as per drawings and specifications'
+                  ? t('contractTerms.subjectPlaceholderProject', {
+                      title: projectTitle,
+                    })
+                  : t('contractTerms.subjectPlaceholder')
               }
               onChange={(e) => set('subjectOfContract', e.target.value)}
             />
@@ -84,20 +87,22 @@ export function BidContractTermsFields({
         )}
 
         <label>
-          Site address
+          {t('contractTerms.siteAddress')}
           <input
             type="text"
             disabled={fieldDisabled('siteAddress')}
             value={value.siteAddress ?? ''}
-            placeholder={projectDistrict ?? 'Full property address'}
+            placeholder={
+              projectDistrict ?? t('contractTerms.siteAddressPlaceholder')
+            }
             onChange={(e) => set('siteAddress', e.target.value)}
           />
         </label>
 
         <label>
-          Property ownership / site rights
+          {t('contractTerms.propertyOwnership')}
           <span className="field-hint muted">
-            Title deed, lease, developer consent, etc.
+            {t('contractTerms.propertyOwnershipHint')}
           </span>
           <textarea
             rows={2}
@@ -110,7 +115,7 @@ export function BidContractTermsFields({
 
         <div className="bid-proposal-form-row bid-proposal-form-row--pair">
           <label className="bid-proposal-field">
-            <span className="field-label">Works start date</span>
+            <span className="field-label">{t('contractTerms.worksStartDate')}</span>
             <input
               type="date"
               disabled={fieldDisabled('worksStartDate')}
@@ -119,7 +124,9 @@ export function BidContractTermsFields({
             />
           </label>
           <label className="bid-proposal-field">
-            <span className="field-label">Contract period (months)</span>
+            <span className="field-label">
+              {t('contractTerms.contractPeriodMonths')}
+            </span>
             <input
               type="number"
               min="1"
@@ -138,7 +145,9 @@ export function BidContractTermsFields({
 
         <div className="bid-proposal-form-row bid-proposal-form-row--pair">
           <label className="bid-proposal-field">
-            <span className="field-label">Advance payment (%)</span>
+            <span className="field-label">
+              {t('contractTerms.advancePaymentPercent')}
+            </span>
             <input
               type="number"
               min="0"
@@ -156,13 +165,13 @@ export function BidContractTermsFields({
             />
           </label>
           <label className="bid-proposal-field">
-            <span className="field-label">Fixed advance (THB)</span>
+            <span className="field-label">{t('contractTerms.fixedAdvanceThb')}</span>
             <input
               type="number"
               min="0"
               disabled={fieldDisabled('advancePaymentAmount')}
               value={value.advancePaymentAmount ?? ''}
-              placeholder="Optional"
+              placeholder={t('common.optional')}
               onChange={(e) =>
                 set(
                   'advancePaymentAmount',
@@ -175,7 +184,7 @@ export function BidContractTermsFields({
 
         <div className="bid-proposal-form-row bid-proposal-form-row--triple">
           <label className="bid-proposal-field">
-            <span className="field-label">Retention (%)</span>
+            <span className="field-label">{t('contractTerms.retentionPercent')}</span>
             <input
               type="number"
               min="0"
@@ -188,7 +197,9 @@ export function BidContractTermsFields({
             />
           </label>
           <label className="bid-proposal-field">
-            <span className="field-label">Retention cap (%)</span>
+            <span className="field-label">
+              {t('contractTerms.retentionCapPercent')}
+            </span>
             <input
               type="number"
               min="0"
@@ -201,7 +212,7 @@ export function BidContractTermsFields({
             />
           </label>
           <label className="bid-proposal-field">
-            <span className="field-label">Warranty (months)</span>
+            <span className="field-label">{t('contractTerms.warrantyMonths')}</span>
             <input
               type="number"
               min="0"
@@ -215,7 +226,7 @@ export function BidContractTermsFields({
         </div>
 
         <label>
-          Retention release schedule
+          {t('contractTerms.retentionReleaseSchedule')}
           <textarea
             rows={2}
             disabled={fieldDisabled('retentionReleaseNotes')}
@@ -226,43 +237,43 @@ export function BidContractTermsFields({
         </label>
 
         <label>
-          Warranty period notes
+          {t('contractTerms.warrantyPeriodNotes')}
           <span className="field-hint muted">
-            Optional — overrides default defect notification wording in the CP
+            {t('contractTerms.warrantyPeriodNotesHint')}
           </span>
           <textarea
             rows={2}
             disabled={fieldDisabled('warrantyPeriodNotes')}
             value={value.warrantyPeriodNotes ?? ''}
-            placeholder={`Defect Notification Period: ${value.defectNotificationMonths ?? 24} months from Practical Completion.`}
+            placeholder={t('contractTerms.warrantyPeriodPlaceholder', {
+              months: value.defectNotificationMonths ?? 24,
+            })}
             onChange={(e) => set('warrantyPeriodNotes', e.target.value)}
           />
         </label>
 
         <label>
-          Delay damages
-          <span className="field-hint muted">
-            Optional — liquidated damages for late completion
-          </span>
+          {t('contractTerms.delayDamages')}
+          <span className="field-hint muted">{t('contractTerms.delayDamagesHint')}</span>
           <textarea
             rows={2}
             disabled={fieldDisabled('delayDamagesNotes')}
             value={value.delayDamagesNotes ?? ''}
-            placeholder="Delay damages at 0.2% per day of the Contract Amount, maximum 20% of the Contract Amount."
+            placeholder={t('contractTerms.delayDamagesPlaceholder')}
             onChange={(e) => set('delayDamagesNotes', e.target.value)}
           />
         </label>
 
         <label>
-          Special conditions
+          {t('contractTerms.specialConditions')}
           <span className="field-hint muted">
-            Optional — included in the commercial proposal document when filled
+            {t('contractTerms.specialConditionsHint')}
           </span>
           <textarea
             rows={4}
             disabled={fieldDisabled('specialConditions')}
             value={value.specialConditions ?? ''}
-            placeholder="Any additional terms, exclusions, or party-specific arrangements…"
+            placeholder={t('contractTerms.specialConditionsPlaceholder')}
             onChange={(e) => set('specialConditions', e.target.value)}
           />
         </label>
@@ -270,10 +281,10 @@ export function BidContractTermsFields({
         {audience === 'client' && (
           <>
             <p className="tag-section-label bid-contract-terms-legal-label">
-              Employer legal details (optional)
+              {t('contractTerms.employerLegalDetails')}
             </p>
             <label>
-              Employer legal name
+              {t('contractTerms.employerLegalName')}
               <input
                 type="text"
                 disabled={fieldDisabled('employerName')}
@@ -282,7 +293,7 @@ export function BidContractTermsFields({
               />
             </label>
             <label>
-              Employer address
+              {t('contractTerms.employerAddress')}
               <input
                 type="text"
                 disabled={fieldDisabled('employerAddress')}
@@ -291,7 +302,7 @@ export function BidContractTermsFields({
               />
             </label>
             <label>
-              Employer registration no.
+              {t('contractTerms.employerRegistrationNo')}
               <input
                 type="text"
                 disabled={fieldDisabled('employerRegistrationNo')}
@@ -305,10 +316,10 @@ export function BidContractTermsFields({
         {audience === 'contractor' && (
           <>
             <p className="tag-section-label bid-contract-terms-legal-label">
-              Contractor legal details (optional)
+              {t('contractTerms.contractorLegalDetails')}
             </p>
             <label>
-              Contractor address
+              {t('contractTerms.contractorAddress')}
               <input
                 type="text"
                 disabled={fieldDisabled('contractorAddress')}
@@ -317,7 +328,7 @@ export function BidContractTermsFields({
               />
             </label>
             <label>
-              Contractor registration no.
+              {t('contractTerms.contractorRegistrationNo')}
               <input
                 type="text"
                 disabled={fieldDisabled('contractorRegistrationNo')}
@@ -328,7 +339,7 @@ export function BidContractTermsFields({
               />
             </label>
             <label>
-              Contractor representative
+              {t('contractTerms.contractorRepresentative')}
               <input
                 type="text"
                 disabled={fieldDisabled('contractorRepresentative')}

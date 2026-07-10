@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from '@/components/LocaleProvider';
+
 export interface ApplicationsDeadlineValue {
   applicationsCloseAt: string;
   noApplicationsDeadline: boolean;
@@ -28,10 +30,12 @@ export function TenderApplicationsDeadlineFields({
   disabled = false,
   idPrefix = 'tender-deadline',
 }: TenderApplicationsDeadlineFieldsProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="tender-deadline-fields">
       <label className="tender-deadline-date-label" htmlFor={`${idPrefix}-date`}>
-        Accept applications until
+        {t('tenderCard.acceptApplicationsUntil')}
         <input
           id={`${idPrefix}-date`}
           type="date"
@@ -58,7 +62,7 @@ export function TenderApplicationsDeadlineFields({
             })
           }
         />
-        No time limit
+        {t('tenderCard.noTimeLimit')}
       </label>
     </div>
   );

@@ -3,14 +3,15 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
+import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
   approveAdminContractor,
   fetchAdminContractor,
   fetchAdminContractors,
-  formatVerificationStatus,
   getAdminContractorDocumentUrl,
   isAdmin,
   rejectAdminContractor,
@@ -19,18 +20,9 @@ import {
   type ContractorVerificationStatus,
 } from '@/lib/verification';
 
-const STATUS_FILTERS: Array<{
-  value: ContractorVerificationStatus | '';
-  label: string;
-}> = [
-  { value: 'awaiting_review', label: 'Awaiting review' },
-  { value: 'verified', label: 'Verified' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'rejected', label: 'Rejected' },
-  { value: '', label: 'All' },
-];
-
 export default function AdminContractorsPage() {
+  const { t } = useTranslation();
+  const { formatVerificationStatus, formatDocumentCategory } = useAppFormatters();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [ready, setReady] = useState(false);
   const [filter, setFilter] = useState<ContractorVerificationStatus | ''>(
@@ -44,6 +36,17 @@ export default function AdminContractorsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
 
+  const statusFilters: Array<{
+    value: ContractorVerificationStatus | '';
+    labelKey: string;
+  }> = [
+    { value: 'awaiting_review', labelKey: 'admin.filterAwaitingReview' },
+    { value: 'verified', labelKey: 'admin.filterVerified' },
+    { value: 'pending', labelKey: 'admin.filterPending' },
+    { value: 'rejected', labelKey: 'admin.filterRejected' },
+    { value: '', labelKey: 'admin.filterAll' },
+  ];
+
   const loadList = useCallback(async () => {
     const items = await fetchAdminContractors(filter || undefined);
     setList(items);
@@ -54,17 +57,17 @@ export default function AdminContractorsPage() {
     setReady(true);
     if (me && isAdmin(me.roles)) {
       void loadList().catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Failed to load');
+        setError(err instanceof Error ? err.message : t('common.loadFailed'));
       });
     }
-  }, [sessionReady, me, loadList]);
+  }, [sessionReady, me, loadList, t]);
 
   useEffect(() => {
     if (!ready || !me || !isAdmin(me.roles)) return;
     void loadList().catch((err: unknown) => {
-      setError(err instanceof Error ? err.message : 'Failed to load list');
+      setError(err instanceof Error ? err.message : t('admin.loadListFailed'));
     });
-  }, [filter, ready, me, loadList]);
+  }, [filter, ready, me, loadList, t]);
 
   const openDetail = async (contractorId: string) => {
     setBusy(true);
@@ -75,7 +78,9 @@ export default function AdminContractorsPage() {
       setDetail(data);
       setSelectedId(contractorId);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load details');
+      setError(
+        err instanceof Error ? err.message : t('admin.loadDetailsFailed'),
+      );
     } finally {
       setBusy(false);
     }
@@ -90,7 +95,7 @@ export default function AdminContractorsPage() {
       await loadList();
       await openDetail(selectedId);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Approve failed');
+      setError(err instanceof Error ? err.message : t('admin.approveFailed'));
     } finally {
       setBusy(false);
     }
@@ -105,7 +110,7 @@ export default function AdminContractorsPage() {
       await loadList();
       await openDetail(selectedId);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Reject failed');
+      setError(err instanceof Error ? err.message : t('admin.rejectFailed'));
     } finally {
       setBusy(false);
     }
@@ -120,7 +125,9 @@ export default function AdminContractorsPage() {
       );
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to open document');
+      setError(
+        err instanceof Error ? err.message : t('admin.openDocumentFailed'),
+      );
     }
   };
 
@@ -140,33 +147,30 @@ export default function AdminContractorsPage() {
 
       <main className="content-container main-content">
         <section className="page-hero">
-          <h1>Contractor verification</h1>
-          <p className="page-hero-lead muted">
-            Review contractor profiles, documents, and approve or reject with
-            feedback.
-          </p>
+          <h1>{t('admin.verificationTitle')}</h1>
+          <p className="page-hero-lead muted">{t('admin.verificationLead')}</p>
         </section>
 
         {!ready && (
           <section className="card">
-            <p className="muted">Loading…</p>
+            <p className="muted">{t('common.loading')}</p>
           </section>
         )}
 
         {ready && !me && (
           <section className="card cta">
-            <p>Sign in with an admin account.</p>
+            <p>{t('admin.signInPrompt')}</p>
             <button type="button" className="primary" onClick={() => setLoginOpen(true)}>
-              Sign in
+              {t('header.signIn')}
             </button>
           </section>
         )}
 
         {ready && me && !isAdmin(me.roles) && (
           <section className="card error">
-            <p>Admin role required.</p>
+            <p>{t('admin.roleRequired')}</p>
             <Link href="/" className="text-link">
-              Back to home
+              {t('common.backToHome')}
             </Link>
           </section>
         )}
@@ -175,9 +179,9 @@ export default function AdminContractorsPage() {
           <>
             <section className="card">
               <div className="tag-filter-list">
-                {STATUS_FILTERS.map((item) => (
+                {statusFilters.map((item) => (
                   <button
-                    key={item.label}
+                    key={item.labelKey}
                     type="button"
                     className={
                       filter === item.value
@@ -186,13 +190,13 @@ export default function AdminContractorsPage() {
                     }
                     onClick={() => setFilter(item.value)}
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </button>
                 ))}
               </div>
 
               {list.length === 0 ? (
-                <p className="muted">No contractors in this filter.</p>
+                <p className="muted">{t('admin.noContractors')}</p>
               ) : (
                 <ul className="admin-contractor-list">
                   {list.map((item) => (
@@ -207,8 +211,8 @@ export default function AdminContractorsPage() {
                             {item.companyName ?? item.displayName ?? item.email}
                           </strong>
                           <p className="muted doc-meta">
-                            {item.email ?? '—'} · {item.regionCode} ·{' '}
-                            {item.documentCount} docs
+                            {item.email ?? t('common.dash')} · {item.regionCode}{' '}
+                            · {item.documentCount} {t('common.docs')}
                           </p>
                         </div>
                         <span className="status-pill">
@@ -223,41 +227,41 @@ export default function AdminContractorsPage() {
 
             {detail && (
               <section className="card">
-                <h2 className="section-title">Contractor details</h2>
+                <h2 className="section-title">{t('admin.contractorDetails')}</h2>
                 <dl className="meta-grid">
                   <div>
-                    <dt>Name</dt>
-                    <dd>{detail.displayName ?? '—'}</dd>
+                    <dt>{t('common.name')}</dt>
+                    <dd>{detail.displayName ?? t('common.dash')}</dd>
                   </div>
                   <div>
-                    <dt>Email</dt>
-                    <dd>{detail.email ?? '—'}</dd>
+                    <dt>{t('common.email')}</dt>
+                    <dd>{detail.email ?? t('common.dash')}</dd>
                   </div>
                   <div>
-                    <dt>Company</dt>
-                    <dd>{detail.companyName ?? '—'}</dd>
+                    <dt>{t('common.company')}</dt>
+                    <dd>{detail.companyName ?? t('common.dash')}</dd>
                   </div>
                   <div>
-                    <dt>Region</dt>
+                    <dt>{t('common.region')}</dt>
                     <dd>{detail.regionCode}</dd>
                   </div>
                   <div>
-                    <dt>Status</dt>
+                    <dt>{t('common.status')}</dt>
                     <dd>{formatVerificationStatus(detail.verificationStatus)}</dd>
                   </div>
                   <div>
-                    <dt>Requested</dt>
+                    <dt>{t('common.requested')}</dt>
                     <dd>
                       {detail.verificationRequestedAt
                         ? new Date(detail.verificationRequestedAt).toLocaleString()
-                        : '—'}
+                        : t('common.dash')}
                     </dd>
                   </div>
                 </dl>
 
-                <h3 className="tag-section-label">Documents</h3>
+                <h3 className="tag-section-label">{t('admin.documents')}</h3>
                 {detail.documents.length === 0 ? (
-                  <p className="muted">No documents.</p>
+                  <p className="muted">{t('admin.noDocuments')}</p>
                 ) : (
                   <ul className="doc-list">
                     {detail.documents.map((doc) => (
@@ -269,7 +273,9 @@ export default function AdminContractorsPage() {
                         >
                           {doc.originalName}
                         </button>
-                        <p className="muted doc-meta">{doc.category}</p>
+                        <p className="muted doc-meta">
+                          {formatDocumentCategory(doc.category)}
+                        </p>
                       </li>
                     ))}
                   </ul>
@@ -283,15 +289,15 @@ export default function AdminContractorsPage() {
                       disabled={busy}
                       onClick={() => void handleApprove()}
                     >
-                      Approve
+                      {t('admin.approve')}
                     </button>
                     <label className="admin-reject-field">
-                      Rejection comment
+                      {t('admin.rejectionComment')}
                       <textarea
                         rows={3}
                         value={rejectComment}
                         onChange={(e) => setRejectComment(e.target.value)}
-                        placeholder="Explain what needs to be fixed…"
+                        placeholder={t('admin.rejectionPlaceholder')}
                       />
                     </label>
                     <button
@@ -300,7 +306,7 @@ export default function AdminContractorsPage() {
                       disabled={busy || rejectComment.trim().length < 3}
                       onClick={() => void handleReject()}
                     >
-                      Reject
+                      {t('admin.reject')}
                     </button>
                   </div>
                 )}

@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { formatProjectStatus } from '@/lib/projects';
+import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
   areaLabel,
   areasForRegion,
@@ -9,17 +10,9 @@ import {
   type LocationCatalog,
 } from '@/lib/locations';
 
-const PRIMARY_STATUS_OPTIONS = [
-  { value: 'in_tender', label: 'Accepting bids' },
-  { value: 'estimated', label: 'Estimated' },
-  { value: 'active', label: 'Active' },
-] as const;
+const PRIMARY_STATUS_VALUES = ['in_tender', 'estimated', 'active'] as const;
 
-const SECONDARY_STATUS_OPTIONS = [
-  { value: 'awarded', label: 'Awarded' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'hidden', label: 'Hidden projects' },
-] as const;
+const SECONDARY_STATUS_VALUES = ['awarded', 'completed', 'hidden'] as const;
 
 export interface HomeProjectFilterState {
   tags: string[];
@@ -54,11 +47,13 @@ export function HomeProjectFilters({
   resultCount,
   showHiddenFilter = false,
 }: HomeProjectFiltersProps) {
+  const { t } = useTranslation();
+  const { formatProjectStatus } = useAppFormatters();
   const activeCount = countActiveFilters(filters);
   const hasFilters = activeCount > 0;
 
-  const visibleSecondaryStatuses = SECONDARY_STATUS_OPTIONS.filter(
-    (option) => option.value !== 'hidden' || showHiddenFilter,
+  const visibleSecondaryStatuses = SECONDARY_STATUS_VALUES.filter(
+    (value) => value !== 'hidden' || showHiddenFilter,
   );
 
   const areas = useMemo(
@@ -72,8 +67,7 @@ export function HomeProjectFilters({
   const advancedCount =
     filters.tags.length +
     filters.statuses.filter(
-      (status) =>
-        !PRIMARY_STATUS_OPTIONS.some((option) => option.value === status),
+      (status) => !PRIMARY_STATUS_VALUES.some((value) => value === status),
     ).length;
 
   const update = (patch: Partial<HomeProjectFilterState>) => {
@@ -140,13 +134,14 @@ export function HomeProjectFilters({
   }
 
   return (
-    <section className="project-filters" aria-label="Project filters">
+    <section className="project-filters" aria-label={t('filters.ariaLabel')}>
       <div className="project-filters-header">
         <div className="project-filters-heading">
-          <h2 className="project-filters-title">Browse projects</h2>
+          <h2 className="project-filters-title">{t('filters.browseProjects')}</h2>
           {typeof resultCount === 'number' && (
             <span className="project-filters-count muted">
-              {resultCount} {resultCount === 1 ? 'project' : 'projects'}
+              {resultCount}{' '}
+              {resultCount === 1 ? t('filters.project') : t('filters.projects')}
             </span>
           )}
         </div>
@@ -156,7 +151,7 @@ export function HomeProjectFilters({
             className="project-filters-clear"
             onClick={clearAll}
           >
-            Clear all
+            {t('filters.clearAll')}
             <span className="project-filters-clear-badge">{activeCount}</span>
           </button>
         )}
@@ -164,13 +159,13 @@ export function HomeProjectFilters({
 
       <div className="project-filters-toolbar">
         <div className="project-filters-field">
-          <span className="project-filters-field-label">Location</span>
+          <span className="project-filters-field-label">{t('filters.location')}</span>
           {locationCatalog ? (
             <div className="project-filters-field-controls">
               <select
                 className="project-filters-select"
                 value={filters.regionSlug}
-                aria-label="Region"
+                aria-label={t('filters.region')}
                 onChange={(e) =>
                   update({
                     regionSlug: e.target.value,
@@ -178,7 +173,7 @@ export function HomeProjectFilters({
                   })
                 }
               >
-                <option value="">All regions</option>
+                <option value="">{t('filters.allRegions')}</option>
                 {locationCatalog.regions.map((region) => (
                   <option key={region.slug} value={region.slug}>
                     {region.label}
@@ -188,11 +183,11 @@ export function HomeProjectFilters({
               <select
                 className="project-filters-select"
                 value={filters.areaSlug}
-                aria-label="Area"
+                aria-label={t('filters.area')}
                 disabled={!filters.regionSlug || areas.length === 0}
                 onChange={(e) => update({ areaSlug: e.target.value })}
               >
-                <option value="">All areas</option>
+                <option value="">{t('filters.allAreas')}</option>
                 {areas.map((area) => (
                   <option key={area.slug} value={area.slug}>
                     {area.label}
@@ -201,16 +196,16 @@ export function HomeProjectFilters({
               </select>
             </div>
           ) : (
-            <span className="muted project-filters-loading">Loading…</span>
+            <span className="muted project-filters-loading">{t('common.loading')}</span>
           )}
         </div>
 
         <div className="project-filters-field project-filters-field--grow">
-          <span className="project-filters-field-label">Status</span>
+          <span className="project-filters-field-label">{t('filters.status')}</span>
           <div
             className="project-filters-segmented"
             role="group"
-            aria-label="Project status"
+            aria-label={t('filters.statusAria')}
           >
             <button
               type="button"
@@ -222,21 +217,21 @@ export function HomeProjectFilters({
               aria-pressed={filters.statuses.length === 0}
               onClick={() => update({ statuses: [] })}
             >
-              All
+              {t('filters.all')}
             </button>
-            {PRIMARY_STATUS_OPTIONS.map((option) => {
-              const active = filters.statuses.includes(option.value);
+            {PRIMARY_STATUS_VALUES.map((value) => {
+              const active = filters.statuses.includes(value);
               return (
                 <button
-                  key={option.value}
+                  key={value}
                   type="button"
                   className={`project-filters-segment${
                     active ? ' project-filters-segment--active' : ''
                   }`}
                   aria-pressed={active}
-                  onClick={() => toggleStatus(option.value)}
+                  onClick={() => toggleStatus(value)}
                 >
-                  {option.label}
+                  {formatProjectStatus(value)}
                 </button>
               );
             })}
@@ -247,7 +242,7 @@ export function HomeProjectFilters({
       {(visibleSecondaryStatuses.length > 0 || tags.length > 0) && (
         <details className="project-filters-advanced">
           <summary className="project-filters-advanced-summary">
-            <span>More filters</span>
+            <span>{t('filters.moreFilters')}</span>
             {advancedCount > 0 && (
               <span className="project-filters-advanced-badge">
                 {advancedCount}
@@ -257,21 +252,23 @@ export function HomeProjectFilters({
           <div className="project-filters-advanced-body">
             {visibleSecondaryStatuses.length > 0 && (
               <div className="project-filters-advanced-group">
-                <p className="project-filters-group-label">Other statuses</p>
+                <p className="project-filters-group-label">
+                  {t('filters.otherStatuses')}
+                </p>
                 <div className="project-filters-chips">
-                  {visibleSecondaryStatuses.map((option) => {
-                    const active = filters.statuses.includes(option.value);
+                  {visibleSecondaryStatuses.map((value) => {
+                    const active = filters.statuses.includes(value);
                     return (
                       <button
-                        key={option.value}
+                        key={value}
                         type="button"
                         className={`filter-chip${
                           active ? ' filter-chip-active' : ''
                         }`}
                         aria-pressed={active}
-                        onClick={() => toggleStatus(option.value)}
+                        onClick={() => toggleStatus(value)}
                       >
-                        {option.label}
+                        {formatProjectStatus(value)}
                       </button>
                     );
                   })}
@@ -280,7 +277,9 @@ export function HomeProjectFilters({
             )}
             {tags.length > 0 && (
               <div className="project-filters-advanced-group">
-                <p className="project-filters-group-label">Trades & scope</p>
+                <p className="project-filters-group-label">
+                  {t('filters.tradesAndScope')}
+                </p>
                 <div className="project-filters-chips project-filters-chips-wrap">
                   {tags.map((tag) => {
                     const active = filters.tags.includes(tag.slug);
@@ -306,7 +305,10 @@ export function HomeProjectFilters({
       )}
 
       {activePills.length > 0 && (
-        <div className="project-filters-pills" aria-label="Active filters">
+        <div
+          className="project-filters-pills"
+          aria-label={t('filters.activeFiltersAria')}
+        >
           {activePills.map((pill) => (
             <button
               key={pill.key}

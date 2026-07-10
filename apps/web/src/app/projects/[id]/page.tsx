@@ -15,7 +15,9 @@ import { ProjectHero } from '@/components/ProjectHero';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
 import { ClientContractPanel, isContractProjectStatus } from '@/components/ClientContractPanel';
+import { useTranslation } from '@/components/LocaleProvider';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { isTenderEligibleProjectStatus } from '@/lib/tendering';
 import {
   DOCUMENT_CATEGORY_OPTIONS,
@@ -72,6 +74,8 @@ function guessContentType(file: File): string | null {
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useTranslation();
+  const { formatDocumentCategory } = useAppFormatters();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const projectId = params.id;
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -157,12 +161,12 @@ export default function ProjectDetailPage() {
             participantErr instanceof Error &&
             participantErr.message === 'NOT_FOUND'
           ) {
-            setError('Project not found or not available for public viewing.');
+            setError(t('projectDetail.projectNotFound'));
           } else {
             setError(
               participantErr instanceof Error
                 ? participantErr.message
-                : 'Failed to load project',
+                : t('projectDetail.loadFailed'),
             );
           }
           setPageReady(true);
@@ -170,18 +174,20 @@ export default function ProjectDetailPage() {
         }
       }
       if (err instanceof Error && err.message === 'NOT_FOUND') {
-        setError('Project not found or not available for public viewing.');
+        setError(t('projectDetail.projectNotFound'));
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to load project');
+        setError(
+          err instanceof Error ? err.message : t('projectDetail.loadFailed'),
+        );
       }
       setPageReady(true);
     }
-  }, [projectId, loadDocuments, me, sessionReady]);
+  }, [projectId, loadDocuments, me, sessionReady, t]);
 
   useEffect(() => {
     if (!sessionReady) return;
     loadProjectView().catch((err: unknown) => {
-      setError(err instanceof Error ? err.message : 'Failed to load project');
+      setError(err instanceof Error ? err.message : t('projectDetail.loadFailed'));
       setAuthState('guest');
       setPageReady(true);
     });
@@ -201,12 +207,16 @@ export default function ProjectDetailPage() {
 
     const contentType = guessContentType(file);
     if (!contentType) {
-      setError('Unsupported file type. Use PDF, images, Word, Excel, TXT, or ZIP.');
+      setError(t('projectDetail.unsupportedFileType'));
       return;
     }
 
     if (file.size > MAX_UPLOAD_BYTES) {
-      setError(`File exceeds ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB limit.`);
+      setError(
+        t('projectDetail.fileTooLarge', {
+          maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
+        }),
+      );
       return;
     }
 
@@ -222,7 +232,7 @@ export default function ProjectDetailPage() {
         void fetchProject(projectId).then(setProject);
       }, 4000);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : t('common.uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -237,16 +247,16 @@ export default function ProjectDetailPage() {
         : await getPublicDocumentDownloadUrl(projectId, doc.id);
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Download failed');
+      setError(err instanceof Error ? err.message : t('common.downloadFailed'));
     }
   };
 
   const handleDeleteDocument = async (doc: ProjectDocument) => {
     if (!projectId || !project) return;
     const confirmed = await confirm({
-      title: 'Remove document?',
-      message: `Remove "${doc.originalName}" from this project?`,
-      confirmLabel: 'Remove',
+      title: t('confirm.removeDocumentTitle'),
+      message: t('confirm.removeDocumentMessage', { name: doc.originalName }),
+      confirmLabel: t('common.remove'),
       tone: 'danger',
     });
     if (!confirmed) return;
@@ -259,7 +269,9 @@ export default function ProjectDetailPage() {
       const data = await fetchProject(projectId);
       setProject(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to delete document');
+      setError(
+        err instanceof Error ? err.message : t('projectDetail.deleteDocumentFailed'),
+      );
     } finally {
       setDeletingDocId(null);
     }
@@ -293,13 +305,18 @@ export default function ProjectDetailPage() {
   const briefPropertyItems = brief?.property
     ? [
         ...(brief.property.areaSqm != null
-          ? [{ label: 'Floor area', value: `${brief.property.areaSqm} sqm` }]
+          ? [
+              {
+                label: t('brief.floorArea'),
+                value: `${brief.property.areaSqm} ${t('brief.sqm')}`,
+              },
+            ]
           : []),
         ...(brief.property.floors != null
-          ? [{ label: 'Floors', value: String(brief.property.floors) }]
+          ? [{ label: t('brief.floors'), value: String(brief.property.floors) }]
           : []),
         ...(brief.property.rooms != null
-          ? [{ label: 'Rooms', value: String(brief.property.rooms) }]
+          ? [{ label: t('brief.rooms'), value: String(brief.property.rooms) }]
           : []),
       ]
     : [];
@@ -307,12 +324,12 @@ export default function ProjectDetailPage() {
   const briefDesignItems = brief?.design
     ? [
         {
-          label: 'Plans available',
-          value: brief.design.hasPlans ? 'Yes' : 'No',
+          label: t('brief.plansAvailable'),
+          value: brief.design.hasPlans ? t('brief.yes') : t('brief.no'),
         },
         {
-          label: 'Design tender needed',
-          value: brief.design.needsDesignTender ? 'Yes' : 'No',
+          label: t('brief.designTenderNeeded'),
+          value: brief.design.needsDesignTender ? t('brief.yes') : t('brief.no'),
         },
       ]
     : [];
@@ -320,9 +337,9 @@ export default function ProjectDetailPage() {
   const handleDelete = async () => {
     if (!projectId || !project) return;
     const confirmed = await confirm({
-      title: 'Delete project?',
-      message: `Delete "${project.title}"? This cannot be undone.`,
-      confirmLabel: 'Delete project',
+      title: t('confirm.deleteProjectTitle'),
+      message: t('confirm.deleteProjectMessage', { title: project.title }),
+      confirmLabel: t('confirm.deleteProjectLabel'),
       tone: 'danger',
     });
     if (!confirmed) return;
@@ -333,7 +350,9 @@ export default function ProjectDetailPage() {
       await deleteProject(projectId);
       router.push('/');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to delete project');
+      setError(
+        err instanceof Error ? err.message : t('projectDetail.deleteProjectFailed'),
+      );
       setDeleting(false);
     }
   };
@@ -349,7 +368,7 @@ export default function ProjectDetailPage() {
       <main className="content-container main-content">
         {authState === 'loading' || !pageReady ? (
           <section className="card">
-            <p className="muted">Loading…</p>
+            <p className="muted">{t('common.loading')}</p>
           </section>
         ) : null}
 
@@ -366,22 +385,24 @@ export default function ProjectDetailPage() {
                 isOwner &&
                 isAmendableProjectStatus(project.status) &&
                 project.tags.length > 0
-                  ? 'Tags refresh when you apply client amendments.'
+                  ? t('projectDetail.tagsRefreshHint')
                   : null
               }
             />
 
             <section className="card">
-              <h2 className="section-title">Documents</h2>
+              <h2 className="section-title">{t('documents.title')}</h2>
               <p className="muted doc-hint">
                 {isOwner
-                  ? `Upload blueprints, photos, and specifications (max ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB). Files are stored in private object storage. PDFs and images are analyzed automatically — scope items and a short summary are shown under each file.`
-                  : 'Plans, photos, and specifications attached to this project, with inferred scope where available.'}
+                  ? t('documents.ownerHint', {
+                      maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
+                    })
+                  : t('documents.publicHint')}
               </p>
               {isOwner && (
                 <div className="doc-upload-row">
                   <label>
-                    Category
+                    {t('documents.category')}
                     <select
                       value={docCategory}
                       onChange={(e) =>
@@ -391,7 +412,7 @@ export default function ProjectDetailPage() {
                     >
                       {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
                         <option key={opt.value} value={opt.value}>
-                          {opt.label}
+                          {formatDocumentCategory(opt.value)}
                         </option>
                       ))}
                     </select>
@@ -410,13 +431,13 @@ export default function ProjectDetailPage() {
                     disabled={uploading}
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    {uploading ? 'Uploading…' : 'Upload file'}
+                    {uploading ? t('common.uploading') : t('documents.uploadFile')}
                   </button>
                 </div>
               )}
 
               {documents.length === 0 ? (
-                <p className="muted">No documents uploaded yet.</p>
+                <p className="muted">{t('documents.empty')}</p>
               ) : (
                 <>
                   <div className="doc-tiles-grid">
@@ -457,13 +478,14 @@ export default function ProjectDetailPage() {
 
             {isOwner && estimate && (
               <section className="card estimate-card">
-                <h2 className="section-title">Ballpark estimate</h2>
+                <h2 className="section-title">{t('estimateSection.title')}</h2>
                 <p className="estimate-range">
                   {formatThb(estimate.totals.minAmount)} –{' '}
                   {formatThb(estimate.totals.maxAmount)}
                 </p>
                 <p className="muted estimate-meta">
-                  Midpoint {formatThb(estimate.totals.midAmount)} · Confidence{' '}
+                  {t('estimateSection.midpoint')} {formatThb(estimate.totals.midAmount)} ·{' '}
+                  {t('estimateSection.confidence')}{' '}
                   {formatConfidence(estimate.confidence)}
                 </p>
                 {estimate.lines.length > 0 && (
@@ -516,7 +538,7 @@ export default function ProjectDetailPage() {
 
             {brief && (
               <section className="card project-brief-card">
-                <h2 className="section-title">Project brief</h2>
+                <h2 className="section-title">{t('brief.title')}</h2>
 
                 {brief.summary && (
                   <p className="brief-lead">{brief.summary}</p>
@@ -524,25 +546,31 @@ export default function ProjectDetailPage() {
 
                 {briefPropertyItems.length > 0 && (
                   <div className="brief-subsection">
-                    <h3 className="brief-subsection-title">Property details</h3>
+                    <h3 className="brief-subsection-title">
+                      {t('brief.propertyDetails')}
+                    </h3>
                     <MetaSpecGrid items={briefPropertyItems} />
                   </div>
                 )}
 
                 {briefDesignItems.length > 0 && (
                   <div className="brief-subsection">
-                    <h3 className="brief-subsection-title">Design &amp; plans</h3>
+                    <h3 className="brief-subsection-title">
+                      {t('brief.designPlans')}
+                    </h3>
                     <MetaSpecGrid items={briefDesignItems} className="brief-meta" />
                   </div>
                 )}
 
                 {brief.constraints && (
                   <div className="brief-subsection">
-                    <h3 className="brief-subsection-title">Constraints</h3>
+                    <h3 className="brief-subsection-title">
+                      {t('brief.constraints')}
+                    </h3>
                     <MetaSpecGrid
                       items={[
                         {
-                          label: 'Notes',
+                          label: t('brief.notes'),
                           value: brief.constraints,
                           fullWidth: true,
                         },
@@ -553,7 +581,7 @@ export default function ProjectDetailPage() {
 
                 {brief.ai?.missingFields && brief.ai.missingFields.length > 0 && (
                   <div className="brief-callout">
-                    <p className="brief-callout-title">Still needed for estimate</p>
+                    <p className="brief-callout-title">{t('brief.stillNeeded')}</p>
                     <ul className="brief-missing-list">
                       {brief.ai.missingFields.map((field) => (
                         <li key={field}>{field.replaceAll('_', ' ')}</li>
@@ -573,18 +601,17 @@ export default function ProjectDetailPage() {
 
             {showDelete && (
               <section className="card danger-zone">
-                <h2 className="section-title">Delete project</h2>
-                <p className="muted">
-                  Remove this project while it is still in draft or intake. Not
-                  available after estimation or tendering starts.
-                </p>
+                <h2 className="section-title">{t('projectDetail.deleteProjectTitle')}</h2>
+                <p className="muted">{t('projectDetail.deleteProjectHint')}</p>
                 <button
                   type="button"
                   className="danger"
                   disabled={deleting}
                   onClick={() => void handleDelete()}
                 >
-                  {deleting ? 'Deleting…' : 'Delete project'}
+                  {deleting
+                    ? t('common.pleaseWait')
+                    : t('projectDetail.deleteProject')}
                 </button>
               </section>
             )}
@@ -595,7 +622,7 @@ export default function ProjectDetailPage() {
           <section className="card error">
             <p>{error}</p>
             <Link href="/" className="text-link">
-              Return to projects
+              {t('bidsPage.backToProjects')}
             </Link>
           </section>
         )}

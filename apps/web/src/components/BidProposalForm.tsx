@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import type { ProjectBriefV1 } from '@/lib/projects';
 import { formatThb } from '@/lib/estimate';
 import type { Bid, BidContractTerms, BidLineItem, BidOffer, BidTerms, DefaultCostBreakdownItem } from '@/lib/tendering';
@@ -14,7 +15,6 @@ import {
 import { inferContractPeriodMonths } from '@/lib/contract-terms-inference';
 import {
   activeBreakdownLineItems,
-  BREAKDOWN_TOTAL_MISMATCH_MESSAGE,
   breakdownLineItemsSubtotal,
   breakdownTotalsMismatch,
 } from '@/lib/bid-breakdown-validation';
@@ -157,14 +157,19 @@ export function BidProposalForm({
   projectScopeSummary = null,
   projectContractTerms,
   contractTermsAudience = 'contractor',
-  notesLabel = 'Comment for the client',
+  notesLabel,
   breakdownMode = 'create',
-  scopeLabel = 'Scope of works',
-  scopeHint = 'What is included in this proposal — shown in the commercial proposal document.',
+  scopeLabel,
+  scopeHint,
   submitLabel,
   onSubmit,
   onWithdraw,
 }: BidProposalFormProps) {
+  const { t } = useTranslation();
+  const resolvedNotesLabel = notesLabel ?? t('bid.commentForClient');
+  const resolvedScopeLabel = scopeLabel ?? t('bid.scopeOfWorks');
+  const resolvedScopeHint = scopeHint ?? t('bid.scopeHint');
+  const breakdownMismatchMessage = t('bid.errors.breakdownMismatch');
   const seed = proposalSeedFromInputs(existingBid, prefillBid, prefillOffer);
   const terms = seed.terms;
   const projectTermsSeed = {
@@ -233,7 +238,7 @@ export function BidProposalForm({
     setError(null);
     const parsedAmount = Number(amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setError('Enter a valid total amount');
+      setError(t('bid.errors.invalidAmount'));
       return;
     }
 
@@ -244,7 +249,7 @@ export function BidProposalForm({
       parsedDuration !== undefined &&
       (!Number.isFinite(parsedDuration) || parsedDuration < 1)
     ) {
-      setError('Duration must be at least 1 day');
+      setError(t('bid.errors.durationMin'));
       return;
     }
 
@@ -252,7 +257,7 @@ export function BidProposalForm({
 
     for (const item of activeLineItems) {
       if (!item.trade.trim()) {
-        setError('Each cost line needs a trade');
+        setError(t('bid.errors.tradeRequired'));
         return;
       }
     }
@@ -263,7 +268,7 @@ export function BidProposalForm({
       activeLineItems.length > 0 &&
       breakdownTotalsMismatch(parsedAmount, activeLineItems)
     ) {
-      setError(BREAKDOWN_TOTAL_MISMATCH_MESSAGE);
+      setError(breakdownMismatchMessage);
       return;
     }
 
@@ -296,7 +301,7 @@ export function BidProposalForm({
             : undefined,
       });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save bid');
+      setError(err instanceof Error ? err.message : t('bid.saveBidFailed'));
     }
   };
 
@@ -316,7 +321,7 @@ export function BidProposalForm({
         <div className="bid-proposal-form-row bid-proposal-form-row--amount-duration">
           <label className="bid-proposal-field bid-proposal-field--amount">
             <span className="field-label">
-              Total (THB)
+              {t('bid.totalThb')}
               <span className="required-mark" aria-hidden="true">
                 *
               </span>
@@ -327,18 +332,18 @@ export function BidProposalForm({
               step="1"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="e.g. 850000"
+              placeholder={t('bid.amountPlaceholder')}
               inputMode="numeric"
             />
           </label>
           <label className="bid-proposal-field bid-proposal-field--duration">
-            <span className="field-label">Duration (days)</span>
+            <span className="field-label">{t('bid.durationDays')}</span>
             <input
               type="number"
               min="1"
               value={durationDays}
               onChange={(e) => handleDurationChange(e.target.value)}
-              placeholder="e.g. 45"
+              placeholder={t('bid.durationPlaceholder')}
               inputMode="numeric"
             />
           </label>
@@ -346,13 +351,13 @@ export function BidProposalForm({
 
         {breakdownMismatch && (
           <p className="form-error bid-proposal-total-error" role="alert">
-            {BREAKDOWN_TOTAL_MISMATCH_MESSAGE}
+            {breakdownMismatchMessage}
           </p>
         )}
 
         <label>
-          {scopeLabel}
-          <span className="field-hint muted">{scopeHint}</span>
+          {resolvedScopeLabel}
+          <span className="field-hint muted">{resolvedScopeHint}</span>
           <textarea
             rows={3}
             value={scopeSummary}
@@ -360,35 +365,31 @@ export function BidProposalForm({
             placeholder={
               projectDescription?.trim() ||
               (projectTitle
-                ? `Construction works for ${projectTitle}`
-                : 'Describe the works included in this offer…')
+                ? t('bid.scopePlaceholderProject', { title: projectTitle })
+                : t('bid.scopePlaceholder'))
             }
           />
         </label>
 
         <label>
-          {notesLabel}
-          <span className="field-hint muted">
-            Assumptions, payment terms, exclusions
-          </span>
+          {resolvedNotesLabel}
+          <span className="field-hint muted">{t('bid.commentHint')}</span>
           <textarea
             rows={2}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Price assumes client-supplied fixtures. 30% deposit, balance on completion."
+            placeholder={t('bid.commentPlaceholder')}
           />
         </label>
 
         <label>
-          Implementation approach
-          <span className="field-hint muted">
-            Phases, materials, timeline — how you will deliver
-          </span>
+          {t('bid.implementationApproach')}
+          <span className="field-hint muted">{t('bid.approachHint')}</span>
           <textarea
             rows={4}
             value={approach}
             onChange={(e) => setApproach(e.target.value)}
-            placeholder="Week 1–2: demolition and rough-in. Week 3–4: tiling and cabinetry install…"
+            placeholder={t('bid.approachPlaceholder')}
           />
         </label>
 
@@ -420,10 +421,10 @@ export function BidProposalForm({
             }}
           />
           {breakdownMode === 'adjust'
-            ? 'Adjust cost breakdown by trade'
+            ? t('bid.adjustBreakdown')
             : projectTemplateBreakdown
-              ? 'Fill in cost breakdown by trade'
-              : 'Add cost breakdown by trade'}
+              ? t('bid.fillBreakdown')
+              : t('bid.addBreakdown')}
         </label>
       </div>
 
@@ -431,21 +432,19 @@ export function BidProposalForm({
         <div className="bid-line-items">
           <p className="tag-section-label">
             {breakdownMode === 'adjust'
-              ? 'Contractor cost breakdown'
+              ? t('bid.contractorBreakdown')
               : projectTemplateBreakdown
-                ? 'Project cost breakdown'
-                : 'Cost breakdown (optional)'}
+                ? t('bid.projectBreakdown')
+                : t('bid.costBreakdownOptional')}
           </p>
           {breakdownMode === 'adjust' && (
             <p className="muted bid-line-items-hint">
-              Based on the contractor&apos;s proposal. Adjust amounts or add and
-              remove rows as needed.
+              {t('bid.adjustBreakdownHint')}
             </p>
           )}
           {breakdownMode === 'create' && projectTemplateBreakdown && (
             <p className="muted bid-line-items-hint">
-              From the project template. Enter amounts for each trade and adjust
-              rows as needed.
+              {t('bid.templateBreakdownHint')}
             </p>
           )}
           <ul className="bid-line-items-list">
@@ -453,8 +452,8 @@ export function BidProposalForm({
               <li key={index} className="bid-line-item-row">
                 <input
                   type="text"
-                  aria-label="Trade"
-                  placeholder="Trade (e.g. Plumbing)"
+                  aria-label={t('common.trade')}
+                  placeholder={t('bid.tradePlaceholder')}
                   value={item.trade}
                   onChange={(e) => {
                     const next = [...lineItems];
@@ -464,8 +463,8 @@ export function BidProposalForm({
                 />
                 <input
                   type="text"
-                  aria-label="Description (optional)"
-                  placeholder="Description (optional)"
+                  aria-label={t('common.descriptionOptional')}
+                  placeholder={t('common.descriptionOptional')}
                   value={item.description ?? ''}
                   onChange={(e) => {
                     const next = [...lineItems];
@@ -476,8 +475,8 @@ export function BidProposalForm({
                 <input
                   type="number"
                   min="0"
-                  aria-label="Amount"
-                  placeholder="THB"
+                  aria-label={t('common.amount')}
+                  placeholder={t('bid.thbPlaceholder')}
                   value={item.amount || ''}
                   onChange={(e) => {
                     const next = [...lineItems];
@@ -491,7 +490,7 @@ export function BidProposalForm({
                 <button
                   type="button"
                   className="icon-button"
-                  aria-label="Remove line"
+                  aria-label={t('common.removeLine')}
                   disabled={lineItems.length <= 1}
                   onClick={() =>
                     setLineItems(lineItems.filter((_, i) => i !== index))
@@ -507,16 +506,18 @@ export function BidProposalForm({
             className="secondary"
             onClick={() => setLineItems([...lineItems, emptyLineItem()])}
           >
-            Add line
+            {t('common.addLine')}
           </button>
           {showBreakdown && activeLineItems.length > 0 && (
             <p className="muted bid-line-items-total">
-              Breakdown subtotal: {formatThb(breakdownSubtotal)}
+              {t('bid.breakdownSubtotal', {
+                amount: formatThb(breakdownSubtotal),
+              })}
             </p>
           )}
           {breakdownMismatch && showBreakdown && (
             <p className="form-error bid-line-items-total-error" role="alert">
-              {BREAKDOWN_TOTAL_MISMATCH_MESSAGE}
+              {breakdownMismatchMessage}
             </p>
           )}
         </div>
@@ -534,11 +535,11 @@ export function BidProposalForm({
           onClick={() => void handleSubmit()}
         >
           {busy
-            ? 'Saving…'
+            ? t('common.saving')
             : submitLabel ??
               (existingBid?.status === 'submitted'
-                ? 'Update proposal'
-                : 'Submit proposal')}
+                ? t('bid.updateProposal')
+                : t('bid.submitProposal'))}
         </button>
         {existingBid?.status === 'submitted' && onWithdraw && (
           <button
@@ -547,7 +548,7 @@ export function BidProposalForm({
             disabled={busy}
             onClick={() => void onWithdraw()}
           >
-            Withdraw
+            {t('common.withdraw')}
           </button>
         )}
       </div>

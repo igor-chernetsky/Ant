@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CompleteProjectReviewModal } from '@/components/CompleteProjectReviewModal';
+import { useTranslation } from '@/components/LocaleProvider';
 import { canCompleteProject } from '@/lib/project-reviews';
 import {
   hideProject,
@@ -18,6 +19,7 @@ export function ProjectLifecyclePanel({
   project,
   onUpdated,
 }: ProjectLifecyclePanelProps) {
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
@@ -29,7 +31,9 @@ export function ProjectLifecyclePanel({
       const updated = await action();
       onUpdated(updated);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Action failed');
+      setError(
+        err instanceof Error ? err.message : t('lifecycle.actionFailed'),
+      );
     } finally {
       setBusy(false);
     }
@@ -42,27 +46,15 @@ export function ProjectLifecyclePanel({
   return (
     <>
       <section className="card project-lifecycle-card">
-        <h2 className="section-title">Project visibility</h2>
+        <h2 className="section-title">{t('lifecycle.title')}</h2>
         {isHidden ? (
-          <p className="muted">
-            This project is hidden. Only you can see it on the homepage when the
-            Hidden projects filter is selected.
-          </p>
+          <p className="muted">{t('lifecycle.hiddenHint')}</p>
         ) : isCompleted ? (
-          <p className="muted">
-            This project is completed. It no longer appears on the public
-            homepage. Participants can still find it with the Completed filter.
-          </p>
+          <p className="muted">{t('lifecycle.completedHint')}</p>
         ) : canComplete ? (
-          <p className="muted">
-            Hide the project from discovery, or complete it when work with your
-            selected contractor is finished.
-          </p>
+          <p className="muted">{t('lifecycle.canCompleteHint')}</p>
         ) : (
-          <p className="muted">
-            Hide the project to remove it from everyone&apos;s view. You can
-            complete the project after a winning contractor is selected.
-          </p>
+          <p className="muted">{t('lifecycle.hideHint')}</p>
         )}
 
         <div className="project-lifecycle-actions">
@@ -73,7 +65,7 @@ export function ProjectLifecyclePanel({
               disabled={busy}
               onClick={() => void runAction(() => unhideProject(project.id))}
             >
-              {busy ? 'Restoring…' : 'Show project again'}
+              {busy ? t('lifecycle.restoring') : t('lifecycle.showAgain')}
             </button>
           ) : (
             !isCompleted && (
@@ -83,7 +75,7 @@ export function ProjectLifecyclePanel({
                 disabled={busy}
                 onClick={() => void runAction(() => hideProject(project.id))}
               >
-                {busy ? 'Hiding…' : 'Hide project'}
+                {busy ? t('lifecycle.hiding') : t('lifecycle.hideProject')}
               </button>
             )
           )}
@@ -95,7 +87,7 @@ export function ProjectLifecyclePanel({
               disabled={busy}
               onClick={() => setCompleteOpen(true)}
             >
-              Complete project
+              {t('lifecycle.completeProject')}
             </button>
           )}
         </div>

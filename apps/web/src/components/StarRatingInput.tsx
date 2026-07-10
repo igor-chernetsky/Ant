@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from '@/components/LocaleProvider';
+
 interface StarRatingInputProps {
   id: string;
   label: string;
@@ -15,6 +17,8 @@ export function StarRatingInput({
   onChange,
   disabled = false,
 }: StarRatingInputProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="star-rating-field">
       <span className="star-rating-label" id={`${id}-label`}>
@@ -34,7 +38,11 @@ export function StarRatingInput({
               className={`star-rating-star${active ? ' star-rating-star-active' : ''}`}
               role="radio"
               aria-checked={value === star}
-              aria-label={`${star} star${star === 1 ? '' : 's'}`}
+              aria-label={
+                star === 1
+                  ? t('starRating.oneStar')
+                  : t('starRating.manyStars', { n: star })
+              }
               disabled={disabled}
               onClick={() => onChange(star)}
             >

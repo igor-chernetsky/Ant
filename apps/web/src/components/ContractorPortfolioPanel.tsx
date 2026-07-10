@@ -14,6 +14,7 @@ import {
   releaseFilePickerGuard,
 } from '@/lib/file-picker-guard';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { useTranslation } from '@/components/LocaleProvider';
 
 function CaptionIcon() {
   return (
@@ -66,6 +67,7 @@ function mergePortfolioItems(
 }
 
 export function ContractorPortfolioPanel() {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,16 +99,16 @@ export function ContractorPortfolioPanel() {
           ),
       );
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load portfolio');
+      setError(err instanceof Error ? err.message : t('portfolio.loadFailed'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadItems();
-  }, [loadItems]);
+  }, [loadItems, t]);
 
   const processSelectedFiles = useCallback(
     async (fileList: FileList | null, input?: HTMLInputElement | null) => {
@@ -132,7 +134,7 @@ export function ContractorPortfolioPanel() {
         setItems((prev) => mergePortfolioItems(prev, uploaded));
         void loadItems({ silent: true });
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Upload failed');
+        setError(err instanceof Error ? err.message : t('common.uploadFailed'));
         if (uploaded.length > 0) {
           setItems((prev) => mergePortfolioItems(prev, uploaded));
         }
@@ -141,7 +143,7 @@ export function ContractorPortfolioPanel() {
         releaseFilePickerGuard();
       }
     },
-    [loadItems],
+    [loadItems, t],
   );
 
   useEffect(() => {
@@ -160,9 +162,9 @@ export function ContractorPortfolioPanel() {
 
   const handleDelete = async (item: PortfolioItem) => {
     const confirmed = await confirm({
-      title: 'Remove photo?',
-      message: 'Remove this photo from your portfolio?',
-      confirmLabel: 'Remove',
+      title: t('portfolio.removePhotoTitle'),
+      message: t('portfolio.removePhotoMessage'),
+      confirmLabel: t('common.remove'),
       tone: 'danger',
     });
     if (!confirmed) return;
@@ -177,7 +179,7 @@ export function ContractorPortfolioPanel() {
       await deletePortfolioItem(item.id);
       setItems((prev) => prev.filter((entry) => entry.id !== item.id));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to delete photo');
+      setError(err instanceof Error ? err.message : t('portfolio.deleteFailed'));
     } finally {
       setDeletingId(null);
     }
@@ -209,7 +211,7 @@ export function ContractorPortfolioPanel() {
       );
       closeCaptionEditor();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save caption');
+      setError(err instanceof Error ? err.message : t('portfolio.saveCaptionFailed'));
     } finally {
       setSavingCaptionId(null);
     }
@@ -219,10 +221,10 @@ export function ContractorPortfolioPanel() {
 
   return (
     <section className="card contractor-portfolio-card">
-      <h2 className="section-title contractor-portfolio-title">Portfolio</h2>
+      <h2 className="section-title contractor-portfolio-title">{t('portfolio.title')}</h2>
 
       {refreshing && !loading && (
-        <p className="muted contractor-portfolio-refresh-hint">Refreshing…</p>
+        <p className="muted contractor-portfolio-refresh-hint">{t('portfolio.refreshing')}</p>
       )}
 
       {error && <p className="form-error">{error}</p>}
@@ -236,7 +238,7 @@ export function ContractorPortfolioPanel() {
               <span className="contractor-portfolio-upload-icon" aria-hidden>
                 +
               </span>
-              <span>{busy ? 'Uploading…' : 'Upload image'}</span>
+              <span>{busy ? t('common.uploading') : t('portfolio.uploadImage')}</span>
             </span>
             <input
               ref={fileInputRef}
@@ -273,13 +275,13 @@ export function ContractorPortfolioPanel() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={item.thumbnailUrl ?? item.imageUrl}
-                        alt={item.title?.trim() || 'Portfolio photo'}
+                        alt={item.title?.trim() || t('portfolio.photoAlt')}
                         className="contractor-portfolio-thumb"
                         loading="lazy"
                       />
                     ) : (
                       <div className="contractor-portfolio-thumb contractor-portfolio-thumb--placeholder">
-                        No preview
+                        {t('common.noPreview')}
                       </div>
                     )}
                   </a>
@@ -287,8 +289,8 @@ export function ContractorPortfolioPanel() {
                     <button
                       type="button"
                       className={`contractor-portfolio-icon-btn${hasCaption ? ' contractor-portfolio-icon-btn--active' : ''}`}
-                      title={hasCaption ? 'Edit caption' : 'Add caption'}
-                      aria-label={hasCaption ? 'Edit caption' : 'Add caption'}
+                      title={hasCaption ? t('portfolio.editCaption') : t('portfolio.addCaption')}
+                      aria-label={hasCaption ? t('portfolio.editCaption') : t('portfolio.addCaption')}
                       onClick={() => openCaptionEditor(item)}
                     >
                       <CaptionIcon />
@@ -296,8 +298,8 @@ export function ContractorPortfolioPanel() {
                     <button
                       type="button"
                       className="contractor-portfolio-icon-btn contractor-portfolio-icon-btn--danger"
-                      title="Remove photo"
-                      aria-label="Remove photo"
+                      title={t('portfolio.removePhoto')}
+                      aria-label={t('portfolio.removePhoto')}
                       disabled={deletingId === item.id}
                       onClick={() => void handleDelete(item)}
                     >
@@ -316,7 +318,7 @@ export function ContractorPortfolioPanel() {
                     <input
                       value={captionDraft}
                       onChange={(e) => setCaptionDraft(e.target.value)}
-                      placeholder="Work description (optional)"
+                      placeholder={t('portfolio.captionPlaceholder')}
                       disabled={savingCaptionId === item.id}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -335,7 +337,7 @@ export function ContractorPortfolioPanel() {
                         disabled={savingCaptionId === item.id}
                         onClick={() => void handleSaveCaption(item)}
                       >
-                        {savingCaptionId === item.id ? 'Saving…' : 'Save'}
+                        {savingCaptionId === item.id ? t('common.saving') : t('common.save')}
                       </button>
                       <button
                         type="button"
@@ -343,7 +345,7 @@ export function ContractorPortfolioPanel() {
                         disabled={savingCaptionId === item.id}
                         onClick={closeCaptionEditor}
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                     </div>
                   </div>
@@ -354,7 +356,7 @@ export function ContractorPortfolioPanel() {
       </ul>
 
       {loading && visibleItems.length === 0 && (
-        <p className="muted contractor-portfolio-loading-hint">Loading photos…</p>
+        <p className="muted contractor-portfolio-loading-hint">{t('portfolio.loadingPhotos')}</p>
       )}
       {confirmDialog}
     </section>

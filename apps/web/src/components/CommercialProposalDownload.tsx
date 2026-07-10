@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import {
   downloadCommercialProposal,
   fetchCommercialProposalAttachmentCount,
@@ -18,10 +19,12 @@ interface CommercialProposalDownloadProps {
 export function CommercialProposalDownload({
   bidId,
   projectId,
-  label = 'Download contract draft',
+  label,
   className = 'secondary',
   inline = false,
 }: CommercialProposalDownloadProps) {
+  const { t } = useTranslation();
+  const downloadLabel = label ?? t('commercialProposal.downloadDraft');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attachmentCount, setAttachmentCount] = useState(0);
@@ -62,7 +65,7 @@ export function CommercialProposalDownload({
       });
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : 'Failed to download document',
+        err instanceof Error ? err.message : t('commercialProposal.downloadFailed'),
       );
     } finally {
       setBusy(false);
@@ -78,8 +81,13 @@ export function CommercialProposalDownload({
         disabled={busy}
       />
       <span>
-        Include attachments ({attachmentCount}{' '}
-        {attachmentCount === 1 ? 'document' : 'documents'})
+        {t('commercialProposal.includeAttachments', {
+          count: attachmentCount,
+          documents:
+            attachmentCount === 1
+              ? t('commercialProposal.document_one')
+              : t('commercialProposal.document_other'),
+        })}
       </span>
     </label>
   );
@@ -91,7 +99,7 @@ export function CommercialProposalDownload({
       disabled={busy}
       onClick={() => void handleDownload()}
     >
-      {busy ? 'Preparing…' : label}
+      {busy ? t('commercialProposal.preparing') : downloadLabel}
     </button>
   );
 

@@ -11,11 +11,12 @@ import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificat
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
+import { useTranslation } from '@/components/LocaleProvider';
 import { useSession } from '@/components/SessionProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { fetchProject, type Project } from '@/lib/projects';
 import {
   fetchProjectTender,
-  formatTenderStatus,
   selectProjectBid,
   type Bid,
   type Tender,
@@ -24,6 +25,8 @@ import {
 export default function ProjectBidsPage() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
+  const { t } = useTranslation();
+  const { formatTenderStatus } = useAppFormatters();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
 
   const [project, setProject] = useState<Project | null>(null);
@@ -53,13 +56,13 @@ export default function ProjectBidsPage() {
       const tenderData = await fetchProjectTender(projectId);
       setTender(tenderData);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load bids');
+      setError(err instanceof Error ? err.message : t('bidsPage.loadFailed'));
       setProject(null);
       setTender(null);
     } finally {
       setLoading(false);
     }
-  }, [projectId, sessionReady, me]);
+  }, [projectId, sessionReady, me, t]);
 
   useEffect(() => {
     void loadData();
@@ -80,9 +83,11 @@ export default function ProjectBidsPage() {
 
   const handleSelectBid = async (bid: Bid) => {
     const confirmed = await confirm({
-      title: 'Select this contractor?',
-      message: `Award the project to ${bid.companyName ?? 'this contractor'}? Other bids will be marked as not selected.`,
-      confirmLabel: 'Select contractor',
+      title: t('confirm.selectContractorTitle'),
+      message: t('confirm.selectContractorMessage', {
+        name: bid.companyName ?? t('common.contractor'),
+      }),
+      confirmLabel: t('confirm.selectContractorLabel'),
     });
     if (!confirmed) return;
 
@@ -94,7 +99,7 @@ export default function ProjectBidsPage() {
       const projectData = await fetchProject(projectId);
       setProject(projectData);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to select bid');
+      setError(err instanceof Error ? err.message : t('bidsPage.selectFailed'));
     } finally {
       setBusy(false);
     }
@@ -126,19 +131,19 @@ export default function ProjectBidsPage() {
       <main className="content-container main-content">
         {!sessionReady || loading ? (
           <section className="card">
-            <p className="muted">Loading bids…</p>
+            <p className="muted">{t('bidsPage.loading')}</p>
           </section>
         ) : null}
 
         {!loading && !me && (
           <section className="card">
-            <p className="muted">Sign in to review bids for your project.</p>
+            <p className="muted">{t('bidsPage.signInPrompt')}</p>
             <button
               type="button"
               className="primary"
               onClick={() => setLoginOpen(true)}
             >
-              Sign in
+              {t('header.signIn')}
             </button>
           </section>
         )}
@@ -147,7 +152,7 @@ export default function ProjectBidsPage() {
           <section className="card error">
             <p>{error}</p>
             <Link href="/" className="text-link">
-              Back to projects
+              {t('bidsPage.backToProjects')}
             </Link>
           </section>
         )}
@@ -157,7 +162,7 @@ export default function ProjectBidsPage() {
             <header className="project-bids-header">
               <p className="project-bids-kicker">
                 <Link href="/" className="project-hero-back-link">
-                  Projects
+                  {t('bidsPage.projects')}
                 </Link>
                 <span className="project-hero-kicker-sep" aria-hidden>
                   /
@@ -168,33 +173,33 @@ export default function ProjectBidsPage() {
                 <span className="project-hero-kicker-sep" aria-hidden>
                   /
                 </span>
-                <span>Bids</span>
+                <span>{t('bidsPage.bids')}</span>
               </p>
               <div className="project-bids-title-row">
-                <h1 className="project-bids-title">Compare bids</h1>
+                <h1 className="project-bids-title">{t('bidsPage.compareTitle')}</h1>
                 <Link href={projectHref} className="secondary project-bids-back">
-                  Back to project
+                  {t('bidsPage.backToProject')}
                 </Link>
               </div>
               {tender && (
                 <dl className="meta-grid tender-meta project-bids-meta">
                   <div>
-                    <dt>Status</dt>
+                    <dt>{t('common.status')}</dt>
                     <dd>{formatTenderStatus(tender.status)}</dd>
                   </div>
                   <div>
-                    <dt>Applications</dt>
+                    <dt>{t('tenderCard.applications')}</dt>
                     <dd>{tender.applicationCount ?? tender.bids.length}</dd>
                   </div>
                   {tender.submittedBidCount > 0 && (
                     <div>
-                      <dt>Proposals</dt>
+                      <dt>{t('tenderCard.proposals')}</dt>
                       <dd>{tender.submittedBidCount}</dd>
                     </div>
                   )}
                   {tender.closesAt && (
                     <div>
-                      <dt>Closes</dt>
+                      <dt>{t('bidsPage.closes')}</dt>
                       <dd>{new Date(tender.closesAt).toLocaleString()}</dd>
                     </div>
                   )}
@@ -204,11 +209,9 @@ export default function ProjectBidsPage() {
 
             {!tender ? (
               <section className="card">
-                <p className="muted">
-                  No tender published yet. Publish from the project page first.
-                </p>
+                <p className="muted">{t('bidsPage.noTender')}</p>
                 <Link href={projectHref} className="primary">
-                  Go to project
+                  {t('bidsPage.goToProject')}
                 </Link>
               </section>
             ) : (
@@ -228,7 +231,7 @@ export default function ProjectBidsPage() {
                 )}
 
                 <section className="card tender-card">
-                  <h2 className="section-title">Applications</h2>
+                  <h2 className="section-title">{t('bidsPage.applicationsTitle')}</h2>
 
                   {project?.clarificationMode === 'structured_qa' && (
                     <ClientClarificationQuestionsPanel
@@ -273,10 +276,7 @@ export default function ProjectBidsPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="muted">
-                      No applications yet. Contractors apply from the public
-                      project page.
-                    </p>
+                    <p className="muted">{t('bidsPage.noApplications')}</p>
                   )}
                 </section>
               </>

@@ -8,18 +8,18 @@ import { BidOfferSummary } from '@/components/BidOfferSummary';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { StructuredClarificationForm } from '@/components/StructuredClarificationForm';
 import { ContractorClarificationAttachments } from '@/components/ContractorClarificationAttachments';
+import { useTranslation } from '@/components/LocaleProvider';
 import { useSession } from '@/components/SessionProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
   fetchBidCounterOffers,
   fetchContractorProjectParticipation,
-  formatTenderStatus,
   startContractorClarification,
   submitContractorBid,
   withdrawContractorBid,
   type BidOffer,
   type ContractorProjectParticipation,
 } from '@/lib/tendering';
-import { formatVerificationStatus } from '@/lib/verification';
 import type { ProjectBriefV1 } from '@/lib/projects';
 
 interface ContractorProjectPanelProps {
@@ -48,20 +48,6 @@ function hasActiveContractorParticipation(
   );
 }
 
-function formatParticipationStatus(
-  participation: ContractorProjectParticipation,
-): string {
-  const bid = participation.myBid;
-  if (!bid) return 'Not started';
-  if (bid.status === 'clarifying') return 'Clarifying scope';
-  if (bid.status === 'enrolled') {
-    return bid.contenderNumber != null
-      ? `Contender #${bid.contenderNumber}`
-      : 'Enrolled';
-  }
-  return bid.status.replaceAll('_', ' ');
-}
-
 function latestClientCounterOffer(offers: BidOffer[]): BidOffer | null {
   for (let index = offers.length - 1; index >= 0; index -= 1) {
     if (offers[index]?.authorRole === 'client') {
@@ -79,6 +65,12 @@ export function ContractorProjectPanel({
   projectBrief = null,
   clarificationSummary = null,
 }: ContractorProjectPanelProps) {
+  const { t } = useTranslation();
+  const {
+    formatParticipationLabel,
+    formatTenderStatus,
+    formatVerificationStatus,
+  } = useAppFormatters();
   const { me } = useSession();
   const [participation, setParticipation] =
     useState<ContractorProjectParticipation | null>(null);
@@ -89,6 +81,18 @@ export function ContractorProjectPanel({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const formatParticipationStatus = (
+    data: ContractorProjectParticipation,
+  ): string => {
+    const bid = data.myBid;
+    if (!bid) return t('participation.notStarted');
+    return formatParticipationLabel({
+      projectStatus: data.projectStatus,
+      bidStatus: bid.status,
+      contenderNumber: bid.contenderNumber,
+    });
+  };
 
   const loadParticipation = useCallback(async () => {
     setLoading(true);
@@ -104,14 +108,16 @@ export function ContractorProjectPanel({
       }
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : 'Failed to load participation',
+        err instanceof Error
+          ? err.message
+          : t('contractor.loadParticipationFailed'),
       );
       setParticipation(null);
       setCounterOffers([]);
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, t]);
 
   useEffect(() => {
     void loadParticipation();
@@ -125,9 +131,7 @@ export function ContractorProjectPanel({
       await startContractorClarification(participation.tenderId);
       await loadParticipation();
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to apply for participation',
-      );
+      setError(err instanceof Error ? err.message : t('contractor.applyFailed'));
     } finally {
       setBusy(false);
     }
@@ -144,7 +148,9 @@ export function ContractorProjectPanel({
       setAppliedCounterOfferId(null);
       await loadParticipation();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to submit proposal');
+      setError(
+        err instanceof Error ? err.message : t('contractor.submitProposalFailed'),
+      );
       throw err;
     } finally {
       setBusy(false);
@@ -159,7 +165,7 @@ export function ContractorProjectPanel({
       await withdrawContractorBid(participation.tenderId);
       await loadParticipation();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to withdraw');
+      setError(err instanceof Error ? err.message : t('contractor.withdrawFailed'));
       throw err;
     } finally {
       setBusy(false);
@@ -169,7 +175,7 @@ export function ContractorProjectPanel({
   if (loading) {
     return (
       <section className="card contractor-project-card">
-        <p className="muted">Loading your participation…</p>
+        <p className="muted">{t('contractor.loadingParticipation')}</p>
       </section>
     );
   }
@@ -181,11 +187,8 @@ export function ContractorProjectPanel({
   if (participation.accessDenied) {
     return (
       <section className="card contractor-project-card">
-        <h2 className="section-title">Tender closed</h2>
-        <p className="muted">
-          Another contractor was selected. This project is no longer available
-          in your workspace.
-        </p>
+        <h2 className="section-title">{t('contractor.tenderClosed')}</h2>
+        <p className="muted">{t('contractor.tenderClosedHint')}</p>
       </section>
     );
   }
@@ -218,42 +221,42 @@ export function ContractorProjectPanel({
 
   return (
     <section className="card contractor-project-card">
-      <h2 className="section-title">Your participation</h2>
+      <h2 className="section-title">{t('contractor.participationTitle')}</h2>
       <p className="muted doc-hint">
         {structuredQa
           ? participation.tenderCollectingClarifications
-            ? 'Submit your clarification questions once. The client will open the tender for proposals when ready.'
-            : 'The tender is open. Apply to participate and submit your commercial proposal.'
-          : 'Ask clarifying questions in the discussion. You are enrolled automatically and can submit your commercial proposal when ready.'}
+            ? t('contractor.participationHintStructuredCollecting')
+            : t('contractor.participationHintStructuredOpen')
+          : t('contractor.participationHintDiscussion')}
       </p>
 
       <dl className="meta-grid contractor-participation-meta">
         <div>
-          <dt>Your status</dt>
+          <dt>{t('contractor.yourStatus')}</dt>
           <dd>{formatParticipationStatus(participation)}</dd>
         </div>
         <div>
-          <dt>Tender</dt>
+          <dt>{t('contractor.tender')}</dt>
           <dd>
             {participation.tenderStatus
               ? formatTenderStatus(participation.tenderStatus)
-              : 'Not published yet'}
+              : t('contractor.notPublishedYet')}
           </dd>
         </div>
         {myBid?.contenderNumber != null && (
           <div>
-            <dt>Contender no.</dt>
+            <dt>{t('contractor.contenderNo')}</dt>
             <dd>#{myBid.contenderNumber}</dd>
           </div>
         )}
         {participation.closesAt && (
           <div>
-            <dt>Applications close</dt>
+            <dt>{t('contractor.applicationsClose')}</dt>
             <dd>{new Date(participation.closesAt).toLocaleString()}</dd>
           </div>
         )}
         <div>
-          <dt>Verification</dt>
+          <dt>{t('contractor.verification')}</dt>
           <dd>
             {formatVerificationStatus(participation.verificationStatus)}
           </dd>
@@ -262,14 +265,15 @@ export function ContractorProjectPanel({
 
       {participation.applicationsDeadlinePassed && (
         <p className="tender-deadline-passed-notice">
-          The application deadline has passed. You can continue with your current
-          participation, but new applications are no longer accepted.
+          {t('contractor.deadlinePassedNotice')}
         </p>
       )}
 
       {showClarificationSummary && (
         <div className="client-clarification-summary contractor-clarification-summary">
-          <h3 className="tender-subsection-title">Clarification summary</h3>
+          <h3 className="tender-subsection-title">
+            {t('contractor.clarificationSummary')}
+          </h3>
           <p>{clarificationSummary}</p>
         </div>
       )}
@@ -280,7 +284,7 @@ export function ContractorProjectPanel({
 
       {waitingForPublish && (
         <p className="muted tender-phase-hint">
-          The client has not published this project for bids yet.
+          {t('contractor.notPublishedForBids')}
         </p>
       )}
 
@@ -288,8 +292,8 @@ export function ContractorProjectPanel({
         <div className="participation-actions">
           <p className="muted participation-actions-hint">
             {structuredQa
-              ? 'Start clarification to compose your one-time question list for the client.'
-              : 'Start the discussion to ask the client about scope, access, or timeline.'}
+              ? t('contractor.startClarificationHintStructured')
+              : t('contractor.startClarificationHintDiscussion')}
           </p>
           <div className="participation-toolbar">
             <button
@@ -298,7 +302,7 @@ export function ContractorProjectPanel({
               disabled={busy}
               onClick={() => void handleApply()}
             >
-              {busy ? 'Starting…' : 'Start clarification'}
+              {busy ? t('common.starting') : t('contractor.startClarification')}
             </button>
           </div>
         </div>
@@ -308,8 +312,8 @@ export function ContractorProjectPanel({
         <div className="participation-actions">
           <p className="muted participation-actions-hint">
             {structuredQa
-              ? 'Apply to participate in the tender and submit your commercial proposal.'
-              : 'Apply to join the discussion and submit your commercial proposal when ready.'}
+              ? t('contractor.applyHintStructured')
+              : t('contractor.applyHintDiscussion')}
           </p>
           <div className="participation-toolbar">
             <button
@@ -318,7 +322,7 @@ export function ContractorProjectPanel({
               disabled={busy}
               onClick={() => void handleApply()}
             >
-              {busy ? 'Applying…' : 'Apply'}
+              {busy ? t('common.applying') : t('common.apply')}
             </button>
           </div>
         </div>
@@ -328,7 +332,9 @@ export function ContractorProjectPanel({
         <div className="tender-subsection">
           {structuredQa && inClarification && participation.tenderCollectingClarifications ? (
             <>
-              <h3 className="tender-subsection-title">Your question list</h3>
+              <h3 className="tender-subsection-title">
+                {t('contractor.yourQuestionList')}
+              </h3>
               <StructuredClarificationForm
                 bidId={myBid.id}
                 disabled={busy}
@@ -336,8 +342,7 @@ export function ContractorProjectPanel({
               />
               {participation.tenderCollectingClarifications && (
                 <p className="muted structured-clarification-waiting">
-                  Waiting for the client to open the tender for commercial
-                  proposals.
+                  {t('contractor.waitingForClientOpen')}
                 </p>
               )}
               {participation.hasSubmittedClarificationQuestions &&
@@ -345,18 +350,21 @@ export function ContractorProjectPanel({
                 participation.tenderStatus === 'open' &&
                 enrolled && (
                   <p className="muted structured-clarification-waiting">
-                    You are enrolled as contender #{myBid.contenderNumber} —
-                    submit your commercial proposal below.
+                    {t('contractor.enrolledContenderHint', {
+                      n: myBid.contenderNumber ?? 0,
+                    })}
                   </p>
                 )}
             </>
           ) : !structuredQa ? (
             <>
-              <h3 className="tender-subsection-title">Discussion with client</h3>
+              <h3 className="tender-subsection-title">
+                {t('contractor.discussionWithClient')}
+              </h3>
               <BidChat
                 bidId={myBid.id}
                 currentUserId={me.id}
-                title="Clarifications & questions"
+                title={t('contractor.clarificationsTitle')}
               />
             </>
           ) : null}
@@ -372,7 +380,7 @@ export function ContractorProjectPanel({
               disabled={busy}
               onClick={() => void handleWithdraw()}
             >
-              Leave discussion
+              {t('contractor.leaveDiscussion')}
             </button>
           </div>
         </div>
@@ -380,14 +388,16 @@ export function ContractorProjectPanel({
 
       {submitted && myBid && (
         <div className="tender-subsection">
-          <h3 className="tender-subsection-title">Your proposal</h3>
+          <h3 className="tender-subsection-title">{t('contractor.yourProposal')}</h3>
           <BidProposalSummary bid={myBid} compact />
         </div>
       )}
 
       {counterOffers.length > 0 && (
         <div className="tender-subsection">
-          <h3 className="tender-subsection-title">Client counter-offers</h3>
+          <h3 className="tender-subsection-title">
+            {t('contractor.clientCounterOffers')}
+          </h3>
           <ul className="bid-offer-list">
             {counterOffers.map((offer) => (
               <li key={offer.id} className="bid-offer-item">
@@ -405,16 +415,14 @@ export function ContractorProjectPanel({
                   setAppliedCounterOfferId(latestClientOffer.id)
                 }
               >
-                Accept client&apos;s counter-offer
+                {t('contractor.acceptCounterOffer')}
               </button>
               <p className="muted counter-offer-accept-hint">
-                Prefills the proposal form below with the latest counter-offer.
-                Review and edit any field before submitting.
+                {t('contractor.acceptCounterOfferHint')}
               </p>
               {appliedCounterOffer?.id === latestClientOffer.id && (
                 <p className="counter-offer-accept-applied">
-                  Counter-offer applied to the form — adjust as needed, then
-                  update your proposal.
+                  {t('contractor.counterOfferApplied')}
                 </p>
               )}
             </div>
@@ -436,7 +444,9 @@ export function ContractorProjectPanel({
       {participation.canSubmitProposal && participation.tenderId && (
         <div className="tender-subsection tender-subsection--proposal">
           <h3 className="tender-subsection-title">
-            {submitted ? 'Update your proposal' : 'Submit commercial proposal'}
+            {submitted
+              ? t('contractor.updateProposal')
+              : t('contractor.submitCommercialProposal')}
           </h3>
           {(enrolled || submitted) && (
             <BidProposalForm

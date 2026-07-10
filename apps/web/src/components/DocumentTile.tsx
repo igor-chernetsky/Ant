@@ -2,8 +2,9 @@
 
 import { DocumentImage } from '@/components/DocumentImage';
 import { DocumentInsightCollapsible } from '@/components/DocumentInsightCollapsible';
+import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
-  DOCUMENT_CATEGORY_OPTIONS,
   formatFileSize,
   type ProjectDocument,
 } from '@/lib/documents';
@@ -44,21 +45,16 @@ function fileExtension(name: string): string {
   return ext && ext.length <= 8 ? ext : 'file';
 }
 
-function categoryLabel(category: ProjectDocument['category']): string {
-  return (
-    DOCUMENT_CATEGORY_OPTIONS.find((option) => option.value === category)
-      ?.label ?? category
-  );
-}
-
 function ScopePackagesList({ packages }: { packages: BriefScopePackage[] }) {
+  const { t } = useTranslation();
+
   if (packages.length === 0) {
     return null;
   }
 
   return (
     <div className="doc-tile-scope">
-      <p className="doc-tile-scope-label">Inferred scope</p>
+      <p className="doc-tile-scope-label">{t('documents.inferredScope')}</p>
       <ul className="doc-tile-scope-list">
         {packages.map((pkg, index) => (
           <li
@@ -70,7 +66,7 @@ function ScopePackagesList({ packages }: { packages: BriefScopePackage[] }) {
             {(pkg.quantity ?? pkg.areaSqm) != null && (
               <span className="muted package-qty">
                 {pkg.quantity ?? pkg.areaSqm}{' '}
-                {pkg.unit ?? (pkg.areaSqm != null ? 'sqm' : '')}
+                {pkg.unit ?? (pkg.areaSqm != null ? t('documents.sqm') : '')}
               </span>
             )}
           </li>
@@ -92,8 +88,11 @@ export function DocumentTile({
   onDelete,
   formatDateTime,
 }: DocumentTileProps) {
+  const { t } = useTranslation();
+  const { formatDocumentCategory } = useAppFormatters();
   const isImage = isImageDocument(document);
   const ext = fileExtension(document.originalName);
+  const category = formatDocumentCategory(document.category);
 
   return (
     <figure className="doc-tile">
@@ -116,7 +115,7 @@ export function DocumentTile({
             <span className="doc-file-tile-ext" aria-hidden>
               {ext.toUpperCase()}
             </span>
-            <span className="doc-file-tile-label">{categoryLabel(document.category)}</span>
+            <span className="doc-file-tile-label">{category}</span>
           </button>
         )}
       </div>
@@ -126,7 +125,7 @@ export function DocumentTile({
       </figcaption>
 
       <p className="muted doc-tile-meta">
-        {categoryLabel(document.category)}
+        {category}
         {' · '}
         {formatFileSize(document.sizeBytes)}
         {document.uploadedAt &&
@@ -144,7 +143,7 @@ export function DocumentTile({
           disabled={deleting}
           onClick={onDelete}
         >
-          {deleting ? 'Removing…' : 'Remove'}
+          {deleting ? t('documents.removing') : t('common.remove')}
         </button>
       )}
     </figure>
@@ -156,15 +155,19 @@ export function OrphanScopePackages({
 }: {
   packages: BriefScopePackage[];
 }) {
+  const { t } = useTranslation();
+
   if (packages.length === 0) {
     return null;
   }
 
   return (
     <div className="doc-scope-orphans">
-      <h3 className="doc-scope-orphans-title">General inferred scope</h3>
+      <h3 className="doc-scope-orphans-title">
+        {t('documents.generalInferredScope')}
+      </h3>
       <p className="muted doc-scope-orphans-hint">
-        Work items not linked to a specific uploaded file.
+        {t('documents.orphanScopeHint')}
       </p>
       <ul className="doc-tile-scope-list doc-tile-scope-list--standalone">
         {packages.map((pkg, index) => (
@@ -174,7 +177,7 @@ export function OrphanScopePackages({
             {(pkg.quantity ?? pkg.areaSqm) != null && (
               <span className="muted package-qty">
                 {pkg.quantity ?? pkg.areaSqm}{' '}
-                {pkg.unit ?? (pkg.areaSqm != null ? 'sqm' : '')}
+                {pkg.unit ?? (pkg.areaSqm != null ? t('documents.sqm') : '')}
               </span>
             )}
           </li>

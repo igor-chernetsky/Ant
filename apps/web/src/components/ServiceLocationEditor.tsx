@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from '@/components/LocaleProvider';
 import type { LocationCatalog, ServiceLocation } from '@/lib/locations';
 import {
   DEFAULT_SERVICE_LOCATION,
@@ -24,6 +25,7 @@ export function ServiceLocationEditor({
   onChange,
   disabled = false,
 }: ServiceLocationEditorProps) {
+  const { t } = useTranslation();
   const locations = value.length > 0 ? value : [DEFAULT_SERVICE_LOCATION];
 
   const updateAt = (index: number, next: ServiceLocation) => {
@@ -51,11 +53,8 @@ export function ServiceLocationEditor({
 
   return (
     <fieldset className="tag-fieldset service-location-fieldset">
-      <legend>Service areas</legend>
-      <p className="muted tag-hint">
-        You will be notified about new projects in these regions and areas.
-        Leave area empty to cover the whole region.
-      </p>
+      <legend>{t('location.serviceAreas')}</legend>
+      <p className="muted tag-hint">{t('location.hint')}</p>
       <ul className="service-location-list">
         {locations.map((location, index) => {
           const areas = areasForRegion(catalog, location.regionSlug);
@@ -63,7 +62,7 @@ export function ServiceLocationEditor({
             <li key={`${index}-${locationKey(location)}`} className="service-location-row">
               <div className="form-row">
                 <label>
-                  Region
+                  {t('location.region')}
                   <select
                     value={location.regionSlug}
                     disabled={disabled}
@@ -82,7 +81,7 @@ export function ServiceLocationEditor({
                   </select>
                 </label>
                 <label>
-                  Area
+                  {t('location.area')}
                   <select
                     value={location.areaSlug ?? ''}
                     disabled={disabled || areas.length === 0}
@@ -93,7 +92,7 @@ export function ServiceLocationEditor({
                       })
                     }
                   >
-                    <option value="">Whole region</option>
+                    <option value="">{t('common.wholeRegion')}</option>
                     {areas.map((area) => (
                       <option key={area.slug} value={area.slug}>
                         {area.label}
@@ -112,7 +111,7 @@ export function ServiceLocationEditor({
                   disabled={disabled || locations.length <= 1}
                   onClick={() => removeAt(index)}
                 >
-                  Remove
+                  {t('common.remove')}
                 </button>
               </div>
             </li>
@@ -125,7 +124,7 @@ export function ServiceLocationEditor({
         disabled={disabled}
         onClick={addLocation}
       >
-        Add location
+        {t('common.addLocation')}
       </button>
     </fieldset>
   );

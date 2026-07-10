@@ -1,3 +1,7 @@
+import { enExtended } from './en-extended';
+
+const { homePage, common: commonExtended, ...extendedNamespaces } = enExtended;
+
 export const en = {
   common: {
     cancel: 'Cancel',
@@ -11,6 +15,7 @@ export const en = {
     optional: 'Optional',
     saved: 'Saved',
     dash: '—',
+    ...commonExtended,
   },
   header: {
     admin: 'Admin',
@@ -20,6 +25,9 @@ export const en = {
     signOut: 'Sign out',
     signedIn: 'Signed in',
     language: 'Language',
+    lang_en: 'English',
+    lang_th: 'Thai',
+    lang_ru: 'Russian',
   },
   auth: {
     welcomeBack: 'Welcome back',
@@ -52,6 +60,7 @@ export const en = {
     addProject: 'Add project',
     signInToPublish: 'Sign in to publish',
     contractorPortal: 'Contractor portal',
+    ...homePage,
   },
   account: {
     title: 'Your account',
@@ -82,6 +91,7 @@ export const en = {
     matchingProjectsDesc:
       'Projects that match your specialties (up to {cap} emails per day)',
   },
+  ...extendedNamespaces,
 } as const;
 
 type DeepStringRecord<T> = {

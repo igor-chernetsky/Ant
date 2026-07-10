@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import {
   fetchContractorClarificationAttachments,
   getContractorClarificationAttachmentDownloadUrl,
@@ -17,6 +18,7 @@ export function ContractorClarificationAttachments({
   projectId,
   enabled = true,
 }: ContractorClarificationAttachmentsProps) {
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<
     ContractorClarificationAttachmentQuestion[]
   >([]);
@@ -43,7 +45,9 @@ export function ContractorClarificationAttachments({
       } catch (err: unknown) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : 'Failed to load attachments',
+            err instanceof Error
+              ? err.message
+              : t('clarification.loadAttachmentsFailed'),
           );
           setQuestions([]);
         }
@@ -57,7 +61,7 @@ export function ContractorClarificationAttachments({
     return () => {
       cancelled = true;
     };
-  }, [projectId, enabled]);
+  }, [projectId, enabled, t]);
 
   const handleDownload = async (
     questionId: string,
@@ -73,7 +77,7 @@ export function ContractorClarificationAttachments({
       );
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Download failed');
+      setError(err instanceof Error ? err.message : t('common.downloadFailed'));
     } finally {
       setDownloadingId(null);
     }
@@ -85,9 +89,11 @@ export function ContractorClarificationAttachments({
 
   return (
     <div className="contractor-clarification-attachments">
-      <h3 className="tender-subsection-title">Answer attachments</h3>
+      <h3 className="tender-subsection-title">
+        {t('clarification.answerAttachments')}
+      </h3>
       <p className="muted contractor-clarification-attachments-hint">
-        Files the client added when answering clarification questions.
+        {t('clarification.answerAttachmentsHint')}
       </p>
       <ul className="contractor-clarification-attachments-groups">
         {questions.map((question) => (
@@ -111,7 +117,7 @@ export function ContractorClarificationAttachments({
                     onClick={() => void handleDownload(question.id, file.id)}
                   >
                     {downloadingId === file.id
-                      ? 'Preparing download…'
+                      ? t('common.preparingDownload')
                       : file.originalName}
                   </button>
                   <span className="muted clarification-answer-attachments-meta">

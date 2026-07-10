@@ -1,4 +1,7 @@
 import type { Messages } from './en';
+import { thExtended } from './th-extended';
+
+const { homePage, common: commonExtended, ...extendedNamespaces } = thExtended;
 
 export const th: Messages = {
   common: {
@@ -13,6 +16,7 @@ export const th: Messages = {
     optional: 'ไม่บังคับ',
     saved: 'บันทึกแล้ว',
     dash: '—',
+    ...commonExtended,
   },
   header: {
     admin: 'ผู้ดูแล',
@@ -22,6 +26,9 @@ export const th: Messages = {
     signOut: 'ออกจากระบบ',
     signedIn: 'เข้าสู่ระบบแล้ว',
     language: 'ภาษา',
+    lang_en: 'English',
+    lang_th: 'ไทย',
+    lang_ru: 'Русский',
   },
   auth: {
     welcomeBack: 'ยินดีต้อนรับกลับ',
@@ -54,6 +61,7 @@ export const th: Messages = {
     addProject: 'เพิ่มโครงการ',
     signInToPublish: 'เข้าสู่ระบบเพื่อเผยแพร่',
     contractorPortal: 'พอร์ทัลผู้รับเหมา',
+    ...homePage,
   },
   account: {
     title: 'บัญชีของคุณ',
@@ -85,4 +93,5 @@ export const th: Messages = {
     matchingProjectsDesc:
       'โครงการที่ตรงกับความเชี่ยวชาญของคุณ (สูงสุด {cap} อีเมลต่อวัน)',
   },
+  ...extendedNamespaces,
 };

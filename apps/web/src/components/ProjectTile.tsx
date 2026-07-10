@@ -1,14 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  formatProjectStatus,
-  formatProjectType,
-  type ProjectType,
-} from '@/lib/projects';
+import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
+import type { ProjectType } from '@/lib/projects';
 import type { PublicProjectCard } from '@/lib/public-projects';
 import type { ContractorApplicationItem } from '@/lib/tendering';
-import { formatContractorParticipationLabel } from '@/lib/tendering';
 
 interface ProjectTileProps {
   project: PublicProjectCard;
@@ -21,13 +18,17 @@ export function ProjectTile({
   isOwned = false,
   contractorParticipation = null,
 }: ProjectTileProps) {
+  const { t } = useTranslation();
+  const { formatProjectStatus, formatProjectType, formatParticipationLabel } =
+    useAppFormatters();
+
   const excerpt =
     project.description && project.description.length > 160
       ? `${project.description.slice(0, 157)}…`
       : project.description;
 
   const participationLabel = contractorParticipation
-    ? formatContractorParticipationLabel(contractorParticipation)
+    ? formatParticipationLabel(contractorParticipation)
     : null;
 
   return (
@@ -53,19 +54,21 @@ export function ProjectTile({
         )}
         <span className="project-tile-status">
           {project.isHidden
-            ? 'Hidden'
+            ? t('projectTile.hidden')
             : formatProjectStatus(project.status)}
         </span>
         {isOwned && project.applicationsDeadlinePassed && (
           <span
             className="project-tile-expired-badge"
-            title="Application deadline expired"
-            aria-label="Application deadline expired"
+            title={t('projectTile.deadlineExpiredTitle')}
+            aria-label={t('projectTile.deadlineExpiredAria')}
           >
             !
           </span>
         )}
-        {isOwned && <span className="project-tile-owned-badge">My project</span>}
+        {isOwned && (
+          <span className="project-tile-owned-badge">{t('projectTile.myProject')}</span>
+        )}
         {participationLabel && !isOwned && (
           <span className="project-tile-contractor-badge">
             {participationLabel}

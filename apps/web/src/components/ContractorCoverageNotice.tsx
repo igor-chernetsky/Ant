@@ -5,6 +5,7 @@ import {
   fetchContractorCoverage,
   type ContractorCoveragePreview,
 } from '@/lib/tendering';
+import { useTranslation } from '@/components/LocaleProvider';
 
 interface ContractorCoverageNoticeProps {
   projectId: string;
@@ -21,6 +22,7 @@ export function ContractorCoverageNotice({
   enabled,
   tagKey = '',
 }: ContractorCoverageNoticeProps) {
+  const { t } = useTranslation();
   const [coverage, setCoverage] = useState<ContractorCoveragePreview | null>(
     null,
   );
@@ -49,7 +51,7 @@ export function ContractorCoverageNotice({
           setError(
             err instanceof Error
               ? err.message
-              : 'Failed to load contractor availability',
+              : t('coverage.loadFailed'),
           );
         }
       })
@@ -62,7 +64,7 @@ export function ContractorCoverageNotice({
     return () => {
       cancelled = true;
     };
-  }, [enabled, projectId, tagKey]);
+  }, [enabled, projectId, tagKey, t]);
 
   if (!enabled) {
     return null;
@@ -71,7 +73,7 @@ export function ContractorCoverageNotice({
   if (loading) {
     return (
       <p className="muted contractor-coverage-notice contractor-coverage-loading">
-        Checking contractor availability in your area…
+        {t('coverage.loading')}
       </p>
     );
   }
@@ -82,7 +84,9 @@ export function ContractorCoverageNotice({
 
   const tagList = formatTagList(coverage.projectTags);
   const contractorLabel =
-    coverage.contractorCount === 1 ? 'contractor' : 'contractors';
+    coverage.contractorCount === 1
+      ? t('coverage.contractor_one')
+      : t('coverage.contractor_other');
 
   if (coverage.suggestSplitProject) {
     return (
@@ -91,14 +95,13 @@ export function ContractorCoverageNotice({
         role="note"
       >
         <p className="contractor-coverage-notice-title">
-          No full-trade coverage in {coverage.locationLabel}
+          {t('coverage.noCoverageTitle', { location: coverage.locationLabel })}
         </p>
         <p className="contractor-coverage-notice-text">
-          No contractors in this area list all {coverage.projectTags.length}{' '}
-          trades at once
-          {tagList ? ` (${tagList})` : ''}. Consider splitting this into
-          smaller projects — for example, one tender per trade — so specialists
-          can bid on each scope.
+          {t('coverage.noCoverageText', {
+            count: coverage.projectTags.length,
+            tags: tagList ? ` (${tagList})` : '',
+          })}
         </p>
       </div>
     );
@@ -108,9 +111,11 @@ export function ContractorCoverageNotice({
     return (
       <div className="contractor-coverage-notice" role="note">
         <p className="contractor-coverage-notice-text">
-          <strong>{coverage.contractorCount}</strong> {contractorLabel} in{' '}
-          {coverage.locationLabel} match this location. Add trade tags to see
-          how many cover all listed work types.
+          {t('coverage.locationMatch', {
+            count: coverage.contractorCount,
+            contractors: contractorLabel,
+            location: coverage.locationLabel,
+          })}
         </p>
       </div>
     );
@@ -119,10 +124,16 @@ export function ContractorCoverageNotice({
   return (
     <div className="contractor-coverage-notice" role="note">
       <p className="contractor-coverage-notice-text">
-        <strong>{coverage.contractorCount}</strong> {contractorLabel} in{' '}
-        {coverage.locationLabel}{' '}
-        {coverage.contractorCount === 1 ? 'covers' : 'cover'} all listed trades
-        {tagList ? `: ${tagList}` : ''}.
+        {t('coverage.coversAll', {
+          count: coverage.contractorCount,
+          contractors: contractorLabel,
+          location: coverage.locationLabel,
+          verb:
+            coverage.contractorCount === 1
+              ? t('coverage.covers')
+              : t('coverage.cover'),
+          tags: tagList ? `: ${tagList}` : '',
+        })}
       </p>
     </div>
   );

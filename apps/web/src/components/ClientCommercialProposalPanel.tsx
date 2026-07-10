@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import {
   BidContractTermsFields,
   contractTermsFromBid,
@@ -45,6 +46,7 @@ export function ClientCommercialProposalPanel({
   readOnly = false,
   onBidUpdated,
 }: ClientCommercialProposalPanelProps) {
+  const { t } = useTranslation();
   const [contractTerms, setContractTerms] = useState<BidContractTerms>(() =>
     buildContractTermsState(
       bid,
@@ -82,7 +84,7 @@ export function ClientCommercialProposalPanel({
       setSaved(true);
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : 'Failed to save contract terms',
+        err instanceof Error ? err.message : t('commercialProposal.saveFailed'),
       );
     } finally {
       setBusy(false);
@@ -91,11 +93,11 @@ export function ClientCommercialProposalPanel({
 
   return (
     <div className="client-commercial-proposal-panel">
-      <h4 className="tender-subsection-title">Commercial proposal terms</h4>
+      <h4 className="tender-subsection-title">{t('commercialProposal.termsTitle')}</h4>
       <p className="muted client-commercial-proposal-hint">
         {readOnly
-          ? 'Commercial proposal terms agreed for this bid, including employer details.'
-          : 'Adjust site details and propose payment, schedule, and special conditions. Contractor proposal fields are read-only.'}
+          ? t('commercialProposal.readOnlyHint')
+          : t('commercialProposal.editableHint')}
       </p>
 
       <BidContractTermsFields
@@ -115,10 +117,10 @@ export function ClientCommercialProposalPanel({
             disabled={busy}
             onClick={() => void handleSave()}
           >
-            {busy ? 'Saving…' : 'Save terms'}
+            {busy ? t('common.saving') : t('commercialProposal.saveTerms')}
           </button>
           {saved && (
-            <p className="muted bid-contract-terms-download-hint">Terms saved.</p>
+            <p className="muted bid-contract-terms-download-hint">{t('commercialProposal.termsSaved')}</p>
           )}
         </div>
       )}

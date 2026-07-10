@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import {
   fetchBidClarificationSubmission,
   submitBidClarificationQuestions,
@@ -17,6 +18,7 @@ export function StructuredClarificationForm({
   disabled = false,
   onSubmitted,
 }: StructuredClarificationFormProps) {
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<string[]>(['']);
   const [submitted, setSubmitted] = useState<{
     questions: string[];
@@ -42,7 +44,9 @@ export function StructuredClarificationForm({
       } catch (err: unknown) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : 'Failed to load questions',
+            err instanceof Error
+              ? err.message
+              : t('clarification.loadQuestionsFailed'),
           );
         }
       } finally {
@@ -54,7 +58,7 @@ export function StructuredClarificationForm({
     return () => {
       cancelled = true;
     };
-  }, [bidId]);
+  }, [bidId, t]);
 
   const updateQuestion = (index: number, value: string) => {
     setQuestions((prev) => prev.map((q, i) => (i === index ? value : q)));
@@ -73,7 +77,7 @@ export function StructuredClarificationForm({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!confirmed) {
-      setError('Please confirm you have reviewed your question list.');
+      setError(t('clarification.confirmReview'));
       return;
     }
 
@@ -84,28 +88,30 @@ export function StructuredClarificationForm({
       setSubmitted(result);
       onSubmitted?.();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to submit questions');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('clarification.submitQuestionsFailed'),
+      );
     } finally {
       setBusy(false);
     }
   };
 
   if (loading) {
-    return <p className="muted">Loading clarification form…</p>;
+    return <p className="muted">{t('clarification.loadingForm')}</p>;
   }
 
   if (submitted) {
     return (
       <div className="structured-clarification structured-clarification--submitted">
         <p className="structured-clarification-disclaimer">
-          Your question list was submitted on{' '}
-          {new Date(submitted.submittedAt).toLocaleString()} and cannot be
-          changed.
+          {t('clarification.submittedOn', {
+            date: new Date(submitted.submittedAt).toLocaleString(),
+          })}
         </p>
         <p className="muted structured-clarification-waiting">
-          Please wait for the answers summary and the commercial proposal form
-          — they will be available soon. You will receive a notification when
-          the client opens the tender.
+          {t('clarification.waitForAnswers')}
         </p>
         <ol className="structured-clarification-list">
           {submitted.questions.map((question) => (
@@ -122,10 +128,7 @@ export function StructuredClarificationForm({
       onSubmit={(e) => void handleSubmit(e)}
     >
       <p className="structured-clarification-disclaimer">
-        Compose all questions you need answered before bidding. You can submit
-        this list <strong>only once</strong> — review it carefully before
-        sending. Similar questions from all contractors are merged into one
-        checklist for the client.
+        {t('clarification.composeDisclaimer')}
       </p>
 
       <div className="structured-clarification-questions">
@@ -136,13 +139,13 @@ export function StructuredClarificationForm({
               type="text"
               value={question}
               disabled={disabled || busy}
-              placeholder="e.g. Is structural work included in scope?"
+              placeholder={t('clarification.questionPlaceholder')}
               onChange={(e) => updateQuestion(index, e.target.value)}
             />
             <button
               type="button"
               className="icon-button structured-clarification-remove"
-              aria-label="Remove question"
+              aria-label={t('common.removeQuestion')}
               disabled={disabled || busy || questions.length <= 1}
               onClick={() => removeQuestion(index)}
             >
@@ -159,7 +162,7 @@ export function StructuredClarificationForm({
           disabled={disabled || busy || questions.length >= 30}
           onClick={addQuestion}
         >
-          Add question
+          {t('clarification.addQuestion')}
         </button>
       </div>
 
@@ -170,8 +173,7 @@ export function StructuredClarificationForm({
           disabled={disabled || busy}
           onChange={(e) => setConfirmed(e.target.checked)}
         />
-        I have reviewed my question list and understand it cannot be edited
-        after submission.
+        {t('clarification.confirmCheckbox')}
       </label>
 
       <button
@@ -179,7 +181,7 @@ export function StructuredClarificationForm({
         className="primary"
         disabled={disabled || busy}
       >
-        {busy ? 'Submitting…' : 'Submit question list'}
+        {busy ? t('common.submitting') : t('clarification.submitQuestionList')}
       </button>
 
       {error && <p className="form-error">{error}</p>}

@@ -7,6 +7,7 @@ import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPil
 import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
 import { fetchProject, type Project } from '@/lib/projects';
 import { fetchProjectTender, type Tender } from '@/lib/tendering';
+import { useTranslation } from '@/components/LocaleProvider';
 
 interface ClientContractPanelProps {
   projectId: string;
@@ -23,6 +24,7 @@ export function ClientContractPanel({
   project,
   onProjectUpdated,
 }: ClientContractPanelProps) {
+  const { t } = useTranslation();
   const [tender, setTender] = useState<Tender | null>(null);
   const [contract, setContract] = useState<ProjectContract | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,18 +77,18 @@ export function ClientContractPanel({
   return (
     <section className="card client-contract-card">
       <div className="client-contract-header">
-        <h2 className="section-title">Contract</h2>
+        <h2 className="section-title">{t('contractPanel.title')}</h2>
         {contract && <ContractSigningStatusPill contract={contract} />}
       </div>
       <p className="muted client-contract-hint">
-        Review the contract draft and sign to activate the project.{' '}
+        {t('contractPanel.hint')}{' '}
         <Link href={`/projects/${projectId}/bids`} className="text-link">
-          View applications
+          {t('contractPanel.viewApplications')}
         </Link>
       </p>
 
       {loading ? (
-        <p className="muted">Loading contract…</p>
+        <p className="muted">{t('contractPanel.loading')}</p>
       ) : awardedBidId ? (
         <ContractSigningPanel
           projectId={projectId}

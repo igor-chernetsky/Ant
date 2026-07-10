@@ -1,16 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { formatThb } from '@/lib/estimate';
-import {
-  formatProjectStatus,
-  formatProjectType,
-  type ProjectType,
-} from '@/lib/projects';
-import {
-  formatContractorParticipationLabel,
-  type ContractorApplicationItem,
-} from '@/lib/tendering';
+import type { ProjectType } from '@/lib/projects';
+import type { ContractorApplicationItem } from '@/lib/tendering';
 
 interface ContractorApplicationTileProps {
   application: ContractorApplicationItem;
@@ -19,7 +14,10 @@ interface ContractorApplicationTileProps {
 export function ContractorApplicationTile({
   application,
 }: ContractorApplicationTileProps) {
-  const participationLabel = formatContractorParticipationLabel(application);
+  const { t } = useTranslation();
+  const { formatParticipationLabel, formatProjectStatus, formatProjectType } =
+    useAppFormatters();
+  const participationLabel = formatParticipationLabel(application);
   const excerpt =
     application.description && application.description.length > 120
       ? `${application.description.slice(0, 117)}…`
@@ -61,7 +59,9 @@ export function ContractorApplicationTile({
         </p>
         {application.bidAmount && (
           <p className="project-tile-participation muted">
-            Bid {formatThb(Number(application.bidAmount))}
+            {t('contractor.bidLabel', {
+              amount: formatThb(Number(application.bidAmount)),
+            })}
           </p>
         )}
         {excerpt && <p className="project-tile-description">{excerpt}</p>}

@@ -1,13 +1,14 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import type { Project } from '@/lib/projects';
 import { formatDateTime } from '@/lib/projects';
 import {
   AMENDMENT_CHANGE_TYPE_OPTIONS,
   createProjectAmendment,
   fetchProjectAmendments,
-  formatChangeType,
   isAmendableProjectStatus,
   processPendingAmendments,
   type AmendmentChangeType,
@@ -20,6 +21,8 @@ interface ClientAmendmentsProps {
 }
 
 export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) {
+  const { t } = useTranslation();
+  const { formatAmendmentType } = useAppFormatters();
   const amendable = isAmendableProjectStatus(project.status);
   const [amendments, setAmendments] = useState<ProjectAmendment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,11 +38,13 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
       const list = await fetchProjectAmendments(project.id);
       setAmendments(list);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load amendments');
+      setError(
+        err instanceof Error ? err.message : t('amendments.loadFailed'),
+      );
     } finally {
       setLoading(false);
     }
-  }, [project.id]);
+  }, [project.id, t]);
 
   useEffect(() => {
     void loadAmendments();
@@ -71,7 +76,9 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
       setBody('');
       setChangeType('');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save amendment');
+      setError(
+        err instanceof Error ? err.message : t('amendments.saveFailed'),
+      );
     } finally {
       setSaving(false);
     }
@@ -91,7 +98,7 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
       });
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : 'Failed to update project',
+        err instanceof Error ? err.message : t('amendments.updateFailed'),
       );
     } finally {
       setProcessing(false);
@@ -100,18 +107,18 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
 
   return (
     <section className="card amendments-card">
-      <h2 className="section-title">Client amendments</h2>
+      <h2 className="section-title">{t('amendments.title')}</h2>
       <p className="muted doc-hint">
         {amendable
-          ? 'Add clarifications or scope changes before tendering starts. AI will merge them into the project brief when you update understanding.'
-          : 'Scope is locked while tendering is active. Contact support if you need to reopen edits.'}
+          ? t('amendments.amendableHint')
+          : t('amendments.lockedHint')}
       </p>
 
       {!amendable && (
         <div className="amendments-locked-callout" role="status">
-          <p className="amendments-locked-title">Scope locked</p>
+          <p className="amendments-locked-title">{t('amendments.scopeLocked')}</p>
           <p className="amendments-locked-text">
-            Amendments cannot be added or processed after tendering has started.
+            {t('amendments.scopeLockedText')}
           </p>
         </div>
       )}
@@ -122,11 +129,11 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
           onSubmit={(e) => void handleCreate(e)}
         >
           <label>
-            Additional requirements
+            {t('amendments.additionalRequirements')}
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Describe what changed or what contractors should know…"
+              placeholder={t('amendments.placeholder')}
               rows={4}
               disabled={saving || processing}
               required
@@ -134,7 +141,7 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
             />
           </label>
           <label>
-            Change type
+            {t('amendments.changeType')}
             <select
               value={changeType}
               onChange={(e) =>
@@ -144,7 +151,9 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
             >
               {AMENDMENT_CHANGE_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value || 'none'} value={opt.value}>
-                  {opt.label}
+                  {opt.value
+                    ? t(`amendmentType.${opt.value}`)
+                    : t('amendments.notSpecified')}
                 </option>
               ))}
             </select>
@@ -154,7 +163,7 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
             className="secondary amendment-submit"
             disabled={saving || processing || body.trim().length < 5}
           >
-            {saving ? 'Saving…' : 'Add amendment'}
+            {saving ? t('common.saving') : t('amendments.addAmendment')}
           </button>
         </form>
       )}
@@ -162,8 +171,9 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
       {pendingCount > 0 && amendable && (
         <div className="amendment-process-row">
           <p className="muted">
-            {pendingCount} pending amendment{pendingCount === 1 ? '' : 's'} not
-            yet applied to the brief.
+            {pendingCount === 1
+              ? t('amendments.pendingCountOne')
+              : t('amendments.pendingCountMany', { count: pendingCount })}
           </p>
           <button
             type="button"
@@ -171,37 +181,44 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
             disabled={processing || saving}
             onClick={() => void handleProcess()}
           >
-            {processing ? 'Updating…' : 'Update project understanding'}
+            {processing
+              ? t('amendments.updating')
+              : t('amendments.updateUnderstanding')}
           </button>
         </div>
       )}
 
       {loading ? (
-        <p className="muted">Loading amendments…</p>
+        <p className="muted">{t('amendments.loading')}</p>
       ) : amendments.length === 0 ? (
-        <p className="muted">No amendments recorded yet.</p>
+        <p className="muted">{t('amendments.empty')}</p>
       ) : (
         <ul className="amendment-list">
           {amendments.map((amendment) => (
             <li key={amendment.id} className="amendment-item">
               <div className="amendment-item-header">
                 <span className="amendment-type-pill">
-                  {formatChangeType(amendment.changeType)}
+                  {formatAmendmentType(amendment.changeType)}
                 </span>
                 <span className="muted amendment-date">
                   {formatDateTime(amendment.createdAt)}
                 </span>
                 {amendment.processedAt ? (
-                  <span className="amendment-status processed">Applied</span>
+                  <span className="amendment-status processed">
+                    {t('amendments.applied')}
+                  </span>
                 ) : (
-                  <span className="amendment-status pending">Pending</span>
+                  <span className="amendment-status pending">
+                    {t('amendments.pending')}
+                  </span>
                 )}
               </div>
               <p className="amendment-body">{amendment.body}</p>
               {amendment.aiResult && (
                 <p className="muted amendment-ai-meta">
-                  AI update · {amendment.aiResult.provider} ·{' '}
-                  {Math.round(amendment.aiResult.confidence * 100)}% confidence
+                  {t('amendments.aiUpdate')} · {amendment.aiResult.provider} ·{' '}
+                  {Math.round(amendment.aiResult.confidence * 100)}%{' '}
+                  {t('common.confidence')}
                 </p>
               )}
             </li>

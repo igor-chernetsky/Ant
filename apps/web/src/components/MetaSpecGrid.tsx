@@ -1,4 +1,7 @@
+'use client';
+
 import type { ReactNode } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 
 export interface MetaSpecItem {
   label: string;
@@ -12,6 +15,8 @@ interface MetaSpecGridProps {
 }
 
 export function MetaSpecGrid({ items, className }: MetaSpecGridProps) {
+  const { t } = useTranslation();
+
   if (items.length === 0) return null;
 
   const gridClass = className ? `meta-grid ${className}` : 'meta-grid';
@@ -26,7 +31,7 @@ export function MetaSpecGrid({ items, className }: MetaSpecGridProps) {
           }
         >
           <dt>{item.label}</dt>
-          <dd>{item.value ?? '—'}</dd>
+          <dd>{item.value ?? t('common.dash')}</dd>
         </div>
       ))}
     </dl>

@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { BidContractTermsFields } from '@/components/BidContractTermsFields';
 import { CostBreakdownTemplateEditor } from '@/components/CostBreakdownTemplateEditor';
+import { useTranslation } from '@/components/LocaleProvider';
 import {
   contractTermsFromProject,
   type ContractTermsProjectContext,
@@ -21,6 +22,7 @@ import {
   type TenderPublishPreview,
 } from '@/lib/tendering';
 import type { Project } from '@/lib/projects';
+import type { TranslateFn } from '@/lib/i18n/formatters';
 
 export interface PublishTenderPackageInput {
   scopeSummary: string;
@@ -50,11 +52,14 @@ function buildProjectContext(project: Project): ContractTermsProjectContext {
   };
 }
 
-function emptyPreview(project: Project): TenderPublishPreview {
+function emptyPreview(
+  project: Project,
+  t: TranslateFn,
+): TenderPublishPreview {
   return {
     scopeSummary:
       project.description?.trim() ||
-      `Construction works for ${project.title}`,
+      t('tenderCard.constructionWorksFor', { title: project.title }),
     clarificationSummary: project.clarificationSummary,
     defaultCostBreakdown: [{ trade: '', description: '' }],
     contractTerms: contractTermsFromProject({
@@ -73,8 +78,9 @@ export function PublishTenderPackageModal({
   onClose,
   onPublished,
 }: PublishTenderPackageModalProps) {
+  const { t } = useTranslation();
   const [preview, setPreview] = useState<TenderPublishPreview>(() =>
-    emptyPreview(project),
+    emptyPreview(project, t),
   );
   const [deadline, setDeadline] = useState<ApplicationsDeadlineValue>(
     initialDeadline,
@@ -103,15 +109,17 @@ export function PublishTenderPackageModal({
               : [{ trade: '', description: '' }],
         });
       } catch (err: unknown) {
-        setPreview(emptyPreview(project));
+        setPreview(emptyPreview(project, t));
         setError(
-          err instanceof Error ? err.message : 'Failed to load publish preview',
+          err instanceof Error
+            ? err.message
+            : t('tenderCard.loadPreviewFailed'),
         );
       } finally {
         setLoading(false);
       }
     })();
-  }, [isOpen, projectId, project, initialDeadline]);
+  }, [isOpen, projectId, project, initialDeadline, t]);
 
   if (!isOpen) {
     return null;
@@ -140,7 +148,9 @@ export function PublishTenderPackageModal({
       await onPublished();
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to publish tender');
+      setError(
+        err instanceof Error ? err.message : t('tenderCard.publishFailed'),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -150,9 +160,9 @@ export function PublishTenderPackageModal({
   const title =
     mode === 'create'
       ? structuredQa
-        ? 'Publish for clarification'
-        : 'Publish for bids'
-      : 'Open tender for bids';
+        ? t('tenderCard.publishForClarification')
+        : t('tenderCard.publishForBids')
+      : t('tenderCard.openTenderForBids');
 
   return (
     <div
@@ -175,7 +185,7 @@ export function PublishTenderPackageModal({
           <button
             type="button"
             className="icon-button"
-            aria-label="Close"
+            aria-label={t('common.close')}
             disabled={busy}
             onClick={onClose}
           >
@@ -184,13 +194,12 @@ export function PublishTenderPackageModal({
         </div>
 
         <p className="muted modal-subtitle">
-          Review and adjust the commercial proposal template before contractors
-          receive the project.
+          {t('tenderCard.modalSubtitle')}
         </p>
 
         <form className="modal-form" onSubmit={(e) => void handleSubmit(e)}>
           {loading ? (
-            <p className="muted">Preparing template…</p>
+            <p className="muted">{t('tenderCard.preparingTemplate')}</p>
           ) : (
             <>
               <TenderApplicationsDeadlineFields
@@ -201,9 +210,9 @@ export function PublishTenderPackageModal({
               />
 
               <label>
-                Scope
+                {t('tenderCard.scope')}
                 <span className="field-hint muted">
-                  Main scope description for the commercial proposal
+                  {t('tenderCard.scopeHint')}
                 </span>
                 <textarea
                   rows={3}
@@ -220,9 +229,9 @@ export function PublishTenderPackageModal({
 
               {(structuredQa || preview.clarificationSummary) && (
                 <label>
-                  Clarification summary
+                  {t('tenderCard.clarificationSummary')}
                   <span className="field-hint muted">
-                    Shared with contractors in the commercial proposal
+                    {t('tenderCard.clarificationSummaryHint')}
                   </span>
                   <textarea
                     rows={4}
@@ -247,10 +256,9 @@ export function PublishTenderPackageModal({
               />
 
               <label>
-                Subject of contract
+                {t('tenderCard.subjectOfContract')}
                 <span className="field-hint muted">
-                  Legal scope definition used in Clause 1 of the commercial
-                  proposal
+                  {t('tenderCard.subjectOfContractHint')}
                 </span>
                 <textarea
                   rows={2}
@@ -287,10 +295,10 @@ export function PublishTenderPackageModal({
           <div className="row">
             <button type="submit" className="primary" disabled={busy || loading}>
               {submitting
-                ? 'Publishing…'
+                ? t('tenderCard.publishing')
                 : mode === 'create'
-                  ? 'Publish tender'
-                  : 'Open tender'}
+                  ? t('tenderCard.publishTender')
+                  : t('tenderCard.openTender')}
             </button>
             <button
               type="button"
@@ -298,7 +306,7 @@ export function PublishTenderPackageModal({
               disabled={busy}
               onClick={onClose}
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>

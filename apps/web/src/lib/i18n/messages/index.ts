@@ -10,4 +10,5 @@ export const messages: Record<Locale, Messages> = {
 };
 
 export { en, th, ru };
+export { enExtended } from './en-extended';
 export type { Messages, MessageKey } from './en';

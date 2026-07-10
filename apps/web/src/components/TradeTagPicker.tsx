@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from '@/components/LocaleProvider';
+
 interface TradeTagPickerProps {
   tags: Array<{
     slug: string;
@@ -18,11 +20,12 @@ export function TradeTagPicker({
   onChange,
   disabled = false,
 }: TradeTagPickerProps) {
+  const { t } = useTranslation();
   const groups = tags.reduce<
     Map<string, { label: string; items: typeof tags }>
   >((acc, tag) => {
     const key = tag.groupSlug ?? 'other';
-    const label = tag.groupLabel ?? 'Other';
+    const label = tag.groupLabel ?? t('common.other');
     const group = acc.get(key) ?? { label, items: [] };
     group.items.push(tag);
     acc.set(key, group);
@@ -39,7 +42,7 @@ export function TradeTagPicker({
   };
 
   if (tags.length === 0) {
-    return <p className="muted tag-hint">No specialty tags available yet.</p>;
+    return <p className="muted tag-hint">{t('tags.noTags')}</p>;
   }
 
   return (

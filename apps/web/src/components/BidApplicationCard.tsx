@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import { formatThb } from '@/lib/estimate';
 import { BidChat } from '@/components/BidChat';
 import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
@@ -49,6 +50,7 @@ export function BidApplicationCard({
   clarificationMode = 'open_chat',
   onContractSigned,
 }: BidApplicationCardProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(defaultExpanded);
   const isOpen = expanded;
   const amount = bid.amount != null ? Number(bid.amount) : null;
@@ -65,19 +67,22 @@ export function BidApplicationCard({
     <>
       <span className="bid-application-card-primary">
         <strong className="bid-application-card-company">
-          {bid.companyName ?? 'Contractor'}
+          {bid.companyName ?? t('common.contractor')}
         </strong>
             <span className="bid-application-card-amount">
-              {amount != null ? formatThb(amount) : 'No proposal yet'}
+              {amount != null ? formatThb(amount) : t('bidApplication.noProposalYet')}
             </span>
       </span>
       <span className="bid-application-card-meta muted">
         {bid.contenderNumber != null && <span>#{bid.contenderNumber}</span>}
-        {bid.durationDays != null && <span>{bid.durationDays} days</span>}
+        {bid.durationDays != null && (
+          <span>{t('common.daysCount', { n: bid.durationDays })}</span>
+        )}
         {delta !== null && (
           <span>
-            {delta >= 0 ? '+' : ''}
-            {delta}% vs ballpark
+            {t('bidApplication.vsBallpark', {
+              delta: `${delta >= 0 ? '+' : ''}${delta}`,
+            })}
           </span>
         )}
         {(bid.submittedAt || bid.enrolledAt) && (
@@ -108,16 +113,16 @@ export function BidApplicationCard({
 
         <div className="bid-application-card-badges">
           {bid.status === 'clarifying' && (
-            <span className="status-pill">Clarifying</span>
+            <span className="status-pill">{t('bidApplication.clarifying')}</span>
           )}
           {bid.status === 'enrolled' && (
-            <span className="status-pill">Enrolled</span>
+            <span className="status-pill">{t('bidApplication.enrolled')}</span>
           )}
           {bid.status === 'selected' && (
-            <span className="readiness-badge">Selected</span>
+            <span className="readiness-badge">{t('bidApplication.selected')}</span>
           )}
           {bid.status === 'rejected' && (
-            <span className="status-pill">Not selected</span>
+            <span className="status-pill">{t('bidApplication.notSelected')}</span>
           )}
         </div>
       </div>
@@ -165,7 +170,7 @@ export function BidApplicationCard({
                 disabled={busy}
                 onClick={() => onSelect(bid)}
               >
-                Select this bid
+                {t('bidApplication.selectThisBid')}
               </button>
             )}
           </div>
@@ -175,7 +180,9 @@ export function BidApplicationCard({
               bidId={bid.id}
               projectId={projectId}
               currentUserId={currentUserId}
-              title={`Chat with ${bid.companyName ?? 'contractor'}`}
+              title={t('bidApplication.chatWith', {
+                name: bid.companyName ?? t('common.contractor'),
+              })}
             />
           )}
 

@@ -8,6 +8,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
 import { useSession } from '@/components/SessionProvider';
+import { useTranslation } from '@/components/LocaleProvider';
 import { canCreateProject, isContractorUser } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
 import {
@@ -35,6 +36,7 @@ import {
 
 export default function HomePage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [projects, setProjects] = useState<PublicProjectCard[]>([]);
   const [ownedProjectIds, setOwnedProjectIds] = useState<Set<string>>(new Set());
@@ -72,12 +74,12 @@ export default function HomePage() {
       });
       setProjects(list);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load projects');
+      setError(err instanceof Error ? err.message : t('home.loadFailed'));
       setProjects([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void (async () => {
@@ -268,7 +270,7 @@ export default function HomePage() {
 
         {loading && (
           <section className="card">
-            <p className="muted">Loading projects…</p>
+            <p className="muted">{t('home.loadingProjects')}</p>
           </section>
         )}
 
@@ -282,19 +284,19 @@ export default function HomePage() {
           <section className="card empty-state">
             <p className="muted">
               {canAddProject
-                ? 'No projects match your filters yet. Try clearing tags or add the first project.'
-                : 'No projects match your filters yet.'}
+                ? t('home.emptyNoMatchCanAdd')
+                : t('home.emptyNoMatch')}
             </p>
             {canAddProject && (
               <button type="button" className="primary" onClick={handleAddProject}>
-                Add project
+                {t('home.addProject')}
               </button>
             )}
           </section>
         )}
 
         {!loading && sortedProjects.length > 0 && (
-          <section className="project-grid" aria-label="Projects">
+          <section className="project-grid" aria-label={t('home.projectsAria')}>
             {canAddProject && (
               <button
                 type="button"
@@ -305,9 +307,9 @@ export default function HomePage() {
                   <span className="project-tile-add-icon">+</span>
                 </div>
                 <div className="project-tile-body">
-                  <h3 className="project-tile-title">Add project</h3>
+                  <h3 className="project-tile-title">{t('home.addProject')}</h3>
                   <p className="project-tile-description">
-                    Publish a new project to receive contractor bids.
+                    {t('home.addProjectDescription')}
                   </p>
                 </div>
               </button>

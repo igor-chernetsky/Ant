@@ -10,6 +10,8 @@ import { CommercialProposalDownload } from '@/components/CommercialProposalDownl
 import { ContractSigningPartiesInline } from '@/components/ContractSigningPartiesInline';
 import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPill';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 
 interface ContractSigningPanelProps {
   projectId: string;
@@ -28,6 +30,8 @@ export function ContractSigningPanel({
   contract: contractProp = null,
   onSigned,
 }: ContractSigningPanelProps) {
+  const { t } = useTranslation();
+  const { getContractSigningMessage } = useAppFormatters();
   const [contract, setContract] = useState<ProjectContract | null>(contractProp);
   const [loading, setLoading] = useState(!contractProp);
   const [busy, setBusy] = useState(false);
@@ -41,12 +45,14 @@ export function ContractSigningPanel({
       const data = await fetchProjectContract(projectId, { asContractor });
       setContract(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load contract');
+      setError(
+        err instanceof Error ? err.message : t('contractPanel.loadFailed'),
+      );
       setContract(null);
     } finally {
       setLoading(false);
     }
-  }, [projectId, asContractor]);
+  }, [projectId, asContractor, t]);
 
   useEffect(() => {
     setContract(contractProp);
@@ -59,10 +65,9 @@ export function ContractSigningPanel({
 
   const handleSign = async () => {
     const confirmed = await confirm({
-      title: 'Sign contract',
-      message:
-        'This records your acceptance on the platform. The other party will be notified to sign as well.',
-      confirmLabel: 'Sign contract',
+      title: t('confirm.signContractTitle'),
+      message: t('confirm.signContractMessage'),
+      confirmLabel: t('confirm.signContractLabel'),
     });
     if (!confirmed) return;
 
@@ -73,33 +78,44 @@ export function ContractSigningPanel({
       setContract(updated);
       onSigned?.(updated);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to sign contract');
+      setError(
+        err instanceof Error ? err.message : t('contractPanel.signFailed'),
+      );
     } finally {
       setBusy(false);
     }
   };
 
   if (loading) {
-    return <p className="muted">Loading contract…</p>;
+    return <p className="muted">{t('contractPanel.loading')}</p>;
   }
 
   if (!contract) {
     return null;
   }
 
+  const signingStatus = contract.fullySigned
+    ? 'fully_signed'
+    : contract.clientSignedAt && !contract.contractorSignedAt
+      ? 'awaiting_contractor'
+      : !contract.clientSignedAt && contract.contractorSignedAt
+        ? 'awaiting_client'
+        : 'awaiting_both';
+
   return (
     <div className="contract-signing-panel">
       {!hideHeading && (
         <div className="contract-signing-heading-row">
-          <h4 className="tender-subsection-title">Contract signing</h4>
+          <h4 className="tender-subsection-title">
+            {t('contractPanel.signingTitle')}
+          </h4>
           <ContractSigningStatusPill contract={contract} />
         </div>
       )}
 
       {!hideHeading && (
         <p className="muted contract-signing-hint">
-          Both parties must sign the contract draft before the project becomes
-          active.
+          {t('contractPanel.signingHint')}
         </p>
       )}
 
@@ -110,7 +126,7 @@ export function ContractSigningPanel({
           <CommercialProposalDownload
             bidId={bidId}
             projectId={asContractor ? undefined : projectId}
-            label="Download contract draft"
+            label={t('commercialProposal.downloadDraft')}
             className="secondary"
             inline
           />
@@ -121,7 +137,9 @@ export function ContractSigningPanel({
               disabled={busy}
               onClick={() => void handleSign()}
             >
-              {busy ? 'Signing…' : 'Sign contract'}
+              {busy
+                ? t('contractPanel.signing')
+                : t('contractPanel.signContract')}
             </button>
           )}
         </div>
@@ -129,7 +147,7 @@ export function ContractSigningPanel({
 
       {contract.fullySigned && (
         <p className="contract-signing-complete muted">
-          Both parties have signed. The project is now active.
+          {getContractSigningMessage(signingStatus)}
         </p>
       )}
 

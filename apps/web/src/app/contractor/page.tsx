@@ -7,6 +7,7 @@ import { ContractorReviewsPanel } from '@/components/ContractorReviewsPanel';
 import { ContractorVerificationPanel } from '@/components/ContractorVerificationPanel';
 import { ContractorPortfolioPanel } from '@/components/ContractorPortfolioPanel';
 import { LoginModal } from '@/components/LoginModal';
+import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
 import { ServiceLocationEditor } from '@/components/ServiceLocationEditor';
 import { SiteHeader } from '@/components/SiteHeader';
@@ -29,6 +30,7 @@ import {
 } from '@/lib/tendering';
 
 export default function ContractorPage() {
+  const { t } = useTranslation();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [ready, setReady] = useState(false);
   const [profile, setProfile] = useState<ContractorProfile | null>(null);
@@ -103,10 +105,10 @@ export default function ContractorPage() {
   useEffect(() => {
     if (!sessionReady) return;
     loadAll().catch((err: unknown) => {
-      setError(err instanceof Error ? err.message : 'Failed to load');
+      setError(err instanceof Error ? err.message : t('contractor.loadFailed'));
       setReady(true);
     });
-  }, [sessionReady, loadAll]);
+  }, [sessionReady, loadAll, t]);
 
   const handleSaveProfile = async () => {
     setBusy(true);
@@ -122,7 +124,9 @@ export default function ContractorPage() {
       setSelectedTagSlugs(prof.tagSlugs);
       await refreshSession();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save profile');
+      setError(
+        err instanceof Error ? err.message : t('contractor.saveProfileFailed'),
+      );
     } finally {
       setBusy(false);
     }
@@ -166,45 +170,40 @@ export default function ContractorPage() {
 
       <main className="content-container main-content">
         <section className="page-hero">
-          <h1>Contractor portal</h1>
-          <p className="page-hero-lead muted">
-            Register as a contractor, browse open projects, and submit
-            applications with direct chat to the client.
-          </p>
+          <h1>{t('contractor.portalTitle')}</h1>
+          <p className="page-hero-lead muted">{t('contractor.portalLead')}</p>
         </section>
 
         {!ready && (
           <section className="card">
-            <p className="muted">Loading…</p>
+            <p className="muted">{t('common.loading')}</p>
           </section>
         )}
 
         {ready && !me && (
           <section className="card cta">
-            <p>Sign in to browse projects and submit applications.</p>
+            <p>{t('contractor.signInPrompt')}</p>
             <button
               type="button"
               className="primary"
               onClick={() => setLoginOpen(true)}
             >
-              Sign in
+              {t('header.signIn')}
             </button>
           </section>
         )}
 
         {ready && me && !profile && (
           <section className="card">
-            <h2 className="section-title">Register as contractor</h2>
-            <p className="muted doc-hint">
-              Tell us what trades you cover. You can update specialties anytime.
-            </p>
+            <h2 className="section-title">{t('contractor.registerTitle')}</h2>
+            <p className="muted doc-hint">{t('contractor.registerHint')}</p>
             <div className="modal-form">
               <label>
-                Company name
+                {t('account.companyName')}
                 <input
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="Your company"
+                  placeholder={t('contractor.companyPlaceholder')}
                 />
               </label>
               {locationCatalog ? (
@@ -215,12 +214,12 @@ export default function ContractorPage() {
                   disabled={busy}
                 />
               ) : (
-                <p className="muted">Loading locations…</p>
+                <p className="muted">{t('contractor.loadingLocations')}</p>
               )}
               <fieldset className="tag-fieldset">
-                <legend>Your specialties</legend>
+                <legend>{t('contractor.specialtiesLegend')}</legend>
                 <p className="muted tag-hint">
-                  Optional. Leave empty to see all projects on the home page.
+                  {t('contractor.specialtiesHintOptional')}
                 </p>
                 <TradeTagPicker
                   tags={tradeTags}
@@ -237,7 +236,7 @@ export default function ContractorPage() {
               disabled={busy}
               onClick={() => void handleRegister()}
             >
-              {busy ? 'Saving…' : 'Create contractor profile'}
+              {busy ? t('common.saving') : t('contractor.createProfile')}
             </button>
           </section>
         )}
@@ -245,17 +244,15 @@ export default function ContractorPage() {
         {ready && me && profile && (
           <>
             <section className="card">
-              <h2 className="section-title">Your profile</h2>
-              <p className="muted doc-hint">
-                Update company details, service areas, and the trades you want to work on.
-              </p>
+              <h2 className="section-title">{t('contractor.yourProfile')}</h2>
+              <p className="muted doc-hint">{t('contractor.profileHint')}</p>
               <div className="modal-form">
                 <label>
-                  Company name
+                  {t('account.companyName')}
                   <input
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="Your company"
+                    placeholder={t('contractor.companyPlaceholder')}
                   />
                 </label>
                 {locationCatalog ? (
@@ -266,16 +263,20 @@ export default function ContractorPage() {
                     disabled={busy}
                   />
                 ) : (
-                  <p className="muted">Loading locations…</p>
+                  <p className="muted">{t('contractor.loadingLocations')}</p>
                 )}
                 <fieldset className="tag-fieldset">
-                  <legend>Your specialties</legend>
+                  <legend>{t('contractor.specialtiesLegend')}</legend>
                   <p className="muted tag-hint">
                     {selectedTagLabels
-                      ? `Selected: ${selectedTagLabels}`
-                      : 'None selected — home page shows all projects.'}
+                      ? t('contractor.specialtiesSelected', {
+                          tags: selectedTagLabels,
+                        })
+                      : t('contractor.specialtiesNone')}
                     {serviceLocationSummary
-                      ? ` · Notifications: ${serviceLocationSummary}`
+                      ? t('contractor.specialtiesNotifications', {
+                          locations: serviceLocationSummary,
+                        })
                       : ''}
                   </p>
                   <TradeTagPicker
@@ -293,7 +294,7 @@ export default function ContractorPage() {
                 disabled={busy}
                 onClick={() => void handleSaveProfile()}
               >
-                {busy ? 'Saving…' : 'Save profile'}
+                {busy ? t('common.saving') : t('contractor.saveProfile')}
               </button>
             </section>
 
@@ -308,7 +309,7 @@ export default function ContractorPage() {
 
             <section className="card">
               <div className="contractor-section-header">
-                <h2 className="section-title">My applications</h2>
+                <h2 className="section-title">{t('contractor.myApplications')}</h2>
                 {applications.length > 0 && completedApplications.length > 0 && (
                   <label className="contractor-toggle">
                     <input
@@ -318,26 +319,31 @@ export default function ContractorPage() {
                         setShowCompletedApplications(event.target.checked)
                       }
                     />
-                    Show completed
+                    {t('contractor.showCompleted')}
                   </label>
                 )}
               </div>
               {applications.length === 0 ? (
                 <p className="muted">
-                  No applications yet. Browse{' '}
+                  {t('contractor.noApplicationsBefore')}{' '}
                   <Link href="/" className="text-link">
-                    open projects
+                    {t('common.openProjects')}
                   </Link>{' '}
-                  and submit a bid when the client publishes for bidding.
+                  {t('contractor.noApplicationsAfter')}
                 </p>
               ) : visibleApplications.length === 0 ? (
                 <p className="muted">
-                  No active applications. Turn on{' '}
-                  <strong>Show completed</strong> to see finished projects (
-                  {completedApplications.length}).
+                  {t('contractor.noActiveApplicationsPrefix')}{' '}
+                  <strong>{t('contractor.showCompleted')}</strong>{' '}
+                  {t('contractor.noActiveApplicationsSuffix', {
+                    count: completedApplications.length,
+                  })}
                 </p>
               ) : (
-                <div className="project-grid" aria-label="My applications">
+                <div
+                  className="project-grid"
+                  aria-label={t('contractor.applicationsAria')}
+                >
                   {visibleApplications.map((app) => (
                     <ContractorApplicationTile key={app.bidId} application={app} />
                   ))}

@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  LOCALE_LABELS,
+  LOCALE_FLAGS,
   SUPPORTED_LOCALES,
   type Locale,
 } from '@/lib/i18n';
@@ -11,25 +11,33 @@ export function LanguageSwitcher() {
   const { locale, setLocale, t } = useTranslation();
 
   return (
-    <label className="language-switcher">
-      <span className="sr-only">{t('header.language')}</span>
-      <select
-        className="language-switcher-select"
-        value={locale}
-        aria-label={t('header.language')}
-        onChange={(event) => {
-          const next = event.target.value;
-          if (next !== locale) {
-            void setLocale(next as Locale);
-          }
-        }}
-      >
-        {SUPPORTED_LOCALES.map((code) => (
-          <option key={code} value={code}>
-            {LOCALE_LABELS[code]}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div
+      className="language-switcher"
+      role="group"
+      aria-label={t('header.language')}
+    >
+      {SUPPORTED_LOCALES.map((code) => {
+        const active = code === locale;
+        return (
+          <button
+            key={code}
+            type="button"
+            className={`language-switcher-flag${active ? ' language-switcher-flag--active' : ''}`}
+            aria-label={t(`header.lang_${code}`)}
+            aria-pressed={active}
+            title={t(`header.lang_${code}`)}
+            onClick={() => {
+              if (code !== locale) {
+                void setLocale(code);
+              }
+            }}
+          >
+            <span className="language-switcher-emoji" aria-hidden>
+              {LOCALE_FLAGS[code]}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import { fetchPublicPortfolio, type PortfolioItem } from '@/lib/portfolio';
 
 interface ContractorPortfolioGalleryProps {
@@ -12,6 +13,7 @@ export function ContractorPortfolioGallery({
   contractorId,
   companyName,
 }: ContractorPortfolioGalleryProps) {
+  const { t } = useTranslation();
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +42,7 @@ export function ContractorPortfolioGallery({
   return (
     <details className="contractor-portfolio-preview">
       <summary className="contractor-portfolio-preview-summary">
-        Portfolio ({items.length})
+        {t('portfolio.gallerySummary', { count: items.length })}
         {companyName ? ` · ${companyName}` : ''}
       </summary>
       <ul className="contractor-portfolio-preview-grid">

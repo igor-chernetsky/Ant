@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import { formatFileSize } from '@/lib/documents';
 import {
   deleteClarificationAttachment,
@@ -46,6 +47,7 @@ export const ClarificationAnswerAttachments = forwardRef<
   },
   ref,
 ) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +87,7 @@ export const ClarificationAnswerAttachments = forwardRef<
       }
       onChange(next);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : t('common.uploadFailed'));
     } finally {
       setBusyState(false);
       if (inputRef.current) {
@@ -104,7 +106,7 @@ export const ClarificationAnswerAttachments = forwardRef<
       );
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Download failed');
+      setError(err instanceof Error ? err.message : t('common.downloadFailed'));
     }
   };
 
@@ -118,7 +120,9 @@ export const ClarificationAnswerAttachments = forwardRef<
       await deleteClarificationAttachment(projectId, questionId, attachmentId);
       onChange(attachments.filter((item) => item.id !== attachmentId));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to remove file');
+      setError(
+        err instanceof Error ? err.message : t('clarification.removeFileFailed'),
+      );
     } finally {
       setBusyState(false);
     }
@@ -168,7 +172,7 @@ export const ClarificationAnswerAttachments = forwardRef<
       {!hideAddButton && (
         <div className="clarification-answer-attachments-header">
           <span className="client-clarification-answer-label">
-            Attachments (optional)
+            {t('clarification.attachmentsOptional')}
           </span>
           <button
             type="button"
@@ -176,7 +180,7 @@ export const ClarificationAnswerAttachments = forwardRef<
             disabled={disabled || busy}
             onClick={() => inputRef.current?.click()}
           >
-            {busy ? 'Uploading…' : 'Add files'}
+            {busy ? t('common.uploading') : t('common.addFiles')}
           </button>
         </div>
       )}
@@ -209,7 +213,9 @@ export const ClarificationAnswerAttachments = forwardRef<
                 <button
                   type="button"
                   className="icon-button clarification-answer-attachments-remove"
-                  aria-label={`Remove ${file.originalName}`}
+                  aria-label={t('clarification.removeFileAria', {
+                    name: file.originalName,
+                  })}
                   disabled={busy}
                   onClick={() => void handleDelete(file.id)}
                 >
@@ -222,7 +228,7 @@ export const ClarificationAnswerAttachments = forwardRef<
       ) : (
         !hideAddButton && (
           <p className="muted clarification-answer-attachments-empty">
-            Photos, PDFs, or documents linked to this answer.
+            {t('clarification.attachmentsEmpty')}
           </p>
         )
       )}

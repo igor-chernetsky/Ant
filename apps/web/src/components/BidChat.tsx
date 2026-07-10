@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import {
   fetchBidMessages,
   sendBidMessage,
@@ -20,8 +21,10 @@ export function BidChat({
   bidId,
   projectId,
   currentUserId,
-  title = 'Questions & answers',
+  title,
 }: BidChatProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t('bid.chatTitle');
   const [messages, setMessages] = useState<BidMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -36,12 +39,14 @@ export function BidChat({
       const data = await fetchBidMessages(bidId, projectId);
       setMessages(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load messages');
+      setError(
+        err instanceof Error ? err.message : t('bid.loadMessagesFailed'),
+      );
       setMessages([]);
     } finally {
       setLoading(false);
     }
-  }, [bidId, projectId]);
+  }, [bidId, projectId, t]);
 
   useEffect(() => {
     void loadMessages();
@@ -105,7 +110,7 @@ export function BidChat({
       setMessages((prev) => [...prev, message]);
       setDraft('');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to send message');
+      setError(err instanceof Error ? err.message : t('bid.sendMessageFailed'));
     } finally {
       setBusy(false);
     }
@@ -113,15 +118,13 @@ export function BidChat({
 
   return (
     <div className="bid-chat">
-      <h4 className="bid-chat-title">{title}</h4>
-      <p className="muted bid-chat-hint">
-        Ask clarifying questions about scope, access, or timeline.
-      </p>
+      <h4 className="bid-chat-title">{resolvedTitle}</h4>
+      <p className="muted bid-chat-hint">{t('bid.chatHint')}</p>
 
       <div className="bid-chat-messages" ref={listRef}>
-        {loading && <p className="muted">Loading messages…</p>}
+        {loading && <p className="muted">{t('bid.loadingMessages')}</p>}
         {!loading && messages.length === 0 && (
-          <p className="muted">No messages yet. Start the conversation.</p>
+          <p className="muted">{t('bid.noMessages')}</p>
         )}
         {messages.map((message) => {
           const mine = message.authorId === currentUserId;
@@ -149,12 +152,12 @@ export function BidChat({
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Write a message…"
+          placeholder={t('bid.messagePlaceholder')}
           rows={3}
           disabled={busy}
         />
         <button type="submit" className="primary" disabled={busy || !draft.trim()}>
-          {busy ? 'Sending…' : 'Send'}
+          {busy ? t('common.sending') : t('common.send')}
         </button>
       </form>
 

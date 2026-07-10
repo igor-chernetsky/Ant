@@ -1,4 +1,7 @@
 import type { Messages } from './en';
+import { ruExtended } from './ru-extended';
+
+const { homePage, common: commonExtended, ...extendedNamespaces } = ruExtended;
 
 export const ru: Messages = {
   common: {
@@ -13,6 +16,7 @@ export const ru: Messages = {
     optional: 'Необязательно',
     saved: 'Сохранено',
     dash: '—',
+    ...commonExtended,
   },
   header: {
     admin: 'Админ',
@@ -22,6 +26,9 @@ export const ru: Messages = {
     signOut: 'Выйти',
     signedIn: 'Вы вошли',
     language: 'Язык',
+    lang_en: 'English',
+    lang_th: 'ไทย',
+    lang_ru: 'Русский',
   },
   auth: {
     welcomeBack: 'С возвращением',
@@ -57,6 +64,7 @@ export const ru: Messages = {
     addProject: 'Добавить проект',
     signInToPublish: 'Войти, чтобы опубликовать',
     contractorPortal: 'Кабинет подрядчика',
+    ...homePage,
   },
   account: {
     title: 'Ваш аккаунт',
@@ -89,4 +97,5 @@ export const ru: Messages = {
     matchingProjectsDesc:
       'Проекты по вашим специализациям (до {cap} писем в день)',
   },
+  ...extendedNamespaces,
 };

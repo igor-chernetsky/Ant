@@ -1,14 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  formatDateTime,
-  formatProjectStatus,
-  formatProjectType,
-  formatPropertyType,
-  type Project,
-  type ProjectTag,
-} from '@/lib/projects';
+import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { formatDateTime, type Project, type ProjectTag } from '@/lib/projects';
 
 interface ProjectHeroProps {
   project: Project;
@@ -25,12 +20,16 @@ export function ProjectHero({
   showTags = false,
   tagsHint = null,
 }: ProjectHeroProps) {
+  const { t, locale } = useTranslation();
+  const { formatProjectStatus, formatProjectType, formatPropertyType } =
+    useAppFormatters();
+
   const chips = [
     formatProjectType(project.projectType),
     formatPropertyType(project.propertyType),
     project.district,
     project.regionCode,
-  ].filter((value) => value && value !== '—');
+  ].filter((value) => value && value !== t('common.dash'));
 
   return (
     <section className="project-hero" aria-labelledby="project-hero-title">
@@ -38,7 +37,7 @@ export function ProjectHero({
         <div className="project-hero-main">
           <p className="project-hero-kicker">
             <Link href="/" className="project-hero-back-link">
-              Projects
+              {t('projectHero.projectsBreadcrumb')}
             </Link>
           </p>
           <h1 id="project-hero-title">{project.title}</h1>
@@ -46,35 +45,40 @@ export function ProjectHero({
             <p className="project-hero-lead">{project.description}</p>
           ) : (
             <p className="project-hero-lead project-hero-lead-muted">
-              Add a short description so contractors can quickly understand the scope.
+              {t('projectHero.noDescription')}
             </p>
           )}
           {chips.length > 0 && (
-            <ul className="project-hero-chips" aria-label="Project highlights">
+            <ul
+              className="project-hero-chips"
+              aria-label={t('projectHero.highlightsAria')}
+            >
               {chips.map((chip) => (
                 <li key={chip}>{chip}</li>
               ))}
             </ul>
           )}
           <p className="muted project-hero-timestamps">
-            Created {formatDateTime(project.createdAt)}
+            {t('projectHero.created')} {formatDateTime(project.createdAt)}
             {' · '}
-            Updated {formatDateTime(project.updatedAt)}
+            {t('projectHero.updated')} {formatDateTime(project.updatedAt)}
           </p>
         </div>
         <div className="project-hero-aside">
           <span className="status-pill status-pill-lg project-hero-status">
-            {project.isHidden ? 'Hidden' : formatProjectStatus(project.status)}
+            {project.isHidden
+              ? t('projectHero.hidden')
+              : formatProjectStatus(project.status)}
           </span>
           <div className="project-hero-aside-metrics">
             <span className="readiness-badge readiness-badge-lg project-hero-readiness">
-              {project.readinessScore}% ready
+              {t('projectHero.readyPercent', { n: project.readinessScore })}
             </span>
             {typeof estimateMidAmountThb === 'number' && estimateMidAmountThb > 0 && (
               <p className="project-hero-meta">
-                Ballpark midpoint&nbsp;
+                {t('projectHero.ballparkMidpoint')}&nbsp;
                 <span className="project-hero-meta-value">
-                  {new Intl.NumberFormat('en-US', {
+                  {new Intl.NumberFormat(locale, {
                     style: 'currency',
                     currency: 'THB',
                     maximumFractionDigits: 0,
@@ -85,8 +89,11 @@ export function ProjectHero({
           </div>
           {showTags && tags.length > 0 && (
             <div className="project-hero-tags">
-              <p className="project-hero-tags-label">Scope tags</p>
-              <div className="project-hero-tag-list" aria-label="Project scope tags">
+              <p className="project-hero-tags-label">{t('projectHero.scopeTags')}</p>
+              <div
+                className="project-hero-tag-list"
+                aria-label={t('projectHero.scopeTagsAria')}
+              >
                 {tags.map((tag) => (
                   <span
                     key={tag.slug}
@@ -97,8 +104,8 @@ export function ProjectHero({
                     }`}
                     title={
                       tag.source === 'client'
-                        ? 'Selected during intake'
-                        : 'Suggested by AI'
+                        ? t('projectHero.tagSelectedDuringIntake')
+                        : t('projectHero.tagSuggestedByAi')
                     }
                   >
                     {tag.label}

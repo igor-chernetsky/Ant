@@ -12,6 +12,12 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   ru: 'Русский',
 };
 
+export const LOCALE_FLAGS: Record<Locale, string> = {
+  en: '🇬🇧',
+  th: '🇹🇭',
+  ru: '🇷🇺',
+};
+
 export function isLocale(value: string): value is Locale {
   return (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }

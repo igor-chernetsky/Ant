@@ -1,11 +1,12 @@
 'use client';
 
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import type { ContractorProfile } from '@/lib/tendering';
 import { formatFileSize } from '@/lib/documents';
 import {
   fetchVerificationDocuments,
-  formatVerificationStatus,
   getVerificationDocumentDownloadUrl,
   requestContractorApproval,
   uploadVerificationDocument,
@@ -23,6 +24,8 @@ export function ContractorVerificationPanel({
   profile,
   onProfileUpdated,
 }: ContractorVerificationPanelProps) {
+  const { t } = useTranslation();
+  const { formatVerificationStatus, formatDocumentCategory } = useAppFormatters();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<ContractorVerificationDocument[]>(
     [],
@@ -48,11 +51,15 @@ export function ContractorVerificationPanel({
       const docs = await fetchVerificationDocuments();
       setDocuments(docs.filter((d) => d.status === 'uploaded'));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load documents');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('verification.loadDocumentsFailed'),
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadDocs();
@@ -69,7 +76,7 @@ export function ContractorVerificationPanel({
       await uploadVerificationDocument(file, docCategory);
       await loadDocs();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : t('common.uploadFailed'));
     } finally {
       setBusy(false);
     }
@@ -81,7 +88,7 @@ export function ContractorVerificationPanel({
       const { downloadUrl } = await getVerificationDocumentDownloadUrl(doc.id);
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Download failed');
+      setError(err instanceof Error ? err.message : t('common.downloadFailed'));
     }
   };
 
@@ -92,7 +99,7 @@ export function ContractorVerificationPanel({
       const updated = (await requestContractorApproval()) as ContractorProfile;
       onProfileUpdated(updated);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+      setError(err instanceof Error ? err.message : t('common.requestFailed'));
     } finally {
       setBusy(false);
     }
@@ -100,46 +107,37 @@ export function ContractorVerificationPanel({
 
   return (
     <section className="card verification-card">
-      <h2 className="section-title">Verification</h2>
-      <p className="muted doc-hint">
-        Upload company documents (license, registration, insurance). An admin
-        must approve your profile before you can participate in tenders.
-      </p>
+      <h2 className="section-title">{t('verification.title')}</h2>
+      <p className="muted doc-hint">{t('verification.hint')}</p>
 
       <p className="verification-status-line">
-        Status:{' '}
+        {t('verification.statusLabel')}{' '}
         <span className="status-pill status-pill-lg">
           {formatVerificationStatus(profile.verificationStatus)}
         </span>
       </p>
 
       {profile.verificationStatus === 'verified' && (
-        <p className="muted">
-          Your contractor account is verified. You can still add documents below
-          for your records.
-        </p>
+        <p className="muted">{t('verification.verifiedMessage')}</p>
       )}
 
       {profile.verificationStatus === 'awaiting_review' && (
-        <p className="muted">
-          Your documents are under review. You will be notified after an admin
-          decision.
-        </p>
+        <p className="muted">{t('verification.awaitingReviewMessage')}</p>
       )}
 
       {profile.verificationComment && (
         <div className="verification-rejection">
-          <strong>Admin feedback</strong>
+          <strong>{t('verification.adminFeedback')}</strong>
           <p>{profile.verificationComment}</p>
         </div>
       )}
 
       <div className="verification-documents-section">
-        <h3 className="tender-subsection-title">Your documents</h3>
+        <h3 className="tender-subsection-title">{t('verification.yourDocuments')}</h3>
         {loading ? (
-          <p className="muted">Loading documents…</p>
+          <p className="muted">{t('verification.loadingDocuments')}</p>
         ) : documents.length === 0 ? (
-          <p className="muted">No verification documents uploaded yet.</p>
+          <p className="muted">{t('verification.noDocuments')}</p>
         ) : (
           <ul className="doc-list verification-doc-list">
             {documents.map((doc) => (
@@ -152,8 +150,7 @@ export function ContractorVerificationPanel({
                   {doc.originalName}
                 </button>
                 <p className="muted doc-meta">
-                  {VERIFICATION_DOC_CATEGORIES.find((c) => c.value === doc.category)
-                    ?.label ?? doc.category}
+                  {formatDocumentCategory(doc.category)}
                   {doc.sizeBytes != null && ` · ${formatFileSize(doc.sizeBytes)}`}
                   {doc.uploadedAt &&
                     ` · ${new Date(doc.uploadedAt).toLocaleDateString()}`}
@@ -167,7 +164,7 @@ export function ContractorVerificationPanel({
       {canUploadDocuments && (
         <div className="doc-upload-row verification-upload-row">
           <label>
-            Document type
+            {t('verification.documentType')}
             <select
               value={docCategory}
               onChange={(e) =>
@@ -177,7 +174,7 @@ export function ContractorVerificationPanel({
             >
               {VERIFICATION_DOC_CATEGORIES.map((opt) => (
                 <option key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {formatDocumentCategory(opt.value)}
                 </option>
               ))}
             </select>
@@ -196,7 +193,7 @@ export function ContractorVerificationPanel({
             disabled={busy}
             onClick={() => fileInputRef.current?.click()}
           >
-            {busy ? 'Uploading…' : 'Upload document'}
+            {busy ? t('common.uploading') : t('verification.uploadDocument')}
           </button>
         </div>
       )}
@@ -209,7 +206,7 @@ export function ContractorVerificationPanel({
             disabled={busy || documents.length === 0}
             onClick={() => void handleRequestApproval()}
           >
-            {busy ? 'Submitting…' : 'Request approval'}
+            {busy ? t('common.submitting') : t('verification.requestApproval')}
           </button>
         </div>
       )}

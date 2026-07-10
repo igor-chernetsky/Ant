@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { ProjectLocationFields } from '@/components/ProjectLocationFields';
+import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { isSessionExpiredError } from '@/lib/auth-client';
 import {
   DEFAULT_SERVICE_LOCATION,
@@ -32,6 +34,8 @@ export function CreateProjectModal({
   onCreated,
   onSessionExpired,
 }: CreateProjectModalProps) {
+  const { t } = useTranslation();
+  const { formatProjectType, formatPropertyType } = useAppFormatters();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [projectType, setProjectType] = useState<ProjectType>('renovation');
@@ -73,7 +77,7 @@ export function CreateProjectModal({
     try {
       const sessionOk = await ensureSessionFresh();
       if (!sessionOk) {
-        setError('Your session expired. Please sign in again.');
+        setError(t('createProject.sessionExpired'));
         onSessionExpired?.();
         return;
       }
@@ -92,11 +96,13 @@ export function CreateProjectModal({
       onClose();
     } catch (err: unknown) {
       if (isSessionExpiredError(err)) {
-        setError('Your session expired. Please sign in again.');
+        setError(t('createProject.sessionExpired'));
         onSessionExpired?.();
         return;
       }
-      setError(err instanceof Error ? err.message : 'Failed to create project');
+      setError(
+        err instanceof Error ? err.message : t('createProject.createFailed'),
+      );
     } finally {
       setCreating(false);
     }
@@ -119,45 +125,43 @@ export function CreateProjectModal({
         aria-labelledby="create-project-title"
       >
         <div className="modal-header">
-          <h2 id="create-project-title">New project</h2>
+          <h2 id="create-project-title">{t('createProject.title')}</h2>
           <button
             type="button"
             className="icon-button"
-            aria-label="Close"
+            aria-label={t('common.close')}
             onClick={onClose}
           >
             ×
           </button>
         </div>
 
-        <p className="muted modal-subtitle">
-          AI will refine the description and suggest tags after creation.
-        </p>
+        <p className="muted modal-subtitle">{t('createProject.subtitle')}</p>
 
         <form onSubmit={handleSubmit} className="modal-form">
           <label>
-            Title
+            {t('createProject.titleLabel')}
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Kitchen renovation"
+              placeholder={t('createProject.titlePlaceholder')}
               required
               minLength={3}
             />
           </label>
           <label>
-            Description
+            {t('createProject.descriptionLabel')}
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe scope, materials, timeline…"
+              placeholder={t('createProject.descriptionPlaceholder')}
               rows={4}
             />
           </label>
           <div className="form-row">
             <label>
-              Project type
+              {t('createProject.projectTypeLabel')}
               <select
                 value={projectType}
                 onChange={(e) =>
@@ -166,23 +170,23 @@ export function CreateProjectModal({
               >
                 {PROJECT_TYPE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {formatProjectType(option.value)}
                   </option>
                 ))}
               </select>
             </label>
             <label>
-              Property type
+              {t('createProject.propertyTypeLabel')}
               <select
                 value={propertyType}
                 onChange={(e) =>
                   setPropertyType(e.target.value as PropertyType | '')
                 }
               >
-                <option value="">Not specified</option>
+                <option value="">{t('createProject.notSpecified')}</option>
                 {PROPERTY_TYPE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {formatPropertyType(option.value)}
                   </option>
                 ))}
               </select>
@@ -200,18 +204,20 @@ export function CreateProjectModal({
               onNoteChange={setLocationNote}
             />
           ) : (
-            <p className="muted">Loading locations…</p>
+            <p className="muted">{t('createProject.loadingLocations')}</p>
           )}
 
           <div className="clarification-mode-field">
-            <span className="clarification-mode-label">Contractor clarification</span>
+            <span className="clarification-mode-label">
+              {t('createProject.clarificationLabel')}
+            </span>
             <p className="muted clarification-mode-hint">
-              How contractors ask questions before submitting proposals.
+              {t('createProject.clarificationHint')}
             </p>
             <div
               className="clarification-mode-switch"
               role="radiogroup"
-              aria-label="Contractor clarification"
+              aria-label={t('createProject.clarificationAria')}
             >
               {CLARIFICATION_MODE_OPTIONS.map((option) => (
                 <button
@@ -226,16 +232,12 @@ export function CreateProjectModal({
                   }`}
                   onClick={() => setClarificationMode(option.value)}
                 >
-                  {option.label}
+                  {t(`clarificationMode.${option.value}`)}
                 </button>
               ))}
             </div>
             <p className="muted clarification-mode-desc">
-              {
-                CLARIFICATION_MODE_OPTIONS.find(
-                  (option) => option.value === clarificationMode,
-                )?.description
-              }
+              {t(`clarificationMode.${clarificationMode}_desc`)}
             </p>
           </div>
 
@@ -247,7 +249,7 @@ export function CreateProjectModal({
               className="primary"
               disabled={creating || title.trim().length < 3}
             >
-              {creating ? 'Creating…' : 'Create project'}
+              {creating ? t('createProject.creating') : t('createProject.createButton')}
             </button>
             <button
               type="button"
@@ -255,7 +257,7 @@ export function CreateProjectModal({
               onClick={onClose}
               disabled={creating}
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>

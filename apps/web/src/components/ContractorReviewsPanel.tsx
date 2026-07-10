@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import { REVIEW_RATING_CATEGORIES } from '@/lib/project-reviews';
 import { formatDateTime } from '@/lib/projects';
 import {
@@ -9,10 +10,16 @@ import {
   type ContractorReviewItem,
 } from '@/lib/tendering';
 
-function StarRatingDisplay({ value }: { value: number }) {
+function StarRatingDisplay({
+  value,
+  ariaLabel,
+}: {
+  value: number;
+  ariaLabel: string;
+}) {
   const rounded = Math.round(value);
   return (
-    <span className="contractor-review-stars" aria-label={`${value} out of 5`}>
+    <span className="contractor-review-stars" aria-label={ariaLabel}>
       {[1, 2, 3, 4, 5].map((star) => (
         <span
           key={star}
@@ -31,6 +38,7 @@ function StarRatingDisplay({ value }: { value: number }) {
 }
 
 export function ContractorReviewsPanel() {
+  const { t } = useTranslation();
   const [reviews, setReviews] = useState<ContractorReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,12 +51,12 @@ export function ContractorReviewsPanel() {
         const data = await fetchContractorReviews();
         setReviews(data);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load reviews');
+        setError(err instanceof Error ? err.message : t('reviews.loadFailed'));
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [t]);
 
   const averageOverall =
     reviews.length > 0
@@ -62,23 +70,24 @@ export function ContractorReviewsPanel() {
   return (
     <section className="card">
       <div className="contractor-section-header">
-        <h2 className="section-title">Client reviews</h2>
+        <h2 className="section-title">{t('reviews.title')}</h2>
         {averageOverall != null && (
           <p className="contractor-reviews-summary muted">
-            {averageOverall} / 5 average · {reviews.length}{' '}
-            {reviews.length === 1 ? 'review' : 'reviews'}
+            {t('reviews.averageSummary', {
+              average: averageOverall,
+              count: reviews.length,
+              reviewsLabel:
+                reviews.length === 1 ? t('common.review') : t('common.reviews'),
+            })}
           </p>
         )}
       </div>
 
-      {loading && <p className="muted">Loading reviews…</p>}
+      {loading && <p className="muted">{t('reviews.loading')}</p>}
       {error && <p className="form-error">{error}</p>}
 
       {!loading && !error && reviews.length === 0 && (
-        <p className="muted">
-          No client reviews yet. Reviews appear after a project is marked
-          complete.
-        </p>
+        <p className="muted">{t('reviews.empty')}</p>
       )}
 
       {!loading && !error && reviews.length > 0 && (
@@ -99,7 +108,12 @@ export function ContractorReviewsPanel() {
                   </p>
                 </div>
                 <div className="contractor-review-average">
-                  <StarRatingDisplay value={review.averageRating} />
+                  <StarRatingDisplay
+                    value={review.averageRating}
+                    ariaLabel={t('reviews.starsAria', {
+                      value: review.averageRating,
+                    })}
+                  />
                   <span className="contractor-review-average-value">
                     {review.averageRating.toFixed(1)}
                   </span>
@@ -120,7 +134,10 @@ export function ContractorReviewsPanel() {
                     <div key={category.key} className="contractor-review-rating-row">
                       <dt>{category.label}</dt>
                       <dd>
-                        <StarRatingDisplay value={score} />
+                        <StarRatingDisplay
+                          value={score}
+                          ariaLabel={t('reviews.starsAria', { value: score })}
+                        />
                       </dd>
                     </div>
                   );

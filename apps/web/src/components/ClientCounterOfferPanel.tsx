@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import { formatThb } from '@/lib/estimate';
 import { BidProposalForm, type BidProposalInput } from '@/components/BidProposalForm';
 import {
@@ -36,6 +37,7 @@ export function ClientCounterOfferPanel({
   projectScopeSummary,
   projectContractTerms,
 }: ClientCounterOfferPanelProps) {
+  const { t } = useTranslation();
   const [offers, setOffers] = useState<BidOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -55,7 +57,7 @@ export function ClientCounterOfferPanel({
       setPendingTargetCount(targets.count);
       setApplyToAllPending(false);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load offers');
+      setError(err instanceof Error ? err.message : t('negotiation.loadFailed'));
       setOffers([]);
       setPendingTargetCount(0);
     } finally {
@@ -79,13 +81,13 @@ export function ClientCounterOfferPanel({
       await loadOffers();
       if (result.sentToBidCount > 1) {
         setSuccess(
-          `Counter-offer sent to ${result.sentToBidCount} contractors.`,
+          t('negotiation.sentToMany', { count: result.sentToBidCount }),
         );
       } else {
-        setSuccess('Counter-offer sent.');
+        setSuccess(t('negotiation.sent'));
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to send counter-offer');
+      setError(err instanceof Error ? err.message : t('negotiation.sendFailed'));
       throw err;
     } finally {
       setBusy(false);
@@ -104,16 +106,18 @@ export function ClientCounterOfferPanel({
 
   return (
     <div className="client-counter-offer-panel">
-      <h4 className="tender-subsection-title">Negotiation</h4>
+      <h4 className="tender-subsection-title">{t('negotiation.title')}</h4>
       {loading ? (
-        <p className="muted">Loading offer history…</p>
+        <p className="muted">{t('negotiation.loading')}</p>
       ) : offers.length > 0 ? (
         <ul className="bid-offer-list">
           {offers.map((offer) => (
             <li key={offer.id} className="bid-offer-item">
               <p className="bid-offer-meta muted">
-                {offer.authorRole === 'client' ? 'Your counter-offer' : 'Contractor'} ·{' '}
-                {new Date(offer.createdAt).toLocaleString()}
+                {offer.authorRole === 'client'
+                  ? t('negotiation.yourCounterOffer')
+                  : t('common.contractor')}{' '}
+                · {new Date(offer.createdAt).toLocaleString()}
               </p>
               <p className="bid-offer-amount">{formatThb(Number(offer.amount))}</p>
               {offer.note && <p className="bid-offer-note">{offer.note}</p>}
@@ -121,12 +125,12 @@ export function ClientCounterOfferPanel({
           ))}
         </ul>
       ) : (
-        <p className="muted">No counter-offers yet.</p>
+        <p className="muted">{t('negotiation.noOffers')}</p>
       )}
 
       {tenderOpen && (
         <div className="client-counter-offer-form-wrap">
-          <h4 className="bid-analysis-subtitle">Send counter-offer</h4>
+          <h4 className="bid-analysis-subtitle">{t('negotiation.sendTitle')}</h4>
           {canBulkSend && (
             <label className="client-counter-offer-bulk-option">
               <input
@@ -136,8 +140,7 @@ export function ClientCounterOfferPanel({
                 disabled={busy}
               />
               <span>
-                Send this counter-offer to all {pendingTargetCount} contractors
-                awaiting a response
+                {t('negotiation.bulkOption', { count: pendingTargetCount })}
               </span>
             </label>
           )}
@@ -151,14 +154,14 @@ export function ClientCounterOfferPanel({
             defaultCostBreakdown={defaultCostBreakdown}
             busy={busy}
             contractTermsAudience="none"
-            notesLabel="Comment for the contractor"
-            scopeLabel="Scope of works"
-            scopeHint="Pre-filled from the contractor's proposal. Edit if your counter-offer changes what is included."
+            notesLabel={t('negotiation.commentLabel')}
+            scopeLabel={t('bid.scopeOfWorks')}
+            scopeHint={t('negotiation.scopeHint')}
             breakdownMode="adjust"
             submitLabel={
               applyToAllPending && canBulkSend
-                ? `Send counter-offer to ${pendingTargetCount} contractors`
-                : 'Send counter-offer'
+                ? t('negotiation.sendToMany', { count: pendingTargetCount })
+                : t('negotiation.sendCounterOffer')
             }
             onSubmit={handleSubmit}
           />

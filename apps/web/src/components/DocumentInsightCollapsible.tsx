@@ -1,4 +1,7 @@
+'use client';
+
 import { formatConfidence } from '@/lib/estimate';
+import { useTranslation } from '@/components/LocaleProvider';
 
 interface DocumentInsightCollapsibleProps {
   insight: {
@@ -13,9 +16,13 @@ interface DocumentInsightCollapsibleProps {
 export function DocumentInsightCollapsible({
   insight,
 }: DocumentInsightCollapsibleProps) {
+  const { t } = useTranslation();
+
   return (
     <details className="doc-insight-details">
-      <summary className="doc-insight-details-summary">AI analysis</summary>
+      <summary className="doc-insight-details-summary">
+        {t('documents.aiAnalysis')}
+      </summary>
       <div className="doc-insight-details-body">
         <p className="doc-insight-summary">{insight.summary}</p>
         {insight.keyFacts && insight.keyFacts.length > 0 && (
@@ -29,7 +36,8 @@ export function DocumentInsightCollapsible({
           <p className="muted doc-insight-omitted">{insight.omittedNote}</p>
         )}
         <p className="muted doc-insight-meta">
-          {formatConfidence(insight.confidence)} confidence · {insight.provider}
+          {formatConfidence(insight.confidence)} {t('common.confidence')} ·{' '}
+          {insight.provider}
         </p>
       </div>
     </details>

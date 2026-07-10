@@ -6,13 +6,14 @@ import { formatThb } from '@/lib/estimate';
 import type { Project } from '@/lib/projects';
 import {
   fetchProjectTender,
-  formatTenderStatus,
   revertProjectTender,
   updateTenderDeadline,
   type Tender,
 } from '@/lib/tendering';
 import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificationQuestionsPanel';
+import { useTranslation } from '@/components/LocaleProvider';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { ContractorCoverageNotice } from '@/components/ContractorCoverageNotice';
 import { PublishTenderPackageModal } from '@/components/PublishTenderPackageModal';
 import {
@@ -33,18 +34,13 @@ function canPublishProject(project: Project): boolean {
   return ['estimated', 'in_tender'].includes(project.status);
 }
 
-function formatDeadlineLabel(tender: Tender): string {
-  if (tender.noApplicationsDeadline || !tender.closesAt) {
-    return 'No time limit';
-  }
-  return new Date(tender.closesAt).toLocaleString();
-}
-
 export function TenderSummaryCard({
   projectId,
   project,
   onUpdated,
 }: TenderSummaryCardProps) {
+  const { t } = useTranslation();
+  const { formatTenderStatus } = useAppFormatters();
   const [tender, setTender] = useState<Tender | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -66,6 +62,29 @@ export function TenderSummaryCard({
   >(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
+  const applicationLabel = (count: number) =>
+    count === 1
+      ? t('tenderCard.application_one')
+      : t('tenderCard.application_other');
+
+  const proposalLabel = (count: number) =>
+    count === 1
+      ? t('tenderCard.proposal_one')
+      : t('tenderCard.proposal_other');
+
+  const formatApplicationsPhrase = (count: number) =>
+    `${count} ${applicationLabel(count)}`;
+
+  const formatProposalsPhrase = (count: number) =>
+    `${count} ${proposalLabel(count)}`;
+
+  const formatDeadlineLabel = (value: Tender): string => {
+    if (value.noApplicationsDeadline || !value.closesAt) {
+      return t('tenderCard.noTimeLimit');
+    }
+    return new Date(value.closesAt).toLocaleString();
+  };
+
   const loadTender = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -79,11 +98,11 @@ export function TenderSummaryCard({
         }
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load tender');
+      setError(err instanceof Error ? err.message : t('tenderCard.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, t]);
 
   useEffect(() => {
     void loadTender();
@@ -120,7 +139,9 @@ export function TenderSummaryCard({
       setExtendDeadline(applicationsDeadlineFromTender(data));
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : 'Failed to update application deadline',
+        err instanceof Error
+          ? err.message
+          : t('tenderCard.updateDeadlineFailed'),
       );
     } finally {
       setBusy(false);
@@ -140,10 +161,9 @@ export function TenderSummaryCard({
 
   const handleRevert = async () => {
     const confirmed = await confirm({
-      title: 'Return to preparation?',
-      message:
-        'Contractors will no longer see this project for bidding until you publish again.',
-      confirmLabel: 'Return to preparation',
+      title: t('confirm.returnToPreparationTitle'),
+      message: t('confirm.returnToPreparationMessage'),
+      confirmLabel: t('confirm.returnToPreparationLabel'),
     });
     if (!confirmed) return;
 
@@ -154,7 +174,9 @@ export function TenderSummaryCard({
       setTender(null);
       await refreshProject();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to revert tender');
+      setError(
+        err instanceof Error ? err.message : t('tenderCard.revertFailed'),
+      );
     } finally {
       setBusy(false);
     }
@@ -163,7 +185,7 @@ export function TenderSummaryCard({
   if (loading) {
     return (
       <section className="card tender-card">
-        <p className="muted">Loading tender…</p>
+        <p className="muted">{t('tenderCard.loading')}</p>
       </section>
     );
   }
@@ -171,7 +193,7 @@ export function TenderSummaryCard({
   return (
     <section className="card tender-card tender-summary-card">
       <div className="tender-card-header">
-        <h2 className="section-title">Tender &amp; bids</h2>
+        <h2 className="section-title">{t('tenderCard.title')}</h2>
         {tender && (
           <button
             type="button"
@@ -179,7 +201,7 @@ export function TenderSummaryCard({
             disabled={busy}
             onClick={() => void loadTender()}
           >
-            Refresh
+            {t('tenderCard.refresh')}
           </button>
         )}
       </div>
@@ -190,8 +212,8 @@ export function TenderSummaryCard({
         <>
           <p className="muted doc-hint">
             {structuredQa
-              ? 'Publish to collect contractor clarification questions. Answer what you can, then open the tender for commercial proposals.'
-              : 'Publish the project for open bidding. Contractors clarify scope, enroll as contenders, then submit proposals.'}
+              ? t('tenderCard.publishStructuredHint')
+              : t('tenderCard.publishOpenHint')}
           </p>
           <div className="tender-actions-block tender-publish-block">
             <ContractorCoverageNotice
@@ -205,11 +227,13 @@ export function TenderSummaryCard({
               disabled={busy || !canPublish}
               onClick={() => void handleCreate()}
             >
-              {structuredQa ? 'Publish for clarification' : 'Publish for bids'}
+              {structuredQa
+                ? t('tenderCard.publishForClarification')
+                : t('tenderCard.publishForBids')}
             </button>
             {!canPublish && (
               <p className="muted tender-hint">
-                Complete intake and receive a ballpark estimate first.
+                {t('tenderCard.completeIntakeHint')}
               </p>
             )}
           </div>
@@ -218,25 +242,25 @@ export function TenderSummaryCard({
         <>
           <dl className="meta-grid tender-meta tender-summary-meta">
             <div>
-              <dt>Status</dt>
+              <dt>{t('common.status')}</dt>
               <dd>
                 {collectingQuestions
-                  ? 'Collecting questions'
+                  ? t('tenderCard.collectingQuestions')
                   : formatTenderStatus(tender.status)}
               </dd>
             </div>
             <div>
-              <dt>Applications</dt>
+              <dt>{t('tenderCard.applications')}</dt>
               <dd>{tender.applicationCount ?? tender.bids.length}</dd>
             </div>
             {(tender.submittedBidCount ?? 0) > 0 && (
               <div>
-                <dt>Proposals</dt>
+                <dt>{t('tenderCard.proposals')}</dt>
                 <dd>{tender.submittedBidCount}</dd>
               </div>
             )}
             <div>
-              <dt>Applications close</dt>
+              <dt>{t('tenderCard.applicationsClose')}</dt>
               <dd>{formatDeadlineLabel(tender)}</dd>
             </div>
           </dl>
@@ -244,20 +268,18 @@ export function TenderSummaryCard({
           {deadlineExpired && tender.status !== 'awarded' && (
             <div className="tender-deadline-expired">
               <p className="tender-deadline-expired-lead">
-                The application deadline has passed. You received{' '}
-                <strong>{tender.applicationCount ?? tender.bids.length}</strong>{' '}
-                {(tender.applicationCount ?? tender.bids.length) === 1
-                  ? 'application'
-                  : 'applications'}
-                {(tender.submittedBidCount ?? 0) > 0 && (
-                  <>
-                    {' '}
-                    and <strong>{tender.submittedBidCount}</strong>{' '}
-                    {tender.submittedBidCount === 1 ? 'proposal' : 'proposals'}
-                  </>
-                )}
-                . Review current bids or extend the deadline if you need more
-                applications.
+                {t('tenderCard.deadlineExpiredLead', {
+                  applications: formatApplicationsPhrase(
+                    tender.applicationCount ?? tender.bids.length,
+                  ),
+                  proposals:
+                    (tender.submittedBidCount ?? 0) > 0
+                      ? t('tenderCard.andProposals', {
+                          count: tender.submittedBidCount!,
+                          proposals: proposalLabel(tender.submittedBidCount!),
+                        })
+                      : '',
+                })}
               </p>
               <div className="tender-deadline-extend">
                 <TenderApplicationsDeadlineFields
@@ -272,7 +294,7 @@ export function TenderSummaryCard({
                   disabled={busy}
                   onClick={() => void handleExtendDeadline()}
                 >
-                  {busy ? 'Saving…' : 'Extend deadline'}
+                  {busy ? t('common.saving') : t('tenderCard.extendDeadline')}
                 </button>
               </div>
             </div>
@@ -282,16 +304,15 @@ export function TenderSummaryCard({
             <div className="tender-summary-actions">
               <p className="muted tender-summary-lead">
                 {tender.status === 'awarded' && tender.awardedBidId ? (
-                  'Tender awarded. Review applications and the selected contractor.'
+                  t('tenderCard.awardedLead')
                 ) : tender.submittedBidCount > 0 ? (
                   <>
-                    {tender.applicationCount ?? tender.bids.length}{' '}
-                    {(tender.applicationCount ?? tender.bids.length) === 1
-                      ? 'application'
-                      : 'applications'}
-                    , {tender.submittedBidCount}{' '}
-                    {tender.submittedBidCount === 1 ? 'proposal' : 'proposals'}{' '}
-                    to review.
+                    {t('tenderCard.reviewCount', {
+                      applications: formatApplicationsPhrase(
+                        tender.applicationCount ?? tender.bids.length,
+                      ),
+                      proposals: formatProposalsPhrase(tender.submittedBidCount),
+                    })}
                     {(() => {
                       const amounts = tender.bids
                         .filter((b) => b.status === 'submitted' && b.amount != null)
@@ -300,25 +321,25 @@ export function TenderSummaryCard({
                       return (
                         <>
                           {' '}
-                          Lowest offer {formatThb(Math.min(...amounts))}.
+                          {t('tenderCard.lowestOffer', {
+                            amount: formatThb(Math.min(...amounts)),
+                          })}
                         </>
                       );
                     })()}
                   </>
                 ) : (
-                  <>
-                    {tender.applicationCount ?? tender.bids.length}{' '}
-                    {(tender.applicationCount ?? tender.bids.length) === 1
-                      ? 'application'
-                      : 'applications'}{' '}
-                    in progress. Waiting for commercial proposals.
-                  </>
+                  t('tenderCard.waitingProposals', {
+                    applications: formatApplicationsPhrase(
+                      tender.applicationCount ?? tender.bids.length,
+                    ),
+                  })
                 )}
               </p>
               <Link href={bidsHref} className="primary tender-summary-cta">
                 {tender.status === 'awarded'
-                  ? 'Review bids'
-                  : 'View & compare bids'}
+                  ? t('tenderCard.reviewBids')
+                  : t('tenderCard.viewCompareBids')}
               </Link>
             </div>
           )}
@@ -326,9 +347,7 @@ export function TenderSummaryCard({
           {collectingQuestions && (
             <div className="tender-actions-block tender-publish-block">
               <p className="muted tender-phase-hint">
-                Contractors are submitting clarification questions. Answer any
-                you are ready to — you do not need to answer all of them before
-                opening the tender.
+                {t('tenderCard.clarificationPhaseHint')}
               </p>
               <ContractorCoverageNotice
                 projectId={projectId}
@@ -341,7 +360,7 @@ export function TenderSummaryCard({
                 disabled={busy}
                 onClick={() => void handleOpenTender()}
               >
-                Open tender for bids
+                {t('tenderCard.openTenderForBids')}
               </button>
             </div>
           )}
@@ -349,7 +368,7 @@ export function TenderSummaryCard({
           {tender.bids.length === 0 && !collectingQuestions && (
             <>
               <p className="muted tender-phase-hint">
-                Published for bids. Waiting for contractors to start clarification.
+                {t('tenderCard.publishedWaiting')}
               </p>
               {canRevert && (
                 <div className="tender-actions-block">
@@ -359,10 +378,12 @@ export function TenderSummaryCard({
                     disabled={busy}
                     onClick={() => void handleRevert()}
                   >
-                    {busy ? 'Returning…' : 'Return to preparation'}
+                    {busy
+                      ? t('tenderCard.returning')
+                      : t('tenderCard.returnToPreparation')}
                   </button>
                   <p className="muted tender-hint">
-                    Unpublish to refine project details before contractors apply.
+                    {t('tenderCard.unpublishHint')}
                   </p>
                 </div>
               )}

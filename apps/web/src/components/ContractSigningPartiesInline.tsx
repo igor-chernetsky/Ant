@@ -2,18 +2,22 @@
 
 import { formatDateTime } from '@/lib/projects';
 import type { ProjectContract } from '@/lib/contracts';
+import { useTranslation } from '@/components/LocaleProvider';
 
 interface ContractSigningPartiesInlineProps {
   contract: ProjectContract;
 }
 
-function partyLabel(signedAt: string | null): string {
-  return signedAt ? `Signed ${formatDateTime(signedAt)}` : 'Awaiting';
-}
-
 export function ContractSigningPartiesInline({
   contract,
 }: ContractSigningPartiesInlineProps) {
+  const { t } = useTranslation();
+
+  const partyLabel = (signedAt: string | null): string =>
+    signedAt
+      ? t('contractPanel.signedAt', { date: formatDateTime(signedAt) })
+      : t('contractPanel.awaiting');
+
   return (
     <p className="contract-signing-parties-inline muted">
       <span
@@ -23,7 +27,7 @@ export function ContractSigningPartiesInline({
             : 'contract-signing-party-inline'
         }
       >
-        Client: {partyLabel(contract.clientSignedAt)}
+        {t('contractPanel.partyClient')}: {partyLabel(contract.clientSignedAt)}
       </span>
       <span className="contract-signing-parties-inline-sep" aria-hidden>
         ·
@@ -35,7 +39,8 @@ export function ContractSigningPartiesInline({
             : 'contract-signing-party-inline'
         }
       >
-        Contractor: {partyLabel(contract.contractorSignedAt)}
+        {t('contractPanel.partyContractor')}:{' '}
+        {partyLabel(contract.contractorSignedAt)}
       </span>
     </p>
   );

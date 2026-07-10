@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import {
   fetchBidAnalysis,
   runBidAnalysis,
@@ -18,6 +19,7 @@ export function BidAnalysisPanel({
   submittedBidCount,
   onAnalysisUpdated,
 }: BidAnalysisPanelProps) {
+  const { t } = useTranslation();
   const [state, setState] = useState<BidAnalysisState | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,7 @@ export function BidAnalysisPanel({
       const data = await fetchBidAnalysis(projectId);
       setState(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load analysis');
+      setError(err instanceof Error ? err.message : t('bidAnalysis.loadFailed'));
       setState(null);
     } finally {
       setLoading(false);
@@ -49,7 +51,7 @@ export function BidAnalysisPanel({
       setState(data);
       onAnalysisUpdated?.();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze bids');
+      setError(err instanceof Error ? err.message : t('bidAnalysis.analyzeFailed'));
     } finally {
       setBusy(false);
     }
@@ -63,10 +65,9 @@ export function BidAnalysisPanel({
     <section className="card bid-analysis-card">
       <div className="bid-analysis-header">
         <div>
-          <h2 className="section-title">AI bid analysis</h2>
+          <h2 className="section-title">{t('bidAnalysis.title')}</h2>
           <p className="muted bid-analysis-hint">
-            Independent review of price, scope, timeline, and risks across all
-            submitted bids.
+            {t('bidAnalysis.hint')}
           </p>
         </div>
         {showButton && (
@@ -77,26 +78,26 @@ export function BidAnalysisPanel({
             onClick={() => void handleAnalyze()}
             title={
               state?.analysisUpToDate
-                ? 'Analysis is current for these bids'
+                ? t('bidAnalysis.analysisCurrent')
                 : undefined
             }
           >
             {busy
-              ? 'Analyzing…'
+              ? t('bidAnalysis.analyzing')
               : state?.analysisUpToDate
-                ? 'Analysis up to date'
-                : 'Analyze bids'}
+                ? t('bidAnalysis.analysisUpToDate')
+                : t('bidAnalysis.analyzeBids')}
           </button>
         )}
       </div>
 
       {submittedBidCount < 2 && (
         <p className="muted bid-analysis-empty">
-          At least two submitted bids are required for AI analysis.
+          {t('bidAnalysis.needTwoBids')}
         </p>
       )}
 
-      {loading && <p className="muted">Loading analysis…</p>}
+      {loading && <p className="muted">{t('bidAnalysis.loading')}</p>}
       {error && <p className="form-error">{error}</p>}
 
       {analysis && (
@@ -105,32 +106,34 @@ export function BidAnalysisPanel({
             <p className="bid-analysis-summary">{analysis.summary}</p>
             {analysis.recommendedCompanyName && (
               <p className="bid-analysis-pick">
-                Suggested:{' '}
+                {t('bidAnalysis.suggested')}{' '}
                 <strong>{analysis.recommendedCompanyName}</strong>
                 <span className="muted bid-analysis-confidence">
                   {' '}
-                  · {Math.round(analysis.confidence * 100)}% confidence ·{' '}
-                  {analysis.provider}
+                  {t('bidAnalysis.confidenceProvider', {
+                    confidence: Math.round(analysis.confidence * 100),
+                    provider: analysis.provider,
+                  })}
                 </span>
               </p>
             )}
           </div>
 
           <div className="bid-analysis-reasoning">
-            <h3 className="bid-analysis-subtitle">Reasoning</h3>
+            <h3 className="bid-analysis-subtitle">{t('bidAnalysis.reasoning')}</h3>
             <p>{analysis.reasoning}</p>
           </div>
 
           {analysis.comparisons.length > 0 && (
             <div className="bid-analysis-comparisons">
-              <h3 className="bid-analysis-subtitle">Per contractor</h3>
+              <h3 className="bid-analysis-subtitle">{t('bidAnalysis.perContractor')}</h3>
               <ul className="bid-analysis-comparison-list">
                 {analysis.comparisons.map((item) => (
                   <li key={item.bidId} className="bid-analysis-comparison-item">
-                    <strong>{item.companyName ?? 'Contractor'}</strong>
+                    <strong>{item.companyName ?? t('common.contractor')}</strong>
                     {item.strengths.length > 0 && (
                       <div className="bid-analysis-points bid-analysis-points-pro">
-                        <span className="bid-analysis-points-label">Strengths</span>
+                        <span className="bid-analysis-points-label">{t('bidAnalysis.strengths')}</span>
                         <ul>
                           {item.strengths.map((point) => (
                             <li key={point}>{point}</li>
@@ -140,7 +143,7 @@ export function BidAnalysisPanel({
                     )}
                     {item.weaknesses.length > 0 && (
                       <div className="bid-analysis-points bid-analysis-points-con">
-                        <span className="bid-analysis-points-label">Weaknesses</span>
+                        <span className="bid-analysis-points-label">{t('bidAnalysis.weaknesses')}</span>
                         <ul>
                           {item.weaknesses.map((point) => (
                             <li key={point}>{point}</li>
@@ -150,7 +153,7 @@ export function BidAnalysisPanel({
                     )}
                     {item.riskFlags.length > 0 && (
                       <div className="bid-analysis-points bid-analysis-points-risk">
-                        <span className="bid-analysis-points-label">Risks</span>
+                        <span className="bid-analysis-points-label">{t('bidAnalysis.risks')}</span>
                         <ul>
                           {item.riskFlags.map((point) => (
                             <li key={point}>{point}</li>
@@ -166,7 +169,9 @@ export function BidAnalysisPanel({
 
           {state?.generatedAt && (
             <p className="muted bid-analysis-generated">
-              Generated {new Date(state.generatedAt).toLocaleString()}
+              {t('bidAnalysis.generated', {
+                date: new Date(state.generatedAt).toLocaleString(),
+              })}
             </p>
           )}
         </div>
@@ -174,7 +179,7 @@ export function BidAnalysisPanel({
 
       {!loading && !analysis && submittedBidCount >= 2 && !error && (
         <p className="muted bid-analysis-empty">
-          Run analysis to get a recommendation with argumentation.
+          {t('bidAnalysis.runAnalysis')}
         </p>
       )}
     </section>

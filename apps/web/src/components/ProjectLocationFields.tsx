@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from '@/components/LocaleProvider';
 import type { LocationCatalog } from '@/lib/locations';
 import { areasForRegion } from '@/lib/locations';
 
@@ -24,13 +25,14 @@ export function ProjectLocationFields({
   onNoteChange,
   disabled = false,
 }: ProjectLocationFieldsProps) {
+  const { t } = useTranslation();
   const areas = areasForRegion(catalog, regionSlug);
 
   return (
     <>
       <div className="form-row">
         <label>
-          Region
+          {t('location.region')}
           <select
             value={regionSlug}
             disabled={disabled}
@@ -47,14 +49,14 @@ export function ProjectLocationFields({
           </select>
         </label>
         <label>
-          Area
-          <span className="field-hint muted">Optional — narrower zone within the region</span>
+          {t('location.area')}
+          <span className="field-hint muted">{t('location.areaHint')}</span>
           <select
             value={areaSlug}
             disabled={disabled || areas.length === 0}
             onChange={(e) => onAreaChange(e.target.value)}
           >
-            <option value="">Whole region</option>
+            <option value="">{t('common.wholeRegion')}</option>
             {areas.map((area) => (
               <option key={area.slug} value={area.slug}>
                 {area.label}
@@ -64,15 +66,13 @@ export function ProjectLocationFields({
         </label>
       </div>
       <label>
-        Location note
-        <span className="field-hint muted">
-          Optional — landmark, BTS station, subdistrict, etc.
-        </span>
+        {t('location.locationNote')}
+        <span className="field-hint muted">{t('location.locationNoteHint')}</span>
         <input
           type="text"
           value={note}
           disabled={disabled}
-          placeholder="e.g. near BTS Thong Lo"
+          placeholder={t('location.locationNotePlaceholder')}
           onChange={(e) => onNoteChange(e.target.value)}
         />
       </label>

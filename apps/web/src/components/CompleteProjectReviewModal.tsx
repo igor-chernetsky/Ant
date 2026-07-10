@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import { formatFileSize } from '@/lib/documents';
 import {
   REVIEW_RATING_CATEGORIES,
@@ -34,6 +35,7 @@ export function CompleteProjectReviewModal({
   onClose,
   onCompleted,
 }: CompleteProjectReviewModalProps) {
+  const { t } = useTranslation();
   const [contractorName, setContractorName] = useState<string | null>(null);
   const [ratings, setRatings] = useState<ReviewRatings>(EMPTY_RATINGS);
   const [comment, setComment] = useState('');
@@ -58,17 +60,21 @@ export function CompleteProjectReviewModal({
       try {
         const context = await fetchProjectCompletionContext(projectId);
         if (!context.canComplete) {
-          throw new Error(context.reason ?? 'Project cannot be completed yet');
+          throw new Error(
+            context.reason ?? t('projectReview.cannotCompleteYet'),
+          );
         }
         setContractorName(context.contractorName);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : 'Failed to load details');
+        setError(
+          err instanceof Error ? err.message : t('projectReview.loadFailed'),
+        );
         setContractorName(null);
       } finally {
         setLoading(false);
       }
     })();
-  }, [isOpen, projectId]);
+  }, [isOpen, projectId, t]);
 
   if (!isOpen) {
     return null;
@@ -89,7 +95,9 @@ export function CompleteProjectReviewModal({
       const uploaded = await uploadReviewAttachment(projectId, file);
       setAttachments((current) => [...current, uploaded]);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to upload file');
+      setError(
+        err instanceof Error ? err.message : t('projectReview.uploadFailed'),
+      );
     } finally {
       setUploading(false);
     }
@@ -98,7 +106,7 @@ export function CompleteProjectReviewModal({
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!allRated) {
-      setError('Please rate every category before completing the project.');
+      setError(t('projectReview.rateAllCategories'));
       return;
     }
 
@@ -113,7 +121,9 @@ export function CompleteProjectReviewModal({
       onCompleted(updated);
       onClose();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to complete project');
+      setError(
+        err instanceof Error ? err.message : t('projectReview.completeFailed'),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -138,11 +148,11 @@ export function CompleteProjectReviewModal({
         aria-labelledby="complete-project-title"
       >
         <div className="modal-header">
-          <h2 id="complete-project-title">Complete project</h2>
+          <h2 id="complete-project-title">{t('projectReview.title')}</h2>
           <button
             type="button"
             className="icon-button"
-            aria-label="Close"
+            aria-label={t('common.close')}
             disabled={busy}
             onClick={onClose}
           >
@@ -152,13 +162,13 @@ export function CompleteProjectReviewModal({
 
         <form className="modal-form" onSubmit={(e) => void handleSubmit(e)}>
           {loading ? (
-            <p className="muted">Loading…</p>
+            <p className="muted">{t('common.loading')}</p>
           ) : (
             <>
               <p className="complete-project-intro">
-                Share your experience with{' '}
-                <strong>{contractorName ?? 'the contractor'}</strong>. Your
-                review helps other clients and improves the marketplace.
+                {t('projectReview.intro', {
+                  name: contractorName ?? t('projectReview.theContractor'),
+                })}
               </p>
 
               <div className="complete-project-ratings">
@@ -166,7 +176,7 @@ export function CompleteProjectReviewModal({
                   <StarRatingInput
                     key={category.key}
                     id={`rating-${category.key}`}
-                    label={category.label}
+                    label={t(`projectReview.${category.key}`)}
                     value={ratings[category.key]}
                     disabled={busy}
                     onChange={(value) =>
@@ -180,21 +190,23 @@ export function CompleteProjectReviewModal({
               </div>
 
               <label className="field complete-project-comment">
-                <span>Your review (optional)</span>
+                <span>{t('projectReview.commentLabel')}</span>
                 <textarea
                   rows={4}
                   value={comment}
                   disabled={busy}
-                  placeholder="What went well? What could be improved?"
+                  placeholder={t('projectReview.commentPlaceholder')}
                   onChange={(event) => setComment(event.target.value)}
                 />
               </label>
 
               <div className="complete-project-attachments">
                 <div className="complete-project-attachments-header">
-                  <p className="tag-section-label">Photos or documents (optional)</p>
+                  <p className="tag-section-label">
+                    {t('projectReview.attachmentsLabel')}
+                  </p>
                   <label className="secondary file-input-button">
-                    {uploading ? 'Uploading…' : 'Add file'}
+                    {uploading ? t('common.uploading') : t('projectReview.addFile')}
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp,application/pdf"
@@ -228,7 +240,9 @@ export function CompleteProjectReviewModal({
               className="primary"
               disabled={busy || loading || !allRated}
             >
-              {submitting ? 'Completing…' : 'Complete project'}
+              {submitting
+                ? t('projectReview.completing')
+                : t('projectReview.completeProject')}
             </button>
             <button
               type="button"
@@ -236,7 +250,7 @@ export function CompleteProjectReviewModal({
               disabled={busy}
               onClick={onClose}
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>

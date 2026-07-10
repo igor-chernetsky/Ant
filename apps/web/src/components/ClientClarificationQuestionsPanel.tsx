@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import {
   ClarificationAnswerAttachments,
   type ClarificationAnswerAttachmentsHandle,
@@ -61,29 +62,32 @@ function ClarificationQuestionsSummary({
   questions: ClarificationQuestion[];
   clarificationSummary?: string | null;
 }) {
+  const { t } = useTranslation();
   const answeredCount = questions.filter((q) => q.answer?.trim()).length;
 
   return (
     <div className="client-clarification-panel client-clarification-panel--readonly">
-      <h3 className="tender-subsection-title">Clarification Q&amp;A</h3>
+      <h3 className="tender-subsection-title">{t('clarificationClient.qaTitle')}</h3>
       <p className="muted client-clarification-hint">
-        The clarification phase is complete. Expand a question to read the answer
-        and download any attached files.
+        {t('clarificationClient.readonlyHint')}
       </p>
 
       {clarificationSummary?.trim() && (
         <div className="client-clarification-summary">
-          <h4 className="client-clarification-summary-title">Summary</h4>
+          <h4 className="client-clarification-summary-title">{t('clarificationClient.summary')}</h4>
           <p>{clarificationSummary}</p>
         </div>
       )}
 
       {questions.length === 0 ? (
-        <p className="muted">No clarification questions were submitted.</p>
+        <p className="muted">{t('clarificationClient.noQuestions')}</p>
       ) : (
         <>
           <p className="muted client-clarification-readonly-meta">
-            {answeredCount} of {questions.length} questions answered
+            {t('clarificationClient.answeredOf', {
+              answered: answeredCount,
+              total: questions.length,
+            })}
           </p>
           <ul className="client-clarification-readonly-list">
             {questions.map((question, index) => {
@@ -105,7 +109,7 @@ function ClarificationQuestionsSummary({
                             : ''
                         }`}
                       >
-                        {answered ? 'Answered' : 'No answer'}
+                        {answered ? t('clarificationClient.answered') : t('clarificationClient.noAnswer')}
                       </span>
                     </summary>
                     <div className="client-clarification-readonly-body">
@@ -115,23 +119,25 @@ function ClarificationQuestionsSummary({
                         </p>
                       ) : (
                         <p className="muted client-clarification-readonly-answer">
-                          The client did not provide a written answer.
+                          {t('clarificationClient.noWrittenAnswer')}
                         </p>
                       )}
                       {question.answeredAt && (
                         <p className="muted client-clarification-readonly-answered-at">
-                          Answered {formatDateTime(question.answeredAt)}
+                          {t('clarificationClient.answeredAt', {
+                            date: formatDateTime(question.answeredAt),
+                          })}
                         </p>
                       )}
                       <p className="muted client-clarification-asked-by">
-                        Asked by{' '}
+                        {t('clarificationClient.askedBy')}{' '}
                         <strong>
                           {question.askedByCount ?? question.sourceBidIds.length}
                         </strong>{' '}
                         {(question.askedByCount ??
                           question.sourceBidIds.length) === 1
-                          ? 'contractor'
-                          : 'contractors'}
+                          ? t('clarificationClient.contractor_one')
+                          : t('clarificationClient.contractor_other')}
                       </p>
                       <ClarificationAnswerAttachments
                         projectId={projectId}
@@ -158,6 +164,7 @@ export function ClientClarificationQuestionsPanel({
   tenderStatus,
   onUpdated,
 }: ClientClarificationQuestionsPanelProps) {
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<ClarificationQuestion[]>([]);
   const [fullyAnsweredContractorCount, setFullyAnsweredContractorCount] =
     useState(0);
@@ -187,7 +194,7 @@ export function ClientClarificationQuestionsPanel({
       setActiveIndex(firstUnansweredIndex(data.questions));
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : 'Failed to load questions',
+        err instanceof Error ? err.message : t('clarificationClient.loadFailed'),
       );
     } finally {
       setLoading(false);
@@ -213,7 +220,7 @@ export function ClientClarificationQuestionsPanel({
   const handleSave = async (questionId: string) => {
     const answer = drafts[questionId]?.trim();
     if (!answer) {
-      setError('Answer cannot be empty');
+      setError(t('clarificationClient.answerEmpty'));
       return;
     }
 
@@ -250,7 +257,7 @@ export function ClientClarificationQuestionsPanel({
 
       onUpdated?.();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save answer');
+      setError(err instanceof Error ? err.message : t('clarificationClient.saveFailed'));
     } finally {
       setSavingId(null);
     }
@@ -259,7 +266,7 @@ export function ClientClarificationQuestionsPanel({
   if (loading) {
     return (
       <div className="client-clarification-panel">
-        <p className="muted">Loading contractor questions…</p>
+        <p className="muted">{t('clarificationClient.loading')}</p>
       </div>
     );
   }
@@ -276,18 +283,14 @@ export function ClientClarificationQuestionsPanel({
 
   return (
     <div className="client-clarification-panel">
-      <h3 className="tender-subsection-title">Contractor clarification questions</h3>
+      <h3 className="tender-subsection-title">{t('clarificationClient.questionsTitle')}</h3>
       <p className="muted client-clarification-hint">
-        Questions from all contractors are merged into one list (duplicates
-        removed when they ask the same thing). Answer one question at a time —
-        you do not need to answer every question. When you open the tender,
-        answered items and file lists are summarized for contractors.
+        {t('clarificationClient.activeHint')}
       </p>
 
       {questions.length === 0 ? (
         <p className="muted">
-          No questions yet. Contractors will submit their lists during
-          clarification.
+          {t('clarificationClient.noQuestionsYet')}
         </p>
       ) : (
         question && (
@@ -305,21 +308,26 @@ export function ClientClarificationQuestionsPanel({
                 disabled={activeIndex === 0}
                 onClick={() => goToQuestion(activeIndex - 1)}
               >
-                Previous
+                {t('clarificationClient.previous')}
               </button>
               <span className="client-clarification-nav-status">
-                Question {activeIndex + 1} of {total}
+                {t('clarificationClient.questionOf', {
+                  current: activeIndex + 1,
+                  total,
+                })}
                 <span className="client-clarification-nav-answered muted">
-                  · {answeredCount} answered
+                  {t('clarificationClient.answeredCount', { count: answeredCount })}
                   {totalContractorCount > 0 && (
                     <>
                       {' '}
-                      · Fully answered for{' '}
-                      <strong>{fullyAnsweredContractorCount}</strong> of{' '}
-                      <strong>{totalContractorCount}</strong>{' '}
-                      {totalContractorCount === 1
-                        ? 'contractor'
-                        : 'contractors'}
+                      {t('clarificationClient.fullyAnsweredFor', {
+                        answered: fullyAnsweredContractorCount,
+                        total: totalContractorCount,
+                        contractors:
+                          totalContractorCount === 1
+                            ? t('clarificationClient.contractor_one')
+                            : t('clarificationClient.contractor_other'),
+                      })}
                     </>
                   )}
                 </span>
@@ -330,7 +338,7 @@ export function ClientClarificationQuestionsPanel({
                 disabled={activeIndex >= total - 1}
                 onClick={() => goToQuestion(activeIndex + 1)}
               >
-                Next
+                {t('clarificationClient.next')}
               </button>
             </div>
 
@@ -341,13 +349,13 @@ export function ClientClarificationQuestionsPanel({
               <div className="client-clarification-question-body">
                 <p>{question.questionText}</p>
                 <p className="muted client-clarification-asked-by">
-                  Asked by{' '}
+                  {t('clarificationClient.askedBy')}{' '}
                   <strong>
                     {question.askedByCount ?? question.sourceBidIds.length}
                   </strong>{' '}
                   {(question.askedByCount ?? question.sourceBidIds.length) === 1
-                    ? 'contractor'
-                    : 'contractors'}
+                    ? t('clarificationClient.contractor_one')
+                    : t('clarificationClient.contractor_other')}
                 </p>
               </div>
             </div>
@@ -357,7 +365,7 @@ export function ClientClarificationQuestionsPanel({
                 className="client-clarification-answer-label"
                 htmlFor={`clarification-answer-${question.id}`}
               >
-                Your answer
+                {t('clarificationClient.yourAnswer')}
               </label>
               <textarea
                 id={`clarification-answer-${question.id}`}
@@ -409,7 +417,7 @@ export function ClientClarificationQuestionsPanel({
                     }
                     onClick={() => void handleSave(question.id)}
                   >
-                    {savingId === question.id ? 'Saving…' : 'Save answer'}
+                    {savingId === question.id ? t('common.saving') : t('clarificationClient.saveAnswer')}
                   </button>
                   <button
                     type="button"
@@ -417,11 +425,11 @@ export function ClientClarificationQuestionsPanel({
                     disabled={savingId === question.id || attachBusy}
                     onClick={() => attachmentsRef.current?.openFilePicker()}
                   >
-                    {attachBusy ? 'Uploading…' : 'Add files'}
+                    {attachBusy ? t('clarificationClient.uploading') : t('common.addFiles')}
                   </button>
                   {isAnswered && !isDirty && (
                     <span className="muted client-clarification-saved">
-                      Saved{' '}
+                      {t('common.saved')}{' '}
                       {question.answeredAt
                         ? new Date(question.answeredAt).toLocaleString()
                         : ''}
