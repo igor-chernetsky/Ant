@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  DEFAULT_LOCALE,
+  isSupportedLocale,
+  type SupportedLocale,
+} from '../users/locale.types';
+import { localeLanguageName } from '../localization/locale.utils';
+import {
   BallparkEstimateResult,
   EstimateLine,
   EstimateTotals,
@@ -35,6 +41,7 @@ export class BallparkEstimateService {
     regionCode: string;
     tagSlugs: string[];
     brief: ProjectBriefV1;
+    locale?: SupportedLocale;
   }): Promise<BallparkEstimateResult> {
     if (this.apiKey.length > 0) {
       const ai = await this.generateWithOpenAi(input);
@@ -52,13 +59,19 @@ export class BallparkEstimateService {
     regionCode: string;
     tagSlugs: string[];
     brief: ProjectBriefV1;
+    locale?: SupportedLocale;
   }): Promise<BallparkEstimateResult | null> {
+    const lang =
+      input.locale && isSupportedLocale(input.locale)
+        ? localeLanguageName(input.locale)
+        : localeLanguageName(DEFAULT_LOCALE);
     const system = `You produce ballpark construction cost estimates for Thailand (THB).
 Return JSON: { lines, totals, confidence, disclaimer }.
 Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lineMin, lineMax }.
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
 Use regional reference prices as guidance only. Be conservative with ranges.
-Include 3-12 lines covering inferred scope. confidence 0-1.`;
+Include 3-12 lines covering inferred scope. confidence 0-1.
+Write description and disclaimer fields in ${lang}.`;
 
     const user = JSON.stringify({
       project: {

@@ -20,6 +20,11 @@ import {
 import { OpenAiIntakeService } from '../ai/openai-intake.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  DEFAULT_LOCALE,
+  isSupportedLocale,
+} from '../users/locale.types';
+import { normalizeSourceLocale } from '../localization/locale.utils';
+import {
   ProjectBriefV1,
   buildInitialBrief,
   computeReadinessScore,
@@ -98,6 +103,7 @@ export class IntakeService {
     clientId: string,
     projectId: string,
     dto: SubmitAnswerDto,
+    viewerLocale?: import('../users/locale.types').SupportedLocale,
   ): Promise<ProjectResponse> {
     const project = await this.loadOwnedProject(clientId, projectId);
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
@@ -215,12 +221,13 @@ export class IntakeService {
       },
     });
 
-    return this.projectsService.getForClient(clientId, projectId);
+    return this.projectsService.getForClient(clientId, projectId, viewerLocale);
   }
 
   async submitForProcessing(
     clientId: string,
     projectId: string,
+    viewerLocale?: import('../users/locale.types').SupportedLocale,
   ): Promise<ProjectResponse> {
     const project = await this.loadOwnedProject(clientId, projectId);
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
@@ -231,7 +238,7 @@ export class IntakeService {
     }
 
     if (intake.status === 'completed') {
-      return this.projectsService.getForClient(clientId, projectId);
+      return this.projectsService.getForClient(clientId, projectId, viewerLocale);
     }
 
     if (intake.status === 'awaiting_answers' && intake.currentQuestion) {
@@ -293,7 +300,7 @@ export class IntakeService {
 
     await this.estimatesService.generateAndStore(projectId);
 
-    return this.projectsService.getForClient(clientId, projectId);
+    return this.projectsService.getForClient(clientId, projectId, viewerLocale);
   }
 
   private async loadOwnedProject(clientId: string, projectId: string) {
@@ -335,6 +342,7 @@ export class IntakeService {
       projectType: string;
       propertyType: string | null;
       district: string | null;
+      sourceLocale?: string;
     },
     brief?: ProjectBriefV1 | null,
   ): Promise<ProjectIntakeContext> {
@@ -348,6 +356,7 @@ export class IntakeService {
       district: project.district,
       answers: [],
       availableTagSlugs: tags.map((t) => t.slug),
+      locale: normalizeSourceLocale(project.sourceLocale),
       ...(documents.length > 0 ? { documents } : {}),
     };
   }

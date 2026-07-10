@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, ProjectStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { normalizeSourceLocale } from '../localization/locale.utils';
 import { ProjectBriefV1 } from '../projects/project-brief';
 import { BallparkEstimateService } from './ballpark-estimate.service';
 import { EstimateResponse } from './estimates.types';
@@ -78,6 +79,7 @@ export class EstimatesService {
       regionCode: project.regionCode,
       tagSlugs,
       brief,
+      locale: normalizeSourceLocale(project.sourceLocale),
     });
 
     const record = await this.prisma.estimate.create({

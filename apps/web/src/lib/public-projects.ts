@@ -1,4 +1,5 @@
 import { getBackendApiUrl } from '@/lib/auth-server';
+import { getClientLocaleHeaders } from '@/lib/locale-request';
 
 export interface PublicProjectTag {
   slug: string;
@@ -52,7 +53,10 @@ export async function fetchPublicProjects(
   const qs = params.toString();
   const response = await fetch(
     `/api/public/projects${qs ? `?${qs}` : ''}`,
-    { cache: 'no-store' },
+    {
+      cache: 'no-store',
+      headers: getClientLocaleHeaders(),
+    },
   );
 
   if (!response.ok) {
@@ -70,7 +74,10 @@ import type { Project } from '@/lib/projects';
 export async function fetchPublicProject(id: string): Promise<Project> {
   const response = await fetch(
     `/api/public/projects/${encodeURIComponent(id)}`,
-    { cache: 'no-store' },
+    {
+      cache: 'no-store',
+      headers: getClientLocaleHeaders(),
+    },
   );
 
   if (response.status === 404) {

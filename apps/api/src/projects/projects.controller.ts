@@ -11,6 +11,7 @@ import {
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
+import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import {
   CompleteProjectDto,
@@ -45,7 +46,8 @@ export class ProjectsController {
     @Body() body: CreateProjectDto,
   ) {
     const user = await this.resolveClient(req);
-    return this.projectsService.createForClient(user.id, body);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.projectsService.createForClient(user.id, body, locale);
   }
 
   @Get(':id')
@@ -54,7 +56,8 @@ export class ProjectsController {
     @Param('id') id: string,
   ) {
     const user = await this.resolveClient(req);
-    return this.projectsService.getForClient(user.id, id);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.projectsService.getForClient(user.id, id, locale);
   }
 
   @Delete(':id')

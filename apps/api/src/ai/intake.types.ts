@@ -87,4 +87,6 @@ export interface ProjectIntakeContext {
   availableTagSlugs: string[];
   /** Summaries and scope extracted from uploaded project documents. */
   documents?: IntakeDocumentContext[];
+  /** Language for generated questions and descriptions. */
+  locale?: string;
 }

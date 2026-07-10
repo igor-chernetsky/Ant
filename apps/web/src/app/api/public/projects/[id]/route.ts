@@ -1,13 +1,22 @@
 import { NextResponse } from 'next/server';
 import { getBackendApiUrl } from '@/lib/auth-server';
 import { getValidAccessToken } from '@/lib/auth-tokens';
+import {
+  LOCALE_REQUEST_HEADER,
+  readLocaleFromCookieHeader,
+} from '@/lib/locale-request';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params;
 
-  const headers: HeadersInit = { Accept: 'application/json' };
+  const headers: HeadersInit = {
+    Accept: 'application/json',
+    [LOCALE_REQUEST_HEADER]: readLocaleFromCookieHeader(
+      request.headers.get('cookie'),
+    ),
+  };
   const auth = await getValidAccessToken();
   if (auth.ok) {
     headers.Authorization = `Bearer ${auth.accessToken}`;

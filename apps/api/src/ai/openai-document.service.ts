@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentAnalysisResult } from './document-analysis.types';
+import {
+  DEFAULT_LOCALE,
+  isSupportedLocale,
+  type SupportedLocale,
+} from '../users/locale.types';
+import { localeLanguageName } from '../localization/locale.utils';
 
 const DETAIL_LIMITS = {
   default: { summaryMax: 1000, keyFactsMax: 8 },
@@ -25,6 +31,13 @@ export class OpenAiDocumentService {
     return this.apiKey.length > 0;
   }
 
+  private outputLanguage(locale?: string): string {
+    if (locale && isSupportedLocale(locale)) {
+      return localeLanguageName(locale);
+    }
+    return localeLanguageName(DEFAULT_LOCALE);
+  }
+
   async analyzeImage(input: {
     imageUrl: string;
     fileName: string;
@@ -32,6 +45,7 @@ export class OpenAiDocumentService {
     projectTitle: string;
     projectDescription: string | null;
     availableTagSlugs: string[];
+    locale?: SupportedLocale;
   }): Promise<DocumentAnalysisResult | null> {
     if (!this.isConfigured()) {
       return null;
@@ -39,12 +53,13 @@ export class OpenAiDocumentService {
 
     const detailLevel: AnalysisDetailLevel =
       input.category === 'blueprint' ? 'blueprint' : 'default';
+    const lang = this.outputLanguage(input.locale);
     const system =
       detailLevel === 'blueprint'
-        ? this.blueprintVisionSystemPrompt()
+        ? this.blueprintVisionSystemPrompt(lang)
         : `You analyze construction project photos and plans for a marketplace.
 Return JSON only: { summary, confidence, property, packages, suggestedTagSlugs }.
-- summary: 1-3 sentences of what you see (English)
+- summary: 1-3 sentences of what you see (${lang})
 - confidence: 0-1 (lower if image is unclear)
 - property: optional { areaSqm, rooms, floors } only if visible or strongly implied
 - packages: array of { trade, description, quantity?, unit?, areaSqm? } scope lines inferred from the image
@@ -117,13 +132,15 @@ Do not invent precise measurements unless readable. Use trade slugs like electri
     projectDescription: string | null;
     availableTagSlugs: string[];
     supplementalText?: string;
+    locale?: SupportedLocale;
     batchLabel?: string;
   }): Promise<DocumentAnalysisResult | null> {
     if (!this.isConfigured() || input.pageImages.length === 0) {
       return null;
     }
 
-    const system = `${this.blueprintVisionSystemPrompt()}
+    const lang = this.outputLanguage(input.locale);
+    const system = `${this.blueprintVisionSystemPrompt(lang)}
 
 When analyzing a page batch from a multi-page PDF:
 - Focus only on content visible on the provided page(s)
@@ -210,6 +227,7 @@ When analyzing a page batch from a multi-page PDF:
       omittedNote?: string;
     }>;
     supplementalText?: string;
+    locale?: SupportedLocale;
   }): Promise<DocumentAnalysisResult | null> {
     if (!this.isConfigured() || input.batches.length === 0) {
       return null;
@@ -228,11 +246,12 @@ When analyzing a page batch from a multi-page PDF:
       };
     }
 
+    const lang = this.outputLanguage(input.locale);
     const system = `You merge partial analyses of different page batches from the same construction PDF into one unified project brief.
 Return JSON only: { summary, confidence, property, packages, suggestedTagSlugs, omittedNote, keyFacts }.
 
 Rules:
-- summary: 4-12 English sentences covering the FULL analyzed document — synthesize all batches, deduplicate, preserve specific dimensions and room names.
+- summary: 4-12 ${lang} sentences covering the FULL analyzed document — synthesize all batches, deduplicate, preserve specific dimensions and room names.
 - keyFacts: up to 20 deduplicated concrete bullets from all batches; keep page references when helpful.
 - property: merge { areaSqm, rooms, floors } — prefer values that appear consistent across batches.
 - packages: deduplicated scope lines from all batches.
@@ -334,6 +353,7 @@ Do not invent facts not present in the batch inputs.`;
     projectTitle: string;
     projectDescription: string | null;
     availableTagSlugs: string[];
+    locale?: SupportedLocale;
   }): Promise<DocumentAnalysisResult | null> {
     if (!this.isConfigured()) {
       return null;
@@ -342,6 +362,7 @@ Do not invent facts not present in the batch inputs.`;
     const detailLevel: AnalysisDetailLevel =
       input.category === 'blueprint' ? 'blueprint' : 'default';
     const limits = DETAIL_LIMITS[detailLevel];
+    const lang = this.outputLanguage(input.locale);
 
     const system =
       detailLevel === 'blueprint'
@@ -349,7 +370,7 @@ Do not invent facts not present in the batch inputs.`;
 Return JSON only: { summary, confidence, property, packages, suggestedTagSlugs, omittedNote, keyFacts }.
 
 Rules:
-- summary: 4-10 detailed English sentences for project description — include document type, layout, levels, room names, dimensions, total areas, materials, and location from title block when present. Never write vague lines like "contains schemes for a house".
+- summary: 4-10 detailed ${lang} sentences for project description — include document type, layout, levels, room names, dimensions, total areas, materials, and location from title block when present. Never write vague lines like "contains schemes for a house".
 - keyFacts: up to ${limits.keyFactsMax} short bullets with concrete measurable facts (room sizes, storey count, GFA, plot size, structural/MEP notes).
 - property: optional { areaSqm, rooms, floors } when clearly stated.
 - packages: scope lines { trade, description, quantity?, unit?, areaSqm? } useful for estimating/tendering.
@@ -362,7 +383,7 @@ Do not invent measurements. Extract every readable dimension and room label from
 Return JSON only: { summary, confidence, property, packages, suggestedTagSlugs, omittedNote, keyFacts }.
 
 Rules:
-- summary: 2-4 concise English sentences for AI/project context. Paraphrase — never paste long raw excerpts.
+- summary: 2-4 concise ${lang} sentences for AI/project context. Paraphrase — never paste long raw excerpts.
 - omittedNote: optional one sentence listing what you ignored (legal boilerplate, ads, repeated headers, unrelated appendices).
 - keyFacts: optional array of up to 8 short bullets with scope-relevant facts only.
 - property: optional { areaSqm, rooms, floors } when clearly stated in the document.
@@ -425,13 +446,13 @@ Ignore pricing tables unless they clarify scope quantities. Do not invent measur
     }
   }
 
-  private blueprintVisionSystemPrompt(): string {
+  private blueprintVisionSystemPrompt(lang: string): string {
     return `You analyze architectural and construction drawings (floor plans, elevations, sections, site plans, MEP/structural schemes) for a marketplace project brief.
 Return JSON only: { summary, confidence, property, packages, suggestedTagSlugs, omittedNote, keyFacts }.
 
 CRITICAL: Extract SPECIFIC technical details visible on the drawing. Forbidden: vague summaries like "document contains schemes for a house in area X".
 
-summary: 4-10 English sentences covering:
+summary: 4-10 ${lang} sentences covering:
 - Drawing type(s) on the provided page(s)
 - Building layout, storey levels, and circulation if visible
 - Named rooms/zones with dimensions when readable

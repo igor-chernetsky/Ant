@@ -124,13 +124,16 @@ Rules — be CONSERVATIVE:
   async summarizeAnswers(
     projectTitle: string,
     items: Array<{ question: string; answer: string; attachments?: string[] }>,
+    locale: string = 'en',
   ): Promise<ClarificationSummaryResult | null> {
     if (!this.isConfigured() || items.length === 0) {
       return null;
     }
 
+    const lang =
+      locale === 'th' ? 'Thai' : locale === 'ru' ? 'Russian' : 'English';
     const system = `You write a concise supplementary project description for contractors based on Q&A clarifications.
-Return JSON only with key: summary (string, 2-8 sentences, factual, English).
+Return JSON only with key: summary (string, 2-8 sentences, factual, ${lang}).
 Integrate answers into flowing prose suitable for a tender document appendix.
 When answers include attached files, mention them briefly where relevant.
 Do not invent facts beyond the provided answers.`;

@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  DEFAULT_LOCALE,
+  isSupportedLocale,
+  type SupportedLocale,
+} from '../users/locale.types';
+import {
   FinalIntakeResult,
   InitialIntakeResult,
   IntakeQuestion,
@@ -11,6 +16,7 @@ import {
   isOtherLikeOption,
   sanitizeIntakeQuestion,
 } from './intake-question.utils';
+import { localeLanguageName } from '../localization/locale.utils';
 
 @Injectable()
 export class OpenAiIntakeService {
@@ -73,17 +79,26 @@ export class OpenAiIntakeService {
     }
   }
 
-  private questionSchemaHint(): string {
+  private outputLanguage(context: ProjectIntakeContext): string {
+    const locale = context.locale;
+    if (locale && isSupportedLocale(locale)) {
+      return localeLanguageName(locale);
+    }
+    return localeLanguageName(DEFAULT_LOCALE);
+  }
+
+  private questionSchemaHint(context: ProjectIntakeContext): string {
+    const lang = this.outputLanguage(context);
     return `Question object schema:
 {
   "id": "kebab-case unique id",
   "type": "single" | "multi" | "text",
-  "prompt": "question text in English",
-  "options": [{ "id": "opt-id", "label": "label" }],
+  "prompt": "question text in ${lang}",
+  "options": [{ "id": "opt-id", "label": "label in ${lang}" }],
   "required": true|false,
   "allowSkip": true (always — user may skip any non-info question),
   "allowCustom": true (always for single/multi — do NOT add an "Other" option; the UI provides it),
-  "placeholder": "optional hint for text"
+  "placeholder": "optional hint for text in ${lang}"
 }
 - "single": radio buttons (options required)
 - options: 2-6 concrete choices only — never include "Other", "Custom", or free-text options
@@ -116,11 +131,12 @@ export class OpenAiIntakeService {
   async runInitialIntake(
     context: ProjectIntakeContext,
   ): Promise<InitialIntakeResult | null> {
+    const lang = this.outputLanguage(context);
     const system = `You are a construction marketplace intake assistant. Improve project descriptions and suggest scope tags.
 Return JSON only with keys: improvedDescription, tagSlugs, confidence, nextQuestion.
-${this.questionSchemaHint()}
+${this.questionSchemaHint(context)}
 Rules:
-- improvedDescription: clear professional English, 2-5 sentences, do not invent facts not implied by input or uploadedDocuments
+- improvedDescription: clear professional ${lang}, 2-5 sentences, do not invent facts not implied by input or uploadedDocuments
 - tagSlugs: subset of allowed tags only
 - confidence: 0-1
 - nextQuestion: first follow-up question to clarify scope, or null if nothing needed
@@ -175,7 +191,7 @@ ${this.documentContextRules()}`;
   ): Promise<NextQuestionResult | null> {
     const system = `You continue a construction project intake interview one question at a time.
 Return JSON: { "nextQuestion": Question|null, "improvedDescription": string optional }.
-${this.questionSchemaHint()}
+${this.questionSchemaHint(context)}
 Rules:
 - Return exactly ONE next question or null when intake is complete
 - Do not repeat question ids already asked: ${JSON.stringify(context.askedQuestionIds ?? context.answers.map((a) => a.questionId))}
@@ -208,11 +224,12 @@ ${this.documentContextRules()}`;
   async finalizeIntake(
     context: ProjectIntakeContext,
   ): Promise<FinalIntakeResult | null> {
+    const lang = this.outputLanguage(context);
     const system = `You finalize a construction project intake.
 Return JSON: { "finalDescription", "tagSlugs", "summary", "confidence" }.
 Rules:
-- finalDescription: polished scope description for contractors (English)
-- summary: shorter version for brief (1-3 sentences)
+- finalDescription: polished scope description for contractors (${lang})
+- summary: shorter version for brief (1-3 sentences, ${lang})
 - tagSlugs: from allowed list only
 - confidence: 0-1
 - Incorporate uploadedDocuments when present; do not contradict them

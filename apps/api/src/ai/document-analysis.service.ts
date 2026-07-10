@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, TagSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { normalizeSourceLocale } from '../localization/locale.utils';
 import { StorageService } from '../storage/storage.service';
 import {
   ProjectBriefV1,
@@ -50,6 +51,7 @@ export class DocumentAnalysisService {
 
     const tags = await this.prisma.tag.findMany({ select: { slug: true } });
     const availableTagSlugs = tags.map((t) => t.slug);
+    const contentLocale = normalizeSourceLocale(project.sourceLocale);
 
     let result: DocumentAnalysisResult | null = null;
     let provider: 'openai' | 'fallback' = 'fallback';
@@ -65,6 +67,7 @@ export class DocumentAnalysisService {
         projectTitle: project.title,
         projectDescription: project.description,
         availableTagSlugs,
+        locale: contentLocale,
       });
       if (result) provider = 'openai';
     } else if (
@@ -78,6 +81,7 @@ export class DocumentAnalysisService {
         projectTitle: project.title,
         projectDescription: project.description,
         availableTagSlugs,
+        locale: contentLocale,
       });
       if (result) provider = 'openai';
     }
@@ -174,6 +178,7 @@ export class DocumentAnalysisService {
     projectTitle: string;
     projectDescription: string | null;
     availableTagSlugs: string[];
+    locale: ReturnType<typeof normalizeSourceLocale>;
   }): Promise<DocumentAnalysisResult | null> {
     try {
       const buffer = await this.storage.getObjectBuffer(input.doc.storageKey);
@@ -206,6 +211,7 @@ export class DocumentAnalysisService {
             projectTitle: input.projectTitle,
             projectDescription: input.projectDescription,
             availableTagSlugs: input.availableTagSlugs,
+            locale: input.locale,
           });
         }
 
@@ -221,6 +227,7 @@ export class DocumentAnalysisService {
             availableTagSlugs: input.availableTagSlugs,
             supplementalText: extractedText || undefined,
             isBlueprint,
+            locale: input.locale,
           });
         }
 
@@ -243,6 +250,7 @@ export class DocumentAnalysisService {
         projectTitle: input.projectTitle,
         projectDescription: input.projectDescription,
         availableTagSlugs: input.availableTagSlugs,
+        locale: input.locale,
       });
     } catch (err) {
       this.logger.warn(
@@ -262,6 +270,7 @@ export class DocumentAnalysisService {
     availableTagSlugs: string[];
     supplementalText?: string;
     isBlueprint: boolean;
+    locale: ReturnType<typeof normalizeSourceLocale>;
   }): Promise<DocumentAnalysisResult | null> {
     const totalPages = Math.max(input.pageCount, 1);
     const maxPages = input.isBlueprint ? VISION_MAX_PAGES : VISION_PAGES_PER_BATCH;
@@ -300,6 +309,7 @@ export class DocumentAnalysisService {
         availableTagSlugs: input.availableTagSlugs,
         supplementalText: input.supplementalText,
         batchLabel,
+        locale: input.locale,
       });
 
       if (result) {
@@ -334,6 +344,7 @@ export class DocumentAnalysisService {
       analyzedPageCount: pagesToAnalyze,
       availableTagSlugs: input.availableTagSlugs,
       supplementalText: input.supplementalText,
+      locale: input.locale,
       batches: batchResults.map((batch) => ({
         pageNumbers: batch.pageNumbers,
         summary: batch.result.summary,

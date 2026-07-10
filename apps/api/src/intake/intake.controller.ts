@@ -10,6 +10,7 @@ import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { SubmitAnswerDto } from '../ai/intake.types';
+import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import { IntakeService } from './intake.service';
 
@@ -28,7 +29,8 @@ export class IntakeController {
     @Body() body: SubmitAnswerDto,
   ) {
     const user = await this.usersService.findOrCreateFromJwt(req.user);
-    return this.intakeService.submitAnswer(user.id, projectId, body);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.intakeService.submitAnswer(user.id, projectId, body, locale);
   }
 
   @Post('submit')
@@ -37,6 +39,7 @@ export class IntakeController {
     @Param('projectId') projectId: string,
   ) {
     const user = await this.usersService.findOrCreateFromJwt(req.user);
-    return this.intakeService.submitForProcessing(user.id, projectId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.intakeService.submitForProcessing(user.id, projectId, locale);
   }
 }

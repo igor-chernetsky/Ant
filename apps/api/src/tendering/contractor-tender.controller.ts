@@ -15,6 +15,7 @@ import {
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
+import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import { BidMessagesService } from './bid-messages.service';
 import { BidOffersService } from './bid-offers.service';
@@ -58,7 +59,8 @@ export class ContractorTenderController {
     @Param('projectId') projectId: string,
   ) {
     const user = await this.resolveUser(req);
-    return this.projectsService.getPublicByIdForParticipant(user.id, projectId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.projectsService.getPublicByIdForParticipant(user.id, projectId, locale);
   }
 
   @Get('profile')

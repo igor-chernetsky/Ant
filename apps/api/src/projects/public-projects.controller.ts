@@ -2,6 +2,7 @@ import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
+import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import { TagsService } from '../tags/tags.service';
 import { LocationsService } from '../locations/locations.service';
@@ -48,10 +49,12 @@ export class PublicProjectsController {
     @Req() req: Request & { user?: JwtPayload | null },
     @Param('id') id: string,
   ) {
-    const userId = req.user
-      ? (await this.usersService.findOrCreateFromJwt(req.user)).id
+    const user = req.user
+      ? await this.usersService.findOrCreateFromJwt(req.user)
       : null;
-    return this.projectsService.getPublicById(id, userId);
+    const locale = resolveLocaleFromRequest(req, user?.preferredLocale);
+    const userId = user?.id ?? null;
+    return this.projectsService.getPublicById(id, userId, locale);
   }
 
   @Get('tags')

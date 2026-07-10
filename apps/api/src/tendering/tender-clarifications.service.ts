@@ -939,7 +939,11 @@ export class TenderClarificationsService {
       return null;
     }
 
-    const aiSummary = await this.openAi.summarizeAnswers(project.title, items);
+    const aiSummary = await this.openAi.summarizeAnswers(
+      project.title,
+      items,
+      project.sourceLocale,
+    );
     const summary = aiSummary
       ? aiSummary.summary
       : this.buildFallbackClarificationSummary(items);

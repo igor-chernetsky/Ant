@@ -47,6 +47,9 @@ import {
 
 import { ProjectReviewsService } from './project-reviews.service';
 import type { DiscoverLocationFilter } from './discover.types';
+import { ProjectLocalizationService } from '../localization/project-localization.service';
+import { normalizeSourceLocale } from '../localization/locale.utils';
+import type { SupportedLocale } from '../users/locale.types';
 
 const DELETABLE_STATUSES: ProjectStatus[] = [
   ProjectStatus.draft,
@@ -84,6 +87,7 @@ export class ProjectsService {
     private readonly estimatesService: EstimatesService,
     private readonly projectReviews: ProjectReviewsService,
     private readonly locations: LocationsService,
+    private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
 
@@ -521,6 +525,7 @@ export class ProjectsService {
   async getPublicById(
     projectId: string,
     userId: string | null = null,
+    viewerLocale?: SupportedLocale,
   ): Promise<ProjectResponse> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -555,12 +560,13 @@ export class ProjectsService {
       }
     }
 
-    return this.buildPublicProjectResponse(project);
+    return this.buildPublicProjectResponse(project, viewerLocale);
   }
 
   async getPublicByIdForParticipant(
     userId: string,
     projectId: string,
+    viewerLocale?: SupportedLocale,
   ): Promise<ProjectResponse> {
     const hasParticipation = await this.userHasActiveTenderParticipation(
       userId,
@@ -579,18 +585,39 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    return this.buildPublicProjectResponse(project);
+    return this.buildPublicProjectResponse(project, viewerLocale);
   }
 
   private async buildPublicProjectResponse(
-    project: Parameters<ProjectsService['toResponse']>[0],
+    project: Parameters<ProjectsService['toResponse']>[0] & {
+      sourceLocale?: string;
+    },
+    viewerLocale?: SupportedLocale,
   ): Promise<ProjectResponse> {
     const response = this.toResponse(project, null);
 
-    return {
+    const sanitized = {
       ...response,
       brief: this.sanitizeBriefForPublic(response.brief),
     };
+
+    return this.applyViewerLocale(sanitized, project, viewerLocale);
+  }
+
+  private async applyViewerLocale(
+    response: ProjectResponse,
+    project: { sourceLocale?: string },
+    viewerLocale?: SupportedLocale,
+  ): Promise<ProjectResponse> {
+    const sourceLocale = normalizeSourceLocale(project.sourceLocale);
+    if (!viewerLocale || viewerLocale === sourceLocale) {
+      return response;
+    }
+    return this.projectLocalization.localizeProjectResponse(
+      response,
+      sourceLocale,
+      viewerLocale,
+    );
   }
 
   async getCoverUrlsForProjects(
@@ -653,6 +680,8 @@ export class ProjectsService {
 
     dto: CreateProjectDto,
 
+    sourceLocale: SupportedLocale = 'en',
+
   ): Promise<ProjectResponse> {
 
     const title = dto.title.trim();
@@ -708,6 +737,8 @@ export class ProjectsService {
         clarificationMode:
           dto.clarificationMode ?? undefined,
 
+        sourceLocale,
+
         readinessScore: computeReadinessScore({
 
           title,
@@ -752,6 +783,8 @@ export class ProjectsService {
 
     projectId: string,
 
+    viewerLocale?: SupportedLocale,
+
   ): Promise<ProjectResponse> {
 
     const project = await this.prisma.project.findUnique({
@@ -785,10 +818,12 @@ export class ProjectsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return this.toResponse(
+    const response = this.toResponse(
       project,
       estimate ? this.estimatesService.toResponse(estimate) : null,
     );
+
+    return this.applyViewerLocale(response, project, viewerLocale);
   }
 
   async deleteForClient(clientId: string, projectId: string): Promise<void> {

@@ -1,4 +1,5 @@
 import { refreshSessionTokens } from './session';
+import { getClientLocaleHeaders } from './locale-request';
 
 export class SessionExpiredError extends Error {
   constructor(message = 'Session expired') {
@@ -28,6 +29,10 @@ export async function fetchWithAuth(
   const requestInit: RequestInit = {
     ...init,
     credentials: 'include',
+    headers: {
+      ...getClientLocaleHeaders(),
+      ...(init?.headers ?? {}),
+    },
   };
 
   let response = await fetch(input, requestInit);
