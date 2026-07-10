@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
-import type { ProjectContract } from '@/lib/contracts';
+import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPill';
+import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
 import { fetchProject, type Project } from '@/lib/projects';
 import { fetchProjectTender, type Tender } from '@/lib/tendering';
 
@@ -11,7 +12,6 @@ interface ClientContractPanelProps {
   projectId: string;
   project: Project;
   onProjectUpdated?: (project: Project) => void;
-  onContractUpdated?: () => void;
 }
 
 export function isContractProjectStatus(status: string): boolean {
@@ -22,9 +22,9 @@ export function ClientContractPanel({
   projectId,
   project,
   onProjectUpdated,
-  onContractUpdated,
 }: ClientContractPanelProps) {
   const [tender, setTender] = useState<Tender | null>(null);
+  const [contract, setContract] = useState<ProjectContract | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadTender = useCallback(async () => {
@@ -39,23 +39,34 @@ export function ClientContractPanel({
     }
   }, [projectId]);
 
+  const loadContract = useCallback(async () => {
+    try {
+      const data = await fetchProjectContract(projectId);
+      setContract(data);
+    } catch {
+      setContract(null);
+    }
+  }, [projectId]);
+
   useEffect(() => {
     if (!isContractProjectStatus(project.status)) {
       setTender(null);
+      setContract(null);
       setLoading(false);
       return;
     }
     void loadTender();
-  }, [project.status, loadTender]);
+    void loadContract();
+  }, [project.status, loadTender, loadContract]);
 
   const awardedBidId = tender?.awardedBidId;
   if (!loading && !awardedBidId) {
     return null;
   }
 
-  const handleSigned = (contract: ProjectContract) => {
-    onContractUpdated?.();
-    if (!contract.fullySigned || !onProjectUpdated) {
+  const handleSigned = (signedContract: ProjectContract) => {
+    setContract(signedContract);
+    if (!signedContract.fullySigned || !onProjectUpdated) {
       return;
     }
     void fetchProject(projectId).then(onProjectUpdated);
@@ -63,7 +74,10 @@ export function ClientContractPanel({
 
   return (
     <section className="card client-contract-card">
-      <h2 className="section-title">Contract</h2>
+      <div className="client-contract-header">
+        <h2 className="section-title">Contract</h2>
+        {contract && <ContractSigningStatusPill contract={contract} />}
+      </div>
       <p className="muted client-contract-hint">
         Review the contract draft and sign to activate the project.{' '}
         <Link href={`/projects/${projectId}/bids`} className="text-link">
@@ -78,6 +92,7 @@ export function ClientContractPanel({
           projectId={projectId}
           bidId={awardedBidId}
           hideHeading
+          contract={contract}
           onSigned={handleSigned}
         />
       ) : null}

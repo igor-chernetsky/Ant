@@ -6,9 +6,9 @@ import {
   signProjectContract,
   type ProjectContract,
 } from '@/lib/contracts';
-import { formatDateTime } from '@/lib/projects';
 import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
-import { ContractSigningStatusSummary } from '@/components/ContractSigningStatusSummary';
+import { ContractSigningPartiesInline } from '@/components/ContractSigningPartiesInline';
+import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPill';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 interface ContractSigningPanelProps {
@@ -16,6 +16,7 @@ interface ContractSigningPanelProps {
   bidId: string;
   asContractor?: boolean;
   hideHeading?: boolean;
+  contract?: ProjectContract | null;
   onSigned?: (contract: ProjectContract) => void;
 }
 
@@ -24,10 +25,11 @@ export function ContractSigningPanel({
   bidId,
   asContractor = false,
   hideHeading = false,
+  contract: contractProp = null,
   onSigned,
 }: ContractSigningPanelProps) {
-  const [contract, setContract] = useState<ProjectContract | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [contract, setContract] = useState<ProjectContract | null>(contractProp);
+  const [loading, setLoading] = useState(!contractProp);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
@@ -47,8 +49,13 @@ export function ContractSigningPanel({
   }, [projectId, asContractor]);
 
   useEffect(() => {
+    setContract(contractProp);
+    if (contractProp) {
+      setLoading(false);
+      return;
+    }
     void loadContract();
-  }, [loadContract]);
+  }, [contractProp, loadContract]);
 
   const handleSign = async () => {
     const confirmed = await confirm({
@@ -83,35 +90,20 @@ export function ContractSigningPanel({
   return (
     <div className="contract-signing-panel">
       {!hideHeading && (
-        <h4 className="tender-subsection-title">Contract signing</h4>
+        <div className="contract-signing-heading-row">
+          <h4 className="tender-subsection-title">Contract signing</h4>
+          <ContractSigningStatusPill contract={contract} />
+        </div>
       )}
+
       {!hideHeading && (
         <p className="muted contract-signing-hint">
-          Both the client and the selected contractor must sign the contract draft
-          before the project becomes active.
+          Both parties must sign the contract draft before the project becomes
+          active.
         </p>
       )}
 
-      <ContractSigningStatusSummary contract={contract} compact />
-
-      <dl className="meta-grid contract-signing-meta">
-        <div>
-          <dt>Client</dt>
-          <dd>
-            {contract.clientSignedAt
-              ? `Signed ${formatDateTime(contract.clientSignedAt)}`
-              : 'Awaiting signature'}
-          </dd>
-        </div>
-        <div>
-          <dt>Contractor</dt>
-          <dd>
-            {contract.contractorSignedAt
-              ? `Signed ${formatDateTime(contract.contractorSignedAt)}`
-              : 'Awaiting signature'}
-          </dd>
-        </div>
-      </dl>
+      <ContractSigningPartiesInline contract={contract} />
 
       <div className="contract-signing-actions-wrap">
         <div className="participation-toolbar contract-signing-toolbar">

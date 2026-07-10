@@ -29,7 +29,6 @@ interface ContractorProjectPanelProps {
   projectDescription?: string | null;
   projectBrief?: ProjectBriefV1 | null;
   clarificationSummary?: string | null;
-  onContractUpdated?: () => void;
 }
 
 function hasActiveContractorParticipation(
@@ -79,7 +78,6 @@ export function ContractorProjectPanel({
   projectDescription,
   projectBrief = null,
   clarificationSummary = null,
-  onContractUpdated,
 }: ContractorProjectPanelProps) {
   const { me } = useSession();
   const [participation, setParticipation] =
@@ -430,10 +428,7 @@ export function ContractorProjectPanel({
             projectId={projectId}
             bidId={myBid.id}
             asContractor
-            onSigned={() => {
-              onContractUpdated?.();
-              void loadParticipation();
-            }}
+            onSigned={() => void loadParticipation()}
           />
         </div>
       )}
