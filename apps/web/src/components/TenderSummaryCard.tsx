@@ -12,6 +12,7 @@ import {
   type Tender,
 } from '@/lib/tendering';
 import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificationQuestionsPanel';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { ContractorCoverageNotice } from '@/components/ContractorCoverageNotice';
 import { PublishTenderPackageModal } from '@/components/PublishTenderPackageModal';
 import {
@@ -63,6 +64,7 @@ export function TenderSummaryCard({
   const [publishModalMode, setPublishModalMode] = useState<
     'create' | 'start' | null
   >(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadTender = useCallback(async () => {
     setLoading(true);
@@ -137,9 +139,12 @@ export function TenderSummaryCard({
   const deadlineExpired = Boolean(tender?.applicationsDeadlinePassed);
 
   const handleRevert = async () => {
-    const confirmed = window.confirm(
-      'Return this project to preparation? Contractors will no longer see it for bidding until you publish again.',
-    );
+    const confirmed = await confirm({
+      title: 'Return to preparation?',
+      message:
+        'Contractors will no longer see this project for bidding until you publish again.',
+      confirmLabel: 'Return to preparation',
+    });
     if (!confirmed) return;
 
     setBusy(true);
@@ -387,6 +392,7 @@ export function TenderSummaryCard({
           onPublished={handlePublishComplete}
         />
       )}
+      {confirmDialog}
     </section>
   );
 }

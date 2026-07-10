@@ -8,6 +8,7 @@ import {
 } from '@/lib/contracts';
 import { formatDateTime } from '@/lib/projects';
 import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 interface ContractSigningPanelProps {
   projectId: string;
@@ -28,6 +29,7 @@ export function ContractSigningPanel({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadContract = useCallback(async () => {
     setLoading(true);
@@ -48,9 +50,12 @@ export function ContractSigningPanel({
   }, [loadContract]);
 
   const handleSign = async () => {
-    const confirmed = window.confirm(
-      'Sign this contract? This records your acceptance on the platform.',
-    );
+    const confirmed = await confirm({
+      title: 'Sign contract',
+      message:
+        'This records your acceptance on the platform. The other party will be notified to sign as well.',
+      confirmLabel: 'Sign contract',
+    });
     if (!confirmed) return;
 
     setBusy(true);
@@ -142,6 +147,7 @@ export function ContractSigningPanel({
       )}
 
       {error && <p className="form-error">{error}</p>}
+      {confirmDialog}
     </div>
   );
 }

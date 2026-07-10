@@ -15,6 +15,7 @@ import { ProjectHero } from '@/components/ProjectHero';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
 import { ClientContractPanel, isContractProjectStatus } from '@/components/ClientContractPanel';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { isTenderEligibleProjectStatus } from '@/lib/tendering';
 import {
   DOCUMENT_CATEGORY_OPTIONS,
@@ -86,6 +87,7 @@ export default function ProjectDetailPage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [pageReady, setPageReady] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadDocuments = useCallback(
     async (owner: boolean) => {
@@ -241,9 +243,12 @@ export default function ProjectDetailPage() {
 
   const handleDeleteDocument = async (doc: ProjectDocument) => {
     if (!projectId || !project) return;
-    const confirmed = window.confirm(
-      `Remove "${doc.originalName}" from this project?`,
-    );
+    const confirmed = await confirm({
+      title: 'Remove document?',
+      message: `Remove "${doc.originalName}" from this project?`,
+      confirmLabel: 'Remove',
+      tone: 'danger',
+    });
     if (!confirmed) return;
 
     setError(null);
@@ -314,9 +319,12 @@ export default function ProjectDetailPage() {
 
   const handleDelete = async () => {
     if (!projectId || !project) return;
-    const confirmed = window.confirm(
-      `Delete "${project.title}"? This cannot be undone.`,
-    );
+    const confirmed = await confirm({
+      title: 'Delete project?',
+      message: `Delete "${project.title}"? This cannot be undone.`,
+      confirmLabel: 'Delete project',
+      tone: 'danger',
+    });
     if (!confirmed) return;
 
     setError(null);
@@ -609,6 +617,7 @@ export default function ProjectDetailPage() {
           })();
         }}
       />
+      {confirmDialog}
     </PageShell>
   );
 }

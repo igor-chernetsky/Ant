@@ -13,6 +13,7 @@ import {
   markFilePickerOpening,
   releaseFilePickerGuard,
 } from '@/lib/file-picker-guard';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 function CaptionIcon() {
   return (
@@ -75,6 +76,7 @@ export function ContractorPortfolioPanel() {
   const [captionDraft, setCaptionDraft] = useState('');
   const [savingCaptionId, setSavingCaptionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadItems = useCallback(async (options?: { silent?: boolean }) => {
     if (options?.silent) {
@@ -157,7 +159,12 @@ export function ContractorPortfolioPanel() {
   }, [processSelectedFiles]);
 
   const handleDelete = async (item: PortfolioItem) => {
-    const confirmed = window.confirm('Remove this photo from your portfolio?');
+    const confirmed = await confirm({
+      title: 'Remove photo?',
+      message: 'Remove this photo from your portfolio?',
+      confirmLabel: 'Remove',
+      tone: 'danger',
+    });
     if (!confirmed) return;
 
     setDeletingId(item.id);
@@ -349,6 +356,7 @@ export function ContractorPortfolioPanel() {
       {loading && visibleItems.length === 0 && (
         <p className="muted contractor-portfolio-loading-hint">Loading photos…</p>
       )}
+      {confirmDialog}
     </section>
   );
 }

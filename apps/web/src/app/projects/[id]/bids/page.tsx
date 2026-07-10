@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BidAnalysisPanel } from '@/components/BidAnalysisPanel';
 import { BidApplicationCard } from '@/components/BidApplicationCard';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { BidsCompareTable } from '@/components/BidsCompareTable';
 import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificationQuestionsPanel';
 import { LoginModal } from '@/components/LoginModal';
@@ -31,6 +32,7 @@ export default function ProjectBidsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadData = useCallback(async () => {
     if (!projectId || !sessionReady) return;
@@ -77,9 +79,11 @@ export default function ProjectBidsPage() {
   };
 
   const handleSelectBid = async (bid: Bid) => {
-    const confirmed = window.confirm(
-      `Select bid from ${bid.companyName ?? 'contractor'}?`,
-    );
+    const confirmed = await confirm({
+      title: 'Select this contractor?',
+      message: `Award the project to ${bid.companyName ?? 'this contractor'}? Other bids will be marked as not selected.`,
+      confirmLabel: 'Select contractor',
+    });
     if (!confirmed) return;
 
     setBusy(true);
@@ -291,6 +295,7 @@ export default function ProjectBidsPage() {
           })();
         }}
       />
+      {confirmDialog}
     </PageShell>
   );
 }

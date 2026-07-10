@@ -982,6 +982,42 @@ pre {
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.15);
 }
 
+.confirm-dialog {
+  max-width: 420px;
+  padding: 1.5rem;
+}
+
+.confirm-dialog-body {
+  margin-bottom: 1.25rem;
+}
+
+.confirm-dialog-title {
+  margin: 0 0 0.65rem;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.confirm-dialog-message {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.confirm-dialog-actions .primary,
+.confirm-dialog-actions .secondary,
+.confirm-dialog-actions .danger {
+  min-width: 6.5rem;
+}
+
 .modal-header h2 {
   margin: 0;
   font-size: 1.25rem;
