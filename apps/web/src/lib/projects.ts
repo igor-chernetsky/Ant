@@ -324,7 +324,7 @@ export function formatProjectStatus(status: string): string {
     return 'Hidden projects';
   }
   const labels: Record<string, string> = {
-    awarded: 'Awarded',
+    awarded: 'Winner selected',
     ready_for_estimate: 'Ready for estimate',
     in_tender: 'In tender',
   };
