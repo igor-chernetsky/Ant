@@ -128,41 +128,84 @@ body {
 }
 
 .language-switcher {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.15rem;
-  border-radius: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
 }
 
-.language-switcher-flag {
+.language-switcher-trigger {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: none;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: transparent;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
   cursor: pointer;
   line-height: 1;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.language-switcher-flag:hover {
+.language-switcher-trigger:hover {
   background: var(--surface-muted, rgba(0, 0, 0, 0.04));
 }
 
-.language-switcher-flag--active {
-  background: var(--accent-soft, rgba(59, 130, 246, 0.12));
-  box-shadow: inset 0 0 0 1px var(--accent, #3b82f6);
+.language-switcher-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
-.language-switcher-emoji {
-  font-size: 1.15rem;
+.language-switcher-chevron {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.language-switcher-flag-img {
+  display: block;
+  width: 20px;
+  height: auto;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.language-switcher-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 30;
+  min-width: 9.5rem;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.language-switcher-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.language-switcher-option:hover {
+  background: var(--surface-muted, rgba(0, 0, 0, 0.04));
+}
+
+.language-switcher-option--active {
+  background: var(--accent-soft, rgba(59, 130, 246, 0.12));
 }
 
 .brand {
