@@ -3415,6 +3415,93 @@ select:disabled {
   gap: 0.75rem;
 }
 
+.contract-signing-status-banner {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
+.contract-signing-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+}
+
+.contract-signing-status--fully_signed {
+  border-left: 4px solid #16a34a;
+  padding-left: 0.9rem;
+}
+
+.contract-signing-status--awaiting_client,
+.contract-signing-status--awaiting_contractor,
+.contract-signing-status--awaiting_both {
+  border-left: 4px solid #2563eb;
+  padding-left: 0.9rem;
+}
+
+.contract-signing-status--compact {
+  margin-bottom: 0.85rem;
+  padding-left: 0.75rem;
+}
+
+.contract-signing-status-copy {
+  flex: 1 1 16rem;
+}
+
+.contract-signing-status-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.contract-signing-status-message {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.contract-signing-status-parties {
+  display: grid;
+  gap: 0.55rem;
+  min-width: min(100%, 18rem);
+}
+
+.contract-signing-party {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.contract-signing-party--signed {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.contract-signing-party--pending {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.contract-signing-party-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.contract-signing-party-state {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
 .contract-signing-hint {
   margin: 0;
   font-size: 0.88rem;

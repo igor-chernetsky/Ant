@@ -11,6 +11,7 @@ interface ClientContractPanelProps {
   projectId: string;
   project: Project;
   onProjectUpdated?: (project: Project) => void;
+  onContractUpdated?: () => void;
 }
 
 export function isContractProjectStatus(status: string): boolean {
@@ -21,6 +22,7 @@ export function ClientContractPanel({
   projectId,
   project,
   onProjectUpdated,
+  onContractUpdated,
 }: ClientContractPanelProps) {
   const [tender, setTender] = useState<Tender | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,7 @@ export function ClientContractPanel({
   }
 
   const handleSigned = (contract: ProjectContract) => {
+    onContractUpdated?.();
     if (!contract.fullySigned || !onProjectUpdated) {
       return;
     }

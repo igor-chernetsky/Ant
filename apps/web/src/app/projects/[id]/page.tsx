@@ -15,6 +15,7 @@ import { ProjectHero } from '@/components/ProjectHero';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
 import { ClientContractPanel, isContractProjectStatus } from '@/components/ClientContractPanel';
+import { ContractSigningStatusBanner } from '@/components/ContractSigningStatusBanner';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { isTenderEligibleProjectStatus } from '@/lib/tendering';
 import {
@@ -87,6 +88,7 @@ export default function ProjectDetailPage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [pageReady, setPageReady] = useState(false);
+  const [contractRefreshKey, setContractRefreshKey] = useState(0);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadDocuments = useCallback(
@@ -304,6 +306,16 @@ export default function ProjectDetailPage() {
       ]
     : [];
 
+  const showContractStatus =
+    project != null &&
+    isContractProjectStatus(project.status) &&
+    me != null &&
+    (isOwner || isContractorUser(me));
+
+  const handleContractUpdated = () => {
+    setContractRefreshKey((current) => current + 1);
+  };
+
   const briefDesignItems = brief?.design
     ? [
         {
@@ -370,6 +382,14 @@ export default function ProjectDetailPage() {
                   : null
               }
             />
+
+            {showContractStatus && (
+              <ContractSigningStatusBanner
+                projectId={projectId}
+                asContractor={!isOwner && isContractorUser(me)}
+                refreshKey={contractRefreshKey}
+              />
+            )}
 
             <section className="card">
               <h2 className="section-title">Documents</h2>
@@ -500,6 +520,7 @@ export default function ProjectDetailPage() {
                 projectId={projectId}
                 project={project}
                 onProjectUpdated={setProject}
+                onContractUpdated={handleContractUpdated}
               />
             )}
 
@@ -511,6 +532,7 @@ export default function ProjectDetailPage() {
                 projectDescription={project.description}
                 projectBrief={project.brief ?? null}
                 clarificationSummary={project.clarificationSummary}
+                onContractUpdated={handleContractUpdated}
               />
             )}
 

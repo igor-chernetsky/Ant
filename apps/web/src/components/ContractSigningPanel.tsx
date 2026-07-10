@@ -8,6 +8,7 @@ import {
 } from '@/lib/contracts';
 import { formatDateTime } from '@/lib/projects';
 import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
+import { ContractSigningStatusSummary } from '@/components/ContractSigningStatusSummary';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 interface ContractSigningPanelProps {
@@ -91,6 +92,8 @@ export function ContractSigningPanel({
         </p>
       )}
 
+      <ContractSigningStatusSummary contract={contract} compact />
+
       <dl className="meta-grid contract-signing-meta">
         <div>
           <dt>Client</dt>
@@ -106,14 +109,6 @@ export function ContractSigningPanel({
             {contract.contractorSignedAt
               ? `Signed ${formatDateTime(contract.contractorSignedAt)}`
               : 'Awaiting signature'}
-          </dd>
-        </div>
-        <div>
-          <dt>Status</dt>
-          <dd>
-            {contract.fullySigned
-              ? 'Fully signed — project active'
-              : 'Awaiting signatures'}
           </dd>
         </div>
       </dl>
