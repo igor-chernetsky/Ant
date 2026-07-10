@@ -3,10 +3,14 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
+import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
-import { accountProfileLabel, accountProfileName } from '@/lib/session';
+import {
+  accountProfileName,
+  isContractorUser,
+} from '@/lib/session';
 import {
   fetchNotificationPreferences,
   updateNotificationPreferences,
@@ -16,6 +20,7 @@ import {
 const MATCHING_CAP = 3;
 
 export default function AccountPage() {
+  const { t } = useTranslation();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,12 +41,12 @@ export default function AccountPage() {
       const data = await fetchNotificationPreferences();
       setPrefs(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load settings');
+      setError(err instanceof Error ? err.message : t('account.loadFailed'));
       setPrefs(null);
     } finally {
       setLoading(false);
     }
-  }, [me]);
+  }, [me, t]);
 
   useEffect(() => {
     if (!sessionReady) return;
@@ -63,7 +68,7 @@ export default function AccountPage() {
       setPrefs(updated);
       setSaved(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : t('account.saveFailed'));
       setPrefs(prefs);
     } finally {
       setBusy(false);
@@ -85,31 +90,31 @@ export default function AccountPage() {
         <header className="account-page-header">
           <p className="account-page-kicker">
             <Link href="/" className="project-hero-back-link">
-              Home
+              {t('common.home')}
             </Link>
             <span className="project-hero-kicker-sep" aria-hidden>
               /
             </span>
-            <span>Account</span>
+            <span>{t('account.breadcrumb')}</span>
           </p>
-          <h1 className="account-page-title">Your account</h1>
+          <h1 className="account-page-title">{t('account.title')}</h1>
         </header>
 
         {!sessionReady || loading ? (
           <section className="card">
-            <p className="muted">Loading…</p>
+            <p className="muted">{t('common.loading')}</p>
           </section>
         ) : null}
 
         {!loading && !me && (
           <section className="card">
-            <p className="muted">Sign in to manage your account and notifications.</p>
+            <p className="muted">{t('account.signInPrompt')}</p>
             <button
               type="button"
               className="primary"
               onClick={() => setLoginOpen(true)}
             >
-              Sign in
+              {t('header.signIn')}
             </button>
           </section>
         )}
@@ -123,29 +128,37 @@ export default function AccountPage() {
         {!loading && me && prefs && (
           <>
             <section className="card account-profile-card">
-              <h2 className="section-title">Profile</h2>
+              <h2 className="section-title">{t('account.profile')}</h2>
               <dl className="meta-grid account-profile-meta">
                 <div>
-                  <dt>{accountProfileLabel(me)}</dt>
-                  <dd>{accountProfileName(me) ?? '—'}</dd>
+                  <dt>
+                    {isContractorUser(me)
+                      ? t('account.companyName')
+                      : t('account.name')}
+                  </dt>
+                  <dd>{accountProfileName(me) ?? t('common.dash')}</dd>
                 </div>
                 <div>
-                  <dt>Email</dt>
-                  <dd>{me.email ?? '—'}</dd>
+                  <dt>{t('common.email')}</dt>
+                  <dd>{me.email ?? t('common.dash')}</dd>
                 </div>
                 <div>
-                  <dt>Role</dt>
+                  <dt>{t('account.role')}</dt>
                   <dd>
-                    {isContractor ? 'Contractor' : 'Client'}
-                    {me.roles?.includes('admin') ? ' · Admin' : ''}
+                    {isContractor
+                      ? t('account.roleContractor')
+                      : t('account.roleClient')}
+                    {me.roles?.includes('admin')
+                      ? ` · ${t('account.roleAdmin')}`
+                      : ''}
                   </dd>
                 </div>
               </dl>
               {isContractor && (
                 <p className="muted account-profile-hint">
-                  Update contractor profile and specialties on the{' '}
+                  {t('account.contractorHint')}{' '}
                   <Link href="/contractor" className="text-link">
-                    Contractor portal
+                    {t('account.contractorPortal')}
                   </Link>
                   .
                 </p>
@@ -154,12 +167,15 @@ export default function AccountPage() {
 
             <section className="card account-notifications-card">
               <div className="account-notifications-header">
-                <h2 className="section-title">Email notifications</h2>
-                {saved && <span className="account-saved-badge">Saved</span>}
+                <h2 className="section-title">{t('account.emailNotifications')}</h2>
+                {saved && (
+                  <span className="account-saved-badge">{t('common.saved')}</span>
+                )}
               </div>
               <p className="muted doc-hint">
-                Choose which updates we send to {me.email}. You can turn
-                everything off at any time.
+                {t('account.emailNotificationsHint', {
+                  email: me.email ?? t('common.dash'),
+                })}
               </p>
 
               <ul className="account-notification-list">
@@ -174,9 +190,9 @@ export default function AccountPage() {
                       }
                     />
                     <span>
-                      <strong>All email notifications</strong>
+                      <strong>{t('account.allEmailNotifications')}</strong>
                       <span className="muted account-notification-desc">
-                        Master switch for Ant emails
+                        {t('account.allEmailNotificationsDesc')}
                       </span>
                     </span>
                   </label>
@@ -198,10 +214,9 @@ export default function AccountPage() {
                       }
                     />
                     <span>
-                      <strong>Bids on my projects</strong>
+                      <strong>{t('account.bidsOnProjects')}</strong>
                       <span className="muted account-notification-desc">
-                        New applications, proposals, and messages from
-                        contractors
+                        {t('account.bidsOnProjectsDesc')}
                       </span>
                     </span>
                   </label>
@@ -225,9 +240,9 @@ export default function AccountPage() {
                           }
                         />
                         <span>
-                          <strong>My bid activity</strong>
+                          <strong>{t('account.myBidActivity')}</strong>
                           <span className="muted account-notification-desc">
-                            Client messages, counter-offers, and tender outcomes
+                            {t('account.myBidActivityDesc')}
                           </span>
                         </span>
                       </label>
@@ -249,10 +264,11 @@ export default function AccountPage() {
                           }
                         />
                         <span>
-                          <strong>Matching new projects</strong>
+                          <strong>{t('account.matchingProjects')}</strong>
                           <span className="muted account-notification-desc">
-                            Projects that match your specialties (up to{' '}
-                            {MATCHING_CAP} emails per day)
+                            {t('account.matchingProjectsDesc', {
+                              cap: MATCHING_CAP,
+                            })}
                           </span>
                         </span>
                       </label>

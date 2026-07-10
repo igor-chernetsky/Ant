@@ -113,12 +113,13 @@ enum ClarificationMode {
 }
 
 model User {
-  id          String    @id @default(uuid())
-  keycloakSub String    @unique @map("keycloak_sub")
-  email       String?
-  displayName String?   @map("display_name")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  id               String    @id @default(uuid())
+  keycloakSub      String    @unique @map("keycloak_sub")
+  email            String?
+  displayName      String?   @map("display_name")
+  preferredLocale  String    @default("en") @map("preferred_locale")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
   projects    Project[]
   documents   Document[]
   contractorProfile ContractorProfile? @relation("ContractorProfileUser")

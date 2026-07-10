@@ -6,6 +6,7 @@ export interface MeResponse {
   companyName?: string | null;
   roles: string[];
   isContractor?: boolean;
+  preferredLocale?: string;
 }
 
 /** Only users with the client realm role may create projects. */
@@ -32,8 +33,11 @@ export function accountProfileLabel(me: MeResponse): string {
 }
 
 /** Label in the site header — same full name as on the account page. */
-export function headerUserLabel(me: MeResponse): string {
-  return accountProfileName(me) ?? me.email ?? 'Signed in';
+export function headerUserLabel(
+  me: MeResponse,
+  signedInFallback = 'Signed in',
+): string {
+  return accountProfileName(me) ?? me.email ?? signedInFallback;
 }
 
 let clientRefreshFlight: Promise<boolean> | null = null;

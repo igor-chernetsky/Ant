@@ -2,6 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useTranslation } from '@/components/LocaleProvider';
 import { headerUserLabel, type MeResponse } from '@/lib/session';
 
 interface SiteHeaderProps {
@@ -15,6 +17,8 @@ export function SiteHeader({
   onSignIn,
   onSignOut,
 }: SiteHeaderProps) {
+  const { t } = useTranslation();
+
   return (
     <header className="site-header">
       <div className="content-container site-header-inner">
@@ -32,31 +36,32 @@ export function SiteHeader({
           </Link>
         </div>
         <div className="header-actions">
+          <LanguageSwitcher />
           {me ? (
             <>
               {me.roles?.includes('admin') && (
                 <Link href="/admin/contractors" className="text-link header-link">
-                  Admin
+                  {t('header.admin')}
                 </Link>
               )}
               {(me.isContractor || me.roles?.includes('contractor')) && (
                 <Link href="/contractor" className="text-link header-link">
-                  Contractor
+                  {t('header.contractor')}
                 </Link>
               )}
               <Link href="/account" className="text-link header-link">
-                Account
+                {t('header.account')}
               </Link>
               <span className="user-chip">
-                {headerUserLabel(me)}
+                {headerUserLabel(me, t('header.signedIn'))}
               </span>
               <button type="button" className="secondary" onClick={onSignOut}>
-                Sign out
+                {t('header.signOut')}
               </button>
             </>
           ) : (
             <button type="button" className="secondary" onClick={onSignIn}>
-              Sign in
+              {t('header.signIn')}
             </button>
           )}
         </div>

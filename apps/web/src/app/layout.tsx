@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { LocaleProvider } from '@/components/LocaleProvider';
 import { SessionProvider } from '@/components/SessionProvider';
 import './globals.css';
 
@@ -19,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <LocaleProvider>{children}</LocaleProvider>
+        </SessionProvider>
       </body>
     </html>
   );

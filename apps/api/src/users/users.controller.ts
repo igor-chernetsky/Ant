@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UpdateNotificationPreferencesDto } from '../notifications/notification.types';
+import { UpdateLocaleDto } from './locale.types';
 import { UsersService } from './users.service';
 
 @Controller('v1')
@@ -35,5 +36,15 @@ export class UsersController {
   ) {
     const user = await this.usersService.findOrCreateFromJwt(req.user);
     return this.notifications.updatePreferences(user.id, body);
+  }
+
+  @Patch('me/locale')
+  @UseGuards(JwtAuthGuard)
+  async updateLocale(
+    @Req() req: Request & { user: JwtPayload },
+    @Body() body: UpdateLocaleDto,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.usersService.updatePreferredLocale(user.id, body.locale);
   }
 }

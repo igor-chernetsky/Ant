@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useTranslation } from '@/components/LocaleProvider';
 
 interface HomeHeroProps {
   signedIn: boolean;
@@ -17,29 +18,28 @@ export function HomeHero({
   onAddProject,
   onSignIn,
 }: HomeHeroProps) {
+  const { t } = useTranslation();
+
   return (
     <section className="home-hero" aria-labelledby="home-hero-title">
       <div className="home-hero-overlay">
         <div className="home-hero-content">
-          <p className="home-hero-kicker">Ant marketplace</p>
-          <h1 id="home-hero-title">Construction projects</h1>
-          <p className="home-hero-lead">
-            Browse renovation and build opportunities. Publish your project,
-            receive ballpark estimates, and collect contractor proposals.
-          </p>
+          <p className="home-hero-kicker">{t('home.kicker')}</p>
+          <h1 id="home-hero-title">{t('home.title')}</h1>
+          <p className="home-hero-lead">{t('home.lead')}</p>
           <div className="home-hero-actions">
             {canAddProject ? (
               <button type="button" className="primary" onClick={onAddProject}>
-                Add project
+                {t('home.addProject')}
               </button>
             ) : !signedIn ? (
               <button type="button" className="primary" onClick={onSignIn}>
-                Sign in to publish
+                {t('home.signInToPublish')}
               </button>
             ) : null}
             {showContractorPortal && (
               <Link href="/contractor" className="home-hero-link">
-                Contractor portal
+                {t('home.contractorPortal')}
               </Link>
             )}
           </div>

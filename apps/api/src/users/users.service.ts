@@ -7,6 +7,11 @@ import {
 import { Prisma, User } from '@prisma/client';
 import { extractKeycloakSub, JwtPayload } from '../auth/jwt-payload';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  DEFAULT_LOCALE,
+  isSupportedLocale,
+  type SupportedLocale,
+} from './locale.types';
 
 @Injectable()
 export class UsersService {
@@ -70,6 +75,7 @@ export class UsersService {
     companyName: string | null;
     roles: string[];
     isContractor: boolean;
+    preferredLocale: SupportedLocale;
   }> {
     const roles = payload.realm_access?.roles ?? [];
     const profile = await this.prisma.contractorProfile.findUnique({
@@ -80,6 +86,10 @@ export class UsersService {
     const isContractor =
       roles.includes('contractor') || hasContractorProfile;
 
+    const preferredLocale = isSupportedLocale(user.preferredLocale)
+      ? user.preferredLocale
+      : DEFAULT_LOCALE;
+
     return {
       id: user.id,
       keycloakSub: user.keycloakSub,
@@ -88,6 +98,28 @@ export class UsersService {
       companyName: profile?.companyName ?? null,
       roles,
       isContractor,
+      preferredLocale,
+    };
+  }
+
+  async updatePreferredLocale(
+    userId: string,
+    locale: string,
+  ): Promise<{ preferredLocale: SupportedLocale }> {
+    if (!isSupportedLocale(locale)) {
+      throw new BadRequestException('Unsupported locale');
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { preferredLocale: locale },
+      select: { preferredLocale: true },
+    });
+
+    return {
+      preferredLocale: isSupportedLocale(user.preferredLocale)
+        ? user.preferredLocale
+        : DEFAULT_LOCALE,
     };
   }
 }

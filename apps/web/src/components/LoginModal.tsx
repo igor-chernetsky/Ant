@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 import { loginWithPassword, signupWithPassword } from '@/lib/session';
 
 interface LoginModalProps {
@@ -9,7 +10,14 @@ interface LoginModalProps {
   onSuccess: () => Promise<void> | void;
 }
 
+const ROLE_KEYS = {
+  client: 'auth.roleClient',
+  contractor: 'auth.roleContractor',
+  designer: 'auth.roleDesigner',
+} as const;
+
 export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -61,8 +69,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         setMode('signin');
         if (result.verifyEmail) {
           setSuccessNotice(
-            result.message ??
-              'Account created. Check your email and verify your address before signing in.',
+            result.message ?? t('auth.verifyEmailDefault'),
           );
         } else {
           await onSuccess();
@@ -74,8 +81,8 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         err instanceof Error
           ? err.message
           : mode === 'signin'
-            ? 'Sign in failed'
-            : 'Sign up failed',
+            ? t('auth.signInFailed')
+            : t('auth.signUpFailed'),
       );
     } finally {
       setSubmitting(false);
@@ -100,12 +107,12 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
       >
         <div className="modal-header">
           <h2 id="login-modal-title">
-            {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+            {mode === 'signin' ? t('auth.welcomeBack') : t('auth.createAccount')}
           </h2>
           <button
             type="button"
             className="icon-button"
-            aria-label="Close"
+            aria-label={t('common.close')}
             onClick={onClose}
           >
             ×
@@ -114,76 +121,74 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
         <p className="muted modal-subtitle">
           {mode === 'signin'
-            ? 'Sign in to manage projects and contractor bids.'
-            : 'Join Ant to publish projects or respond to tenders.'}
+            ? t('auth.signInSubtitle')
+            : t('auth.signUpSubtitle')}
         </p>
 
         <form onSubmit={handleSubmit} className="modal-form">
           {mode === 'signin' ? (
             <label>
-              Email
+              {t('common.email')}
               <input
                 type="email"
                 autoComplete="username"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                placeholder="you@example.com"
+                placeholder={t('auth.emailPlaceholder')}
                 required
               />
             </label>
           ) : (
             <>
               <label>
-                Full name
+                {t('auth.fullName')}
                 <input
                   type="text"
                   autoComplete="name"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
-                  placeholder="Optional"
+                  placeholder={t('common.optional')}
                 />
               </label>
               <label>
-                Email
+                {t('common.email')}
                 <input
                   type="email"
                   autoComplete="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@example.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   required
                 />
               </label>
               <fieldset className="tag-fieldset">
-                <legend>I am a…</legend>
-                <p className="muted tag-hint">
-                  Choose how you will use the platform. You can update this later.
-                </p>
+                <legend>{t('auth.roleLegend')}</legend>
+                <p className="muted tag-hint">{t('auth.roleHint')}</p>
                 <div className="tag-picker">
-                  {[
-                    { id: 'client', label: 'Client' },
-                    { id: 'contractor', label: 'Contractor' },
-                    { id: 'designer', label: 'Designer' },
-                  ].map((role) => {
-                    const selected = roles.includes(role.id);
+                  {(
+                    Object.entries(ROLE_KEYS) as Array<
+                      [keyof typeof ROLE_KEYS, string]
+                    >
+                  ).map(([id, labelKey]) => {
+                    const selected = roles.includes(id);
                     return (
                       <button
-                        key={role.id}
+                        key={id}
                         type="button"
                         className={`tag-chip ${selected ? 'tag-chip-selected' : ''}`}
                         aria-pressed={selected}
                         onClick={() =>
                           setRoles((prev) => {
-                            if (prev.includes(role.id)) {
-                              const next = prev.filter((r) => r !== role.id);
+                            if (prev.includes(id)) {
+                              const next = prev.filter((r) => r !== id);
                               return next.length > 0 ? next : ['client'];
                             }
-                            return [...prev, role.id];
+                            return [...prev, id];
                           })
                         }
                         disabled={submitting}
                       >
-                        {role.label}
+                        {t(labelKey)}
                       </button>
                     );
                   })}
@@ -193,7 +198,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           )}
 
           <label>
-            Password
+            {t('common.password')}
             <input
               type="password"
               autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
@@ -212,36 +217,36 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           <button type="submit" className="primary auth-submit" disabled={submitting}>
             {submitting
               ? mode === 'signin'
-                ? 'Signing in…'
-                : 'Creating account…'
+                ? t('auth.signingIn')
+                : t('auth.creatingAccount')
               : mode === 'signin'
-                ? 'Sign in'
-                : 'Create account'}
+                ? t('header.signIn')
+                : t('auth.createAccountButton')}
           </button>
 
           <p className="auth-mode-footer muted">
             {mode === 'signin' ? (
               <>
-                New to Ant?{' '}
+                {t('auth.newToAnt')}{' '}
                 <button
                   type="button"
                   className="text-link"
                   onClick={() => switchMode('signup')}
                   disabled={submitting}
                 >
-                  Create an account
+                  {t('auth.createAnAccount')}
                 </button>
               </>
             ) : (
               <>
-                Already have an account?{' '}
+                {t('auth.alreadyHaveAccount')}{' '}
                 <button
                   type="button"
                   className="text-link"
                   onClick={() => switchMode('signin')}
                   disabled={submitting}
                 >
-                  Sign in
+                  {t('header.signIn')}
                 </button>
               </>
             )}
@@ -253,7 +258,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             onClick={onClose}
             disabled={submitting}
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </form>
       </div>

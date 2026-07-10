@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -18,13 +19,17 @@ export function ConfirmDialog({
   isOpen,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   tone = 'default',
   busy = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
+  const resolvedConfirmLabel = confirmLabel ?? t('common.confirm');
+  const resolvedCancelLabel = cancelLabel ?? t('common.cancel');
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -75,7 +80,7 @@ export function ConfirmDialog({
             disabled={busy}
             onClick={onCancel}
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             type="button"
@@ -83,7 +88,7 @@ export function ConfirmDialog({
             disabled={busy}
             onClick={onConfirm}
           >
-            {busy ? 'Please wait…' : confirmLabel}
+            {busy ? t('common.pleaseWait') : resolvedConfirmLabel}
           </button>
         </div>
       </div>
