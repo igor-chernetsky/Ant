@@ -225,6 +225,7 @@ export function PublishTenderPackageModal({
               )}
 
               {!isClarificationPublish && (
+              <>
               <label>
                 {t('tenderCard.scope')}
                 <span className="field-hint muted">
@@ -303,6 +304,7 @@ export function PublishTenderPackageModal({
                 disabled={busy}
                 hideSubjectOfContract
               />
+              </>
               )}
             </>
           )}
