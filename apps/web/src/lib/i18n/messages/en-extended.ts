@@ -597,6 +597,8 @@ export const enExtended = {
     returning: "Returning…",
     unpublishHint: "Unpublish to refine project details before contractors apply.",
     modalSubtitle: "Review and adjust the commercial proposal template before contractors receive the project.",
+    modalSubtitleClarification: "Publish the project so contractors can submit clarification questions.",
+    modalClarificationPublishHint: "The commercial proposal template is configured when you open the tender for bids, after the clarification phase.",
     preparingTemplate: "Preparing template…",
     scope: "Scope",
     scopeHint: "Main scope description for the commercial proposal",

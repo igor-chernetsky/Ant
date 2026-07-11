@@ -89,10 +89,15 @@ export function PublishTenderPackageModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isClarificationPublish = mode === 'create' && structuredQa;
+
   useEffect(() => {
     if (!isOpen) return;
     setDeadline(initialDeadline);
     setError(null);
+    if (isClarificationPublish) {
+      return;
+    }
     void (async () => {
       setLoading(true);
       try {
@@ -119,7 +124,7 @@ export function PublishTenderPackageModal({
         setLoading(false);
       }
     })();
-  }, [isOpen, projectId, project, initialDeadline, t]);
+  }, [isOpen, isClarificationPublish, projectId, project, initialDeadline, t]);
 
   if (!isOpen) {
     return null;
@@ -130,15 +135,17 @@ export function PublishTenderPackageModal({
     setSubmitting(true);
     setError(null);
     try {
-      const payload = {
-        ...applicationsDeadlineToPayload(deadline),
-        scopeSummary: preview.scopeSummary,
-        clarificationSummary: preview.clarificationSummary ?? undefined,
-        defaultCostBreakdown: preview.defaultCostBreakdown.filter((item) =>
-          item.trade.trim(),
-        ),
-        contractTerms: preview.contractTerms,
-      };
+      const payload = isClarificationPublish
+        ? applicationsDeadlineToPayload(deadline)
+        : {
+            ...applicationsDeadlineToPayload(deadline),
+            scopeSummary: preview.scopeSummary,
+            clarificationSummary: preview.clarificationSummary ?? undefined,
+            defaultCostBreakdown: preview.defaultCostBreakdown.filter((item) =>
+              item.trade.trim(),
+            ),
+            contractTerms: preview.contractTerms,
+          };
 
       if (mode === 'create') {
         await createProjectTender(projectId, payload);
@@ -194,7 +201,9 @@ export function PublishTenderPackageModal({
         </div>
 
         <p className="muted modal-subtitle">
-          {t('tenderCard.modalSubtitle')}
+          {isClarificationPublish
+            ? t('tenderCard.modalSubtitleClarification')
+            : t('tenderCard.modalSubtitle')}
         </p>
 
         <form className="modal-form" onSubmit={(e) => void handleSubmit(e)}>
@@ -209,6 +218,13 @@ export function PublishTenderPackageModal({
                 onChange={setDeadline}
               />
 
+              {isClarificationPublish && (
+                <p className="muted publish-clarification-hint">
+                  {t('tenderCard.modalClarificationPublishHint')}
+                </p>
+              )}
+
+              {!isClarificationPublish && (
               <label>
                 {t('tenderCard.scope')}
                 <span className="field-hint muted">
@@ -287,6 +303,7 @@ export function PublishTenderPackageModal({
                 disabled={busy}
                 hideSubjectOfContract
               />
+              )}
             </>
           )}
 

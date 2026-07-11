@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { StorageModule } from '../storage/storage.module';
 import { TenderingModule } from '../tendering/tendering.module';
 import { UsersModule } from '../users/users.module';
@@ -9,7 +10,7 @@ import { ContractorVerificationController } from './contractor-verification.cont
 import { ContractorVerificationService } from './contractor-verification.service';
 
 @Module({
-  imports: [UsersModule, AuthModule, StorageModule, TenderingModule],
+  imports: [UsersModule, AuthModule, StorageModule, NotificationsModule, TenderingModule],
   controllers: [ContractorVerificationController, AdminContractorsController],
   providers: [ContractorVerificationService, AdminContractorsService],
 })

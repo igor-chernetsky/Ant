@@ -164,6 +164,8 @@ enum NotificationEmailKind {
   contractor_tender_opened
   contract_party_signed
   contract_fully_signed
+  contractor_verification_approved
+  contractor_verification_rejected
 }
 
 model NotificationEmailLog {

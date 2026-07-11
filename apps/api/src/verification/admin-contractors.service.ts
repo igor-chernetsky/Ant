@@ -10,6 +10,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { ContractorProfilesService } from '../tendering/contractor-profiles.service';
 import {
   AdminContractorDetail,
@@ -24,6 +25,7 @@ export class AdminContractorsService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly contractorProfiles: ContractorProfilesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private toDocResponse(
@@ -126,6 +128,14 @@ export class AdminContractorsService {
         reviewedById: adminUserId,
       },
     });
+
+    this.notifications.dispatch(
+      this.notifications.notifyContractorVerificationApproved({
+        contractorUserId: profile.userId,
+        companyName: profile.companyName,
+      }),
+    );
+
     return this.contractorProfiles.toResponse(updated);
   }
 
@@ -149,6 +159,15 @@ export class AdminContractorsService {
         reviewedById: adminUserId,
       },
     });
+
+    this.notifications.dispatch(
+      this.notifications.notifyContractorVerificationRejected({
+        contractorUserId: profile.userId,
+        companyName: profile.companyName,
+        comment,
+      }),
+    );
+
     return this.contractorProfiles.toResponse(updated);
   }
 

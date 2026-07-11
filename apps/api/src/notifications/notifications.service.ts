@@ -194,6 +194,80 @@ export class NotificationsService {
     }
   }
 
+  private contractorPortalUrl(): string {
+    return `${this.appUrl()}/contractor`;
+  }
+
+  private async sendAccountEmail(params: {
+    userId: string;
+    kind: NotificationEmailKind;
+    subject: string;
+    title: string;
+    bodyHtml: string;
+    ctaHref: string;
+    ctaLabel: string;
+    textBody: string;
+  }): Promise<void> {
+    if (!this.mail.isConfigured()) return;
+
+    const user = await this.prisma.user.findUnique({ where: { id: params.userId } });
+    if (!user?.email?.trim()) return;
+
+    const prefs = await this.getOrCreatePreferences(params.userId);
+    if (!prefs.emailEnabled) return;
+
+    const html = this.wrapEmail(
+      params.title,
+      params.bodyHtml,
+      params.ctaHref,
+      params.ctaLabel,
+    );
+    const sent = await this.mail.send({
+      to: user.email,
+      subject: params.subject,
+      html,
+      text: `${params.title}\n\n${params.textBody}\n\n${params.ctaLabel}: ${params.ctaHref}`,
+    });
+    if (sent) {
+      await this.logSent(params.userId, params.kind);
+    }
+  }
+
+  async notifyContractorVerificationApproved(params: {
+    contractorUserId: string;
+    companyName: string | null;
+  }): Promise<void> {
+    const label = params.companyName?.trim() || 'your company';
+    await this.sendAccountEmail({
+      userId: params.contractorUserId,
+      kind: NotificationEmailKind.contractor_verification_approved,
+      subject: 'Contractor verification approved',
+      title: 'Verification approved',
+      bodyHtml: `<p>Your contractor verification for <strong>${escapeHtml(label)}</strong> has been approved.</p><p>You can now use verified contractor features on Ant, including portfolio visibility.</p>`,
+      ctaHref: this.contractorPortalUrl(),
+      ctaLabel: 'Open contractor portal',
+      textBody: `Verification approved for ${label}. Open the contractor portal to continue.`,
+    });
+  }
+
+  async notifyContractorVerificationRejected(params: {
+    contractorUserId: string;
+    companyName: string | null;
+    comment: string;
+  }): Promise<void> {
+    const label = params.companyName?.trim() || 'your company';
+    await this.sendAccountEmail({
+      userId: params.contractorUserId,
+      kind: NotificationEmailKind.contractor_verification_rejected,
+      subject: 'Contractor verification not approved',
+      title: 'Verification not approved',
+      bodyHtml: `<p>Your contractor verification for <strong>${escapeHtml(label)}</strong> was not approved.</p><p style="background:#f8fafc;padding:12px;border-radius:8px;white-space:pre-wrap;">${escapeHtml(params.comment)}</p><p>You can update your documents and submit a new verification request from the contractor portal.</p>`,
+      ctaHref: this.contractorPortalUrl(),
+      ctaLabel: 'Open contractor portal',
+      textBody: `Verification not approved for ${label}.\n\nReason: ${params.comment}`,
+    });
+  }
+
   async notifyClientBidEnrolled(params: {
     clientId: string;
     projectId: string;
