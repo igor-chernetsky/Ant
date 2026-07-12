@@ -9,6 +9,8 @@ import { OpenAiBidAnalysisService } from './openai-bid-analysis.service';
 import { OpenAiClarificationService } from './openai-clarification.service';
 import { OpenAiDocumentService } from './openai-document.service';
 import { OpenAiIntakeService } from './openai-intake.service';
+import { OpenAiScopeSyncService } from './openai-scope-sync.service';
+import { ScopeSyncFallbackService } from './scope-sync-fallback.service';
 import { PdfTextService } from '../pdf/pdf-text.service';
 
 @Module({
@@ -23,6 +25,8 @@ import { PdfTextService } from '../pdf/pdf-text.service';
     OpenAiDocumentService,
     DocumentAnalysisService,
     OpenAiClarificationService,
+    OpenAiScopeSyncService,
+    ScopeSyncFallbackService,
     PdfTextService,
   ],
   exports: [
@@ -34,6 +38,8 @@ import { PdfTextService } from '../pdf/pdf-text.service';
     BidAnalysisFallbackService,
     DocumentAnalysisService,
     OpenAiClarificationService,
+    OpenAiScopeSyncService,
+    ScopeSyncFallbackService,
     PdfTextService,
   ],
 })

@@ -17,6 +17,7 @@ import {
 } from '../documents/documents.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
+import { ProjectScopeSyncService } from '../projects/project-scope-sync.service';
 import { StorageService } from '../storage/storage.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
@@ -110,6 +111,7 @@ export class TenderClarificationsService {
     private readonly openAi: OpenAiClarificationService,
     private readonly storage: StorageService,
     private readonly projectLocalization: ProjectLocalizationService,
+    private readonly scopeSync: ProjectScopeSyncService,
   ) {}
 
   private mapAttachment(row: {
@@ -376,6 +378,17 @@ export class TenderClarificationsService {
       },
     });
 
+    this.scopeSync.dispatch(
+      projectId,
+      this.scopeSync.buildClarificationAnswerUpdate({
+        questionText: question.questionText,
+        answerText: answer,
+        attachmentNames: updated.attachments
+          .filter((item) => item.status === DocumentStatus.uploaded)
+          .map((item) => item.originalName),
+      }),
+    );
+
     return this.mapQuestion(updated);
   }
 
@@ -450,7 +463,11 @@ export class TenderClarificationsService {
     questionId: string,
     attachmentId: string,
   ): Promise<ClarificationAttachmentResponse> {
-    await this.loadQuestionForClient(clientId, projectId, questionId);
+    const { question } = await this.loadQuestionForClient(
+      clientId,
+      projectId,
+      questionId,
+    );
 
     const attachment = await this.prisma.clarificationAnswerAttachment.findFirst(
       {
@@ -477,6 +494,15 @@ export class TenderClarificationsService {
         uploadedAt: new Date(),
       },
     });
+
+    this.scopeSync.dispatch(
+      projectId,
+      this.scopeSync.buildClarificationAttachmentUpdate({
+        questionText: question.questionText,
+        answerText: question.answer,
+        attachmentName: updated.originalName,
+      }),
+    );
 
     return this.mapAttachment(updated);
   }

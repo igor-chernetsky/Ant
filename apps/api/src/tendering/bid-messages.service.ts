@@ -8,6 +8,7 @@ import { ClarificationMode } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ProjectScopeSyncService } from '../projects/project-scope-sync.service';
 import { BidMessageResponse, SendBidMessageDto } from './tendering.types';
 
 const MAX_BID_MESSAGE_LENGTH = 4000;
@@ -20,6 +21,7 @@ export class BidMessagesService {
     private readonly prisma: PrismaService,
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly notifications: NotificationsService,
+    private readonly scopeSync: ProjectScopeSyncService,
   ) {}
 
   private mapMessage(message: {
@@ -140,6 +142,13 @@ export class BidMessagesService {
     });
 
     await this.touchPresence(userId, bidId, projectId);
+
+    if (isClient) {
+      this.scopeSync.dispatch(
+        bid.tender.projectId,
+        this.scopeSync.buildClientChatUpdate(body),
+      );
+    }
 
     const recipientUserId = isClient
       ? bid.contractor.userId
