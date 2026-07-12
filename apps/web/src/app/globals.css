@@ -3465,6 +3465,22 @@ select:disabled {
   gap: 0.75rem;
 }
 
+.contract-terms-text-option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.contract-terms-text-option > label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.contract-terms-text-option-select {
+  width: 100%;
+}
+
 .bid-contract-terms-fields input:disabled,
 .bid-contract-terms-fields textarea:disabled,
 .bid-contract-terms-fields select:disabled {

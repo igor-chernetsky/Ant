@@ -1,12 +1,22 @@
 'use client';
 
+import { useMemo } from 'react';
+import { ContractTermsTextOptionField } from '@/components/ContractTermsTextOptionField';
 import { useTranslation } from '@/components/LocaleProvider';
 import type { BidContractTerms } from '@/lib/tendering';
 import {
   canEditContractTermField,
-  CONTRACT_TERMS_TEXT_PLACEHOLDER,
   type ContractTermsAudience,
 } from '@/lib/contract-terms-fields';
+import {
+  buildDelayDamagesOptions,
+  buildPropertyOwnershipOptions,
+  buildRetentionReleaseOptions,
+  buildSiteAddressOptions,
+  buildSpecialConditionsOptions,
+  buildSubjectOfContractOptions,
+  buildWarrantyPeriodOptions,
+} from '@/lib/contract-terms-options';
 
 export { DEFAULT_CONTRACT_TERMS } from '@/lib/contract-terms-fields';
 export type { ContractTermsAudience } from '@/lib/contract-terms-fields';
@@ -39,6 +49,36 @@ export function BidContractTermsFields({
   showSectionHeader = true,
 }: BidContractTermsFieldsProps) {
   const { t } = useTranslation();
+  const warrantyMonths = value.defectNotificationMonths ?? 24;
+
+  const subjectOptions = useMemo(
+    () => buildSubjectOfContractOptions(t, projectTitle),
+    [t, projectTitle],
+  );
+  const siteAddressOptions = useMemo(
+    () => buildSiteAddressOptions(t, projectDistrict),
+    [t, projectDistrict],
+  );
+  const propertyOwnershipOptions = useMemo(
+    () => buildPropertyOwnershipOptions(t),
+    [t],
+  );
+  const retentionReleaseOptions = useMemo(
+    () => buildRetentionReleaseOptions(t),
+    [t],
+  );
+  const warrantyPeriodOptions = useMemo(
+    () => buildWarrantyPeriodOptions(t, warrantyMonths),
+    [t, warrantyMonths],
+  );
+  const delayDamagesOptions = useMemo(
+    () => buildDelayDamagesOptions(t),
+    [t],
+  );
+  const specialConditionsOptions = useMemo(
+    () => buildSpecialConditionsOptions(t),
+    [t],
+  );
 
   const set = <K extends keyof BidContractTerms>(
     key: K,
@@ -65,53 +105,48 @@ export function BidContractTermsFields({
 
       <div className="modal-form bid-proposal-form-fields bid-contract-terms-fields">
         {!hideSubjectOfContract && (
-          <label>
-            {t('contractTerms.subjectOfContract')}
-            <span className="field-hint muted">
-              {t('contractTerms.subjectHint')}
-            </span>
-            <textarea
-              rows={2}
-              disabled={fieldDisabled('subjectOfContract')}
-              value={value.subjectOfContract ?? ''}
-              placeholder={
-                projectTitle
-                  ? t('contractTerms.subjectPlaceholderProject', {
-                      title: projectTitle,
-                    })
-                  : t('contractTerms.subjectPlaceholder')
-              }
-              onChange={(e) => set('subjectOfContract', e.target.value)}
-            />
-          </label>
+          <ContractTermsTextOptionField
+            label={
+              <>
+                {t('contractTerms.subjectOfContract')}
+                <span className="field-hint muted">
+                  {t('contractTerms.subjectHint')}
+                </span>
+              </>
+            }
+            value={value.subjectOfContract ?? ''}
+            onChange={(next) => set('subjectOfContract', next)}
+            options={subjectOptions}
+            disabled={fieldDisabled('subjectOfContract')}
+            rows={2}
+          />
         )}
 
-        <label>
-          {t('contractTerms.siteAddress')}
-          <input
-            type="text"
-            disabled={fieldDisabled('siteAddress')}
-            value={value.siteAddress ?? ''}
-            placeholder={
-              projectDistrict ?? t('contractTerms.siteAddressPlaceholder')
-            }
-            onChange={(e) => set('siteAddress', e.target.value)}
-          />
-        </label>
+        <ContractTermsTextOptionField
+          label={t('contractTerms.siteAddress')}
+          value={value.siteAddress ?? ''}
+          onChange={(next) => set('siteAddress', next)}
+          options={siteAddressOptions}
+          disabled={fieldDisabled('siteAddress')}
+          multiline={false}
+          customPlaceholder={t('contractTerms.siteAddressPlaceholder')}
+        />
 
-        <label>
-          {t('contractTerms.propertyOwnership')}
-          <span className="field-hint muted">
-            {t('contractTerms.propertyOwnershipHint')}
-          </span>
-          <textarea
-            rows={2}
-            disabled={fieldDisabled('propertyOwnership')}
-            value={value.propertyOwnership ?? ''}
-            placeholder={CONTRACT_TERMS_TEXT_PLACEHOLDER}
-            onChange={(e) => set('propertyOwnership', e.target.value)}
-          />
-        </label>
+        <ContractTermsTextOptionField
+          label={
+            <>
+              {t('contractTerms.propertyOwnership')}
+              <span className="field-hint muted">
+                {t('contractTerms.propertyOwnershipHint')}
+              </span>
+            </>
+          }
+          value={value.propertyOwnership ?? ''}
+          onChange={(next) => set('propertyOwnership', next)}
+          options={propertyOwnershipOptions}
+          disabled={fieldDisabled('propertyOwnership')}
+          rows={2}
+        />
 
         <div className="bid-proposal-form-row bid-proposal-form-row--pair">
           <label className="bid-proposal-field">
@@ -225,58 +260,63 @@ export function BidContractTermsFields({
           </label>
         </div>
 
-        <label>
-          {t('contractTerms.retentionReleaseSchedule')}
-          <textarea
-            rows={2}
-            disabled={fieldDisabled('retentionReleaseNotes')}
-            value={value.retentionReleaseNotes ?? ''}
-            placeholder={CONTRACT_TERMS_TEXT_PLACEHOLDER}
-            onChange={(e) => set('retentionReleaseNotes', e.target.value)}
-          />
-        </label>
+        <ContractTermsTextOptionField
+          label={t('contractTerms.retentionReleaseSchedule')}
+          value={value.retentionReleaseNotes ?? ''}
+          onChange={(next) => set('retentionReleaseNotes', next)}
+          options={retentionReleaseOptions}
+          disabled={fieldDisabled('retentionReleaseNotes')}
+          rows={2}
+        />
 
-        <label>
-          {t('contractTerms.warrantyPeriodNotes')}
-          <span className="field-hint muted">
-            {t('contractTerms.warrantyPeriodNotesHint')}
-          </span>
-          <textarea
-            rows={2}
-            disabled={fieldDisabled('warrantyPeriodNotes')}
-            value={value.warrantyPeriodNotes ?? ''}
-            placeholder={t('contractTerms.warrantyPeriodPlaceholder', {
-              months: value.defectNotificationMonths ?? 24,
-            })}
-            onChange={(e) => set('warrantyPeriodNotes', e.target.value)}
-          />
-        </label>
+        <ContractTermsTextOptionField
+          label={
+            <>
+              {t('contractTerms.warrantyPeriodNotes')}
+              <span className="field-hint muted">
+                {t('contractTerms.warrantyPeriodNotesHint')}
+              </span>
+            </>
+          }
+          value={value.warrantyPeriodNotes ?? ''}
+          onChange={(next) => set('warrantyPeriodNotes', next)}
+          options={warrantyPeriodOptions}
+          disabled={fieldDisabled('warrantyPeriodNotes')}
+          rows={2}
+        />
 
-        <label>
-          {t('contractTerms.delayDamages')}
-          <span className="field-hint muted">{t('contractTerms.delayDamagesHint')}</span>
-          <textarea
-            rows={2}
-            disabled={fieldDisabled('delayDamagesNotes')}
-            value={value.delayDamagesNotes ?? ''}
-            placeholder={t('contractTerms.delayDamagesPlaceholder')}
-            onChange={(e) => set('delayDamagesNotes', e.target.value)}
-          />
-        </label>
+        <ContractTermsTextOptionField
+          label={
+            <>
+              {t('contractTerms.delayDamages')}
+              <span className="field-hint muted">
+                {t('contractTerms.delayDamagesHint')}
+              </span>
+            </>
+          }
+          value={value.delayDamagesNotes ?? ''}
+          onChange={(next) => set('delayDamagesNotes', next)}
+          options={delayDamagesOptions}
+          disabled={fieldDisabled('delayDamagesNotes')}
+          rows={2}
+        />
 
-        <label>
-          {t('contractTerms.specialConditions')}
-          <span className="field-hint muted">
-            {t('contractTerms.specialConditionsHint')}
-          </span>
-          <textarea
-            rows={4}
-            disabled={fieldDisabled('specialConditions')}
-            value={value.specialConditions ?? ''}
-            placeholder={t('contractTerms.specialConditionsPlaceholder')}
-            onChange={(e) => set('specialConditions', e.target.value)}
-          />
-        </label>
+        <ContractTermsTextOptionField
+          label={
+            <>
+              {t('contractTerms.specialConditions')}
+              <span className="field-hint muted">
+                {t('contractTerms.specialConditionsHint')}
+              </span>
+            </>
+          }
+          value={value.specialConditions ?? ''}
+          onChange={(next) => set('specialConditions', next)}
+          options={specialConditionsOptions}
+          disabled={fieldDisabled('specialConditions')}
+          rows={4}
+          customPlaceholder={t('contractTerms.specialConditionsPlaceholder')}
+        />
 
         {audience === 'client' && (
           <>
