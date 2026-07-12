@@ -90,6 +90,36 @@ export function ContractTermsTextOptionField({
 
   const hasTemplates = options.length > 0;
 
+  if (disabled) {
+    return (
+      <div className="contract-terms-text-option contract-terms-text-option--readonly">
+        <div className="contract-terms-text-option-label">
+          {label}
+          {hint}
+        </div>
+        {multiline ? (
+          <textarea
+            rows={rows}
+            readOnly
+            disabled
+            aria-readonly
+            value={value}
+            placeholder={customPlaceholder}
+          />
+        ) : (
+          <input
+            type="text"
+            readOnly
+            disabled
+            aria-readonly
+            value={value}
+            placeholder={customPlaceholder}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="contract-terms-text-option">
       <label htmlFor={selectId}>

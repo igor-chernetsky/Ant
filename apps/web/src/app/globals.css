@@ -3471,10 +3471,16 @@ select:disabled {
   gap: 0.5rem;
 }
 
-.contract-terms-text-option > label {
+.contract-terms-text-option > label,
+.contract-terms-text-option-label {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.contract-terms-text-option--readonly textarea,
+.contract-terms-text-option--readonly input {
+  cursor: default;
 }
 
 .contract-terms-text-option-select {
