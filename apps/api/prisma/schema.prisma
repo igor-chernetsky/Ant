@@ -29,6 +29,8 @@ enum ProjectType {
   extension
   commercial_fitout
   repair
+  modernization_reconstruction
+  design
   other
 }
 
@@ -38,6 +40,12 @@ enum PropertyType {
   commercial
   land
   other
+}
+
+enum PropertyOwnershipForm {
+  employer_title
+  leasehold
+  developer_consent
 }
 
 enum TagSource {
@@ -212,6 +220,7 @@ model Project {
   description    String?
   projectType    ProjectType   @default(other) @map("project_type")
   propertyType   PropertyType? @map("property_type")
+  propertyOwnershipForm PropertyOwnershipForm? @map("property_ownership_form")
   district       String?
   locationRegionSlug String   @default("bangkok") @map("location_region_slug")
   locationAreaSlug   String?  @map("location_area_slug")

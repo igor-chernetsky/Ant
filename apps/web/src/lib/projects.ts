@@ -6,6 +6,8 @@ export type ProjectType =
   | 'extension'
   | 'commercial_fitout'
   | 'repair'
+  | 'modernization_reconstruction'
+  | 'design'
   | 'other';
 
 export type PropertyType =
@@ -162,9 +164,11 @@ export const CLARIFICATION_MODE_OPTIONS: Array<{
 export const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> =
   [
     { value: 'renovation', label: 'Renovation' },
+    { value: 'modernization_reconstruction', label: 'Modernization & reconstruction' },
     { value: 'new_build', label: 'New build' },
     { value: 'extension', label: 'Extension' },
     { value: 'commercial_fitout', label: 'Commercial fit-out' },
+    { value: 'design', label: 'Design' },
     { value: 'repair', label: 'Repair' },
     { value: 'other', label: 'Other' },
   ];

@@ -9,6 +9,14 @@ import {
   regionLabel,
   type LocationCatalog,
 } from '@/lib/locations';
+import {
+  PROPERTY_OWNERSHIP_FILTER_SLUGS,
+  SERVICE_FILTER_GROUPS,
+  ownershipFilterI18nKey,
+  serviceFilterI18nKey,
+  type PropertyOwnershipFilterSlug,
+  type ServiceFilterSlug,
+} from '@/lib/service-filters';
 
 const PRIMARY_STATUS_VALUES = ['in_tender', 'estimated', 'active'] as const;
 
@@ -19,6 +27,8 @@ export interface HomeProjectFilterState {
   statuses: string[];
   regionSlug: string;
   areaSlug: string;
+  services: ServiceFilterSlug[];
+  propertyOwnership: PropertyOwnershipFilterSlug[];
 }
 
 interface HomeProjectFiltersProps {
@@ -36,6 +46,8 @@ function countActiveFilters(filters: HomeProjectFilterState): number {
   if (filters.areaSlug) count += 1;
   count += filters.statuses.length;
   count += filters.tags.length;
+  count += filters.services.length;
+  count += filters.propertyOwnership.length;
   return count;
 }
 
@@ -88,12 +100,28 @@ export function HomeProjectFilters({
     update({ statuses: next });
   };
 
+  const toggleService = (slug: ServiceFilterSlug) => {
+    const next = filters.services.includes(slug)
+      ? filters.services.filter((value) => value !== slug)
+      : [...filters.services, slug];
+    update({ services: next });
+  };
+
+  const toggleOwnership = (slug: PropertyOwnershipFilterSlug) => {
+    const next = filters.propertyOwnership.includes(slug)
+      ? filters.propertyOwnership.filter((value) => value !== slug)
+      : [...filters.propertyOwnership, slug];
+    update({ propertyOwnership: next });
+  };
+
   const clearAll = () => {
     onChange({
       tags: [],
       statuses: [],
       regionSlug: '',
       areaSlug: '',
+      services: [],
+      propertyOwnership: [],
     });
   };
 
@@ -123,6 +151,30 @@ export function HomeProjectFilters({
     });
   }
 
+  for (const slug of filters.services) {
+    activePills.push({
+      key: `service-${slug}`,
+      label: t(serviceFilterI18nKey(slug)),
+      onRemove: () =>
+        update({
+          services: filters.services.filter((value) => value !== slug),
+        }),
+    });
+  }
+
+  for (const slug of filters.propertyOwnership) {
+    activePills.push({
+      key: `ownership-${slug}`,
+      label: t(ownershipFilterI18nKey(slug)),
+      onRemove: () =>
+        update({
+          propertyOwnership: filters.propertyOwnership.filter(
+            (value) => value !== slug,
+          ),
+        }),
+    });
+  }
+
   for (const slug of filters.tags) {
     const label = tags.find((tag) => tag.slug === slug)?.label ?? slug;
     activePills.push({
@@ -132,6 +184,21 @@ export function HomeProjectFilters({
         update({ tags: filters.tags.filter((value) => value !== slug) }),
     });
   }
+
+  const renderServiceChip = (slug: ServiceFilterSlug) => {
+    const active = filters.services.includes(slug);
+    return (
+      <button
+        key={slug}
+        type="button"
+        className={`filter-chip${active ? ' filter-chip-active' : ''}`}
+        aria-pressed={active}
+        onClick={() => toggleService(slug)}
+      >
+        {t(serviceFilterI18nKey(slug))}
+      </button>
+    );
+  };
 
   return (
     <section className="project-filters" aria-label={t('filters.ariaLabel')}>
@@ -232,6 +299,53 @@ export function HomeProjectFilters({
                   onClick={() => toggleStatus(value)}
                 >
                   {formatProjectStatus(value)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="project-filters-services">
+        <div className="project-filters-advanced-group">
+          <p className="project-filters-group-label">{t('filters.serviceType')}</p>
+          <div className="project-filters-chips project-filters-chips-wrap">
+            {SERVICE_FILTER_GROUPS[0].slugs.map(renderServiceChip)}
+          </div>
+        </div>
+
+        <div className="project-filters-advanced-group">
+          <p className="project-filters-group-label">
+            {t('filters.newConstruction')}
+          </p>
+          <div className="project-filters-chips project-filters-chips-wrap">
+            {SERVICE_FILTER_GROUPS[1].slugs.map(renderServiceChip)}
+          </div>
+        </div>
+
+        <div className="project-filters-advanced-group">
+          <p className="project-filters-group-label">{t('filters.design')}</p>
+          <div className="project-filters-chips project-filters-chips-wrap">
+            {SERVICE_FILTER_GROUPS[2].slugs.map(renderServiceChip)}
+          </div>
+        </div>
+
+        <div className="project-filters-advanced-group">
+          <p className="project-filters-group-label">
+            {t('filters.propertyOwnership')}
+          </p>
+          <div className="project-filters-chips project-filters-chips-wrap">
+            {PROPERTY_OWNERSHIP_FILTER_SLUGS.map((slug) => {
+              const active = filters.propertyOwnership.includes(slug);
+              return (
+                <button
+                  key={slug}
+                  type="button"
+                  className={`filter-chip${active ? ' filter-chip-active' : ''}`}
+                  aria-pressed={active}
+                  onClick={() => toggleOwnership(slug)}
+                >
+                  {t(ownershipFilterI18nKey(slug))}
                 </button>
               );
             })}

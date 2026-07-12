@@ -24,6 +24,7 @@ import { TenderClarificationsService } from './tender-clarifications.service';
 import { DefaultCostBreakdownService } from './default-cost-breakdown.service';
 import { ProjectsService } from '../projects/projects.service';
 import type { ProjectBriefV1 } from '../projects/project-brief';
+import { inferPropertyOwnershipForm } from '../projects/discover-filters';
 import {
   inferContractPeriodMonths,
   inferWorksStartDate,
@@ -1490,9 +1491,15 @@ export class TendersService {
     }
 
     if (dto.contractTerms !== undefined) {
-      data.tenderContractTermsJson = normalizeContractTerms(
-        dto.contractTerms,
-      ) as unknown as Prisma.InputJsonValue;
+      const normalizedTerms = normalizeContractTerms(dto.contractTerms);
+      data.tenderContractTermsJson =
+        normalizedTerms as unknown as Prisma.InputJsonValue;
+      const ownershipForm = inferPropertyOwnershipForm(
+        normalizedTerms?.propertyOwnership,
+      );
+      if (ownershipForm) {
+        data.propertyOwnershipForm = ownershipForm;
+      }
     }
 
     return data;

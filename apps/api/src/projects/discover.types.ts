@@ -7,4 +7,6 @@ export interface DiscoverQuery {
   tagSlugs?: string[];
   statuses?: string[];
   location?: DiscoverLocationFilter;
+  serviceSlugs?: string[];
+  ownershipSlugs?: string[];
 }

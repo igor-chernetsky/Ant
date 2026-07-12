@@ -30,6 +30,8 @@ export interface PublicProjectListFilters {
   statuses?: string[];
   regionSlug?: string;
   areaSlug?: string;
+  services?: string[];
+  propertyOwnership?: string[];
 }
 
 export async function fetchPublicProjects(
@@ -37,12 +39,20 @@ export async function fetchPublicProjects(
 ): Promise<PublicProjectCard[]> {
   const tagSlugs = filters.tags ?? [];
   const statuses = filters.statuses ?? [];
+  const services = filters.services ?? [];
+  const propertyOwnership = filters.propertyOwnership ?? [];
   const params = new URLSearchParams();
   for (const slug of tagSlugs) {
     params.append('tag', slug);
   }
   for (const status of statuses) {
     params.append('status', status);
+  }
+  for (const service of services) {
+    params.append('service', service);
+  }
+  for (const ownership of propertyOwnership) {
+    params.append('ownership', ownership);
   }
   if (filters.regionSlug?.trim()) {
     params.append('region', filters.regionSlug.trim());

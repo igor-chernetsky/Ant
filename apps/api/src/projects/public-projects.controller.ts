@@ -25,9 +25,13 @@ export class PublicProjectsController {
     @Query('status') statusQuery?: string | string[],
     @Query('region') regionQuery?: string,
     @Query('area') areaQuery?: string,
+    @Query('service') serviceQuery?: string | string[],
+    @Query('ownership') ownershipQuery?: string | string[],
   ) {
     const tagSlugs = normalizeTagQuery(tagQuery);
     const statuses = normalizeTagQuery(statusQuery);
+    const serviceSlugs = normalizeTagQuery(serviceQuery);
+    const ownershipSlugs = normalizeTagQuery(ownershipQuery);
     const location = {
       regionSlug: regionQuery?.trim() || undefined,
       areaSlug: areaQuery?.trim() || undefined,
@@ -40,6 +44,8 @@ export class PublicProjectsController {
       tagSlugs,
       statuses,
       location.regionSlug || location.areaSlug ? location : undefined,
+      serviceSlugs,
+      ownershipSlugs,
     );
   }
 

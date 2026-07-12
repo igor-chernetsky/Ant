@@ -53,6 +53,8 @@ export default function HomePage() {
     statuses: [],
     regionSlug: '',
     areaSlug: '',
+    services: [],
+    propertyOwnership: [],
   });
   const [contractorFilterInitialized, setContractorFilterInitialized] =
     useState(false);
@@ -71,6 +73,8 @@ export default function HomePage() {
         statuses: next.statuses,
         regionSlug: next.regionSlug || undefined,
         areaSlug: next.areaSlug || undefined,
+        services: next.services,
+        propertyOwnership: next.propertyOwnership,
       });
       setProjects(list);
     } catch (err: unknown) {
@@ -88,7 +92,11 @@ export default function HomePage() {
           fetchPublicTags(),
           fetchLocationCatalog(),
         ]);
-        setAllTags(tags.map((t) => ({ slug: t.slug, label: t.label })));
+        setAllTags(
+          tags
+            .filter((tag) => tag.groupSlug === 'trade' || !tag.groupSlug)
+            .map((tag) => ({ slug: tag.slug, label: tag.label })),
+        );
         setLocationCatalog(locations);
       } catch {
         setAllTags([]);
@@ -112,6 +120,8 @@ export default function HomePage() {
         statuses: [],
         regionSlug: '',
         areaSlug: '',
+        services: [],
+        propertyOwnership: [],
       });
       return;
     }

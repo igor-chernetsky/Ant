@@ -22,6 +22,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { isPubliclyDiscoverable, isPubliclyViewable, DISCOVERY_FILTER_HIDDEN, DISCOVERY_STATUSES } from './projects.constants';
 import { shouldHideProjectFromPublicDiscovery } from '../tendering/tender-deadline';
+import {
+  buildOwnershipFilter,
+  buildServiceFilter,
+  normalizeOwnershipFilterSlugs,
+  normalizeServiceFilterSlugs,
+} from './discover-filters';
 
 import {
 
@@ -203,8 +209,17 @@ export class ProjectsService {
     tagSlugs: string[] = [],
     statuses: string[] = [],
     location?: DiscoverLocationFilter,
+    serviceSlugs: string[] = [],
+    ownershipSlugs: string[] = [],
   ): Promise<PublicProjectCard[]> {
-    return this.listDiscover(null, tagSlugs, statuses, location);
+    return this.listDiscover(
+      null,
+      tagSlugs,
+      statuses,
+      location,
+      serviceSlugs,
+      ownershipSlugs,
+    );
   }
 
   async listDiscover(
@@ -212,6 +227,8 @@ export class ProjectsService {
     tagSlugs: string[] = [],
     statuses: string[] = [],
     location?: DiscoverLocationFilter,
+    serviceSlugs: string[] = [],
+    ownershipSlugs: string[] = [],
   ): Promise<PublicProjectCard[]> {
     const includesHidden = statuses.includes(DISCOVERY_FILTER_HIDDEN);
     const includesCompleted = statuses.includes(ProjectStatus.completed);
@@ -225,7 +242,13 @@ export class ProjectsService {
       if (!userId) {
         return [];
       }
-      return this.listHiddenForClient(userId, tagSlugs, location);
+      return this.listHiddenForClient(
+        userId,
+        tagSlugs,
+        location,
+        serviceSlugs,
+        ownershipSlugs,
+      );
     }
 
     const participantProjectIds = userId
@@ -285,7 +308,18 @@ export class ProjectsService {
       return [];
     }
 
-    const where = this.buildDiscoverWhere(orClauses, tagFilter, location);
+    const normalizedServices = normalizeServiceFilterSlugs(serviceSlugs);
+    const normalizedOwnership = normalizeOwnershipFilterSlugs(ownershipSlugs);
+    const serviceFilter = buildServiceFilter(normalizedServices);
+    const ownershipFilter = buildOwnershipFilter(normalizedOwnership);
+
+    const where = this.buildDiscoverWhere(
+      orClauses,
+      tagFilter,
+      location,
+      serviceFilter,
+      ownershipFilter,
+    );
 
     const projects = await this.prisma.project.findMany({
       where,
@@ -329,11 +363,21 @@ export class ProjectsService {
     orClauses: Prisma.ProjectWhereInput[],
     tagFilter: Prisma.ProjectWhereInput | undefined,
     location?: DiscoverLocationFilter,
+    serviceFilter?: Prisma.ProjectWhereInput,
+    ownershipFilter?: Prisma.ProjectWhereInput,
   ): Prisma.ProjectWhereInput {
     const andParts: Prisma.ProjectWhereInput[] = [{ OR: orClauses }];
 
     if (tagFilter) {
       andParts.push(tagFilter);
+    }
+
+    if (serviceFilter) {
+      andParts.push(serviceFilter);
+    }
+
+    if (ownershipFilter) {
+      andParts.push(ownershipFilter);
     }
 
     const locationFilter = this.buildLocationFilter(location);
@@ -371,6 +415,8 @@ export class ProjectsService {
     clientId: string,
     tagSlugs: string[],
     location?: DiscoverLocationFilter,
+    serviceSlugs: string[] = [],
+    ownershipSlugs: string[] = [],
   ): Promise<PublicProjectCard[]> {
     const andParts: Prisma.ProjectWhereInput[] = [
       { clientId, isHidden: true },
@@ -389,6 +435,19 @@ export class ProjectsService {
           },
         },
       });
+    }
+
+    const normalizedServices = normalizeServiceFilterSlugs(serviceSlugs);
+    const normalizedOwnership = normalizeOwnershipFilterSlugs(ownershipSlugs);
+    const serviceFilter = buildServiceFilter(normalizedServices);
+    const ownershipFilter = buildOwnershipFilter(normalizedOwnership);
+
+    if (serviceFilter) {
+      andParts.push(serviceFilter);
+    }
+
+    if (ownershipFilter) {
+      andParts.push(ownershipFilter);
     }
 
     const where: Prisma.ProjectWhereInput =
