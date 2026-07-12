@@ -131,6 +131,14 @@ export const thExtended = {
     completed: "เสร็จสิ้น",
     hidden: "โครงการที่ซ่อน",
   },
+  projectStage: {
+    ariaLabel: "ความคืบหน้าโครงการ",
+    setup: "บริฟ",
+    estimate: "ประมาณการ",
+    tender: "ประมูล",
+    award: "เลือกผู้ชนะ",
+    delivery: "ดำเนินงาน",
+  },
   projectType: {
     renovation: "ปรับปรุง",
     new_build: "สร้างใหม่",

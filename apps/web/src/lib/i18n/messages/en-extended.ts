@@ -131,6 +131,14 @@ export const enExtended = {
     completed: "Completed",
     hidden: "Hidden projects",
   },
+  projectStage: {
+    ariaLabel: "Project progress",
+    setup: "Brief",
+    estimate: "Estimate",
+    tender: "Tender",
+    award: "Award",
+    delivery: "Delivery",
+  },
   projectType: {
     renovation: "Renovation",
     new_build: "New build",

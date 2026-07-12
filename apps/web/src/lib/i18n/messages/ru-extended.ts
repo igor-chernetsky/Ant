@@ -131,6 +131,14 @@ export const ruExtended = {
     completed: "Завершён",
     hidden: "Скрытые проекты",
   },
+  projectStage: {
+    ariaLabel: "Ход проекта",
+    setup: "Бриф",
+    estimate: "Смета",
+    tender: "Тендер",
+    award: "Выбор",
+    delivery: "Работы",
+  },
   projectType: {
     renovation: "Ремонт",
     new_build: "Новое строительство",

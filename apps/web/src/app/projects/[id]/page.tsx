@@ -12,6 +12,7 @@ import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
 import { IntakeWizard } from '@/components/IntakeWizard';
 import { MetaSpecGrid } from '@/components/MetaSpecGrid';
 import { ProjectHero } from '@/components/ProjectHero';
+import { ProjectStageRail } from '@/components/ProjectStageRail';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
 import { ClientContractPanel, isContractProjectStatus } from '@/components/ClientContractPanel';
@@ -389,6 +390,8 @@ export default function ProjectDetailPage() {
                   : null
               }
             />
+
+            {isOwner && <ProjectStageRail status={project.status} />}
 
             <section className="card">
               <h2 className="section-title">{t('documents.title')}</h2>

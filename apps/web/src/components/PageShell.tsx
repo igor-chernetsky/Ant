@@ -4,10 +4,9 @@ export function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className="page-shell">
       <div className="page-bg-shapes" aria-hidden>
-        <span className="shape shape-1" />
-        <span className="shape shape-2" />
-        <span className="shape shape-3" />
-        <span className="shape shape-4" />
+        <div className="page-bg-grid" />
+        <div className="page-bg-steel-sheen" />
+        <div className="page-bg-accent-glow" />
       </div>
       {children}
     </div>
