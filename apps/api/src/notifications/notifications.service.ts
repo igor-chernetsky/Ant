@@ -474,6 +474,106 @@ export class NotificationsService {
     ]);
   }
 
+  async notifyContractTermsUpdated(params: {
+    recipientUserId: string;
+    recipientRole: 'client' | 'contractor';
+    editorRole: 'client' | 'contractor';
+    projectId: string;
+    projectTitle: string;
+  }): Promise<void> {
+    const editorLabel =
+      params.editorRole === 'client' ? 'The client' : 'The contractor';
+    const prefFlag =
+      params.recipientRole === 'client'
+        ? 'emailClientBidActivity'
+        : 'emailContractorUpdates';
+
+    await this.sendToUser({
+      userId: params.recipientUserId,
+      prefFlag,
+      kind: NotificationEmailKind.contract_terms_updated,
+      projectId: params.projectId,
+      subject: `Contract draft updated — ${params.projectTitle}`,
+      title: 'Contract draft was updated',
+      bodyHtml: `<p>${editorLabel} updated the commercial proposal / contract draft for <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Review the changes and adjust your terms if needed before signing.</p>`,
+      ctaHref:
+        params.recipientRole === 'client'
+          ? this.bidsUrl(params.projectId)
+          : this.projectUrl(params.projectId),
+      ctaLabel:
+        params.recipientRole === 'client' ? 'Review applications' : 'View project',
+      textBody: `${editorLabel} updated the contract draft for ${params.projectTitle}.`,
+    });
+  }
+
+  async notifyTenderResumed(params: {
+    contractorUserIds: string[];
+    projectId: string;
+    projectTitle: string;
+    district?: string | null;
+  }): Promise<void> {
+    const uniqueUserIds = [...new Set(params.contractorUserIds)];
+    if (uniqueUserIds.length === 0) return;
+
+    const locationPart = params.district
+      ? ` in ${escapeHtml(params.district)}`
+      : '';
+
+    for (const userId of uniqueUserIds) {
+      await this.sendToUser({
+        userId,
+        prefFlag: 'emailContractorUpdates',
+        kind: NotificationEmailKind.tender_resumed,
+        projectId: params.projectId,
+        subject: `Tender reopened — ${params.projectTitle}`,
+        title: 'Tender is open again',
+        bodyHtml: `<p>Contract negotiations for <strong>${escapeHtml(params.projectTitle)}</strong>${locationPart} ended without a signed agreement. The tender is open again — you can review the project and update your proposal.</p>`,
+        ctaHref: this.projectUrl(params.projectId),
+        ctaLabel: 'View project',
+        textBody: `Tender reopened for ${params.projectTitle}. Contract was not signed.`,
+      });
+    }
+  }
+
+  async notifyClientContractorWithdrewAward(params: {
+    clientUserId: string;
+    projectId: string;
+    projectTitle: string;
+    companyName: string;
+  }): Promise<void> {
+    await this.sendToUser({
+      userId: params.clientUserId,
+      prefFlag: 'emailClientBidActivity',
+      kind: NotificationEmailKind.client_contractor_withdrew_award,
+      projectId: params.projectId,
+      subject: `Contractor withdrew — ${params.projectTitle}`,
+      title: 'Selected contractor withdrew',
+      bodyHtml: `<p><strong>${escapeHtml(params.companyName)}</strong> withdrew before signing the contract for <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>The tender is open again. Other participants have been notified.</p>`,
+      ctaHref: this.bidsUrl(params.projectId),
+      ctaLabel: 'Review applications',
+      textBody: `${params.companyName} withdrew from ${params.projectTitle}. The tender is open again.`,
+    });
+  }
+
+  async notifyContractorAwardReleased(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+  }): Promise<void> {
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.contractor_award_released,
+      projectId: params.projectId,
+      subject: `Award released — ${params.projectTitle}`,
+      title: 'Client returned the project to tender',
+      bodyHtml: `<p>The client released your selection for <strong>${escapeHtml(params.projectTitle)}</strong> before the contract was fully signed.</p><p>The project is back in the tender phase.</p>`,
+      ctaHref: this.appUrl(),
+      ctaLabel: 'Browse projects',
+      textBody: `The client released your selection for ${params.projectTitle} before signing.`,
+    });
+  }
+
   async notifyContractorBidRejected(params: {
     contractorUserId: string;
     projectId: string;

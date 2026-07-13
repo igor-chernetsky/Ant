@@ -208,6 +208,9 @@ export interface ContractorProjectParticipation {
   canApply: boolean;
   canEnroll: boolean;
   canSubmitProposal: boolean;
+  canEditCommercialProposal: boolean;
+  canWithdrawFromAward: boolean;
+  contractFullySigned: boolean;
   canWithdraw: boolean;
   accessDenied: boolean;
   projectStatus: string;
@@ -386,6 +389,19 @@ export async function revertProjectTender(projectId: string): Promise<void> {
   }
 }
 
+export async function releaseAwardedContractor(
+  projectId: string,
+): Promise<Tender> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/release-award`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to release contractor');
+  }
+  return response.json() as Promise<Tender>;
+}
+
 export async function fetchClarificationQuestions(
   projectId: string,
 ): Promise<ClarificationQuestionsList> {
@@ -489,6 +505,24 @@ export async function updateBidContractTerms(
 ): Promise<Bid> {
   const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/contract-terms`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contractTerms }),
+    },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to update contract terms');
+  }
+  return response.json() as Promise<Bid>;
+}
+
+export async function updateContractorBidContractTerms(
+  bidId: string,
+  contractTerms: BidContractTerms,
+): Promise<Bid> {
+  const response = await fetchWithAuth(
+    `/api/contractor/bids/${encodeURIComponent(bidId)}/contract-terms`,
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

@@ -6,9 +6,15 @@ import {
   BidContractTermsFields,
   contractTermsFromBid,
   pickClientContractTerms,
+  pickContractorContractTerms,
+  type ContractTermsAudience,
 } from '@/components/BidContractTermsFields';
 import type { BidContractTerms } from '@/lib/tendering';
-import { updateBidContractTerms, type Bid } from '@/lib/tendering';
+import {
+  updateBidContractTerms,
+  updateContractorBidContractTerms,
+  type Bid,
+} from '@/lib/tendering';
 
 interface ClientCommercialProposalPanelProps {
   projectId: string;
@@ -16,6 +22,7 @@ interface ClientCommercialProposalPanelProps {
   projectTitle?: string;
   projectDistrict?: string | null;
   projectContractTerms?: BidContractTerms;
+  audience?: ContractTermsAudience;
   readOnly?: boolean;
   onBidUpdated?: (bid: Bid) => void;
 }
@@ -43,6 +50,7 @@ export function ClientCommercialProposalPanel({
   projectTitle,
   projectDistrict,
   projectContractTerms,
+  audience = 'client',
   readOnly = false,
   onBidUpdated,
 }: ClientCommercialProposalPanelProps) {
@@ -75,11 +83,14 @@ export function ClientCommercialProposalPanel({
     setError(null);
     setSaved(false);
     try {
-      const updated = await updateBidContractTerms(
-        projectId,
-        bid.id,
-        pickClientContractTerms(contractTerms),
-      );
+      const payload =
+        audience === 'client'
+          ? pickClientContractTerms(contractTerms)
+          : pickContractorContractTerms(contractTerms);
+      const updated =
+        audience === 'client'
+          ? await updateBidContractTerms(projectId, bid.id, payload)
+          : await updateContractorBidContractTerms(bid.id, payload);
       onBidUpdated?.(updated);
       setSaved(true);
     } catch (err: unknown) {
@@ -91,19 +102,21 @@ export function ClientCommercialProposalPanel({
     }
   };
 
+  const hintKey = readOnly
+    ? 'commercialProposal.readOnlyHint'
+    : audience === 'contractor'
+      ? 'commercialProposal.contractorEditableHint'
+      : 'commercialProposal.editableHint';
+
   return (
     <div className="client-commercial-proposal-panel">
       <h4 className="tender-subsection-title">{t('commercialProposal.termsTitle')}</h4>
-      <p className="muted client-commercial-proposal-hint">
-        {readOnly
-          ? t('commercialProposal.readOnlyHint')
-          : t('commercialProposal.editableHint')}
-      </p>
+      <p className="muted client-commercial-proposal-hint">{t(hintKey)}</p>
 
       <BidContractTermsFields
         value={contractTerms}
         onChange={setContractTerms}
-        audience="client"
+        audience={audience}
         projectTitle={projectTitle}
         projectDistrict={projectDistrict}
         disabled={busy || readOnly}
@@ -120,7 +133,9 @@ export function ClientCommercialProposalPanel({
             {busy ? t('common.saving') : t('commercialProposal.saveTerms')}
           </button>
           {saved && (
-            <p className="muted bid-contract-terms-download-hint">{t('commercialProposal.termsSaved')}</p>
+            <p className="muted bid-contract-terms-download-hint">
+              {t('commercialProposal.termsSaved')}
+            </p>
           )}
         </div>
       )}

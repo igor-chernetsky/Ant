@@ -8,6 +8,7 @@ import {
   Bid,
   BidStatus,
   ClarificationMode,
+  ContractStatus,
   ContractorProfile,
   Prisma,
   ProjectStatus,
@@ -739,6 +740,141 @@ export class TendersService {
     );
   }
 
+  async releaseAwardedContractor(
+    clientId: string,
+    projectId: string,
+  ): Promise<TenderResponse> {
+    await this.assertProjectOwner(projectId, clientId);
+    return this.revertAwardToTender(projectId, 'client');
+  }
+
+  private async revertAwardToTender(
+    projectId: string,
+    initiator: 'client' | 'contractor',
+  ): Promise<TenderResponse> {
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+      include: {
+        bids: { include: { contractor: true } },
+        project: { include: { contract: true } },
+      },
+    });
+
+    if (!tender) {
+      throw new NotFoundException('Tender not found');
+    }
+
+    if (tender.status !== TenderStatus.awarded || !tender.awardedBidId) {
+      throw new BadRequestException('Tender is not in the awarded phase');
+    }
+
+    const contract = tender.project.contract;
+    if (!contract) {
+      throw new BadRequestException('No contract draft exists for this project');
+    }
+
+    if (contract.status === ContractStatus.fully_signed) {
+      throw new BadRequestException(
+        'Cannot reopen tender after the contract is fully signed',
+      );
+    }
+
+    const awardedBid = tender.bids.find((b) => b.id === tender.awardedBidId);
+    if (!awardedBid) {
+      throw new NotFoundException('Awarded bid not found');
+    }
+
+    const formerSelectedUserId = awardedBid.contractor.userId;
+    const companyName = awardedBid.contractor.companyName ?? 'Contractor';
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.contract.delete({ where: { id: contract.id } });
+
+      if (initiator === 'contractor') {
+        await tx.bid.update({
+          where: { id: awardedBid.id },
+          data: { status: BidStatus.withdrawn },
+        });
+      } else {
+        await tx.bid.update({
+          where: { id: awardedBid.id },
+          data: { status: BidStatus.rejected },
+        });
+      }
+
+      await tx.bid.updateMany({
+        where: {
+          tenderId: tender.id,
+          status: BidStatus.rejected,
+          id: { not: awardedBid.id },
+        },
+        data: { status: BidStatus.submitted },
+      });
+
+      const nextTender = await tx.tender.update({
+        where: { id: tender.id },
+        data: {
+          status: TenderStatus.open,
+          awardedBidId: null,
+        },
+        include: this.includeTenderRelations(),
+      });
+
+      await tx.project.update({
+        where: { id: projectId },
+        data: { status: ProjectStatus.in_tender },
+      });
+
+      return nextTender;
+    });
+
+    const participantUserIds = updated.bids
+      .filter((bid) => {
+        if (bid.status === BidStatus.withdrawn) {
+          return false;
+        }
+        return (
+          bid.status === BidStatus.submitted ||
+          bid.status === BidStatus.enrolled ||
+          bid.status === BidStatus.clarifying
+        );
+      })
+      .map((bid) => bid.contractor.userId);
+
+    this.notifications.dispatch(
+      this.notifications.notifyTenderResumed({
+        contractorUserIds: participantUserIds,
+        projectId,
+        projectTitle: tender.project.title,
+        district: tender.project.district,
+      }),
+    );
+
+    if (initiator === 'contractor') {
+      this.notifications.dispatch(
+        this.notifications.notifyClientContractorWithdrewAward({
+          clientUserId: tender.project.clientId,
+          projectId,
+          projectTitle: tender.project.title,
+          companyName,
+        }),
+      );
+    } else {
+      this.notifications.dispatch(
+        this.notifications.notifyContractorAwardReleased({
+          contractorUserId: formerSelectedUserId,
+          projectId,
+          projectTitle: tender.project.title,
+        }),
+      );
+    }
+
+    return this.mapTender(
+      updated,
+      this.resolveProjectContractTerms(tender.project),
+    );
+  }
+
   async listApplicationsForContractor(
     userId: string,
   ): Promise<ContractorApplicationItem[]> {
@@ -874,6 +1010,12 @@ export class TendersService {
       clarificationMode !== ClarificationMode.structured_qa ||
       hasSubmittedClarificationQuestions;
 
+    const contract = await this.prisma.contract.findUnique({
+      where: { projectId },
+    });
+    const contractFullySigned =
+      contract?.status === ContractStatus.fully_signed;
+
     return {
       tenderId: tender?.id ?? null,
       tenderStatus: tender?.status ?? null,
@@ -905,6 +1047,13 @@ export class TendersService {
           (myBid.status === BidStatus.enrolled ||
             myBid.status === BidStatus.submitted),
       ),
+      canEditCommercialProposal: Boolean(
+        myBid?.status === BidStatus.selected && !contractFullySigned,
+      ),
+      canWithdrawFromAward: Boolean(
+        myBid?.status === BidStatus.selected && !contractFullySigned,
+      ),
+      contractFullySigned,
       canWithdraw: Boolean(
         (tenderOpen || tenderCollectingClarifications) &&
           myBid &&
@@ -1259,6 +1408,52 @@ export class TendersService {
     return merged;
   }
 
+  private mergeContractTermsForContractor(
+    existingTerms: BidTermsV1 | null,
+    incoming?: SubmitBidDto['contractTerms'],
+    projectTerms?: BidContractTerms,
+  ): SubmitBidDto['contractTerms'] {
+    const merged = this.mergeContractTerms(
+      existingTerms,
+      incoming,
+      projectTerms,
+    );
+    if (!merged) {
+      return merged;
+    }
+
+    const clientOnlyKeys: (keyof BidContractTerms)[] = [
+      'siteAddress',
+      'propertyOwnership',
+      'employerName',
+      'employerAddress',
+      'employerRegistrationNo',
+    ];
+
+    for (const key of clientOnlyKeys) {
+      const preserved =
+        existingTerms?.contractTerms?.[key] ?? projectTerms?.[key];
+      if (preserved !== undefined) {
+        (merged as Record<string, BidContractTerms[keyof BidContractTerms]>)[
+          key
+        ] = preserved;
+      }
+    }
+
+    return merged;
+  }
+
+  private async assertBidContractTermsEditable(bidId: string): Promise<void> {
+    const contract = await this.prisma.contract.findUnique({
+      where: { bidId },
+    });
+    if (contract?.status === ContractStatus.fully_signed) {
+      throw new BadRequestException(
+        'Contract is fully signed and can no longer be edited',
+      );
+    }
+  }
+
   async submitBid(
     userId: string,
     tenderId: string,
@@ -1391,6 +1586,8 @@ export class TendersService {
       );
     }
 
+    await this.assertBidContractTermsEditable(bidId);
+
     const existingTerms = (bid.termsJson as BidTermsV1 | null) ?? {};
     const projectTerms = this.resolveProjectContractTerms(project);
     const contractTerms = this.normalizeAndValidateContractTerms(
@@ -1410,6 +1607,78 @@ export class TendersService {
       include: { contractor: true },
     });
 
+    this.notifications.dispatch(
+      this.notifications.notifyContractTermsUpdated({
+        recipientUserId: updated.contractor.userId,
+        recipientRole: 'contractor',
+        editorRole: 'client',
+        projectId,
+        projectTitle: project.title,
+      }),
+    );
+
+    return this.mapBid(updated);
+  }
+
+  async updateBidContractTermsForContractor(
+    userId: string,
+    bidId: string,
+    dto: UpdateBidContractTermsDto,
+  ): Promise<BidResponse> {
+    const profile = await this.contractorProfiles.requireByUserId(userId);
+
+    const bid = await this.prisma.bid.findUnique({
+      where: { id: bidId },
+      include: {
+        contractor: true,
+        tender: { include: { project: true } },
+      },
+    });
+    if (!bid || bid.contractorId !== profile.id) {
+      throw new NotFoundException('Bid not found');
+    }
+
+    if (bid.status !== BidStatus.selected) {
+      throw new BadRequestException(
+        'Contract terms can be updated only for the selected bid',
+      );
+    }
+
+    await this.assertBidContractTermsEditable(bidId);
+
+    const existingTerms = (bid.termsJson as BidTermsV1 | null) ?? {};
+    const projectTerms = this.resolveProjectContractTerms(bid.tender.project);
+    const contractTerms = this.normalizeAndValidateContractTerms(
+      this.mergeContractTermsForContractor(
+        existingTerms,
+        dto.contractTerms,
+        projectTerms,
+      ),
+    );
+
+    const updatedTerms: BidTermsV1 = {
+      ...existingTerms,
+      contractTerms,
+    };
+
+    const updated = await this.prisma.bid.update({
+      where: { id: bidId },
+      data: {
+        termsJson: updatedTerms as unknown as Prisma.InputJsonValue,
+      },
+      include: { contractor: true },
+    });
+
+    this.notifications.dispatch(
+      this.notifications.notifyContractTermsUpdated({
+        recipientUserId: bid.tender.project.clientId,
+        recipientRole: 'client',
+        editorRole: 'contractor',
+        projectId: bid.tender.projectId,
+        projectTitle: bid.tender.project.title,
+      }),
+    );
+
     return this.mapBid(updated);
   }
 
@@ -1419,9 +1688,31 @@ export class TendersService {
 
     const project = await this.prisma.project.findUnique({
       where: { id: tender.projectId },
+      include: { contract: true },
     });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const selectedBid = tender.bids.find(
+      (b) =>
+        b.contractorId === profile.id && b.status === BidStatus.selected,
+    );
+    if (
+      selectedBid &&
+      tender.status === TenderStatus.awarded &&
+      project.contract?.status !== ContractStatus.fully_signed
+    ) {
+      await this.revertAwardToTender(tender.projectId, 'contractor');
+      const withdrawn = await this.prisma.bid.findUniqueOrThrow({
+        where: { id: selectedBid.id },
+        include: { contractor: true },
+      });
+      return this.mapBid(withdrawn);
+    }
+
     const structuredClarification =
-      project?.clarificationMode === ClarificationMode.structured_qa;
+      project.clarificationMode === ClarificationMode.structured_qa;
     const withdrawalAllowed =
       tender.status === TenderStatus.open ||
       (tender.status === TenderStatus.draft && structuredClarification);

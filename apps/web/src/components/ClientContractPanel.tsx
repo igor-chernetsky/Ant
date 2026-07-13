@@ -96,6 +96,11 @@ export function ClientContractPanel({
           hideHeading
           contract={contract}
           onSigned={handleSigned}
+          onAwardReleased={() => {
+            void loadTender();
+            void loadContract();
+            onProjectUpdated?.(project);
+          }}
         />
       ) : null}
     </section>

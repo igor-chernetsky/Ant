@@ -87,6 +87,15 @@ export class ProjectTenderController {
     await this.tendersService.revertTenderToEstimated(user.id, projectId);
   }
 
+  @Post('release-award')
+  async releaseAward(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.tendersService.releaseAwardedContractor(user.id, projectId);
+  }
+
   @Patch('deadline')
   async updateTenderDeadline(
     @Req() req: Request & { user: JwtPayload },

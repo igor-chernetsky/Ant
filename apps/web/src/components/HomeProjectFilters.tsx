@@ -78,6 +78,8 @@ export function HomeProjectFilters({
 
   const advancedCount =
     filters.tags.length +
+    filters.services.length +
+    filters.propertyOwnership.length +
     filters.statuses.filter(
       (status) => !PRIMARY_STATUS_VALUES.some((value) => value === status),
     ).length;
@@ -306,55 +308,7 @@ export function HomeProjectFilters({
         </div>
       </div>
 
-      <div className="project-filters-services">
-        <div className="project-filters-advanced-group">
-          <p className="project-filters-group-label">{t('filters.serviceType')}</p>
-          <div className="project-filters-chips project-filters-chips-wrap">
-            {SERVICE_FILTER_GROUPS[0].slugs.map(renderServiceChip)}
-          </div>
-        </div>
-
-        <div className="project-filters-advanced-group">
-          <p className="project-filters-group-label">
-            {t('filters.newConstruction')}
-          </p>
-          <div className="project-filters-chips project-filters-chips-wrap">
-            {SERVICE_FILTER_GROUPS[1].slugs.map(renderServiceChip)}
-          </div>
-        </div>
-
-        <div className="project-filters-advanced-group">
-          <p className="project-filters-group-label">{t('filters.design')}</p>
-          <div className="project-filters-chips project-filters-chips-wrap">
-            {SERVICE_FILTER_GROUPS[2].slugs.map(renderServiceChip)}
-          </div>
-        </div>
-
-        <div className="project-filters-advanced-group">
-          <p className="project-filters-group-label">
-            {t('filters.propertyOwnership')}
-          </p>
-          <div className="project-filters-chips project-filters-chips-wrap">
-            {PROPERTY_OWNERSHIP_FILTER_SLUGS.map((slug) => {
-              const active = filters.propertyOwnership.includes(slug);
-              return (
-                <button
-                  key={slug}
-                  type="button"
-                  className={`filter-chip${active ? ' filter-chip-active' : ''}`}
-                  aria-pressed={active}
-                  onClick={() => toggleOwnership(slug)}
-                >
-                  {t(ownershipFilterI18nKey(slug))}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {(visibleSecondaryStatuses.length > 0 || tags.length > 0) && (
-        <details className="project-filters-advanced">
+      <details className="project-filters-advanced">
           <summary className="project-filters-advanced-summary">
             <span>{t('filters.moreFilters')}</span>
             {advancedCount > 0 && (
@@ -364,6 +318,53 @@ export function HomeProjectFilters({
             )}
           </summary>
           <div className="project-filters-advanced-body">
+            <div className="project-filters-advanced-group">
+              <p className="project-filters-group-label">
+                {t('filters.serviceType')}
+              </p>
+              <div className="project-filters-chips project-filters-chips-wrap">
+                {SERVICE_FILTER_GROUPS[0].slugs.map(renderServiceChip)}
+              </div>
+            </div>
+
+            <div className="project-filters-advanced-group">
+              <p className="project-filters-group-label">
+                {t('filters.newConstruction')}
+              </p>
+              <div className="project-filters-chips project-filters-chips-wrap">
+                {SERVICE_FILTER_GROUPS[1].slugs.map(renderServiceChip)}
+              </div>
+            </div>
+
+            <div className="project-filters-advanced-group">
+              <p className="project-filters-group-label">{t('filters.design')}</p>
+              <div className="project-filters-chips project-filters-chips-wrap">
+                {SERVICE_FILTER_GROUPS[2].slugs.map(renderServiceChip)}
+              </div>
+            </div>
+
+            <div className="project-filters-advanced-group">
+              <p className="project-filters-group-label">
+                {t('filters.propertyOwnership')}
+              </p>
+              <div className="project-filters-chips project-filters-chips-wrap">
+                {PROPERTY_OWNERSHIP_FILTER_SLUGS.map((slug) => {
+                  const active = filters.propertyOwnership.includes(slug);
+                  return (
+                    <button
+                      key={slug}
+                      type="button"
+                      className={`filter-chip${active ? ' filter-chip-active' : ''}`}
+                      aria-pressed={active}
+                      onClick={() => toggleOwnership(slug)}
+                    >
+                      {t(ownershipFilterI18nKey(slug))}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {visibleSecondaryStatuses.length > 0 && (
               <div className="project-filters-advanced-group">
                 <p className="project-filters-group-label">
@@ -416,7 +417,6 @@ export function HomeProjectFilters({
             )}
           </div>
         </details>
-      )}
 
       {activePills.length > 0 && (
         <div

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
+import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidOfferSummary } from '@/components/BidOfferSummary';
@@ -11,6 +12,7 @@ import { ContractorClarificationAttachments } from '@/components/ContractorClari
 import { useTranslation } from '@/components/LocaleProvider';
 import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import {
   fetchBidCounterOffers,
   fetchContractorProjectParticipation,
@@ -72,6 +74,7 @@ export function ContractorProjectPanel({
     formatVerificationStatus,
   } = useAppFormatters();
   const { me } = useSession();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [participation, setParticipation] =
     useState<ContractorProjectParticipation | null>(null);
   const [counterOffers, setCounterOffers] = useState<BidOffer[]>([]);
@@ -172,6 +175,27 @@ export function ContractorProjectPanel({
     }
   };
 
+  const handleWithdrawFromAward = async () => {
+    if (!participation?.tenderId) return;
+    const confirmed = await confirm({
+      title: t('confirm.withdrawAwardTitle'),
+      message: t('confirm.withdrawAwardMessage'),
+      confirmLabel: t('confirm.withdrawAwardLabel'),
+    });
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      await withdrawContractorBid(participation.tenderId);
+      await loadParticipation();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('contractor.withdrawFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <section className="card contractor-project-card">
@@ -212,6 +236,9 @@ export function ContractorProjectPanel({
     (inClarification || enrolled) &&
     !submitted &&
     !selected;
+  const showOpenChat =
+    !structuredQa && (inClarification || enrolled || submitted);
+  const showPostAwardChat = selected && structuredQa;
   const latestClientOffer = latestClientCounterOffer(counterOffers);
   const appliedCounterOffer =
     appliedCounterOfferId != null
@@ -328,9 +355,13 @@ export function ContractorProjectPanel({
         </div>
       )}
 
-      {myBid && (inClarification || enrolled || submitted) && me?.id && (
+      {myBid &&
+        me?.id &&
+        (inClarification || enrolled || submitted || selected) && (
         <div className="tender-subsection">
-          {structuredQa && inClarification && participation.tenderCollectingClarifications ? (
+          {structuredQa &&
+          inClarification &&
+          participation.tenderCollectingClarifications ? (
             <>
               <h3 className="tender-subsection-title">
                 {t('contractor.yourQuestionList')}
@@ -356,7 +387,7 @@ export function ContractorProjectPanel({
                   </p>
                 )}
             </>
-          ) : !structuredQa ? (
+          ) : showOpenChat || showPostAwardChat ? (
             <>
               <h3 className="tender-subsection-title">
                 {t('contractor.discussionWithClient')}
@@ -437,6 +468,39 @@ export function ContractorProjectPanel({
             bidId={myBid.id}
             asContractor
             onSigned={() => void loadParticipation()}
+            onAwardReleased={() => void loadParticipation()}
+          />
+          {participation.canWithdrawFromAward && (
+            <div className="participation-actions">
+              <p className="muted participation-actions-hint">
+                {t('contractor.withdrawFromAwardHint')}
+              </p>
+              <div className="participation-toolbar">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => void handleWithdrawFromAward()}
+                >
+                  {t('contractor.withdrawFromAward')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {participation.canEditCommercialProposal && myBid && (
+        <div className="tender-subsection">
+          <ClientCommercialProposalPanel
+            projectId={projectId}
+            bid={myBid}
+            audience="contractor"
+            projectTitle={projectTitle}
+            projectDistrict={projectDistrict}
+            projectContractTerms={participation.projectContractTerms}
+            readOnly={participation.contractFullySigned}
+            onBidUpdated={() => void loadParticipation()}
           />
         </div>
       )}
@@ -469,6 +533,7 @@ export function ContractorProjectPanel({
       )}
 
       {error && <p className="form-error contractor-participation-error">{error}</p>}
+      {confirmDialog}
     </section>
   );
 }

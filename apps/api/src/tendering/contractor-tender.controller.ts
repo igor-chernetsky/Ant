@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -24,6 +25,7 @@ import {
   SendBidMessageDto,
   SubmitBidDto,
   SubmitBidClarificationQuestionsDto,
+  UpdateBidContractTermsDto,
   UpsertContractorProfileDto,
 } from './tendering.types';
 import { TenderClarificationsService } from './tender-clarifications.service';
@@ -124,6 +126,20 @@ export class ContractorTenderController {
   ) {
     const user = await this.resolveUser(req);
     await this.bidMessages.touchPresence(user.id, bidId);
+  }
+
+  @Patch('bids/:bidId/contract-terms')
+  async updateBidContractTerms(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('bidId') bidId: string,
+    @Body() body: UpdateBidContractTermsDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.tendersService.updateBidContractTermsForContractor(
+      user.id,
+      bidId,
+      body,
+    );
   }
 
   @Get('bids/:bidId/commercial-proposal/attachments-count')

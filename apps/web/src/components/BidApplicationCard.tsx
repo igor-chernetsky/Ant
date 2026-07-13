@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { formatThb } from '@/lib/estimate';
+import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
 import { BidChat } from '@/components/BidChat';
 import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
 import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
@@ -52,6 +53,7 @@ export function BidApplicationCard({
 }: BidApplicationCardProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [contract, setContract] = useState<ProjectContract | null>(null);
   const isOpen = expanded;
   const amount = bid.amount != null ? Number(bid.amount) : null;
   const delta =
@@ -62,6 +64,36 @@ export function BidApplicationCard({
   const canSelect =
     (tenderStatus === 'open' || tenderStatus === 'closed') &&
     bid.status === 'submitted';
+
+  const contractReadOnly = contract?.fullySigned ?? false;
+
+  const showBidChat =
+    Boolean(currentUserId) &&
+    (clarificationMode === 'open_chat' ||
+      (clarificationMode === 'structured_qa' && bid.status === 'selected'));
+
+  useEffect(() => {
+    if (bid.status !== 'selected') {
+      setContract(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await fetchProjectContract(projectId);
+        if (!cancelled) {
+          setContract(data);
+        }
+      } catch {
+        if (!cancelled) {
+          setContract(null);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bid.status, projectId]);
 
   const headerContent = (
     <>
@@ -140,14 +172,15 @@ export function BidApplicationCard({
             (bid.status === 'submitted' ||
               bid.status === 'selected' ||
               bid.status === 'rejected') &&
-            (tenderStatus !== 'awarded' || bid.status === 'selected') && (
+            (tenderStatus !== 'awarded' || bid.status === 'selected') &&
+            !contractReadOnly && (
               <ClientCommercialProposalPanel
                 projectId={clientCounterOffer.projectId}
                 bid={bid}
                 projectTitle={clientCounterOffer.projectTitle}
                 projectDistrict={clientCounterOffer.projectDistrict}
                 projectContractTerms={clientCounterOffer.projectContractTerms}
-                readOnly={tenderStatus === 'awarded'}
+                readOnly={contractReadOnly}
                 onBidUpdated={clientCounterOffer.onBidUpdated}
               />
             )}
@@ -157,7 +190,12 @@ export function BidApplicationCard({
               <ContractSigningPanel
                 projectId={projectId}
                 bidId={bid.id}
-                onSigned={() => onContractSigned?.()}
+                contract={contract}
+                onSigned={(updated) => {
+                  setContract(updated);
+                  onContractSigned?.();
+                }}
+                onAwardReleased={() => onContractSigned?.()}
               />
             </div>
           )}
@@ -175,11 +213,11 @@ export function BidApplicationCard({
             )}
           </div>
 
-          {currentUserId && clarificationMode === 'open_chat' && (
+          {showBidChat && (
             <BidChat
               bidId={bid.id}
               projectId={projectId}
-              currentUserId={currentUserId}
+              currentUserId={currentUserId!}
               title={t('bidApplication.chatWith', {
                 name: bid.companyName ?? t('common.contractor'),
               })}

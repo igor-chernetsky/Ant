@@ -172,6 +172,10 @@ enum NotificationEmailKind {
   contractor_tender_opened
   contract_party_signed
   contract_fully_signed
+  contract_terms_updated
+  tender_resumed
+  client_contractor_withdrew_award
+  contractor_award_released
   contractor_verification_approved
   contractor_verification_rejected
 }

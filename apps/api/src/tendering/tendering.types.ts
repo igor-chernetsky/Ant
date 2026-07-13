@@ -199,6 +199,9 @@ export interface ContractorProjectParticipation {
   canApply: boolean;
   canEnroll: boolean;
   canSubmitProposal: boolean;
+  canEditCommercialProposal: boolean;
+  canWithdrawFromAward: boolean;
+  contractFullySigned: boolean;
   canWithdraw: boolean;
   accessDenied: boolean;
   projectStatus: string;

@@ -12,6 +12,7 @@ import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPil
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { releaseAwardedContractor } from '@/lib/tendering';
 
 interface ContractSigningPanelProps {
   projectId: string;
@@ -20,6 +21,7 @@ interface ContractSigningPanelProps {
   hideHeading?: boolean;
   contract?: ProjectContract | null;
   onSigned?: (contract: ProjectContract) => void;
+  onAwardReleased?: () => void;
 }
 
 export function ContractSigningPanel({
@@ -29,6 +31,7 @@ export function ContractSigningPanel({
   hideHeading = false,
   contract: contractProp = null,
   onSigned,
+  onAwardReleased,
 }: ContractSigningPanelProps) {
   const { t } = useTranslation();
   const { getContractSigningMessage } = useAppFormatters();
@@ -86,6 +89,29 @@ export function ContractSigningPanel({
     }
   };
 
+  const handleReleaseAward = async () => {
+    const confirmed = await confirm({
+      title: t('confirm.releaseAwardTitle'),
+      message: t('confirm.releaseAwardMessage'),
+      confirmLabel: t('confirm.releaseAwardLabel'),
+    });
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      await releaseAwardedContractor(projectId);
+      setContract(null);
+      onAwardReleased?.();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('contractPanel.releaseFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return <p className="muted">{t('contractPanel.loading')}</p>;
   }
@@ -126,7 +152,11 @@ export function ContractSigningPanel({
           <CommercialProposalDownload
             bidId={bidId}
             projectId={asContractor ? undefined : projectId}
-            label={t('commercialProposal.downloadDraft')}
+            label={
+              contract.fullySigned
+                ? t('commercialProposal.downloadSigned')
+                : t('commercialProposal.downloadDraft')
+            }
             className="secondary"
             inline
           />
@@ -140,6 +170,16 @@ export function ContractSigningPanel({
               {busy
                 ? t('contractPanel.signing')
                 : t('contractPanel.signContract')}
+            </button>
+          )}
+          {!contract.fullySigned && !asContractor && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => void handleReleaseAward()}
+            >
+              {t('contractPanel.releaseContractor')}
             </button>
           )}
         </div>
