@@ -16,6 +16,11 @@ import {
   catalogSummaryForPrompt,
 } from './regional-catalog';
 import { ProjectBriefV1 } from '../projects/project-brief';
+import {
+  buildEstimateScopeRules,
+  buildEstimateUserContext,
+  filterEstimateLines,
+} from './estimate-scope.utils';
 
 const DISCLAIMER =
   'Ballpark estimate only — not a binding quote. Final pricing requires site visit and detailed scope review.';
@@ -65,31 +70,22 @@ export class BallparkEstimateService {
       input.locale && isSupportedLocale(input.locale)
         ? localeLanguageName(input.locale)
         : localeLanguageName(DEFAULT_LOCALE);
+    const scopeRules = buildEstimateScopeRules(
+      input.projectType,
+      input.propertyType,
+    );
     const system = `You produce ballpark construction cost estimates for Thailand (THB).
 Return JSON: { lines, totals, confidence, disclaimer }.
 Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lineMin, lineMax }.
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
 Use regional reference prices as guidance only. Be conservative with ranges.
-Include 3-12 lines covering inferred scope. confidence 0-1.
-Write description and disclaimer fields in ${lang}.`;
+Include 3-12 lines covering confirmed scope only. confidence 0-1.
+Write description and disclaimer fields in ${lang}.
+Scope rules:
+${scopeRules}`;
 
     const user = JSON.stringify({
-      project: {
-        title: input.title,
-        description: input.description,
-        projectType: input.projectType,
-        propertyType: input.propertyType,
-        district: input.district,
-        regionCode: input.regionCode,
-        tags: input.tagSlugs,
-      },
-      brief: {
-        summary: input.brief.summary,
-        packages: input.brief.packages,
-        property: input.brief.property,
-        materials: input.brief.materials,
-        design: input.brief.design,
-      },
+      ...buildEstimateUserContext(input),
       regionalCatalog: catalogSummaryForPrompt(),
     });
 
@@ -102,7 +98,7 @@ Write description and disclaimer fields in ${lang}.`;
         },
         body: JSON.stringify({
           model: this.model,
-          temperature: 0.3,
+          temperature: 0.15,
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: system },
@@ -123,7 +119,10 @@ Write description and disclaimer fields in ${lang}.`;
       const content = payload.choices?.[0]?.message?.content;
       if (!content) return null;
 
-      return this.normalizeResult(JSON.parse(content) as Record<string, unknown>);
+      return this.normalizeResult(
+        JSON.parse(content) as Record<string, unknown>,
+        input,
+      );
     } catch (err) {
       this.logger.warn(
         `Estimate failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -135,6 +134,8 @@ Write description and disclaimer fields in ${lang}.`;
   private generateFallback(input: {
     title: string;
     description: string | null;
+    projectType: string;
+    propertyType: string | null;
     tagSlugs: string[];
     brief: ProjectBriefV1;
   }): BallparkEstimateResult {
@@ -192,7 +193,19 @@ Write description and disclaimer fields in ${lang}.`;
       });
     }
 
-    const totals = computeTotals(lines);
+    const filteredLines = filterEstimateLines({
+      lines,
+      projectType: input.projectType,
+      propertyType: input.propertyType,
+      description: input.description,
+      brief: input.brief,
+    });
+    const safeLines =
+      filteredLines.length > 0
+        ? filteredLines
+        : lines.filter((line) => line.trade !== 'elevator');
+
+    const totals = computeTotals(safeLines);
     const textLen = (input.description ?? '').length;
     const confidence = Math.min(
       0.65,
@@ -202,7 +215,7 @@ Write description and disclaimer fields in ${lang}.`;
     );
 
     return {
-      lines,
+      lines: safeLines,
       totals,
       confidence,
       disclaimer: DISCLAIMER,
@@ -210,8 +223,16 @@ Write description and disclaimer fields in ${lang}.`;
     };
   }
 
-  private normalizeResult(raw: Record<string, unknown>): BallparkEstimateResult {
-    const lines = Array.isArray(raw.lines)
+  private normalizeResult(
+    raw: Record<string, unknown>,
+    input: {
+      projectType: string;
+      propertyType: string | null;
+      description: string | null;
+      brief: ProjectBriefV1;
+    },
+  ): BallparkEstimateResult {
+    const rawLines = Array.isArray(raw.lines)
       ? raw.lines
           .filter((l): l is Record<string, unknown> => !!l && typeof l === 'object')
           .map((l) => ({
@@ -227,19 +248,29 @@ Write description and disclaimer fields in ${lang}.`;
           .filter((l) => l.description.length > 0)
       : [];
 
+    const lines = filterEstimateLines({
+      lines: rawLines,
+      projectType: input.projectType,
+      propertyType: input.propertyType,
+      description: input.description,
+      brief: input.brief,
+    });
+
     const rawTotals = raw.totals as Record<string, unknown> | undefined;
     const totals: EstimateTotals =
-      rawTotals && typeof rawTotals === 'object'
-        ? {
-            minAmount: Math.round(Number(rawTotals.minAmount) || 0),
-            maxAmount: Math.round(Number(rawTotals.maxAmount) || 0),
-            midAmount: Math.round(
-              Number(rawTotals.midAmount) ||
-                (Number(rawTotals.minAmount) + Number(rawTotals.maxAmount)) / 2,
-            ),
-            currency: String(rawTotals.currency ?? 'THB'),
-          }
-        : computeTotals(lines);
+      lines.length > 0
+        ? computeTotals(lines)
+        : rawTotals && typeof rawTotals === 'object'
+          ? {
+              minAmount: Math.round(Number(rawTotals.minAmount) || 0),
+              maxAmount: Math.round(Number(rawTotals.maxAmount) || 0),
+              midAmount: Math.round(
+                Number(rawTotals.midAmount) ||
+                  (Number(rawTotals.minAmount) + Number(rawTotals.maxAmount)) / 2,
+              ),
+              currency: String(rawTotals.currency ?? 'THB'),
+            }
+          : computeTotals(lines);
 
     return {
       lines,

@@ -106,6 +106,14 @@ export class OpenAiIntakeService {
 - Never use "info" type. Never ask the user to upload plans, photos, or documents — the UI shows a static reminder instead.`;
   }
 
+  private buildingSystemsIntakeRules(): string {
+    return `For new_build, extension, or commercial_fitout:
+- Ask about storey count and special systems (elevator/lift, pool, basement, smart home) when not already clear from description or uploadedDocuments
+- Use question ids "storey-count" and "special-systems" when asking these topics (multi-select for special-systems)
+- Do not assume elevators, podium works, or commercial-scale MEP for house/apartment projects unless explicitly confirmed
+- If a major system is uncertain, ask before the estimate is finalized — do not guess`;
+  }
+
   private documentContextRules(): string {
     return `When uploadedDocuments is non-empty:
 - Treat summaries, keyFacts, and scopeLines as facts already known about the project
@@ -125,6 +133,8 @@ export class OpenAiIntakeService {
       improvedDescription: context.improvedDescription,
       allowedTagSlugs: context.availableTagSlugs,
       uploadedDocuments: context.documents ?? [],
+      previousAnswers: context.answers,
+      askedQuestionIds: context.askedQuestionIds ?? [],
     };
   }
 
@@ -141,7 +151,8 @@ Rules:
 - confidence: 0-1
 - nextQuestion: first follow-up question to clarify scope, or null if nothing needed
 - Ask at most ONE question in nextQuestion
-- Prefer practical construction questions (area, timeline, materials)
+- Prefer practical construction questions (area, timeline, materials, storeys, special systems)
+${this.buildingSystemsIntakeRules()}
 ${this.documentContextRules()}`;
 
     const user = JSON.stringify(this.serializeContextForPrompt(context));
@@ -198,6 +209,7 @@ Rules:
 - Never ask about uploading plans, photos, or documents
 - Adapt next question based on previous answers and uploadedDocuments
 - improvedDescription: optionally refine project description with new facts from answers or documents
+${this.buildingSystemsIntakeRules()}
 ${this.documentContextRules()}`;
 
     const user = JSON.stringify({
