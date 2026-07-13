@@ -165,6 +165,18 @@ export function contractTermsFromBid(
       existing.employerRegistrationNo?.trim() ||
       projectDefaults.employerRegistrationNo?.trim() ||
       undefined,
+    contractorAddress:
+      existing.contractorAddress?.trim() ||
+      projectDefaults.contractorAddress?.trim() ||
+      undefined,
+    contractorRegistrationNo:
+      existing.contractorRegistrationNo?.trim() ||
+      projectDefaults.contractorRegistrationNo?.trim() ||
+      undefined,
+    contractorRepresentative:
+      existing.contractorRepresentative?.trim() ||
+      projectDefaults.contractorRepresentative?.trim() ||
+      undefined,
   };
 }
 

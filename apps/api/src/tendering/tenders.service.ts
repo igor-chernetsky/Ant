@@ -1390,9 +1390,26 @@ export class TendersService {
       'employerAddress',
       'employerRegistrationNo',
     ];
+    const contractorOnlyKeys: (keyof BidContractTerms)[] = [
+      'subjectOfContract',
+      'contractorAddress',
+      'contractorRegistrationNo',
+      'contractorRepresentative',
+    ];
 
     if (incoming) {
       for (const key of clientOnlyKeys) {
+        if (incoming[key] === undefined) {
+          const preserved =
+            existingTerms?.contractTerms?.[key] ?? projectTerms?.[key];
+          if (preserved !== undefined) {
+            (merged as Record<string, BidContractTerms[keyof BidContractTerms]>)[
+              key
+            ] = preserved;
+          }
+        }
+      }
+      for (const key of contractorOnlyKeys) {
         if (incoming[key] === undefined) {
           const preserved =
             existingTerms?.contractTerms?.[key] ?? projectTerms?.[key];
@@ -1429,8 +1446,24 @@ export class TendersService {
       'employerAddress',
       'employerRegistrationNo',
     ];
+    const contractorOnlyKeys: (keyof BidContractTerms)[] = [
+      'subjectOfContract',
+      'contractorAddress',
+      'contractorRegistrationNo',
+      'contractorRepresentative',
+    ];
 
     for (const key of clientOnlyKeys) {
+      const preserved =
+        existingTerms?.contractTerms?.[key] ?? projectTerms?.[key];
+      if (preserved !== undefined) {
+        (merged as Record<string, BidContractTerms[keyof BidContractTerms]>)[
+          key
+        ] = preserved;
+      }
+    }
+
+    for (const key of contractorOnlyKeys) {
       const preserved =
         existingTerms?.contractTerms?.[key] ?? projectTerms?.[key];
       if (preserved !== undefined) {
