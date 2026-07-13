@@ -117,6 +117,26 @@ export default function ProjectDetailPage() {
     const profile = me;
     setAuthState(profile ? 'authenticated' : 'guest');
 
+    const loadParticipantView = async (): Promise<boolean> => {
+      if (!profile || !isContractorUser(profile)) {
+        return false;
+      }
+      try {
+        const participantProject =
+          await fetchContractorParticipantProject(projectId);
+        setProject(participantProject);
+        setIsOwner(false);
+        await loadDocuments(false);
+        setPageReady(true);
+        return true;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'NOT_FOUND') {
+          return false;
+        }
+        throw err;
+      }
+    };
+
     try {
       if (profile) {
         try {
@@ -137,43 +157,23 @@ export default function ProjectDetailPage() {
         }
       }
 
-      const data = await fetchPublicProject(projectId);
-      setProject(data);
-      setIsOwner(false);
-      await loadDocuments(false);
-      setPageReady(true);
-    } catch (err: unknown) {
-      if (
-        err instanceof Error &&
-        err.message === 'NOT_FOUND' &&
-        profile &&
-        isContractorUser(profile)
-      ) {
-        try {
-          const participantProject =
-            await fetchContractorParticipantProject(projectId);
-          setProject(participantProject);
-          setIsOwner(false);
-          await loadDocuments(false);
-          setPageReady(true);
-          return;
-        } catch (participantErr: unknown) {
-          if (
-            participantErr instanceof Error &&
-            participantErr.message === 'NOT_FOUND'
-          ) {
-            setError(t('projectDetail.projectNotFound'));
-          } else {
-            setError(
-              participantErr instanceof Error
-                ? participantErr.message
-                : t('projectDetail.loadFailed'),
-            );
-          }
-          setPageReady(true);
+      if (await loadParticipantView()) {
+        return;
+      }
+
+      try {
+        const data = await fetchPublicProject(projectId);
+        setProject(data);
+        setIsOwner(false);
+        await loadDocuments(false);
+        setPageReady(true);
+      } catch (publicErr: unknown) {
+        if (await loadParticipantView()) {
           return;
         }
+        throw publicErr;
       }
+    } catch (err: unknown) {
       if (err instanceof Error && err.message === 'NOT_FOUND') {
         setError(t('projectDetail.projectNotFound'));
       } else {

@@ -594,8 +594,21 @@ export class ProjectsService {
       },
     });
 
-    if (!project || !isPubliclyDiscoverable(project)) {
+    if (!project || !isPubliclyViewable(project.status)) {
       throw new NotFoundException('Project not found');
+    }
+
+    if (!isPubliclyDiscoverable(project)) {
+      const participantProjectIds = userId
+        ? await this.loadParticipantProjectIds(userId)
+        : new Set<string>();
+      if (
+        !userId ||
+        (project.clientId !== userId &&
+          !participantProjectIds.has(project.id))
+      ) {
+        throw new NotFoundException('Project not found');
+      }
     }
 
     if (
@@ -640,7 +653,7 @@ export class ProjectsService {
       include: this.includeTags(),
     });
 
-    if (!project || !isPubliclyViewable(project.status) || project.isHidden) {
+    if (!project || !isPubliclyViewable(project.status)) {
       throw new NotFoundException('Project not found');
     }
 

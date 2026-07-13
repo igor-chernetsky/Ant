@@ -145,6 +145,13 @@ export async function proxyBackendJson(
     return attachRefreshedCookies(response, refreshed);
   }
 
+  return buildJsonProxyResponse(backendResponse, refreshed);
+}
+
+async function buildJsonProxyResponse(
+  backendResponse: Response,
+  refreshed?: KeycloakTokenResponse,
+): Promise<NextResponse> {
   const text = await backendResponse.text();
   let body: unknown = text;
   try {
@@ -161,4 +168,56 @@ export async function proxyBackendJson(
   }
 
   return attachRefreshedCookies(response, refreshed);
+}
+
+/** Proxy with optional auth — for public API routes that accept anonymous or JWT. */
+export async function proxyOptionalBackendJson(
+  path: string,
+  init?: RequestInit,
+): Promise<NextResponse> {
+  try {
+    const apiUrl = getBackendApiUrl();
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+    };
+    if (init?.headers) {
+      const extra = new Headers(init.headers);
+      extra.forEach((value, key) => {
+        headers[key] = value;
+      });
+    }
+
+    let refreshed: KeycloakTokenResponse | undefined;
+    const auth = await getValidAccessToken();
+    if (auth.ok) {
+      headers.Authorization = `Bearer ${auth.accessToken}`;
+      refreshed = auth.refreshed;
+    }
+
+    let backendResponse = await fetch(`${apiUrl}${path}`, {
+      ...init,
+      headers,
+      cache: 'no-store',
+    });
+
+    if (auth.ok && backendResponse.status === 401) {
+      const retryAuth = await refreshAccessTokenAfterUnauthorized();
+      if (retryAuth.ok) {
+        headers.Authorization = `Bearer ${retryAuth.accessToken}`;
+        refreshed = retryAuth.refreshed ?? refreshed;
+        backendResponse = await fetch(`${apiUrl}${path}`, {
+          ...init,
+          headers,
+          cache: 'no-store',
+        });
+      }
+    }
+
+    return buildJsonProxyResponse(backendResponse, refreshed);
+  } catch {
+    return NextResponse.json(
+      { message: 'Unable to reach API server' },
+      { status: 502 },
+    );
+  }
 }
