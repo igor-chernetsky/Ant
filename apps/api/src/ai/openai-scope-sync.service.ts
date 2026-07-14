@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { localeLanguageName } from '../localization/locale.utils';
 import { DEFAULT_LOCALE, isSupportedLocale } from '../users/locale.types';
+import { TAG_NO_HALLUCINATION_RULES } from '../projects/project-tag-reconciliation';
 import { ScopeSyncContext, ScopeSyncResult } from '../projects/scope-sync.types';
 
 @Injectable()
@@ -44,7 +45,9 @@ Rules:
 - tagSlugs: subset of allowed tags only.
 - confidence: 0-1.
 - briefPatches may include constraints, property, timeline, materials when relevant.
-- Write updatedDescription, updatedSummary, and updatedScopeSummary in ${language}.`;
+- Write updatedDescription, updatedSummary, and updatedScopeSummary in ${language}.
+- Keep ${language} throughout — do not translate existing Russian/Thai/English content into another language.
+${TAG_NO_HALLUCINATION_RULES}`;
 
     const user = JSON.stringify({
       project: {

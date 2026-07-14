@@ -9,7 +9,7 @@ import { normalizeSourceLocale } from '../localization/locale.utils';
 import { ProjectBriefV1 } from '../projects/project-brief';
 import { BallparkEstimateService } from './ballpark-estimate.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
-import { EstimateResponse } from './estimates.types';
+import { EstimateLine, EstimateResponse } from './estimates.types';
 
 @Injectable()
 export class EstimatesService {
@@ -72,6 +72,14 @@ export class EstimatesService {
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
     const tagSlugs = project.tags.map((pt) => pt.tag.slug);
 
+    const previousEstimate = await this.prisma.estimate.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: 'desc' },
+    });
+    const previousLines = Array.isArray(previousEstimate?.linesJson)
+      ? (previousEstimate.linesJson as unknown as EstimateLine[])
+      : [];
+
     const result = await this.ballpark.generate({
       title: project.title,
       description: project.description,
@@ -82,6 +90,7 @@ export class EstimatesService {
       tagSlugs,
       brief,
       locale: normalizeSourceLocale(project.sourceLocale),
+      previousLines,
     });
 
     const record = await this.prisma.estimate.create({

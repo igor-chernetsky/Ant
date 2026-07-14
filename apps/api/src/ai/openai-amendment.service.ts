@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { localeLanguageName } from '../localization/locale.utils';
+import { DEFAULT_LOCALE, isSupportedLocale } from '../users/locale.types';
+import { TAG_NO_HALLUCINATION_RULES } from '../projects/project-tag-reconciliation';
 import { AmendmentAiResult, AmendmentContext } from './amendment.types';
 
 @Injectable()
@@ -24,6 +27,11 @@ export class OpenAiAmendmentService {
       return null;
     }
 
+    const language =
+      context.locale && isSupportedLocale(context.locale)
+        ? localeLanguageName(context.locale)
+        : localeLanguageName(DEFAULT_LOCALE);
+
     const system = `You are a construction marketplace assistant. The client added amendments to their project before tendering starts.
 Merge the amendments into the existing project understanding. Return JSON only with keys:
 updatedDescription, updatedSummary, tagSlugs, confidence, briefPatches.
@@ -34,7 +42,9 @@ Rules:
 - updatedSummary: shorter headline summary (1-3 sentences).
 - tagSlugs: subset of allowed tags only.
 - confidence: 0-1.
-- Write in English.`;
+- Write updatedDescription and updatedSummary in ${language}.
+- Keep ${language} throughout — do not translate existing content into another language.
+${TAG_NO_HALLUCINATION_RULES}`;
 
     const user = JSON.stringify({
       project: {

@@ -17,17 +17,17 @@ export const TH_REGIONAL_CATALOG: RegionalCatalogItem[] = [
   },
   {
     trade: 'electrical',
-    label: 'Electrical rewiring',
+    label: 'Electrical works (wiring, boards, lighting fixtures)',
     unit: 'sqm',
-    priceMinThb: 800,
-    priceMaxThb: 1800,
+    priceMinThb: 1400,
+    priceMaxThb: 4200,
   },
   {
     trade: 'plumbing',
-    label: 'Plumbing installation',
+    label: 'Plumbing & water-supply connection (points + utility tie-in)',
     unit: 'point',
-    priceMinThb: 3500,
-    priceMaxThb: 9000,
+    priceMinThb: 5500,
+    priceMaxThb: 18000,
   },
   {
     trade: 'structural',
@@ -118,10 +118,14 @@ export const TH_REGIONAL_CATALOG: RegionalCatalogItem[] = [
 export function catalogSummaryForPrompt(
   catalog: RegionalCatalogItem[] = TH_REGIONAL_CATALOG,
 ): string {
-  return catalog
+  const rows = catalog
     .map(
       (c) =>
         `${c.trade}: ${c.label} — ${c.priceMinThb}-${c.priceMaxThb} THB/${c.unit}`,
     )
     .join('\n');
+  return `${rows}
+Notes:
+- electrical: lighting fixtures and switchgear often push toward the upper band; do not price lighting as cheap rewiring only.
+- plumbing: mains water connection / meter tie-in is substantially more than a single fixture point — treat connection works near the upper band or as additional lump within plumbing.`;
 }

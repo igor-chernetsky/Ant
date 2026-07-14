@@ -20,6 +20,7 @@ import {
   buildEstimateScopeRules,
   buildEstimateUserContext,
   filterEstimateLines,
+  mergePreviousEstimateLines,
 } from './estimate-scope.utils';
 
 const DISCLAIMER =
@@ -47,6 +48,7 @@ export class BallparkEstimateService {
     tagSlugs: string[];
     brief: ProjectBriefV1;
     locale?: SupportedLocale;
+    previousLines?: EstimateLine[];
   }): Promise<BallparkEstimateResult> {
     if (this.apiKey.length > 0) {
       const ai = await this.generateWithOpenAi(input);
@@ -65,27 +67,34 @@ export class BallparkEstimateService {
     tagSlugs: string[];
     brief: ProjectBriefV1;
     locale?: SupportedLocale;
+    previousLines?: EstimateLine[];
   }): Promise<BallparkEstimateResult | null> {
     const lang =
       input.locale && isSupportedLocale(input.locale)
         ? localeLanguageName(input.locale)
         : localeLanguageName(DEFAULT_LOCALE);
+    const previousLines = input.previousLines ?? [];
     const scopeRules = buildEstimateScopeRules(
       input.projectType,
       input.propertyType,
+      previousLines.length > 0,
     );
     const system = `You produce ballpark construction cost estimates for Thailand (THB).
 Return JSON: { lines, totals, confidence, disclaimer }.
 Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lineMin, lineMax }.
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
-Use regional reference prices as guidance only. Be conservative with ranges.
-Include 3-12 lines covering confirmed scope only. confidence 0-1.
+Use regional reference prices as guidance; prefer mid-to-high of catalog bands for lighting, fixtures, and water-supply connection.
+Include 4-14 lines covering the FULL confirmed scope (base construction + MEP + finishing + newly added items). confidence 0-1.
+lineMin/lineMax must equal quantity * unitPriceMin/Max (rounded).
 Write description and disclaimer fields in ${lang}.
 Scope rules:
 ${scopeRules}`;
 
     const user = JSON.stringify({
-      ...buildEstimateUserContext(input),
+      ...buildEstimateUserContext({
+        ...input,
+        previousLines,
+      }),
       regionalCatalog: catalogSummaryForPrompt(),
     });
 
@@ -138,6 +147,7 @@ ${scopeRules}`;
     propertyType: string | null;
     tagSlugs: string[];
     brief: ProjectBriefV1;
+    previousLines?: EstimateLine[];
   }): BallparkEstimateResult {
     const areaSqm =
       input.brief.property?.areaSqm ??
@@ -150,6 +160,9 @@ ${scopeRules}`;
     for (const pkg of input.brief.packages ?? []) {
       trades.add(pkg.trade);
     }
+    for (const line of input.previousLines ?? []) {
+      trades.add(line.trade);
+    }
     if (trades.size === 0) {
       trades.add('finishing');
     }
@@ -159,21 +172,32 @@ ${scopeRules}`;
       const catalog = TH_REGIONAL_CATALOG.find((c) => c.trade === trade);
       if (!catalog) continue;
 
+      const previous = input.previousLines?.find((line) => line.trade === trade);
       const pkg = input.brief.packages?.find((p) => p.trade === trade);
       const quantity =
         pkg?.quantity ??
+        previous?.quantity ??
         (catalog.unit === 'sqm' ? areaSqm : catalog.unit === 'lump' ? 1 : 1);
-      const unit = pkg?.unit ?? catalog.unit;
-      const lineMin = Math.round(catalog.priceMinThb * quantity);
-      const lineMax = Math.round(catalog.priceMaxThb * quantity);
+      const unit = pkg?.unit ?? previous?.unit ?? catalog.unit;
+      const unitPriceMin = Math.max(
+        catalog.priceMinThb,
+        previous?.unitPriceMin ?? 0,
+      );
+      const unitPriceMax = Math.max(
+        catalog.priceMaxThb,
+        previous?.unitPriceMax ?? 0,
+        unitPriceMin,
+      );
+      const lineMin = Math.round(unitPriceMin * quantity);
+      const lineMax = Math.round(unitPriceMax * quantity);
 
       lines.push({
         trade,
-        description: pkg?.description ?? catalog.label,
+        description: pkg?.description ?? previous?.description ?? catalog.label,
         quantity,
         unit,
-        unitPriceMin: catalog.priceMinThb,
-        unitPriceMax: catalog.priceMaxThb,
+        unitPriceMin,
+        unitPriceMax,
         lineMin,
         lineMax,
       });
@@ -200,12 +224,15 @@ ${scopeRules}`;
       description: input.description,
       brief: input.brief,
     });
-    const safeLines =
-      filteredLines.length > 0
-        ? filteredLines
-        : lines.filter((line) => line.trade !== 'elevator');
+    const mergedLines = mergePreviousEstimateLines({
+      nextLines: filteredLines.length > 0 ? filteredLines : lines,
+      previousLines: input.previousLines ?? [],
+      description: input.description,
+      brief: input.brief,
+      tagSlugs: input.tagSlugs,
+    });
 
-    const totals = computeTotals(safeLines);
+    const totals = computeTotals(mergedLines);
     const textLen = (input.description ?? '').length;
     const confidence = Math.min(
       0.65,
@@ -215,7 +242,7 @@ ${scopeRules}`;
     );
 
     return {
-      lines: safeLines,
+      lines: mergedLines,
       totals,
       confidence,
       disclaimer: DISCLAIMER,
@@ -230,6 +257,8 @@ ${scopeRules}`;
       propertyType: string | null;
       description: string | null;
       brief: ProjectBriefV1;
+      tagSlugs: string[];
+      previousLines?: EstimateLine[];
     },
   ): BallparkEstimateResult {
     const rawLines = Array.isArray(raw.lines)
@@ -248,7 +277,7 @@ ${scopeRules}`;
           .filter((l) => l.description.length > 0)
       : [];
 
-    const lines = filterEstimateLines({
+    const filtered = filterEstimateLines({
       lines: rawLines,
       projectType: input.projectType,
       propertyType: input.propertyType,
@@ -256,21 +285,15 @@ ${scopeRules}`;
       brief: input.brief,
     });
 
-    const rawTotals = raw.totals as Record<string, unknown> | undefined;
-    const totals: EstimateTotals =
-      lines.length > 0
-        ? computeTotals(lines)
-        : rawTotals && typeof rawTotals === 'object'
-          ? {
-              minAmount: Math.round(Number(rawTotals.minAmount) || 0),
-              maxAmount: Math.round(Number(rawTotals.maxAmount) || 0),
-              midAmount: Math.round(
-                Number(rawTotals.midAmount) ||
-                  (Number(rawTotals.minAmount) + Number(rawTotals.maxAmount)) / 2,
-              ),
-              currency: String(rawTotals.currency ?? 'THB'),
-            }
-          : computeTotals(lines);
+    const lines = mergePreviousEstimateLines({
+      nextLines: filtered,
+      previousLines: input.previousLines ?? [],
+      description: input.description,
+      brief: input.brief,
+      tagSlugs: input.tagSlugs,
+    }).map(normalizeLineAmounts);
+
+    const totals = computeTotals(lines);
 
     return {
       lines,
@@ -283,6 +306,27 @@ ${scopeRules}`;
       provider: 'openai',
     };
   }
+}
+
+function normalizeLineAmounts(line: EstimateLine): EstimateLine {
+  const quantity = Number.isFinite(line.quantity) && line.quantity > 0
+    ? line.quantity
+    : 1;
+  const unitPriceMin = Math.max(0, line.unitPriceMin);
+  const unitPriceMax = Math.max(unitPriceMin, line.unitPriceMax);
+  const lineMin =
+    line.lineMin > 0 ? line.lineMin : Math.round(unitPriceMin * quantity);
+  const lineMax =
+    line.lineMax > 0 ? line.lineMax : Math.round(unitPriceMax * quantity);
+
+  return {
+    ...line,
+    quantity,
+    unitPriceMin,
+    unitPriceMax,
+    lineMin: Math.min(lineMin, lineMax),
+    lineMax: Math.max(lineMin, lineMax),
+  };
 }
 
 export function computeTotals(lines: EstimateLine[]): EstimateTotals {

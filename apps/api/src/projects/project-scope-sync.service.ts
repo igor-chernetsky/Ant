@@ -17,6 +17,7 @@ import {
   buildInitialBrief,
   computeReadinessScore,
 } from './project-brief';
+import { reconcileAiTagSlugs } from './project-tag-reconciliation';
 import { ScopeSyncUpdate } from './scope-sync.types';
 
 @Injectable()
@@ -42,7 +43,7 @@ export class ProjectScopeSyncService {
   async applyUpdate(projectId: string, update: ScopeSyncUpdate): Promise<void> {
       const project = await this.prisma.project.findUnique({
         where: { id: projectId },
-        include: { tags: true },
+        include: { tags: { include: { tag: true } } },
       });
       if (!project) {
         return;
@@ -81,7 +82,20 @@ export class ProjectScopeSyncService {
         return;
       }
 
-      await this.replaceAiTags(project.id, result.tagSlugs);
+      const narrative = [
+        result.updatedDescription,
+        result.updatedSummary,
+        result.updatedScopeSummary,
+        update.body,
+      ].join(' ');
+      const tagSlugs = reconcileAiTagSlugs({
+        suggested: result.tagSlugs,
+        previous: project.tags.map((row) => row.tag.slug),
+        narrative,
+        preserveTrades: (brief.packages ?? []).map((pkg) => pkg.trade),
+        allowed: availableTagSlugs,
+      });
+      await this.replaceAiTags(project.id, tagSlugs);
 
       const updatedBrief = this.mergeBrief(project.briefJson, {
         summary: result.updatedSummary,

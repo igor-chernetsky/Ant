@@ -9,6 +9,12 @@ import {
 import { sanitizeIntakeQuestion } from './intake-question.utils';
 import { hasDocumentIntakeContext } from '../intake/intake-document-context';
 import { suggestTagSlugsFromText } from '../projects/project-brief';
+import {
+  narrativeHasPoolDepthFact,
+  narrativeHasPumpStationFact,
+  shouldAskPoolScopeQuestions,
+  shouldAskStoreyCount,
+} from './intake-scope-heuristics';
 
 @Injectable()
 export class IntakeFallbackService {
@@ -158,15 +164,6 @@ export class IntakeFallbackService {
       'extension',
       'commercial_fitout',
     ].includes(context.projectType);
-    const hasDocStoreys = Boolean(
-      context.documents?.some(
-        (doc) =>
-          /\b(storey|storeys|floor|floors|этаж)\b/i.test(doc.summary) ||
-          doc.keyFacts?.some((fact) =>
-            /\b(storey|storeys|floor|floors|этаж)\b/i.test(fact),
-          ),
-      ),
-    );
     const hasDocSpecialSystems = Boolean(
       context.documents?.some(
         (doc) =>
@@ -181,7 +178,7 @@ export class IntakeFallbackService {
       ),
     );
 
-    if (needsBuildingSystemsQuestions && !hasDocStoreys) {
+    if (shouldAskStoreyCount(context)) {
       queue.push({
         id: 'storey-count',
         type: 'single',
@@ -197,7 +194,41 @@ export class IntakeFallbackService {
       });
     }
 
-    if (needsBuildingSystemsQuestions && !hasDocSpecialSystems) {
+    if (shouldAskPoolScopeQuestions(context)) {
+      if (!narrativeHasPoolDepthFact(context)) {
+        queue.push({
+          id: 'pool-depth',
+          type: 'single',
+          prompt: 'What is the planned pool depth?',
+          required: true,
+          allowSkip: true,
+          allowCustom: true,
+          options: [
+            { id: 'up-to-1.2', label: 'Up to 1.2 m' },
+            { id: '1.2-1.5', label: '1.2–1.5 m' },
+            { id: '1.5-2.0', label: '1.5–2.0 m' },
+            { id: 'over-2.0', label: 'Over 2.0 m / variable depth' },
+          ],
+        });
+      }
+
+      if (!narrativeHasPumpStationFact(context)) {
+        queue.push({
+          id: 'pool-pump-station',
+          type: 'single',
+          prompt: 'Where should the pump / equipment room be placed?',
+          required: true,
+          allowSkip: true,
+          allowCustom: true,
+          options: [
+            { id: 'underground', label: 'Underground / plant room below grade' },
+            { id: 'adjacent-building', label: 'Adjacent building / service room' },
+            { id: 'outdoor-enclosure', label: 'Outdoor enclosure near the pool' },
+            { id: 'undecided', label: 'Not decided yet' },
+          ],
+        });
+      }
+    } else if (needsBuildingSystemsQuestions && !hasDocSpecialSystems) {
       queue.push({
         id: 'special-systems',
         type: 'multi',

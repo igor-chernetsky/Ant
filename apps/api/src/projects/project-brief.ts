@@ -3,6 +3,7 @@ import {
   PropertyType,
   TagSource,
 } from '@prisma/client';
+import { suggestTagSlugsFromText as suggestTagSlugsFromTextImpl } from './project-tag-reconciliation';
 
 export interface ProjectBriefV1 {
   schemaVersion: 1;
@@ -141,36 +142,8 @@ export function computeReadinessScore(input: {
   return Math.min(100, score);
 }
 
-/** Keyword-based MVP suggestion until AI intake is wired. */
 export function suggestTagSlugsFromText(text: string): string[] {
-  const lower = text.toLowerCase();
-  const rules: Array<[RegExp, string]> = [
-    [/\belectri/, 'electrical'],
-    [/\bplumb|\bpipe|\bwater heater/, 'plumbing'],
-    [/\broof/, 'roofing'],
-    [/\bfinish|\bpaint|\bfloor|\btile/, 'finishing'],
-    [/\bdemol/, 'demolition'],
-    [/\bstruct|\bbeam|\bfoundation/, 'structural'],
-    [/\bhvac|\bair cond|\bac\b/, 'hvac'],
-    [/\bpaint/, 'painting'],
-    [/\bfloor/, 'flooring'],
-    [/\btile/, 'tiling'],
-    [/\bcarpent|\bwood|\bcabinet/, 'carpentry'],
-    [/\bgarden|\blandscape/, 'landscaping'],
-    [/\bwindow|\bdoor/, 'windows-doors'],
-    [/\bconcrete/, 'concrete'],
-    [/\bbrick|\bmason/, 'masonry'],
-    [/\bdesign|\barchitect|\bplan/, 'design'],
-    [/\bpermit|\blicense/, 'permits'],
-  ];
-
-  const slugs = new Set<string>();
-  for (const [pattern, slug] of rules) {
-    if (pattern.test(lower)) {
-      slugs.add(slug);
-    }
-  }
-  return [...slugs];
+  return suggestTagSlugsFromTextImpl(text);
 }
 
 export { ProjectType, PropertyType, TagSource };

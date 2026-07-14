@@ -14,6 +14,7 @@ export interface AmendmentContext {
     createdAt: string;
   }>;
   availableTagSlugs: string[];
+  locale?: string;
 }
 
 export interface AmendmentAiResult {

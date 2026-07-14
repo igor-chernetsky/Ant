@@ -29,6 +29,7 @@ import {
   buildInitialBrief,
   computeReadinessScore,
 } from '../projects/project-brief';
+import { reconcileAiTagSlugs } from '../projects/project-tag-reconciliation';
 import { buildDocumentIntakeContext } from './intake-document-context';
 import { ProjectResponse } from '../projects/projects.types';
 import { EstimatesService } from '../estimation/estimates.service';
@@ -66,10 +67,13 @@ export class IntakeService {
       result = this.fallback.runInitialIntake(context);
     }
 
-    const tagSlugs = this.filterTagSlugs(
-      result.tagSlugs,
-      context.availableTagSlugs,
-    );
+    const tagSlugs = await this.reconcileProjectAiTags({
+      projectId,
+      suggested: result.tagSlugs,
+      narrative: result.improvedDescription,
+      brief: (project.briefJson ?? {}) as unknown as ProjectBriefV1,
+      allowed: context.availableTagSlugs,
+    });
     await this.replaceAiTags(projectId, tagSlugs);
 
     const brief = this.mergeBrief(project.briefJson, {
@@ -263,10 +267,21 @@ export class IntakeService {
       final = this.fallback.finalizeIntake(context);
     }
 
-    const tagSlugs = this.filterTagSlugs(
-      final.tagSlugs,
-      context.availableTagSlugs,
-    );
+    const tagSlugs = await this.reconcileProjectAiTags({
+      projectId,
+      suggested: final.tagSlugs,
+      narrative: [
+        final.finalDescription,
+        final.summary,
+        ...intake.answers.map((a) => {
+          if (a.skipped) return '';
+          const base = Array.isArray(a.value) ? a.value.join(' ') : a.value;
+          return `${base} ${a.customText ?? ''}`;
+        }),
+      ].join(' '),
+      brief,
+      allowed: context.availableTagSlugs,
+    });
     await this.replaceAiTags(projectId, tagSlugs);
 
     const completedIntake: IntakeState = {
@@ -372,6 +387,31 @@ export class IntakeService {
   private filterTagSlugs(slugs: string[], allowed: string[]): string[] {
     const allowedSet = new Set(allowed);
     return [...new Set(slugs.filter((s) => allowedSet.has(s)))];
+  }
+
+  private async reconcileProjectAiTags(input: {
+    projectId: string;
+    suggested: string[];
+    narrative: string;
+    brief: ProjectBriefV1;
+    allowed: string[];
+  }): Promise<string[]> {
+    const existing = await this.prisma.projectTag.findMany({
+      where: { projectId: input.projectId },
+      include: { tag: true },
+    });
+    const previous = existing.map((row) => row.tag.slug);
+    const preserveTrades = (input.brief.packages ?? [])
+      .map((pkg) => pkg.trade)
+      .filter(Boolean);
+
+    return reconcileAiTagSlugs({
+      suggested: input.suggested,
+      previous,
+      narrative: input.narrative,
+      preserveTrades,
+      allowed: input.allowed,
+    });
   }
 
   private async replaceAiTags(projectId: string, slugs: string[]) {

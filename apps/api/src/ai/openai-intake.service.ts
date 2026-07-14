@@ -17,6 +17,7 @@ import {
   sanitizeIntakeQuestion,
 } from './intake-question.utils';
 import { localeLanguageName } from '../localization/locale.utils';
+import { TAG_NO_HALLUCINATION_RULES } from '../projects/project-tag-reconciliation';
 
 @Injectable()
 export class OpenAiIntakeService {
@@ -107,11 +108,17 @@ export class OpenAiIntakeService {
   }
 
   private buildingSystemsIntakeRules(): string {
-    return `For new_build, extension, or commercial_fitout:
-- Ask about storey count and special systems (elevator/lift, pool, basement, smart home) when not already clear from description or uploadedDocuments
-- Use question ids "storey-count" and "special-systems" when asking these topics (multi-select for special-systems)
-- Do not assume elevators, podium works, or commercial-scale MEP for house/apartment projects unless explicitly confirmed
-- If a major system is uncertain, ask before the estimate is finalized — do not guess`;
+    return `Ask only questions relevant to the primary scope. Prefer project-specific gaps over generic building FAQs.
+For pool / swimming-pool projects (title or description mentions pool/бассейн):
+- Do NOT ask storey-count of an existing villa/house unless the project clearly includes building shell construction or extension
+- Ask pool depth when unknown — prefer question id "pool-depth"
+- Ask pump / equipment room placement when unknown — prefer question id "pool-pump-station"
+- Also clarify dimensions, overflow type, finishes, and filtration gaps if missing
+For new_build / extension / commercial_fitout of buildings (not amenity-only pool jobs):
+- Ask about storey count when not already clear — use id "storey-count"
+- Ask special systems (elevator/lift, pool, basement, smart home) when not already clear — use id "special-systems" (multi-select)
+- Do not assume elevators or commercial-scale MEP unless explicitly confirmed
+If a major system is uncertain, ask before the estimate is finalized — do not guess`;
   }
 
   private documentContextRules(): string {
@@ -146,12 +153,13 @@ export class OpenAiIntakeService {
 Return JSON only with keys: improvedDescription, tagSlugs, confidence, nextQuestion.
 ${this.questionSchemaHint(context)}
 Rules:
-- improvedDescription: clear professional ${lang}, 2-5 sentences, do not invent facts not implied by input or uploadedDocuments
+- improvedDescription: clear professional ${lang}, 2-5 sentences, do not invent facts not implied by input or uploadedDocuments. Keep ${lang} throughout — do not translate into English or another language
 - tagSlugs: subset of allowed tags only
 - confidence: 0-1
 - nextQuestion: first follow-up question to clarify scope, or null if nothing needed
-- Ask at most ONE question in nextQuestion
-- Prefer practical construction questions (area, timeline, materials, storeys, special systems)
+- Ask at most ONE question in nextQuestion; prompt and options in ${lang}
+- Prefer practical construction questions matched to scope (for pools: depth, pump room; for buildings: area, storeys, materials)
+${TAG_NO_HALLUCINATION_RULES}
 ${this.buildingSystemsIntakeRules()}
 ${this.documentContextRules()}`;
 
@@ -200,6 +208,7 @@ ${this.documentContextRules()}`;
       customText?: string;
     },
   ): Promise<NextQuestionResult | null> {
+    const lang = this.outputLanguage(context);
     const system = `You continue a construction project intake interview one question at a time.
 Return JSON: { "nextQuestion": Question|null, "improvedDescription": string optional }.
 ${this.questionSchemaHint(context)}
@@ -208,7 +217,9 @@ Rules:
 - Do not repeat question ids already asked: ${JSON.stringify(context.askedQuestionIds ?? context.answers.map((a) => a.questionId))}
 - Never ask about uploading plans, photos, or documents
 - Adapt next question based on previous answers and uploadedDocuments
-- improvedDescription: optionally refine project description with new facts from answers or documents
+- improvedDescription: when refining the project description, write clear professional ${lang} (2-5 sentences). Keep the same language as the existing description — do not switch to English or another language
+- Prompt and option labels in nextQuestion must be in ${lang}
+${TAG_NO_HALLUCINATION_RULES}
 ${this.buildingSystemsIntakeRules()}
 ${this.documentContextRules()}`;
 
@@ -240,11 +251,12 @@ ${this.documentContextRules()}`;
     const system = `You finalize a construction project intake.
 Return JSON: { "finalDescription", "tagSlugs", "summary", "confidence" }.
 Rules:
-- finalDescription: polished scope description for contractors (${lang})
+- finalDescription: polished scope description for contractors (${lang}). Keep ${lang} throughout — do not switch to English or another language
 - summary: shorter version for brief (1-3 sentences, ${lang})
 - tagSlugs: from allowed list only
 - confidence: 0-1
 - Incorporate uploadedDocuments when present; do not contradict them
+${TAG_NO_HALLUCINATION_RULES}
 ${this.documentContextRules()}`;
 
     const user = JSON.stringify({

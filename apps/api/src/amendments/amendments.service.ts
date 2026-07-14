@@ -21,6 +21,7 @@ import {
   buildInitialBrief,
   computeReadinessScore,
 } from '../projects/project-brief';
+import { reconcileAiTagSlugs } from '../projects/project-tag-reconciliation';
 import { ProjectsService } from '../projects/projects.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -131,6 +132,7 @@ export class AmendmentsService {
       district: string | null;
       status: ProjectStatus;
       briefJson: unknown;
+      sourceLocale?: string | null;
     },
     rows: ProjectAmendment[],
   ): Promise<ProcessAmendmentsResult> {
@@ -151,6 +153,7 @@ export class AmendmentsService {
         createdAt: row.createdAt.toISOString(),
       })),
       availableTagSlugs,
+      locale: project.sourceLocale ?? undefined,
     };
 
     let result: AmendmentAiResult | null = null;
@@ -161,7 +164,21 @@ export class AmendmentsService {
       result = this.fallback.processAmendments(context);
     }
 
-    const tagSlugs = this.filterTagSlugs(result.tagSlugs, availableTagSlugs);
+    const previousTags = await this.prisma.projectTag.findMany({
+      where: { projectId: project.id },
+      include: { tag: true },
+    });
+    const tagSlugs = reconcileAiTagSlugs({
+      suggested: result.tagSlugs,
+      previous: previousTags.map((row) => row.tag.slug),
+      narrative: [
+        result.updatedDescription,
+        result.updatedSummary,
+        ...rows.map((row) => row.body),
+      ].join(' '),
+      preserveTrades: (brief.packages ?? []).map((pkg) => pkg.trade),
+      allowed: availableTagSlugs,
+    });
     await this.replaceAiTags(project.id, tagSlugs);
 
     const updatedBrief = this.mergeBrief(project.briefJson, {
