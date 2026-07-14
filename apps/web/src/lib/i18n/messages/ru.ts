@@ -61,6 +61,10 @@ export const ru: Messages = {
     roleClient: 'Заказчик',
     roleContractor: 'Подрядчик',
     roleDesigner: 'Дизайнер',
+    acceptPrivacyPrefix: 'Я принимаю',
+    acceptTermsPrefix: 'Я принимаю',
+    acceptLegalRequired:
+      'Чтобы создать аккаунт, примите Политику конфиденциальности и Условия использования.',
   },
   home: {
     kicker: 'Маркетплейс Ant',

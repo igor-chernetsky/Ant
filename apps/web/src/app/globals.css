@@ -1914,6 +1914,28 @@ pre {
   cursor: pointer;
 }
 
+.auth-legal-consents {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 0.15rem 0 0.25rem;
+}
+
+.auth-legal-consent {
+  align-items: flex-start;
+  line-height: 1.45;
+  font-size: 0.9rem;
+}
+
+.auth-legal-consent input[type='checkbox'] {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.auth-legal-consent .text-link {
+  font-weight: 600;
+}
+
 .trade-tag-picker {
   display: flex;
   flex-direction: column;

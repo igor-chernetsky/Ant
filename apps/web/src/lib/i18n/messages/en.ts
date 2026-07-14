@@ -57,6 +57,10 @@ export const en = {
     roleClient: 'Client',
     roleContractor: 'Contractor',
     roleDesigner: 'Designer',
+    acceptPrivacyPrefix: 'I agree to the',
+    acceptTermsPrefix: 'I agree to the',
+    acceptLegalRequired:
+      'Please accept the Privacy Policy and Terms of Service to create an account.',
   },
   home: {
     kicker: 'Ant marketplace',

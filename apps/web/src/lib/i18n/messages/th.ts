@@ -58,6 +58,10 @@ export const th: Messages = {
     roleClient: 'ลูกค้า',
     roleContractor: 'ผู้รับเหมา',
     roleDesigner: 'นักออกแบบ',
+    acceptPrivacyPrefix: 'ฉันยอมรับ',
+    acceptTermsPrefix: 'ฉันยอมรับ',
+    acceptLegalRequired:
+      'โปรดยอมรับนโยบายความเป็นส่วนตัวและเงื่อนไขการใช้บริการเพื่อสร้างบัญชี',
   },
   home: {
     kicker: 'ตลาด Ant',

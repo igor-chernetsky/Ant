@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import Link from 'next/link';
 import { useTranslation } from '@/components/LocaleProvider';
 import { loginWithPassword, signupWithPassword } from '@/lib/session';
 
@@ -24,6 +25,8 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [roles, setRoles] = useState<string[]>(['client']);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -36,12 +39,20 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     setMode(next);
     setError(null);
     setSuccessNotice(null);
+    setAcceptedPrivacy(false);
+    setAcceptedTerms(false);
   };
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setSuccessNotice(null);
+
+    if (mode === 'signup' && (!acceptedPrivacy || !acceptedTerms)) {
+      setError(t('auth.acceptLegalRequired'));
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -52,6 +63,8 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         setPassword('');
         setDisplayName('');
         setRoles(['client']);
+        setAcceptedPrivacy(false);
+        setAcceptedTerms(false);
         await onSuccess();
         onClose();
       } else {
@@ -64,6 +77,8 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         setPassword('');
         setDisplayName('');
         setRoles(['client']);
+        setAcceptedPrivacy(false);
+        setAcceptedTerms(false);
         setUsername(email);
         setEmail('');
         setMode('signin');
@@ -88,6 +103,8 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
       setSubmitting(false);
     }
   };
+
+  const canSubmitSignup = acceptedPrivacy && acceptedTerms;
 
   return (
     <div
@@ -209,12 +226,61 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             />
           </label>
 
+          {mode === 'signup' && (
+            <div className="auth-legal-consents">
+              <label className="checkbox-label auth-legal-consent">
+                <input
+                  type="checkbox"
+                  checked={acceptedPrivacy}
+                  onChange={(event) => setAcceptedPrivacy(event.target.checked)}
+                  required
+                  disabled={submitting}
+                />
+                <span>
+                  {t('auth.acceptPrivacyPrefix')}{' '}
+                  <Link
+                    href="/privacy"
+                    className="text-link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('footer.privacyPolicy')}
+                  </Link>
+                </span>
+              </label>
+              <label className="checkbox-label auth-legal-consent">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(event) => setAcceptedTerms(event.target.checked)}
+                  required
+                  disabled={submitting}
+                />
+                <span>
+                  {t('auth.acceptTermsPrefix')}{' '}
+                  <Link
+                    href="/terms"
+                    className="text-link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('footer.termsOfService')}
+                  </Link>
+                </span>
+              </label>
+            </div>
+          )}
+
           {error && <p className="form-error">{error}</p>}
           {successNotice && (
             <p className="auth-success-notice">{successNotice}</p>
           )}
 
-          <button type="submit" className="primary auth-submit" disabled={submitting}>
+          <button
+            type="submit"
+            className="primary auth-submit"
+            disabled={submitting || (mode === 'signup' && !canSubmitSignup)}
+          >
             {submitting
               ? mode === 'signin'
                 ? t('auth.signingIn')
