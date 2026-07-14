@@ -30,6 +30,12 @@ export const ru: Messages = {
     lang_th: 'ไทย',
     lang_ru: 'Русский',
   },
+  footer: {
+    copyright: '© {year} Ant. Все права защищены.',
+    legalNav: 'Правовая информация',
+    privacyPolicy: 'Политика конфиденциальности',
+    termsOfService: 'Условия использования',
+  },
   auth: {
     welcomeBack: 'С возвращением',
     createAccount: 'Создайте аккаунт',

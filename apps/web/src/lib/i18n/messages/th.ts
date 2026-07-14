@@ -30,6 +30,12 @@ export const th: Messages = {
     lang_th: 'ไทย',
     lang_ru: 'Русский',
   },
+  footer: {
+    copyright: '© {year} Ant. สงวนลิขสิทธิ์',
+    legalNav: 'ข้อมูลทางกฎหมาย',
+    privacyPolicy: 'นโยบายความเป็นส่วนตัว',
+    termsOfService: 'เงื่อนไขการใช้บริการ',
+  },
   auth: {
     welcomeBack: 'ยินดีต้อนรับกลับ',
     createAccount: 'สร้างบัญชีของคุณ',

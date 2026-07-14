@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { SiteFooter } from '@/components/SiteFooter';
 
 export function PageShell({ children }: { children: ReactNode }) {
   return (
@@ -8,7 +9,8 @@ export function PageShell({ children }: { children: ReactNode }) {
         <div className="page-bg-steel-sheen" />
         <div className="page-bg-accent-glow" />
       </div>
-      {children}
+      <div className="page-shell-body">{children}</div>
+      <SiteFooter />
     </div>
   );
 }

@@ -65,6 +65,16 @@ body {
   position: relative;
   min-height: 100vh;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-shell-body {
+  position: relative;
+  z-index: 1;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .page-bg-shapes {
@@ -145,6 +155,101 @@ body {
   gap: 1rem;
   padding-top: 0.85rem;
   padding-bottom: 0.85rem;
+}
+
+.site-footer {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  border-top: 1px solid var(--border-strong);
+  background: rgba(232, 238, 245, 0.55);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.05);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.05);
+}
+
+.site-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.site-footer-copy {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.site-footer-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.site-footer-nav .text-link {
+  font-size: 0.9rem;
+}
+
+.legal-page {
+  max-width: 46rem;
+}
+
+.legal-page-header {
+  margin-bottom: 1.25rem;
+}
+
+.legal-page-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.legal-page-title {
+  margin: 0 0 0.35rem;
+}
+
+.legal-page-updated {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.legal-document {
+  padding: 1.35rem 1.4rem 1.5rem;
+}
+
+.legal-document-intro {
+  margin: 0 0 1.25rem;
+  line-height: 1.6;
+}
+
+.legal-document-section {
+  margin: 0 0 1.15rem;
+}
+
+.legal-document-section:last-child {
+  margin-bottom: 0;
+}
+
+.legal-document-section h2 {
+  margin: 0 0 0.55rem;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+}
+
+.legal-document-section p {
+  margin: 0 0 0.65rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.legal-document-section p:last-child {
+  margin-bottom: 0;
 }
 
 .header-left {
@@ -1729,6 +1834,7 @@ pre {
   .project-tile,
   .project-hero,
   .site-header,
+  .site-footer,
   .modal,
   .tender-card,
   .project-stage-rail,

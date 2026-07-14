@@ -29,6 +29,12 @@ export const en = {
     lang_th: 'Thai',
     lang_ru: 'Russian',
   },
+  footer: {
+    copyright: '© {year} Ant. All rights reserved.',
+    legalNav: 'Legal',
+    privacyPolicy: 'Privacy Policy',
+    termsOfService: 'Terms of Service',
+  },
   auth: {
     welcomeBack: 'Welcome back',
     createAccount: 'Create your account',
