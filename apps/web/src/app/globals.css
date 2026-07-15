@@ -1271,6 +1271,104 @@ pre {
   min-width: 6.5rem;
 }
 
+.platform-fee-dialog {
+  max-width: 520px;
+}
+
+.platform-fee-trial-badge {
+  display: inline-block;
+  margin: 0 0 0.75rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent, #2f6fed) 16%, transparent);
+}
+
+.platform-fee-breakdown {
+  margin: 1rem 0 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.platform-fee-breakdown > div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.platform-fee-breakdown dt {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.platform-fee-breakdown dd {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.platform-fee-breakdown-due dd {
+  font-weight: 600;
+}
+
+.platform-fee-footnote {
+  margin: 0.65rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.platform-fee-summary {
+  margin: 0.85rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface, #fff) 88%, #e8eef8);
+}
+
+.platform-fee-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.platform-fee-summary-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.platform-fee-trial-pill {
+  flex-shrink: 0;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent, #2f6fed) 14%, transparent);
+}
+
+.platform-fee-summary-lead {
+  margin: 0 0 0.55rem;
+  font-size: 0.85rem;
+}
+
+.platform-fee-summary-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.platform-fee-summary-due {
+  font-weight: 600;
+}
+
+.platform-fee-contractor-note {
+  margin: 0.75rem 0;
+  font-size: 0.88rem;
+}
+
 .modal-header h2 {
   margin: 0;
   font-size: 1.25rem;

@@ -561,6 +561,40 @@ export const ruExtended = {
     withdrawAwardMessage: "Отказаться от участия до подписания договора? Тендер снова откроется для других подрядчиков.",
     withdrawAwardLabel: "Выйти",
   },
+  platformFees: {
+    awardTitle: "Сборы платформы (заказчик)",
+    awardIntro:
+      "Выбор подрядчика активирует сборы Ant по этой сделке. Ниже указаны суммы для прозрачности.",
+    signTitle: "Подтвердите сборы платформы перед подписанием",
+    signIntro:
+      "Перед подписанием ознакомьтесь со сборами платформы по этому договору. Платит заказчик.",
+    trialBadge: "Триал — скидка {percent}%",
+    trialPill: "Триал · без оплаты",
+    accessFeeLabel: "Платформенный access fee",
+    successFeeLabel: "Success fee",
+    successFeeValue: "{percent}% от суммы договора ({amount})",
+    successFeePendingAmount: "Рассчитывается от итоговой суммы договора",
+    creditLabel: "Access fee засчитывается в success fee",
+    remainingLabel: "Остаток success fee (в течение 1 календарного месяца)",
+    dueNowLabel: "К оплате сейчас",
+    dueNowTrial: "По прайсу {listed} → к оплате {payable}",
+    timingNote:
+      "Остаток success fee подлежит оплате в течение одного календарного месяца после подписания — обычно после аванса подрядчику.",
+    fxNote:
+      "Суммы в USD показаны по индикативному курсу 1 USD ≈ {rate} THB только для отображения.",
+    payerNote: "Сборы платформы оплачивает заказчик, не подрядчик.",
+    continueTrial: "Продолжить · к оплате $0 (триал)",
+    continuePaid: "Продолжить",
+    summaryTitle: "Сборы платформы",
+    summaryLead:
+      "Указанные сборы по сделке. Триал: скидка 100% — сейчас ничего не списывается.",
+    summaryAccess: "Access fee: {usd} (≈ {local}), засчитывается в success fee",
+    summarySuccess: "Success fee: {percent}% от договора ({amount})",
+    summaryRemaining: "Остаток после зачёта: {amount}",
+    summaryDueNow: "К оплате сейчас (триал): {amount}",
+    contractorNote:
+      "Сборы платформы оплачивает заказчик. В триале они не взимаются (скидка 100%).",
+  },
   projectDetail: {
     tagsRefreshHint: "Теги обновятся после применения правок заказчика.",
     deleteProjectTitle: "Удалить проект",

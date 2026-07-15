@@ -9,7 +9,9 @@ import {
 import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
 import { ContractSigningPartiesInline } from '@/components/ContractSigningPartiesInline';
 import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPill';
+import { PlatformFeeSummary } from '@/components/PlatformFeeSummary';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { usePlatformFeeNotice } from '@/hooks/usePlatformFeeNotice';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { releaseAwardedContractor } from '@/lib/tendering';
@@ -20,6 +22,9 @@ interface ContractSigningPanelProps {
   asContractor?: boolean;
   hideHeading?: boolean;
   contract?: ProjectContract | null;
+  /** Awarded bid amount — used to show listed platform fees for the client. */
+  bidAmount?: number | string | null;
+  currency?: string | null;
   onSigned?: (contract: ProjectContract) => void;
   onAwardReleased?: () => void;
 }
@@ -30,6 +35,8 @@ export function ContractSigningPanel({
   asContractor = false,
   hideHeading = false,
   contract: contractProp = null,
+  bidAmount = null,
+  currency = 'THB',
   onSigned,
   onAwardReleased,
 }: ContractSigningPanelProps) {
@@ -40,6 +47,7 @@ export function ContractSigningPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  const { acknowledgePlatformFees, dialog: feeDialog } = usePlatformFeeNotice();
 
   const loadContract = useCallback(async () => {
     setLoading(true);
@@ -67,6 +75,15 @@ export function ContractSigningPanel({
   }, [contractProp, loadContract]);
 
   const handleSign = async () => {
+    if (!asContractor) {
+      const feesOk = await acknowledgePlatformFees({
+        step: 'sign',
+        contractAmount: bidAmount,
+        currency,
+      });
+      if (!feesOk) return;
+    }
+
     const confirmed = await confirm({
       title: t('confirm.signContractTitle'),
       message: t('confirm.signContractMessage'),
@@ -147,6 +164,20 @@ export function ContractSigningPanel({
 
       <ContractSigningPartiesInline contract={contract} />
 
+      {!asContractor && !contract.fullySigned && (
+        <PlatformFeeSummary
+          contractAmount={bidAmount}
+          currency={currency}
+          compact
+        />
+      )}
+
+      {asContractor && !contract.fullySigned && (
+        <p className="muted platform-fee-contractor-note">
+          {t('platformFees.contractorNote')}
+        </p>
+      )}
+
       <div className="contract-signing-actions-wrap">
         <div className="participation-toolbar contract-signing-toolbar">
           <CommercialProposalDownload
@@ -192,6 +223,7 @@ export function ContractSigningPanel({
       )}
 
       {error && <p className="form-error">{error}</p>}
+      {feeDialog}
       {confirmDialog}
     </div>
   );

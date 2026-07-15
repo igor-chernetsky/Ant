@@ -3,7 +3,7 @@ import type { LegalDocument } from './types';
 
 const en: LegalDocument = {
   title: 'Terms of Service',
-  updatedLabel: 'Last updated: 14 July 2026',
+  updatedLabel: 'Last updated: 15 July 2026',
   intro:
     'These Terms of Service (“Terms”) govern access to and use of the Ant construction marketplace website and related services (the “Service”). By creating an account or using the Service, you agree to these Terms.',
   sections: [
@@ -60,7 +60,10 @@ const en: LegalDocument = {
     {
       title: '8. Fees',
       paragraphs: [
-        'Use of certain features may be free or subject to fees disclosed in the Service. If fees apply, we will describe them before you accept a paid feature. Taxes may apply as required by law.',
+        'Platform fees for closed deals are paid by the client (project owner), not by the contractor.',
+        'The listed fee model is: (a) a platform access fee of USD 100 (or the local-currency equivalent at an indicative rate shown in the Service), which unlocks contract signing and is credited toward the success fee; and (b) a success fee of 2% of the awarded contract amount, reduced by the access-fee credit. Any remaining success fee is due within one calendar month after contract signing, typically after the client’s advance payment under the construction contract.',
+        'During a trial or promotional period, Ant may apply a 100% discount so that listed fees are shown for transparency while the amount payable to Ant is USD 0. Trial discounts do not waive the client’s separate payment obligations to contractors.',
+        'Fees, discounts, and tax treatment are disclosed in the Service before you confirm award or signing steps that reference them. Actual charge collection may require Ant to operate through a registered legal entity and payment provider; until then, fee screens may be informational only.',
       ],
     },
     {
@@ -112,7 +115,7 @@ const en: LegalDocument = {
 
 const ru: LegalDocument = {
   title: 'Условия использования',
-  updatedLabel: 'Обновлено: 14 июля 2026',
+  updatedLabel: 'Обновлено: 15 июля 2026',
   intro:
     'Настоящие Условия использования («Условия») регулируют доступ к маркетплейсу Ant и связанным сервисам («Сервис»). Создавая аккаунт или используя Сервис, вы соглашаетесь с этими Условиями.',
   sections: [
@@ -167,9 +170,12 @@ const ru: LegalDocument = {
       ],
     },
     {
-      title: '8. Платежи',
+      title: '8. Платежи и сборы',
       paragraphs: [
-        'Отдельные функции могут быть бесплатными или платными. Если вводятся сборы, мы сообщим о них до принятия платной функции. Могут применяться налоги.',
+        'Сборы платформы по закрытым сделкам оплачивает заказчик (владелец проекта), а не подрядчик.',
+        'Модель сборов: (a) platform access fee — 100 USD (или эквивалент в местной валюте по индикативному курсу в Сервисе), даёт доступ к подписанию договора и засчитывается в success fee; (b) success fee — 2% от суммы выбранного договора за вычетом access fee. Остаток success fee подлежит оплате в течение одного календарного месяца после подписания, обычно после аванса подрядчику.',
+        'В триальном или промо-периоде Ant может применять скидку 100%: указанные суммы показываются для прозрачности, а к оплате Ant — 0 USD. Скидка платформы не отменяет обязательства заказчика по оплате подрядчику.',
+        'Сборы, скидки и налоги раскрываются в Сервисе до подтверждения шагов выбора подрядчика или подписания. Фактическое списание может потребовать юрлица и платёжного провайдера; до этого экраны сборов могут быть информационными.',
       ],
     },
     {
@@ -221,7 +227,7 @@ const ru: LegalDocument = {
 
 const th: LegalDocument = {
   title: 'เงื่อนไขการใช้บริการ',
-  updatedLabel: 'อัปเดตล่าสุด: 14 กรกฎาคม 2026',
+  updatedLabel: 'อัปเดตล่าสุด: 15 กรกฎาคม 2026',
   intro:
     'เงื่อนไขการใช้บริการเหล่านี้ (“เงื่อนไข”) ควบคุมการเข้าถึงและใช้ตลาดกลางงานก่อสร้าง Ant และบริการที่เกี่ยวข้อง (“บริการ”) การสร้างบัญชีหรือใช้บริการถือว่าคุณตกลงตามเงื่อนไขนี้',
   sections: [
@@ -278,7 +284,10 @@ const th: LegalDocument = {
     {
       title: '8. ค่าธรรมเนียม',
       paragraphs: [
-        'ฟีเจอร์บางอย่างอาจใช้งานฟรีหรือมีค่าธรรมเนียม หากมีการเก็บค่าบริการ เราจะแจ้งก่อนที่คุณจะยอมรับฟีเจอร์แบบมีค่าใช้จ่าย อาจมีภาษีตามกฎหมาย',
+        'ค่าธรรมเนียมแพลตฟอร์มสำหรับดีลที่ปิดแล้วชำระโดยลูกค้า (เจ้าของโครงการ) ไม่ใช่ผู้รับเหมา',
+        'โครงสร้างค่าธรรมเนียม: (a) platform access fee 100 USD (หรือเทียบเท่าสกุลเงินท้องถิ่นตามอัตราโดยประมาณในบริการ) เพื่อปลดล็อกการลงนามสัญญาและนำไปหักกับ success fee และ (b) success fee 2% ของยอดสัญญาที่ได้รับเลือก หักด้วย access fee ยอด success fee ที่เหลือครบกำหนดภายในหนึ่งเดือนปฏิทินหลังลงนาม โดยปกติหลังจ่ายเงินล่วงหน้าให้ผู้รับเหมา',
+        'ในช่วงทดลองใช้หรือโปรโมชัน Ant อาจให้ส่วนลด 100% โดยแสดงยอดตามราคาเพื่อความโปร่งใส แต่ยอดที่ต้องชำระให้ Ant เป็น 0 USD ส่วนลดแพลตฟอร์มไม่ได้ยกเลิกภาระการชำระเงินของลูกค้าต่อผู้รับเหมา',
+        'ค่าธรรมเนียม ส่วนลด และภาษีจะแสดงในบริการก่อนยืนยันขั้นตอนเลือกผู้รับเหมาหรือลงนาม การเรียกเก็บจริงอาจต้องมีนิติบุคคลและผู้ให้บริการชำระเงิน จนกว่าจะพร้อม หน้าจอค่าธรรมเนียมอาจเป็นข้อมูลอย่างเดียว',
       ],
     },
     {

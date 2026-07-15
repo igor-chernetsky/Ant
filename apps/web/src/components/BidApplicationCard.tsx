@@ -16,6 +16,7 @@ interface BidApplicationCardProps {
   bid: Bid;
   ballparkMid?: number | null;
   tenderStatus: string;
+  currency?: string | null;
   busy?: boolean;
   currentUserId?: string;
   projectId: string;
@@ -42,6 +43,7 @@ export function BidApplicationCard({
   bid,
   ballparkMid,
   tenderStatus,
+  currency = 'THB',
   busy = false,
   currentUserId,
   projectId,
@@ -190,6 +192,8 @@ export function BidApplicationCard({
               <ContractSigningPanel
                 projectId={projectId}
                 bidId={bid.id}
+                bidAmount={bid.amount}
+                currency={currency}
                 contract={contract}
                 onSigned={(updated) => {
                   setContract(updated);

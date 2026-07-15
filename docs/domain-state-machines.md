@@ -106,6 +106,8 @@ stateDiagram-v2
 
 MVP acceptance: click-to-accept on platform (no e-signature provider).
 
+**Platform fees (client-paid, trial disclosure):** Before the client selects a winning bid and again before the client signs, the UI shows the listed **platform access fee** (USD 100, credited toward success fee) and **success fee** (2% − credit). During trial the payable amount is **0** (100% discount). Contractors see an informational note only. No payment capture in MVP.
+
 ---
 
 ## 6. Contractor Verification

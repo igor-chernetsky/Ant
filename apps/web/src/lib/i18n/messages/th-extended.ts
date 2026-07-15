@@ -561,6 +561,40 @@ export const thExtended = {
     withdrawAwardMessage: "ออกจากโครงการก่อนลงนามสัญญาหรือไม่? การประมูลจะเปิดอีกครั้งสำหรับผู้รับเหมาคนอื่น",
     withdrawAwardLabel: "ถอนตัว",
   },
+  platformFees: {
+    awardTitle: "ค่าธรรมเนียมแพลตฟอร์ม (ลูกค้า)",
+    awardIntro:
+      "การเลือกผู้รับเหมาจะเปิดใช้ค่าธรรมเนียม Ant สำหรับดีลนี้ จำนวนด้านล่างแสดงเพื่อความโปร่งใส",
+    signTitle: "ยืนยันค่าธรรมเนียมแพลตฟอร์มก่อนลงนาม",
+    signIntro:
+      "ก่อนลงนาม โปรดตรวจสอบค่าธรรมเนียมแพลตฟอร์มของสัญญานี้ คุณเป็นฝ่ายที่ชำระ",
+    trialBadge: "ทดลองใช้ — ส่วนลด {percent}%",
+    trialPill: "ทดลองใช้ · ไม่คิดเงิน",
+    accessFeeLabel: "ค่าเข้าถึงแพลตฟอร์ม (access fee)",
+    successFeeLabel: "ค่าธรรมเนียมความสำเร็จ (success fee)",
+    successFeeValue: "{percent}% ของสัญญา ({amount})",
+    successFeePendingAmount: "คำนวณจากยอดสัญญาขั้นสุดท้าย",
+    creditLabel: "access fee นำไปหักกับ success fee",
+    remainingLabel: "ยอด success fee ที่เหลือ (ภายใน 1 เดือนปฏิทิน)",
+    dueNowLabel: "ครบกำหนดชำระตอนนี้",
+    dueNowTrial: "ตามราคา {listed} → ชำระจริง {payable}",
+    timingNote:
+      "ยอด success fee ที่เหลือครบกำหนดภายในหนึ่งเดือนปฏิทินหลังลงนาม — โดยปกติหลังจ่ายเงินล่วงหน้าให้ผู้รับเหมา",
+    fxNote:
+      "ยอด USD แสดงด้วยอัตราโดยประมาณ 1 USD ≈ {rate} THB เพื่อการแสดงผลเท่านั้น",
+    payerNote: "ค่าธรรมเนียมแพลตฟอร์มคิดกับลูกค้า ไม่ใช่ผู้รับเหมา",
+    continueTrial: "ดำเนินการต่อ · ชำระ $0 (ทดลองใช้)",
+    continuePaid: "ดำเนินการต่อ",
+    summaryTitle: "ค่าธรรมเนียมแพลตฟอร์ม",
+    summaryLead:
+      "ค่าธรรมเนียมที่ระบุสำหรับดีลนี้ ช่วงทดลองใช้: ส่วนลด 100% — ยังไม่มีการเรียกเก็บ",
+    summaryAccess: "Access fee: {usd} (≈ {local}) นำไปหักกับ success fee",
+    summarySuccess: "Success fee: {percent}% ของสัญญา ({amount})",
+    summaryRemaining: "คงเหลือหลังหัก: {amount}",
+    summaryDueNow: "ครบกำหนดตอนนี้ (ทดลองใช้): {amount}",
+    contractorNote:
+      "ค่าธรรมเนียมแพลตฟอร์มชำระโดยลูกค้า ในช่วงทดลองใช้ยกเว้นค่าใช้จ่าย (ส่วนลด 100%)",
+  },
   projectDetail: {
     tagsRefreshHint: "แท็กจะอัปเดตเมื่อคุณนำการแก้ไขของลูกค้าไปใช้",
     deleteProjectTitle: "ลบโครงการ",

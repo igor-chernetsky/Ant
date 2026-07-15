@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BidAnalysisPanel } from '@/components/BidAnalysisPanel';
 import { BidApplicationCard } from '@/components/BidApplicationCard';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { usePlatformFeeNotice } from '@/hooks/usePlatformFeeNotice';
 import { BidsCompareTable } from '@/components/BidsCompareTable';
 import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificationQuestionsPanel';
 import { LoginModal } from '@/components/LoginModal';
@@ -36,6 +37,7 @@ export default function ProjectBidsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  const { acknowledgePlatformFees, dialog: feeDialog } = usePlatformFeeNotice();
 
   const loadData = useCallback(async () => {
     if (!projectId || !sessionReady) return;
@@ -82,6 +84,13 @@ export default function ProjectBidsPage() {
   };
 
   const handleSelectBid = async (bid: Bid) => {
+    const feesOk = await acknowledgePlatformFees({
+      step: 'award',
+      contractAmount: bid.amount,
+      currency: tender?.currency ?? 'THB',
+    });
+    if (!feesOk) return;
+
     const confirmed = await confirm({
       title: t('confirm.selectContractorTitle'),
       message: t('confirm.selectContractorMessage', {
@@ -250,6 +259,7 @@ export default function ProjectBidsPage() {
                           bid={bid}
                           ballparkMid={ballparkMid}
                           tenderStatus={tender.status}
+                          currency={tender.currency}
                           busy={busy}
                           currentUserId={me.id}
                           projectId={projectId}
@@ -296,6 +306,7 @@ export default function ProjectBidsPage() {
         }}
       />
       {confirmDialog}
+      {feeDialog}
     </PageShell>
   );
 }

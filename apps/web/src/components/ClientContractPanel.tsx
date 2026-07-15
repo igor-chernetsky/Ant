@@ -62,6 +62,10 @@ export function ClientContractPanel({
   }, [project.status, loadTender, loadContract]);
 
   const awardedBidId = tender?.awardedBidId;
+  const awardedBid =
+    awardedBidId != null
+      ? (tender?.bids.find((bid) => bid.id === awardedBidId) ?? null)
+      : null;
   if (!loading && !awardedBidId) {
     return null;
   }
@@ -95,6 +99,8 @@ export function ClientContractPanel({
           bidId={awardedBidId}
           hideHeading
           contract={contract}
+          bidAmount={awardedBid?.amount}
+          currency={tender?.currency ?? 'THB'}
           onSigned={handleSigned}
           onAwardReleased={() => {
             void loadTender();

@@ -472,6 +472,8 @@ export function ContractorProjectPanel({
             projectId={projectId}
             bidId={myBid.id}
             asContractor
+            bidAmount={myBid.amount}
+            currency="THB"
             onSigned={() => void loadParticipation()}
             onAwardReleased={() => void loadParticipation()}
           />

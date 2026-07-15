@@ -561,6 +561,40 @@ export const enExtended = {
     withdrawAwardMessage: "Leave this project before signing the contract? The tender will reopen for other participants.",
     withdrawAwardLabel: "Withdraw",
   },
+  platformFees: {
+    awardTitle: "Platform fees (client)",
+    awardIntro:
+      "Selecting a contractor activates Ant platform fees for this deal. Amounts below are listed for transparency.",
+    signTitle: "Confirm platform fees before signing",
+    signIntro:
+      "Before you sign, review the platform fees that apply to this contract. You are the paying party.",
+    trialBadge: "Trial — {percent}% discount applied",
+    trialPill: "Trial · no charge",
+    accessFeeLabel: "Platform access fee",
+    successFeeLabel: "Success fee",
+    successFeeValue: "{percent}% of contract ({amount})",
+    successFeePendingAmount: "Calculated from the final contract amount",
+    creditLabel: "Access fee credited toward success fee",
+    remainingLabel: "Remaining success fee (within 1 calendar month)",
+    dueNowLabel: "Due now",
+    dueNowTrial: "Listed {listed} → payable {payable}",
+    timingNote:
+      "The remaining success fee is due within one calendar month after signing — typically after your advance payment to the contractor.",
+    fxNote:
+      "USD amounts are shown at an indicative rate of 1 USD ≈ {rate} THB for display only.",
+    payerNote: "Platform fees are charged to the client, not the contractor.",
+    continueTrial: "Continue · $0 due (trial)",
+    continuePaid: "Continue",
+    summaryTitle: "Platform fees",
+    summaryLead:
+      "Listed fees for this deal. Trial period: 100% discount — nothing is charged yet.",
+    summaryAccess: "Access fee: {usd} (≈ {local}), credited toward the success fee",
+    summarySuccess: "Success fee: {percent}% of contract ({amount})",
+    summaryRemaining: "Remaining after credit: {amount}",
+    summaryDueNow: "Due now (trial): {amount}",
+    contractorNote:
+      "Platform fees are paid by the client. During the trial they are waived (100% discount).",
+  },
   projectDetail: {
     tagsRefreshHint: "Tags refresh when you apply client amendments.",
     deleteProjectTitle: "Delete project",

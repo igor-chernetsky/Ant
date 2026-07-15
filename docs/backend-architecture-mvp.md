@@ -21,7 +21,7 @@ This document defines the target backend architecture for the Construction Marke
 - One primary market/region at launch (configurable via `region_code`).
 - Modular monolith (not microservices).
 - English as primary language; translation via async jobs.
-- No payments/escrow in MVP (track `deal_closed` events only).
+- No payments/escrow in MVP. Platform fees are **disclosed in the UI** (client-paid access fee + success fee) with a temporary **100% trial discount** (amount due = 0). Actual charge collection is deferred until a billing legal entity and payment provider are in place.
 
 ---
 

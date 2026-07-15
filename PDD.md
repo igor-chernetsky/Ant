@@ -139,7 +139,10 @@ The system shall:
 
 ## Business Model
 Revenue streams:
-- Percentage fee from closed deals involving contractors, designers, and suppliers
+- **Client-paid platform fees** on closed deals:
+  - **Platform access fee:** USD 100 (local equivalent at an indicative FX rate), unlocks contract signing and is **credited toward** the success fee
+  - **Success fee:** 2% of the awarded contract amount minus the access-fee credit, due within one calendar month after signing (typically after the client’s advance to the contractor)
+- During trial / soft-launch: fees are **shown in full** with a temporary **100% discount** (amount due = 0) until billing via a legal entity is enabled
 - Advertising placements within the platform ecosystem
 - Optional premium memberships for clients
 
