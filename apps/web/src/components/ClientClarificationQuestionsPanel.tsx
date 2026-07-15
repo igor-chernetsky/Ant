@@ -389,13 +389,14 @@ export function ClientClarificationQuestionsPanel({
               disabled={savingId === question.id}
               hideAddButton
               onBusyChange={setAttachBusy}
-              onChange={(attachments) =>
+              onChange={(attachments) => {
                 setQuestions((prev) =>
                   prev.map((q) =>
                     q.id === question.id ? { ...q, attachments } : q,
                   ),
-                )
-              }
+                );
+                onUpdated?.();
+              }}
             />
 
             {(() => {

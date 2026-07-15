@@ -163,6 +163,7 @@ export class ContractorTenderController {
     @Res() res: Response,
   ) {
     const user = await this.resolveUser(req);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
     const includeAttachments =
       withAttachments === '1' || withAttachments === 'true';
 
@@ -170,6 +171,8 @@ export class ContractorTenderController {
       const { zip, fileName } = await this.commercialProposal.renderZip(
         user.id,
         bidId,
+        undefined,
+        locale,
       );
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader(
@@ -183,6 +186,8 @@ export class ContractorTenderController {
     const { pdf, fileName } = await this.commercialProposal.renderPdf(
       user.id,
       bidId,
+      undefined,
+      locale,
     );
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
@@ -198,9 +203,11 @@ export class ContractorTenderController {
     @Param('projectId') projectId: string,
   ) {
     const user = await this.resolveUser(req);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
     const participation = await this.tendersService.getParticipationForProject(
       user.id,
       projectId,
+      locale,
     );
     return participation ?? { participation: null };
   }

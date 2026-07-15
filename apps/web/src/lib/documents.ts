@@ -18,6 +18,7 @@ export interface ProjectDocument {
   status: string;
   createdAt: string;
   uploadedAt: string | null;
+  hasThumbnail?: boolean;
 }
 
 export interface PresignUploadInput {
@@ -127,9 +128,17 @@ export async function deleteProjectDocument(
 export async function getDocumentDownloadUrl(
   projectId: string,
   documentId: string,
+  options?: { variant?: 'original' | 'thumb' },
 ): Promise<{ downloadUrl: string; originalName: string }> {
+  const params = new URLSearchParams();
+  if (options?.variant === 'thumb') {
+    params.set('variant', 'thumb');
+  }
+  const query = params.toString();
   const response = await fetchWithAuth(
-    `/api/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download-url`,
+    `/api/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download-url${
+      query ? `?${query}` : ''
+    }`,
   );
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
@@ -166,9 +175,17 @@ export async function fetchPublicProjectDocuments(
 export async function getPublicDocumentDownloadUrl(
   projectId: string,
   documentId: string,
+  options?: { variant?: 'original' | 'thumb' },
 ): Promise<{ downloadUrl: string; originalName: string }> {
+  const params = new URLSearchParams();
+  if (options?.variant === 'thumb') {
+    params.set('variant', 'thumb');
+  }
+  const query = params.toString();
   const response = await fetch(
-    `/api/public/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download-url`,
+    `/api/public/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download-url${
+      query ? `?${query}` : ''
+    }`,
     { cache: 'no-store' },
   );
   if (!response.ok) {

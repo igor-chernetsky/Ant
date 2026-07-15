@@ -1,5 +1,6 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { DocumentsService } from './documents.service';
+import { parseDocumentDownloadVariant } from './documents.types';
 
 @Controller('v1/public/projects/:projectId/documents')
 export class PublicDocumentsController {
@@ -14,7 +15,12 @@ export class PublicDocumentsController {
   downloadUrl(
     @Param('projectId') projectId: string,
     @Param('documentId') documentId: string,
+    @Query('variant') variant?: string,
   ) {
-    return this.documentsService.getPublicDownloadUrl(projectId, documentId);
+    return this.documentsService.getPublicDownloadUrl(
+      projectId,
+      documentId,
+      parseDocumentDownloadVariant(variant),
+    );
   }
 }

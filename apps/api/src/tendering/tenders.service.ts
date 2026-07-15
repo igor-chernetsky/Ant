@@ -41,6 +41,8 @@ import {
   isApplicationsDeadlinePassed,
   resolveApplicationsCloseAt,
 } from './tender-deadline';
+import { ProjectLocalizationService } from '../localization/project-localization.service';
+import type { SupportedLocale } from '../users/locale.types';
 import {
   BidResponse,
   BidTermsV1,
@@ -82,6 +84,7 @@ export class TendersService {
     private readonly costBreakdown: DefaultCostBreakdownService,
     private readonly projectsService: ProjectsService,
     private readonly contracts: ContractsService,
+    private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
   private mapBid(bid: Bid & { contractor: ContractorProfile }): BidResponse {
@@ -423,6 +426,7 @@ export class TendersService {
     this.notifications.dispatch(
       this.notifications.notifyMatchingContractorsForProject(projectId),
     );
+    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
     return this.mapTender(await this.loadTender(tender.id));
   }
@@ -535,6 +539,7 @@ export class TendersService {
     this.notifications.dispatch(
       this.notifications.notifyMatchingContractorsForProject(projectId),
     );
+    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
     return this.mapTender(await this.loadTender(updated.id));
   }
@@ -948,7 +953,11 @@ export class TendersService {
     return this.listApplicationsForContractor(userId);
   }
 
-  async getParticipationForProject(userId: string, projectId: string) {
+  async getParticipationForProject(
+    userId: string,
+    projectId: string,
+    viewerLocale?: SupportedLocale,
+  ) {
     const profile = await this.contractorProfiles.getByUserId(userId);
     if (!profile) {
       return null;
@@ -1016,6 +1025,38 @@ export class TendersService {
     const contractFullySigned =
       contract?.status === ContractStatus.fully_signed;
 
+    const defaultCostBreakdown = this.defaultCostBreakdownForTender(tender);
+    const projectContractTerms = this.parseProjectContractTerms(
+      project.tenderContractTermsJson,
+    );
+
+    let projectScopeSummary = project.scopeSummary;
+    let projectClarificationSummary = project.clarificationSummary;
+    let localizedContractTerms = projectContractTerms;
+    let localizedCostBreakdown = defaultCostBreakdown;
+
+    if (viewerLocale) {
+      const localized =
+        await this.projectLocalization.localizeTenderPackageTexts(
+          projectId,
+          {
+            scopeSummary: project.scopeSummary,
+            clarificationSummary: project.clarificationSummary,
+            contractTerms: projectContractTerms,
+            costBreakdown: defaultCostBreakdown,
+            sourceLocale: project.sourceLocale,
+          },
+          viewerLocale,
+        );
+      if (localized.cacheMiss) {
+        this.projectLocalization.scheduleWarmProjectTranslations(projectId);
+      }
+      projectScopeSummary = localized.scopeSummary;
+      projectClarificationSummary = localized.clarificationSummary;
+      localizedContractTerms = localized.contractTerms;
+      localizedCostBreakdown = localized.costBreakdown;
+    }
+
     return {
       tenderId: tender?.id ?? null,
       tenderStatus: tender?.status ?? null,
@@ -1027,11 +1068,10 @@ export class TendersService {
       hasSubmittedClarificationQuestions,
       clarificationProgress,
       tenderCollectingClarifications,
-      defaultCostBreakdown: this.defaultCostBreakdownForTender(tender),
-      projectScopeSummary: project.scopeSummary,
-      projectContractTerms: this.parseProjectContractTerms(
-        project.tenderContractTermsJson,
-      ),
+      defaultCostBreakdown: localizedCostBreakdown,
+      projectScopeSummary,
+      projectClarificationSummary,
+      projectContractTerms: localizedContractTerms,
       canStartClarification: Boolean(
         tenderCollectingClarifications && !myBid,
       ),

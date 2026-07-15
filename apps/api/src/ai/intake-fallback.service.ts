@@ -12,9 +12,30 @@ import { suggestTagSlugsFromText } from '../projects/project-brief';
 import {
   narrativeHasPoolDepthFact,
   narrativeHasPumpStationFact,
+  shouldAskElectricalScopeQuestions,
+  shouldAskPoolLightingQuestions,
   shouldAskPoolScopeQuestions,
+  shouldAskPoolWaterTreatmentQuestions,
+  shouldAskSanitaryPointsQuestions,
   shouldAskStoreyCount,
+  shouldAskUtilityConnectionQuestions,
 } from './intake-scope-heuristics';
+import {
+  fallbackDefaultDescription,
+  getFallbackApproxAreaQuestion,
+  getFallbackElectricalScopeQuestion,
+  getFallbackMaterialsNotesQuestion,
+  getFallbackPoolDepthQuestion,
+  getFallbackPoolLightingQuestion,
+  getFallbackPoolPumpQuestion,
+  getFallbackPoolWaterTreatmentQuestion,
+  getFallbackPropertyTypeQuestion,
+  getFallbackSanitaryPointsQuestion,
+  getFallbackSpecialSystemsQuestion,
+  getFallbackStoreyCountQuestion,
+  getFallbackTimelineQuestion,
+  getFallbackUtilityConnectionsQuestion,
+} from './intake-fallback-copy';
 
 @Injectable()
 export class IntakeFallbackService {
@@ -30,7 +51,7 @@ export class IntakeFallbackService {
 
     const improvedDescription =
       context.description?.trim() ||
-      `Construction project: ${context.title}. Scope details to be confirmed during intake.`;
+      fallbackDefaultDescription(context.locale, context.title);
 
     const nextQuestion = this.firstFallbackQuestion(context);
 
@@ -111,20 +132,7 @@ export class IntakeFallbackService {
     context: ProjectIntakeContext,
   ): IntakeQuestion | null {
     if (!context.propertyType) {
-      return {
-        id: 'property-type',
-        type: 'single',
-        prompt: 'What type of property is this project for?',
-        required: true,
-        allowSkip: true,
-        allowCustom: true,
-        options: [
-          { id: 'apartment', label: 'Apartment' },
-          { id: 'house', label: 'House' },
-          { id: 'commercial', label: 'Commercial' },
-          { id: 'land', label: 'Land' },
-        ],
-      };
+      return getFallbackPropertyTypeQuestion(context.locale);
     }
 
     return this.fallbackQuestionQueue(context)[0] ?? null;
@@ -133,6 +141,7 @@ export class IntakeFallbackService {
   private fallbackQuestionQueue(
     context: ProjectIntakeContext,
   ): IntakeQuestion[] {
+    const locale = context.locale;
     const hasDocArea = Boolean(
       context.documents?.some(
         (doc) =>
@@ -143,20 +152,7 @@ export class IntakeFallbackService {
 
     const queue: IntakeQuestion[] = [];
     if (!hasDocArea) {
-      queue.push({
-        id: 'approx-area',
-        type: 'single',
-        prompt: 'What is the approximate area involved?',
-        required: true,
-        allowSkip: true,
-        allowCustom: true,
-        options: [
-          { id: 'under-30', label: 'Under 30 sqm' },
-          { id: '30-80', label: '30–80 sqm' },
-          { id: '80-150', label: '80–150 sqm' },
-          { id: '150-plus', label: 'Over 150 sqm' },
-        ],
-      });
+      queue.push(getFallbackApproxAreaQuestion(locale));
     }
 
     const needsBuildingSystemsQuestions = [
@@ -179,98 +175,47 @@ export class IntakeFallbackService {
     );
 
     if (shouldAskStoreyCount(context)) {
-      queue.push({
-        id: 'storey-count',
-        type: 'single',
-        prompt: 'How many storeys/floors does the building have?',
-        required: true,
-        allowSkip: true,
-        allowCustom: true,
-        options: [
-          { id: '1', label: 'Single storey' },
-          { id: '2', label: '2 storeys' },
-          { id: '3-plus', label: '3 or more' },
-        ],
-      });
+      queue.push(getFallbackStoreyCountQuestion(locale));
+    }
+
+    if (shouldAskUtilityConnectionQuestions(context)) {
+      queue.push(getFallbackUtilityConnectionsQuestion(locale));
+    }
+
+    if (shouldAskElectricalScopeQuestions(context)) {
+      queue.push(getFallbackElectricalScopeQuestion(locale));
+    }
+
+    if (shouldAskSanitaryPointsQuestions(context)) {
+      queue.push(getFallbackSanitaryPointsQuestion(locale));
     }
 
     if (shouldAskPoolScopeQuestions(context)) {
       if (!narrativeHasPoolDepthFact(context)) {
-        queue.push({
-          id: 'pool-depth',
-          type: 'single',
-          prompt: 'What is the planned pool depth?',
-          required: true,
-          allowSkip: true,
-          allowCustom: true,
-          options: [
-            { id: 'up-to-1.2', label: 'Up to 1.2 m' },
-            { id: '1.2-1.5', label: '1.2–1.5 m' },
-            { id: '1.5-2.0', label: '1.5–2.0 m' },
-            { id: 'over-2.0', label: 'Over 2.0 m / variable depth' },
-          ],
-        });
+        queue.push(getFallbackPoolDepthQuestion(locale));
       }
 
       if (!narrativeHasPumpStationFact(context)) {
-        queue.push({
-          id: 'pool-pump-station',
-          type: 'single',
-          prompt: 'Where should the pump / equipment room be placed?',
-          required: true,
-          allowSkip: true,
-          allowCustom: true,
-          options: [
-            { id: 'underground', label: 'Underground / plant room below grade' },
-            { id: 'adjacent-building', label: 'Adjacent building / service room' },
-            { id: 'outdoor-enclosure', label: 'Outdoor enclosure near the pool' },
-            { id: 'undecided', label: 'Not decided yet' },
-          ],
-        });
+        queue.push(getFallbackPoolPumpQuestion(locale));
+      }
+
+      if (shouldAskPoolWaterTreatmentQuestions(context)) {
+        queue.push(getFallbackPoolWaterTreatmentQuestion(locale));
+      }
+
+      if (shouldAskPoolLightingQuestions(context)) {
+        queue.push(getFallbackPoolLightingQuestion(locale));
       }
     } else if (needsBuildingSystemsQuestions && !hasDocSpecialSystems) {
-      queue.push({
-        id: 'special-systems',
-        type: 'multi',
-        prompt:
-          'Which special building systems apply? (select all that apply, or skip if none)',
-        required: true,
-        allowSkip: true,
-        allowCustom: true,
-        options: [
-          { id: 'none', label: 'None of these' },
-          { id: 'elevator', label: 'Elevator / lift' },
-          { id: 'pool', label: 'Swimming pool' },
-          { id: 'basement', label: 'Basement / underground works' },
-          { id: 'smart-home', label: 'Smart home / automation' },
-        ],
-      });
+      queue.push(getFallbackSpecialSystemsQuestion(locale));
     }
 
     queue.push(
-      {
-        id: 'timeline',
-        type: 'single',
-        prompt: 'When would you like to start?',
-        required: true,
-        allowSkip: true,
-        allowCustom: true,
-        options: [
-          { id: 'asap', label: 'As soon as possible' },
-          { id: '1-3-months', label: 'In 1–3 months' },
-          { id: 'flexible', label: 'Flexible' },
-        ],
-      },
-      {
-        id: 'materials-notes',
-        type: 'text',
-        prompt: hasDocumentIntakeContext(context.documents)
-          ? 'Anything missing from the uploaded documents that contractors should know? (optional)'
-          : 'Any material preferences or constraints? (optional)',
-        required: false,
-        allowSkip: true,
-        placeholder: 'e.g. premium tiles, client-supplied fixtures…',
-      },
+      getFallbackTimelineQuestion(locale),
+      getFallbackMaterialsNotesQuestion(
+        locale,
+        hasDocumentIntakeContext(context.documents),
+      ),
     );
 
     return queue;

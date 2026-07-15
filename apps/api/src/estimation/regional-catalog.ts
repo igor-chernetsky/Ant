@@ -17,17 +17,19 @@ export const TH_REGIONAL_CATALOG: RegionalCatalogItem[] = [
   },
   {
     trade: 'electrical',
-    label: 'Electrical works (wiring, boards, lighting fixtures)',
+    label:
+      'Electrical works (wiring, boards, lighting fixtures; specialty luminaires at upper band)',
     unit: 'sqm',
-    priceMinThb: 1400,
-    priceMaxThb: 4200,
+    priceMinThb: 2200,
+    priceMaxThb: 6500,
   },
   {
     trade: 'plumbing',
-    label: 'Plumbing & water-supply connection (points + utility tie-in)',
+    label:
+      'Plumbing, water-supply connection & treatment (points + utility tie-in; premium filtration at upper band / extra lump)',
     unit: 'point',
-    priceMinThb: 5500,
-    priceMaxThb: 18000,
+    priceMinThb: 8000,
+    priceMaxThb: 28000,
   },
   {
     trade: 'structural',
@@ -126,6 +128,8 @@ export function catalogSummaryForPrompt(
     .join('\n');
   return `${rows}
 Notes:
-- electrical: lighting fixtures and switchgear often push toward the upper band; do not price lighting as cheap rewiring only.
-- plumbing: mains water connection / meter tie-in is substantially more than a single fixture point — treat connection works near the upper band or as additional lump within plumbing.`;
+- electrical: lighting fixtures and switchgear push toward mid-high band; specialty / underwater / designer luminaires require upper-band OR a separate electrical lump (often +40k–180k THB), not "free wording" inside a cheap wiring line.
+- plumbing: mains water / sewer utility tie-in is substantially more than a single fixture point — treat connection works near the upper band or as an additional lump.
+- pool water treatment: chlorine-free / UV / ozone / salt systems must be priced explicitly (typically +80k–250k THB lump on plumbing or a dedicated plumbing line). Do not treat them as zero-cost notes.
+- Prefer multiple MEP lines when scope is detailed (e.g. wiring+board, specialty lighting, utility connection, filtration/treatment) rather than one shallow aggregate.`;
 }

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -13,7 +14,10 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
 import { DocumentsService } from './documents.service';
-import { PresignUploadDto } from './documents.types';
+import {
+  parseDocumentDownloadVariant,
+  PresignUploadDto,
+} from './documents.types';
 
 @Controller('v1/projects/:projectId/documents')
 @UseGuards(JwtAuthGuard)
@@ -65,12 +69,14 @@ export class DocumentsController {
     @Req() req: Request & { user: JwtPayload },
     @Param('projectId') projectId: string,
     @Param('documentId') documentId: string,
+    @Query('variant') variant?: string,
   ) {
     const user = await this.resolveUser(req);
     return this.documentsService.getDownloadUrl(
       projectId,
       documentId,
       user.id,
+      parseDocumentDownloadVariant(variant),
     );
   }
 

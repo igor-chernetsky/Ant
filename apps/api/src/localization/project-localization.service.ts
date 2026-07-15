@@ -11,6 +11,23 @@ import {
 import { ContentTranslationService } from './content-translation.service';
 import { normalizeSourceLocale } from './locale.utils';
 import { OpenAiTranslationService } from './openai-translation.service';
+import type {
+  BidContractTerms,
+  DefaultCostBreakdownItem,
+} from '../tendering/tendering.types';
+
+/** Free-text tender package fields filled by the client that contractors need localized. */
+export const CONTRACT_TERMS_TRANSLATABLE_KEYS = [
+  'subjectOfContract',
+  'siteAddress',
+  'propertyOwnership',
+  'employerName',
+  'employerAddress',
+  'retentionReleaseNotes',
+  'warrantyPeriodNotes',
+  'delayDamagesNotes',
+  'specialConditions',
+] as const satisfies ReadonlyArray<keyof BidContractTerms>;
 
 type TextField = {
   kind: 'text';
@@ -138,6 +155,31 @@ export class ProjectLocalizationService implements OnModuleInit {
         fields.map((field) => this.warmField(field, projectId, sourceLocale, targetLocale)),
       );
     }
+
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+      select: { defaultCostBreakdown: true },
+    });
+    const contractTerms = (project.tenderContractTermsJson ??
+      null) as BidContractTerms | null;
+    const breakdown = Array.isArray(tender?.defaultCostBreakdown)
+      ? (tender!.defaultCostBreakdown as unknown as DefaultCostBreakdownItem[])
+      : [];
+
+    for (const targetLocale of targetLocales) {
+      await this.warmContractTerms(
+        projectId,
+        contractTerms,
+        sourceLocale,
+        targetLocale,
+      );
+      await this.warmCostBreakdown(
+        projectId,
+        breakdown,
+        sourceLocale,
+        targetLocale,
+      );
+    }
   }
 
   async warmFromResponse(
@@ -254,6 +296,209 @@ export class ProjectLocalizationService implements OnModuleInit {
       description,
       cacheMiss,
     };
+  }
+
+  async localizeContractTerms(
+    projectId: string,
+    terms: BidContractTerms | null | undefined,
+    sourceLocale: SupportedLocale,
+    targetLocale: SupportedLocale,
+  ): Promise<{ terms: BidContractTerms; cacheMiss: boolean }> {
+    if (!terms || sourceLocale === targetLocale) {
+      return { terms: terms ?? {}, cacheMiss: false };
+    }
+
+    let cacheMiss = false;
+    const next: BidContractTerms = { ...terms };
+
+    for (const key of CONTRACT_TERMS_TRANSLATABLE_KEYS) {
+      const sourceText = terms[key];
+      if (typeof sourceText !== 'string' || !sourceText.trim()) {
+        continue;
+      }
+      const cached = await this.translations.getCachedText({
+        projectId,
+        fieldKey: `contractTerms.${key}`,
+        sourceText,
+        targetLocale,
+      });
+      if (cached == null) {
+        cacheMiss = true;
+        continue;
+      }
+      next[key] = cached as never;
+    }
+
+    return { terms: next, cacheMiss };
+  }
+
+  async localizeCostBreakdown(
+    projectId: string,
+    items: DefaultCostBreakdownItem[],
+    sourceLocale: SupportedLocale,
+    targetLocale: SupportedLocale,
+  ): Promise<{ items: DefaultCostBreakdownItem[]; cacheMiss: boolean }> {
+    if (sourceLocale === targetLocale || items.length === 0) {
+      return { items, cacheMiss: false };
+    }
+
+    let cacheMiss = false;
+    const next = await Promise.all(
+      items.map(async (item, index) => {
+        if (!item.description?.trim()) {
+          return item;
+        }
+        const cached = await this.translations.getCachedText({
+          projectId,
+          fieldKey: `defaultCost.${index}.description`,
+          sourceText: item.description,
+          targetLocale,
+        });
+        if (cached == null) {
+          cacheMiss = true;
+          return item;
+        }
+        return { ...item, description: cached };
+      }),
+    );
+
+    return { items: next, cacheMiss };
+  }
+
+  async localizeTenderPackageTexts(
+    projectId: string,
+    input: {
+      title?: string | null;
+      description?: string | null;
+      scopeSummary?: string | null;
+      clarificationSummary?: string | null;
+      contractTerms?: BidContractTerms | null;
+      costBreakdown?: DefaultCostBreakdownItem[];
+      sourceLocale?: string | null;
+    },
+    targetLocale: SupportedLocale,
+  ): Promise<{
+    title: string | null;
+    description: string | null;
+    scopeSummary: string | null;
+    clarificationSummary: string | null;
+    contractTerms: BidContractTerms;
+    costBreakdown: DefaultCostBreakdownItem[];
+    cacheMiss: boolean;
+  }> {
+    const sourceLocale = normalizeSourceLocale(input.sourceLocale);
+    if (sourceLocale === targetLocale) {
+      return {
+        title: input.title ?? null,
+        description: input.description ?? null,
+        scopeSummary: input.scopeSummary ?? null,
+        clarificationSummary: input.clarificationSummary ?? null,
+        contractTerms: input.contractTerms ?? {},
+        costBreakdown: input.costBreakdown ?? [],
+        cacheMiss: false,
+      };
+    }
+
+    let cacheMiss = false;
+
+    const readText = async (
+      fieldKey: string,
+      sourceText: string | null | undefined,
+    ): Promise<string | null> => {
+      if (!sourceText?.trim()) {
+        return sourceText ?? null;
+      }
+      const cached = await this.translations.getCachedText({
+        projectId,
+        fieldKey,
+        sourceText,
+        targetLocale,
+      });
+      if (cached == null) {
+        cacheMiss = true;
+        return sourceText;
+      }
+      return cached;
+    };
+
+    const title = await readText('title', input.title);
+    const description = await readText('description', input.description);
+    const scopeSummary = await readText('scopeSummary', input.scopeSummary);
+    const clarificationSummary = await readText(
+      'clarificationSummary',
+      input.clarificationSummary,
+    );
+    const { terms, cacheMiss: termsMiss } = await this.localizeContractTerms(
+      projectId,
+      input.contractTerms,
+      sourceLocale,
+      targetLocale,
+    );
+    const { items, cacheMiss: breakdownMiss } =
+      await this.localizeCostBreakdown(
+        projectId,
+        input.costBreakdown ?? [],
+        sourceLocale,
+        targetLocale,
+      );
+
+    return {
+      title,
+      description,
+      scopeSummary,
+      clarificationSummary,
+      contractTerms: terms,
+      costBreakdown: items,
+      cacheMiss: cacheMiss || termsMiss || breakdownMiss,
+    };
+  }
+
+  private async warmContractTerms(
+    projectId: string,
+    terms: BidContractTerms | null | undefined,
+    sourceLocale: SupportedLocale,
+    targetLocale: SupportedLocale,
+  ): Promise<void> {
+    if (!terms) {
+      return;
+    }
+    await Promise.all(
+      CONTRACT_TERMS_TRANSLATABLE_KEYS.map((key) => {
+        const sourceText = terms[key];
+        if (typeof sourceText !== 'string' || !sourceText.trim()) {
+          return Promise.resolve();
+        }
+        return this.translations.translateAndCacheText({
+          projectId,
+          fieldKey: `contractTerms.${key}`,
+          sourceText,
+          sourceLocale,
+          targetLocale,
+        });
+      }),
+    );
+  }
+
+  private async warmCostBreakdown(
+    projectId: string,
+    items: DefaultCostBreakdownItem[],
+    sourceLocale: SupportedLocale,
+    targetLocale: SupportedLocale,
+  ): Promise<void> {
+    await Promise.all(
+      items.map((item, index) => {
+        if (!item.description?.trim()) {
+          return Promise.resolve();
+        }
+        return this.translations.translateAndCacheText({
+          projectId,
+          fieldKey: `defaultCost.${index}.description`,
+          sourceText: item.description,
+          sourceLocale,
+          targetLocale,
+        });
+      }),
+    );
   }
 
   private async warmField(

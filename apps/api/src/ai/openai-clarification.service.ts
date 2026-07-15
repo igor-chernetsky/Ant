@@ -132,11 +132,13 @@ Rules — be CONSERVATIVE:
 
     const lang =
       locale === 'th' ? 'Thai' : locale === 'ru' ? 'Russian' : 'English';
-    const system = `You write a concise supplementary project description for contractors based on Q&A clarifications.
+    const system = `You write a concise SUPPLEMENTARY clarification appendix for contractors based on Q&A.
 Return JSON only with key: summary (string, 2-8 sentences, factual, ${lang}).
+This text is an APPENDIX about clarifications only — not a replacement for the project brief.
 Integrate answers into flowing prose suitable for a tender document appendix.
 When answers include attached files, mention them briefly where relevant.
-Do not invent facts beyond the provided answers.`;
+Do not invent facts beyond the provided answers.
+Do not rewrite or replace the original project description.`;
 
     const user = JSON.stringify({
       projectTitle,

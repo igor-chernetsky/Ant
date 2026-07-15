@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { LocalizationModule } from '../localization/localization.module';
+import { EstimationModule } from '../estimation/estimation.module';
 import { AmendmentFallbackService } from './amendment-fallback.service';
 import { BidAnalysisFallbackService } from './bid-analysis-fallback.service';
 import { DocumentAnalysisService } from './document-analysis.service';
@@ -14,7 +15,7 @@ import { ScopeSyncFallbackService } from './scope-sync-fallback.service';
 import { PdfTextService } from '../pdf/pdf-text.service';
 
 @Module({
-  imports: [LocalizationModule],
+  imports: [LocalizationModule, EstimationModule],
   providers: [
     OpenAiIntakeService,
     IntakeFallbackService,

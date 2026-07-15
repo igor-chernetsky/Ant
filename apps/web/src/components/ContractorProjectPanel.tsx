@@ -227,9 +227,14 @@ export function ContractorProjectPanel({
   const submitted = myBid?.status === 'submitted';
   const selected = myBid?.status === 'selected';
   const showClarificationSummary = Boolean(
-    clarificationSummary?.trim() &&
+    (participation.projectClarificationSummary?.trim() ||
+      clarificationSummary?.trim()) &&
       hasActiveContractorParticipation(participation),
   );
+  const resolvedClarificationSummary =
+    participation.projectClarificationSummary?.trim() ||
+    clarificationSummary ||
+    null;
   const canLeaveDiscussion =
     participation.canWithdraw &&
     myBid &&
@@ -296,12 +301,12 @@ export function ContractorProjectPanel({
         </p>
       )}
 
-      {showClarificationSummary && (
+      {showClarificationSummary && resolvedClarificationSummary && (
         <div className="client-clarification-summary contractor-clarification-summary">
           <h3 className="tender-subsection-title">
             {t('contractor.clarificationSummary')}
           </h3>
-          <p>{clarificationSummary}</p>
+          <p>{resolvedClarificationSummary}</p>
         </div>
       )}
 

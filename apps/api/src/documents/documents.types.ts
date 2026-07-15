@@ -17,6 +17,7 @@ export interface DocumentResponse {
   status: string;
   createdAt: string;
   uploadedAt: string | null;
+  hasThumbnail?: boolean;
 }
 
 export interface PresignUploadResponse {
@@ -62,4 +63,42 @@ export function buildStorageKey(
   fileName: string,
 ): string {
   return `projects/${projectId}/documents/${documentId}/${sanitizeFileName(fileName)}`;
+}
+
+export function buildDocumentThumbnailKey(
+  projectId: string,
+  documentId: string,
+): string {
+  return `projects/${projectId}/documents/${documentId}/thumb.jpg`;
+}
+
+export type DocumentDownloadVariant = 'original' | 'thumb';
+
+export function parseDocumentDownloadVariant(
+  value: string | undefined | null,
+): DocumentDownloadVariant {
+  return value === 'thumb' ? 'thumb' : 'original';
+}
+
+export function inferDocumentCategory(
+  contentType: string,
+  fileName: string,
+): DocumentCategory {
+  if (contentType.startsWith('image/')) {
+    return 'photo';
+  }
+  if (
+    /\b(plan|drawing|blueprint|чертёж|чертеж|схем|план)/i.test(fileName)
+  ) {
+    return 'blueprint';
+  }
+  if (
+    contentType === 'application/pdf' ||
+    contentType.includes('word') ||
+    contentType.includes('sheet') ||
+    contentType === 'text/plain'
+  ) {
+    return 'specification';
+  }
+  return 'other';
 }

@@ -39,9 +39,12 @@ Rules:
 - applyToProjectScope: for clarification_answer and clarification_attachment always true unless the update is empty noise.
 - applyToProjectScope: for client_chat true ONLY when the message adds scope, exclusions, materials, timeline, access, or other facts contractors need in the project summary. False for greetings, scheduling chit-chat, or bid negotiation without scope facts.
 - Keep existing factual content; integrate clarifications clearly.
-- updatedDescription: full contractor-facing narrative (2-8 sentences).
-- updatedSummary: shorter headline summary (1-3 sentences).
-- updatedScopeSummary: concise scope-of-works line for commercial proposals (1-3 sentences).
+- CRITICAL: updatedDescription must preserve the FULL prior project narrative from description/brief.summary and ADD/refine with the clarification. Never replace the whole description with only the clarification sentence(s).
+- CRITICAL: updatedSummary must stay a project-level brief (what the project is). Never shrink it to a single micro-task like paving removal or a one-line answer.
+- updatedDescription: full contractor-facing narrative (2-8 sentences, or longer if the prior text was longer — do not shorten aggressively).
+- updatedSummary: shorter headline summary (1-3 sentences) that still covers the main works.
+- updatedScopeSummary: concise scope-of-works line for commercial proposals (1-3 sentences); also preserve prior scope, then refine.
+- If the clarification is a small add-on (e.g. dismantle paving tiles, confirm a material), weave that fact into the existing narrative without deleting other trades/scope.
 - tagSlugs: subset of allowed tags only.
 - confidence: 0-1.
 - briefPatches may include constraints, property, timeline, materials when relevant.

@@ -19,6 +19,11 @@ import {
 } from './project-brief';
 import { reconcileAiTagSlugs } from './project-tag-reconciliation';
 import { ScopeSyncUpdate } from './scope-sync.types';
+import {
+  preserveMergedDescription,
+  preserveMergedScopeSummary,
+  preserveMergedSummary,
+} from './scope-sync-preserve';
 
 @Injectable()
 export class ProjectScopeSyncService {
@@ -82,10 +87,30 @@ export class ProjectScopeSyncService {
         return;
       }
 
+      const updatedDescription = preserveMergedDescription({
+        previousDescription: project.description,
+        previousSummary: brief.summary,
+        candidate: result.updatedDescription,
+        updateBody: update.body,
+      });
+      const updatedSummary = preserveMergedSummary({
+        previousSummary: brief.summary,
+        previousDescription: project.description,
+        candidate: result.updatedSummary,
+        preservedDescription: updatedDescription,
+      });
+      const updatedScopeSummary = preserveMergedScopeSummary({
+        previousScopeSummary: project.scopeSummary,
+        previousDescription: project.description,
+        candidate: result.updatedScopeSummary,
+        preservedSummary: updatedSummary,
+        preservedDescription: updatedDescription,
+      });
+
       const narrative = [
-        result.updatedDescription,
-        result.updatedSummary,
-        result.updatedScopeSummary,
+        updatedDescription,
+        updatedSummary,
+        updatedScopeSummary,
         update.body,
       ].join(' ');
       const tagSlugs = reconcileAiTagSlugs({
@@ -98,7 +123,7 @@ export class ProjectScopeSyncService {
       await this.replaceAiTags(project.id, tagSlugs);
 
       const updatedBrief = this.mergeBrief(project.briefJson, {
-        summary: result.updatedSummary,
+        summary: updatedSummary,
         constraints: result.briefPatches?.constraints ?? brief.constraints,
         property: result.briefPatches?.property
           ? { ...brief.property, ...result.briefPatches.property }
@@ -111,7 +136,7 @@ export class ProjectScopeSyncService {
           : brief.materials,
         ai: {
           ...brief.ai,
-          improvedDescription: result.updatedDescription,
+          improvedDescription: updatedDescription,
           confidence: result.confidence,
         },
       });
@@ -123,7 +148,7 @@ export class ProjectScopeSyncService {
 
       const readinessScore = computeReadinessScore({
         title: project.title,
-        description: result.updatedDescription,
+        description: updatedDescription,
         projectType: project.projectType as ProjectType,
         propertyType: project.propertyType as PropertyType | null,
         district: project.district,
@@ -136,14 +161,27 @@ export class ProjectScopeSyncService {
       await this.prisma.project.update({
         where: { id: project.id },
         data: {
-          description: result.updatedDescription,
-          scopeSummary: result.updatedScopeSummary,
+          description: updatedDescription,
+          scopeSummary: updatedScopeSummary,
           briefJson: updatedBrief as unknown as Prisma.InputJsonValue,
           readinessScore,
         },
       });
 
-      if (previousStatus === ProjectStatus.estimated) {
+      // Always refresh ballpark when scope facts change and an estimate already exists
+      // (including during in_tender clarification). Also create the first estimate
+      // while the project is still in pre-tender statuses.
+      const hasEstimate = await this.prisma.estimate.findFirst({
+        where: { projectId: project.id },
+        select: { id: true },
+      });
+      const shouldRefreshEstimate =
+        Boolean(hasEstimate) ||
+        previousStatus === ProjectStatus.estimated ||
+        previousStatus === ProjectStatus.ready_for_estimate ||
+        previousStatus === ProjectStatus.intake;
+
+      if (shouldRefreshEstimate) {
         await this.estimatesService.generateAndStore(project.id);
       } else {
         this.projectLocalization.scheduleWarmProjectTranslations(project.id);
@@ -169,13 +207,17 @@ export class ProjectScopeSyncService {
     questionText: string;
     answerText?: string | null;
     attachmentName: string;
+    analysisNotes?: string;
   }): ScopeSyncUpdate {
     const answerPart = input.answerText?.trim()
       ? `\nCurrent answer: ${input.answerText.trim()}`
       : '';
+    const analysisPart = input.analysisNotes?.trim()
+      ? `\nDocument analysis:\n${input.analysisNotes.trim()}`
+      : '';
     return {
       source: 'clarification_attachment',
-      body: `Clarification attachment uploaded for question "${input.questionText}". File: ${input.attachmentName}.${answerPart}`,
+      body: `Clarification attachment uploaded for question "${input.questionText}". File: ${input.attachmentName}.${answerPart}${analysisPart}`,
     };
   }
 

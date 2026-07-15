@@ -22,6 +22,10 @@ import {
   computeReadinessScore,
 } from '../projects/project-brief';
 import { reconcileAiTagSlugs } from '../projects/project-tag-reconciliation';
+import {
+  preserveMergedDescription,
+  preserveMergedSummary,
+} from '../projects/scope-sync-preserve';
 import { ProjectsService } from '../projects/projects.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -164,6 +168,20 @@ export class AmendmentsService {
       result = this.fallback.processAmendments(context);
     }
 
+    const updateBody = rows.map((row) => row.body).join('\n');
+    const updatedDescription = preserveMergedDescription({
+      previousDescription: project.description,
+      previousSummary: brief.summary,
+      candidate: result.updatedDescription,
+      updateBody,
+    });
+    const updatedSummary = preserveMergedSummary({
+      previousSummary: brief.summary,
+      previousDescription: project.description,
+      candidate: result.updatedSummary,
+      preservedDescription: updatedDescription,
+    });
+
     const previousTags = await this.prisma.projectTag.findMany({
       where: { projectId: project.id },
       include: { tag: true },
@@ -172,9 +190,9 @@ export class AmendmentsService {
       suggested: result.tagSlugs,
       previous: previousTags.map((row) => row.tag.slug),
       narrative: [
-        result.updatedDescription,
-        result.updatedSummary,
-        ...rows.map((row) => row.body),
+        updatedDescription,
+        updatedSummary,
+        updateBody,
       ].join(' '),
       preserveTrades: (brief.packages ?? []).map((pkg) => pkg.trade),
       allowed: availableTagSlugs,
@@ -182,7 +200,7 @@ export class AmendmentsService {
     await this.replaceAiTags(project.id, tagSlugs);
 
     const updatedBrief = this.mergeBrief(project.briefJson, {
-      summary: result.updatedSummary,
+      summary: updatedSummary,
       constraints: result.briefPatches?.constraints ?? brief.constraints,
       property: result.briefPatches?.property
         ? { ...brief.property, ...result.briefPatches.property }
@@ -195,7 +213,7 @@ export class AmendmentsService {
         : brief.materials,
       ai: {
         ...brief.ai,
-        improvedDescription: result.updatedDescription,
+        improvedDescription: updatedDescription,
         confidence: result.confidence,
       },
     });
@@ -207,7 +225,7 @@ export class AmendmentsService {
 
     const readinessScore = computeReadinessScore({
       title: project.title,
-      description: result.updatedDescription,
+      description: updatedDescription,
       projectType: project.projectType as ProjectType,
       propertyType: project.propertyType as PropertyType | null,
       district: project.district,
@@ -220,7 +238,7 @@ export class AmendmentsService {
     await this.prisma.project.update({
       where: { id: project.id },
       data: {
-        description: result.updatedDescription,
+        description: updatedDescription,
         briefJson: updatedBrief as unknown as Prisma.InputJsonValue,
         readinessScore,
       },

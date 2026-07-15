@@ -1,7 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { getDocumentDownloadUrl, getPublicDocumentDownloadUrl, type ProjectDocument } from '@/lib/documents';
+import {
+  getDocumentDownloadUrl,
+  getPublicDocumentDownloadUrl,
+  type ProjectDocument,
+} from '@/lib/documents';
 
 interface DocumentImageProps {
   projectId: string;
@@ -24,9 +28,10 @@ export function DocumentImage({
   const loadUrl = useCallback(async () => {
     setFailed(false);
     try {
+      const options = { variant: 'thumb' as const };
       const { downloadUrl } = publicView
-        ? await getPublicDocumentDownloadUrl(projectId, document.id)
-        : await getDocumentDownloadUrl(projectId, document.id);
+        ? await getPublicDocumentDownloadUrl(projectId, document.id, options)
+        : await getDocumentDownloadUrl(projectId, document.id, options);
       setSrc(downloadUrl);
     } catch {
       setFailed(true);

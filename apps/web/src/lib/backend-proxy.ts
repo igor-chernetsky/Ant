@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { getBackendApiUrl } from '@/lib/auth-server';
 import {
@@ -7,19 +8,69 @@ import {
   refreshAccessTokenAfterUnauthorized,
   type KeycloakTokenResponse,
 } from '@/lib/auth-tokens';
+import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE } from '@/lib/i18n';
+import { LOCALE_REQUEST_HEADER } from '@/lib/locale-request';
+
+async function resolveProxyLocale(
+  initHeaders?: HeadersInit,
+): Promise<string> {
+  if (initHeaders) {
+    const headers = new Headers(initHeaders);
+    const fromInit = headers.get(LOCALE_REQUEST_HEADER)?.trim();
+    if (fromInit && isLocale(fromInit)) {
+      return fromInit;
+    }
+  }
+
+  try {
+    const jar = await cookies();
+    const value = jar.get(LOCALE_COOKIE)?.value;
+    if (value && isLocale(value)) {
+      return value;
+    }
+  } catch {
+    // cookies() only works in a request context
+  }
+
+  return DEFAULT_LOCALE;
+}
+
+function withLocaleHeader(
+  headers: Record<string, string>,
+  locale: string,
+): Record<string, string> {
+  const hasLocale = Object.keys(headers).some(
+    (key) => key.toLowerCase() === 'x-ant-locale',
+  );
+  if (hasLocale) {
+    return headers;
+  }
+  return {
+    ...headers,
+    [LOCALE_REQUEST_HEADER]: locale,
+  };
+}
 
 async function fetchBackend(
   path: string,
   accessToken: string,
   init?: RequestInit,
+  locale?: string,
 ): Promise<Response> {
+  const merged: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: 'application/json',
+  };
+  if (init?.headers) {
+    new Headers(init.headers).forEach((value, key) => {
+      merged[key] = value;
+    });
+  }
+  const headers = withLocaleHeader(merged, locale ?? DEFAULT_LOCALE);
+
   return fetch(`${getBackendApiUrl()}${path}`, {
     ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: 'application/json',
-      ...(init?.headers ?? {}),
-    },
+    headers,
     cache: 'no-store',
   });
 }
@@ -45,8 +96,15 @@ export async function proxyBackend(
     };
   }
 
+  const locale = await resolveProxyLocale(init?.headers);
+
   try {
-    let backendResponse = await fetchBackend(path, auth.accessToken, init);
+    let backendResponse = await fetchBackend(
+      path,
+      auth.accessToken,
+      init,
+      locale,
+    );
 
     if (backendResponse.status === 401) {
       const retryAuth = await refreshAccessTokenAfterUnauthorized();
@@ -59,7 +117,12 @@ export async function proxyBackend(
         return { response: unauth };
       }
 
-      backendResponse = await fetchBackend(path, retryAuth.accessToken, init);
+      backendResponse = await fetchBackend(
+        path,
+        retryAuth.accessToken,
+        init,
+        locale,
+      );
       return {
         response: backendResponse,
         refreshed: retryAuth.refreshed ?? auth.refreshed,
@@ -177,6 +240,7 @@ export async function proxyOptionalBackendJson(
 ): Promise<NextResponse> {
   try {
     const apiUrl = getBackendApiUrl();
+    const locale = await resolveProxyLocale(init?.headers);
     const headers: Record<string, string> = {
       Accept: 'application/json',
     };
@@ -186,28 +250,29 @@ export async function proxyOptionalBackendJson(
         headers[key] = value;
       });
     }
+    const finalized = withLocaleHeader(headers, locale);
 
     let refreshed: KeycloakTokenResponse | undefined;
     const auth = await getValidAccessToken();
     if (auth.ok) {
-      headers.Authorization = `Bearer ${auth.accessToken}`;
+      finalized.Authorization = `Bearer ${auth.accessToken}`;
       refreshed = auth.refreshed;
     }
 
     let backendResponse = await fetch(`${apiUrl}${path}`, {
       ...init,
-      headers,
+      headers: finalized,
       cache: 'no-store',
     });
 
     if (auth.ok && backendResponse.status === 401) {
       const retryAuth = await refreshAccessTokenAfterUnauthorized();
       if (retryAuth.ok) {
-        headers.Authorization = `Bearer ${retryAuth.accessToken}`;
+        finalized.Authorization = `Bearer ${retryAuth.accessToken}`;
         refreshed = retryAuth.refreshed ?? refreshed;
         backendResponse = await fetch(`${apiUrl}${path}`, {
           ...init,
-          headers,
+          headers: finalized,
           cache: 'no-store',
         });
       }

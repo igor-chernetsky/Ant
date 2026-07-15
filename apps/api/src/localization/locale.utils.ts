@@ -20,13 +20,14 @@ export function resolveRequestLocale(input: {
   headerLocale?: string | null;
   userLocale?: string | null;
 }): SupportedLocale {
-  const fromUser = input.userLocale?.trim();
-  if (fromUser && isSupportedLocale(fromUser)) {
-    return fromUser;
-  }
+  // Prefer the UI/cookie header so the active language wins over a stale profile value.
   const fromHeader = input.headerLocale?.trim();
   if (fromHeader && isSupportedLocale(fromHeader)) {
     return fromHeader;
+  }
+  const fromUser = input.userLocale?.trim();
+  if (fromUser && isSupportedLocale(fromUser)) {
+    return fromUser;
   }
   return DEFAULT_LOCALE;
 }

@@ -62,6 +62,15 @@ export class EstimatesService {
       where: { id: projectId },
       include: {
         tags: { include: { tag: true } },
+        tender: {
+          select: {
+            clarificationQuestions: {
+              where: { answer: { not: null } },
+              select: { questionText: true, answer: true },
+              orderBy: { sortOrder: 'asc' },
+            },
+          },
+        },
       },
     });
 
@@ -71,6 +80,12 @@ export class EstimatesService {
 
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
     const tagSlugs = project.tags.map((pt) => pt.tag.slug);
+    const clarificationQa = (project.tender?.clarificationQuestions ?? [])
+      .filter((row) => row.answer?.trim())
+      .map((row) => ({
+        question: row.questionText,
+        answer: row.answer!.trim(),
+      }));
 
     const previousEstimate = await this.prisma.estimate.findFirst({
       where: { projectId },
@@ -91,6 +106,9 @@ export class EstimatesService {
       brief,
       locale: normalizeSourceLocale(project.sourceLocale),
       previousLines,
+      clarificationQa,
+      clarificationSummary: project.clarificationSummary,
+      scopeSummary: project.scopeSummary,
     });
 
     const record = await this.prisma.estimate.create({
@@ -105,10 +123,18 @@ export class EstimatesService {
       },
     });
 
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: { status: ProjectStatus.estimated },
-    });
+    // Do not pull in-tender / later projects back to "estimated".
+    if (
+      project.status === ProjectStatus.draft ||
+      project.status === ProjectStatus.intake ||
+      project.status === ProjectStatus.ready_for_estimate ||
+      project.status === ProjectStatus.estimated
+    ) {
+      await this.prisma.project.update({
+        where: { id: projectId },
+        data: { status: ProjectStatus.estimated },
+      });
+    }
 
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 

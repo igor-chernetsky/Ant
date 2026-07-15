@@ -11,7 +11,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
-import { ImageThumbnailService } from './image-thumbnail.service';
+import { ImageThumbnailService } from '../storage/image-thumbnail.service';
 import {
   ALLOWED_PORTFOLIO_CONTENT_TYPES,
   buildPortfolioStorageKey,

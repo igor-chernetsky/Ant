@@ -194,6 +194,7 @@ export interface ContractorProjectParticipation {
   tenderCollectingClarifications: boolean;
   defaultCostBreakdown: DefaultCostBreakdownItem[];
   projectScopeSummary: string | null;
+  projectClarificationSummary: string | null;
   projectContractTerms: BidContractTerms;
   canStartClarification: boolean;
   canApply: boolean;

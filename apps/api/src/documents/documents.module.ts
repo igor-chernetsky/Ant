@@ -9,5 +9,6 @@ import { PublicDocumentsController } from './public-documents.controller';
   imports: [UsersModule, AiModule],
   controllers: [DocumentsController, PublicDocumentsController],
   providers: [DocumentsService],
+  exports: [DocumentsService],
 })
 export class DocumentsModule {}

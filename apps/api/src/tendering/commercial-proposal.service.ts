@@ -11,6 +11,9 @@ import { ZipArchive } from 'archiver';
 import { PrismaService } from '../prisma/prisma.service';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 import { StorageService } from '../storage/storage.service';
+import { ProjectLocalizationService } from '../localization/project-localization.service';
+import { normalizeSourceLocale } from '../localization/locale.utils';
+import type { SupportedLocale } from '../users/locale.types';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
   buildCommercialProposalData,
@@ -98,6 +101,7 @@ export class CommercialProposalService {
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly htmlToPdf: HtmlToPdfService,
     private readonly storage: StorageService,
+    private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
   async countAttachments(
@@ -114,11 +118,13 @@ export class CommercialProposalService {
     userId: string,
     bidId: string,
     projectId?: string,
+    viewerLocale?: SupportedLocale,
   ): Promise<{ pdf: Buffer; fileName: string }> {
     const { html, fileName } = await this.buildHtmlDocument(
       userId,
       bidId,
       projectId,
+      viewerLocale,
     );
     const pdf = await this.htmlToPdf.render(html);
     return { pdf, fileName };
@@ -128,6 +134,7 @@ export class CommercialProposalService {
     userId: string,
     bidId: string,
     projectId?: string,
+    viewerLocale?: SupportedLocale,
   ): Promise<{ zip: Buffer; fileName: string }> {
     if (!this.storage.isConfigured()) {
       throw new ServiceUnavailableException(
@@ -140,6 +147,7 @@ export class CommercialProposalService {
       userId,
       bidId,
       projectId,
+      viewerLocale,
     );
 
     const attachmentFiles = await this.collectAttachmentFiles(
@@ -298,11 +306,15 @@ export class CommercialProposalService {
     userId: string,
     bidId: string,
     projectId?: string,
+    viewerLocale?: SupportedLocale,
   ): Promise<{ html: string; fileName: string }> {
     const bid = await this.loadAndAuthorizeBid(userId, bidId, projectId);
 
     const terms = (bid.termsJson as BidTermsV1 | null) ?? null;
     const project = bid.tender.project;
+    const sourceLocale = normalizeSourceLocale(project.sourceLocale);
+    const targetLocale = viewerLocale ?? sourceLocale;
+
     const projectTerms =
       normalizeContractTerms(
         project.tenderContractTermsJson as BidContractTerms | undefined,
@@ -322,6 +334,42 @@ export class CommercialProposalService {
             contractTerms: projectTerms,
           }
         : null;
+
+    let localizedTitle = project.title;
+    let localizedDescription = project.description;
+    let localizedClarificationSummary = project.clarificationSummary;
+    let localizedMergedTerms = mergedTerms;
+
+    if (targetLocale !== sourceLocale) {
+      const localized =
+        await this.projectLocalization.localizeTenderPackageTexts(
+          project.id,
+          {
+            title: project.title,
+            description: project.description,
+            scopeSummary: mergedTerms?.scopeSummary ?? project.scopeSummary,
+            clarificationSummary: project.clarificationSummary,
+            contractTerms: mergedTerms?.contractTerms ?? projectTerms,
+            sourceLocale: project.sourceLocale,
+          },
+          targetLocale,
+        );
+      if (localized.cacheMiss) {
+        this.projectLocalization.scheduleWarmProjectTranslations(project.id);
+      }
+
+      localizedTitle = localized.title ?? project.title;
+      localizedDescription = localized.description;
+      localizedClarificationSummary = localized.clarificationSummary;
+      localizedMergedTerms = mergedTerms
+        ? {
+            ...mergedTerms,
+            scopeSummary: localized.scopeSummary ?? undefined,
+            contractTerms: localized.contractTerms,
+          }
+        : null;
+    }
+
     const projectDocuments = await this.prisma.document.findMany({
       where: {
         projectId: bid.tender.projectId,
@@ -332,19 +380,19 @@ export class CommercialProposalService {
     });
 
     const data = buildCommercialProposalData({
-      projectTitle: bid.tender.project.title,
+      projectTitle: localizedTitle,
       projectDistrict: bid.tender.project.district,
-      projectDescription: bid.tender.project.description,
-      clarificationSummary: bid.tender.project.clarificationSummary,
+      projectDescription: localizedDescription,
+      clarificationSummary: localizedClarificationSummary,
       bidAmount: Number(bid.amount),
       durationDays: bid.durationDays,
-      terms: mergedTerms,
+      terms: localizedMergedTerms,
       projectDocuments: projectDocuments.map((doc) => ({
         originalName: doc.originalName,
         category: doc.category,
       })),
       employerName:
-        mergedTerms?.contractTerms?.employerName?.trim() ||
+        localizedMergedTerms?.contractTerms?.employerName?.trim() ||
         project.client.displayName ||
         bid.tender.project.client.email ||
         'Employer',
@@ -354,7 +402,7 @@ export class CommercialProposalService {
     });
 
     const html = renderCommercialProposalHtml(data);
-    const slug = slugifyProjectTitle(bid.tender.project.title, bidId.slice(0, 8));
+    const slug = slugifyProjectTitle(localizedTitle, bidId.slice(0, 8));
     const fileName = `contract-draft-${slug}.pdf`;
 
     return { html, fileName };

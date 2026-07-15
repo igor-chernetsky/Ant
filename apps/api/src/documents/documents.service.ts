@@ -5,7 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { Document, DocumentStatus, ProjectStatus, Prisma } from '@prisma/client';
+import {
+  Document,
+  DocumentCategory,
+  DocumentStatus,
+  ProjectStatus,
+  Prisma,
+} from '@prisma/client';
 import { DocumentAnalysisService } from '../ai/document-analysis.service';
 import { isPubliclyViewable } from '../projects/projects.constants';
 import {
@@ -13,12 +19,16 @@ import {
   ProjectBriefV1,
 } from '../projects/project-brief';
 import { PrismaService } from '../prisma/prisma.service';
+import { ImageThumbnailService } from '../storage/image-thumbnail.service';
 import { StorageService } from '../storage/storage.service';
 import {
   ALLOWED_CONTENT_TYPES,
+  buildDocumentThumbnailKey,
   buildStorageKey,
+  DocumentDownloadVariant,
   DocumentResponse,
   DownloadUrlResponse,
+  inferDocumentCategory,
   MAX_UPLOAD_BYTES,
   PresignUploadDto,
   PresignUploadResponse,
@@ -33,10 +43,13 @@ const DELETABLE_DOCUMENT_PROJECT_STATUSES: ProjectStatus[] = [
 
 @Injectable()
 export class DocumentsService {
+  private readonly thumbnailJobs = new Set<string>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly documentAnalysis: DocumentAnalysisService,
+    private readonly thumbnails: ImageThumbnailService,
   ) {}
 
   private toResponse(doc: Document): DocumentResponse {
@@ -50,6 +63,7 @@ export class DocumentsService {
       status: doc.status,
       createdAt: doc.createdAt.toISOString(),
       uploadedAt: doc.uploadedAt?.toISOString() ?? null,
+      hasThumbnail: Boolean(doc.thumbnailStorageKey),
     };
   }
 
@@ -188,6 +202,7 @@ export class DocumentsService {
     }
 
     if (doc.status === DocumentStatus.uploaded) {
+      this.scheduleThumbnailGeneration(doc);
       return this.toResponse(doc);
     }
 
@@ -207,14 +222,77 @@ export class DocumentsService {
     });
 
     this.documentAnalysis.scheduleAnalysis(projectId, documentId);
+    this.scheduleThumbnailGeneration(updated);
 
     return this.toResponse(updated);
+  }
+
+  /**
+   * Register an already-uploaded object (e.g. clarification attachment) as a
+   * project Document so it appears in Documents and can be AI-analyzed.
+   */
+  async registerExistingUpload(input: {
+    projectId: string;
+    uploaderId: string;
+    originalName: string;
+    contentType: string;
+    sizeBytes: number | null;
+    storageKey: string;
+    category?: DocumentCategory;
+  }): Promise<Document> {
+    const existing = await this.prisma.document.findUnique({
+      where: { storageKey: input.storageKey },
+    });
+    if (existing && existing.status !== DocumentStatus.deleted) {
+      this.scheduleThumbnailGeneration(existing);
+      return existing;
+    }
+
+    if (existing?.status === DocumentStatus.deleted) {
+      const restored = await this.prisma.document.update({
+        where: { id: existing.id },
+        data: {
+          projectId: input.projectId,
+          uploaderId: input.uploaderId,
+          originalName: input.originalName,
+          contentType: input.contentType,
+          sizeBytes: input.sizeBytes,
+          category:
+            input.category ??
+            inferDocumentCategory(input.contentType, input.originalName),
+          status: DocumentStatus.uploaded,
+          uploadedAt: new Date(),
+          thumbnailStorageKey: null,
+        },
+      });
+      this.scheduleThumbnailGeneration(restored);
+      return restored;
+    }
+
+    const created = await this.prisma.document.create({
+      data: {
+        projectId: input.projectId,
+        uploaderId: input.uploaderId,
+        originalName: input.originalName,
+        contentType: input.contentType,
+        sizeBytes: input.sizeBytes,
+        storageKey: input.storageKey,
+        category:
+          input.category ??
+          inferDocumentCategory(input.contentType, input.originalName),
+        status: DocumentStatus.uploaded,
+        uploadedAt: new Date(),
+      },
+    });
+    this.scheduleThumbnailGeneration(created);
+    return created;
   }
 
   async getDownloadUrl(
     projectId: string,
     documentId: string,
     userId: string,
+    variant: DocumentDownloadVariant = 'original',
   ): Promise<DownloadUrlResponse> {
     await this.assertProjectOwner(projectId, userId);
 
@@ -230,19 +308,13 @@ export class DocumentsService {
       throw new NotFoundException('Document not found');
     }
 
-    const presigned = await this.storage.createPresignedDownload(doc.storageKey);
-
-    return {
-      downloadUrl: presigned.downloadUrl,
-      expiresInSeconds: presigned.expiresInSeconds,
-      originalName: doc.originalName,
-      contentType: doc.contentType,
-    };
+    return this.buildDownloadResponse(doc, variant);
   }
 
   async getPublicDownloadUrl(
     projectId: string,
     documentId: string,
+    variant: DocumentDownloadVariant = 'original',
   ): Promise<DownloadUrlResponse> {
     await this.assertPublicProjectView(projectId);
 
@@ -258,14 +330,7 @@ export class DocumentsService {
       throw new NotFoundException('Document not found');
     }
 
-    const presigned = await this.storage.createPresignedDownload(doc.storageKey);
-
-    return {
-      downloadUrl: presigned.downloadUrl,
-      expiresInSeconds: presigned.expiresInSeconds,
-      originalName: doc.originalName,
-      contentType: doc.contentType,
-    };
+    return this.buildDownloadResponse(doc, variant);
   }
 
   async deleteDocument(
@@ -294,19 +359,106 @@ export class DocumentsService {
     }
 
     if (this.storage.isConfigured() && doc.status === DocumentStatus.uploaded) {
-      try {
-        await this.storage.deleteObject(doc.storageKey);
-      } catch {
-        // Best-effort S3 cleanup
+      const keys = [doc.storageKey, doc.thumbnailStorageKey].filter(
+        (key): key is string => Boolean(key),
+      );
+      for (const key of keys) {
+        try {
+          await this.storage.deleteObject(key);
+        } catch {
+          // Best-effort S3 cleanup
+        }
       }
     }
 
     await this.prisma.document.update({
       where: { id: documentId },
-      data: { status: DocumentStatus.deleted },
+      data: {
+        status: DocumentStatus.deleted,
+        thumbnailStorageKey: null,
+      },
     });
 
     await this.removeDocumentFromBrief(projectId, documentId);
+  }
+
+  scheduleThumbnailGeneration(
+    doc: Pick<
+      Document,
+      'id' | 'projectId' | 'storageKey' | 'contentType' | 'thumbnailStorageKey'
+    >,
+  ): void {
+    if (!doc.contentType.startsWith('image/')) {
+      return;
+    }
+    if (doc.thumbnailStorageKey) {
+      return;
+    }
+    if (!this.storage.isConfigured()) {
+      return;
+    }
+    if (this.thumbnailJobs.has(doc.id)) {
+      return;
+    }
+
+    this.thumbnailJobs.add(doc.id);
+    void (async () => {
+      try {
+        const buffer = await this.storage.getObjectBuffer(doc.storageKey);
+        const thumbBuffer = await this.thumbnails.createJpegThumbnail(
+          buffer,
+          doc.contentType,
+        );
+        if (!thumbBuffer) {
+          return;
+        }
+
+        const thumbnailStorageKey = buildDocumentThumbnailKey(
+          doc.projectId,
+          doc.id,
+        );
+        await this.storage.putObject({
+          storageKey: thumbnailStorageKey,
+          body: thumbBuffer,
+          contentType: 'image/jpeg',
+        });
+
+        await this.prisma.document.update({
+          where: { id: doc.id },
+          data: { thumbnailStorageKey },
+        });
+      } catch {
+        // Thumbnail is optional — original image remains available.
+      } finally {
+        this.thumbnailJobs.delete(doc.id);
+      }
+    })();
+  }
+
+  private async buildDownloadResponse(
+    doc: Document,
+    variant: DocumentDownloadVariant,
+  ): Promise<DownloadUrlResponse> {
+    let storageKey = doc.storageKey;
+    let contentType = doc.contentType;
+
+    if (variant === 'thumb' && doc.contentType.startsWith('image/')) {
+      if (doc.thumbnailStorageKey) {
+        storageKey = doc.thumbnailStorageKey;
+        contentType = 'image/jpeg';
+      } else {
+        this.scheduleThumbnailGeneration(doc);
+      }
+    }
+
+    const presigned = await this.storage.createPresignedDownload(storageKey);
+
+    return {
+      downloadUrl: presigned.downloadUrl,
+      expiresInSeconds: presigned.expiresInSeconds,
+      originalName: doc.originalName,
+      contentType,
+    };
   }
 
   private async removeDocumentFromBrief(

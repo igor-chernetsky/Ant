@@ -45,10 +45,24 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     }
 
     const cookieLocale = readLocaleCookie();
-    if (cookieLocale) {
-      setLocaleState(cookieLocale);
+    if (!cookieLocale) {
+      return;
     }
-  }, [ready, me?.preferredLocale]);
+
+    setLocaleState(cookieLocale);
+
+    if (!me) {
+      return;
+    }
+
+    void updatePreferredLocale(cookieLocale)
+      .then((result) => {
+        setMe({ ...me, preferredLocale: result.preferredLocale });
+      })
+      .catch(() => {
+        // keep cookie/UI locale even if profile sync fails
+      });
+  }, [ready, me?.preferredLocale, me?.id]);
 
   useEffect(() => {
     document.documentElement.lang = locale;

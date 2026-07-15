@@ -7,7 +7,9 @@ import { AiModule } from '../ai/ai.module';
 import { UsersModule } from '../users/users.module';
 import { StorageModule } from '../storage/storage.module';
 import { ProjectsModule } from '../projects/projects.module';
+import { DocumentsModule } from '../documents/documents.module';
 import { BidAnalysisService } from './bid-analysis.service';
+
 import { BidOffersService } from './bid-offers.service';
 import { BidMessagesService } from './bid-messages.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
@@ -24,11 +26,20 @@ import { ContractsService } from './contracts.service';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 import { ContractorPortfolioController } from './contractor-portfolio.controller';
 import { ContractorPortfolioService } from './contractor-portfolio.service';
-import { ImageThumbnailService } from './image-thumbnail.service';
 import { PublicContractorsController } from './public-contractors.controller';
 
 @Module({
-  imports: [UsersModule, AiModule, LocalizationModule, NotificationsModule, LocationsModule, ScheduleModule.forRoot(), StorageModule, ProjectsModule],
+  imports: [
+    UsersModule,
+    AiModule,
+    LocalizationModule,
+    NotificationsModule,
+    LocationsModule,
+    ScheduleModule.forRoot(),
+    StorageModule,
+    ProjectsModule,
+    DocumentsModule,
+  ],
   controllers: [
     ProjectTenderController,
     ProjectContractController,
@@ -50,7 +61,6 @@ import { PublicContractorsController } from './public-contractors.controller';
     TenderClarificationsService,
     DefaultCostBreakdownService,
     ContractorPortfolioService,
-    ImageThumbnailService,
   ],
   exports: [TendersService, ContractorProfilesService],
 })

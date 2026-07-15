@@ -10,6 +10,8 @@ import {
   ClarificationMode,
   DocumentStatus,
 } from '@prisma/client';
+import { DocumentsService } from '../documents/documents.service';
+import { DocumentAnalysisService } from '../ai/document-analysis.service';
 import { OpenAiClarificationService } from '../ai/openai-clarification.service';
 import {
   ALLOWED_CONTENT_TYPES,
@@ -112,6 +114,8 @@ export class TenderClarificationsService {
     private readonly storage: StorageService,
     private readonly projectLocalization: ProjectLocalizationService,
     private readonly scopeSync: ProjectScopeSyncService,
+    private readonly documents: DocumentsService,
+    private readonly documentAnalysis: DocumentAnalysisService,
   ) {}
 
   private mapAttachment(row: {
@@ -378,7 +382,7 @@ export class TenderClarificationsService {
       },
     });
 
-    this.scopeSync.dispatch(
+    await this.scopeSync.applyUpdate(
       projectId,
       this.scopeSync.buildClarificationAnswerUpdate({
         questionText: question.questionText,
@@ -495,12 +499,40 @@ export class TenderClarificationsService {
       },
     });
 
-    this.scopeSync.dispatch(
+    const document = await this.documents.registerExistingUpload({
+      projectId,
+      uploaderId: clientId,
+      originalName: updated.originalName,
+      contentType: updated.contentType,
+      sizeBytes: updated.sizeBytes,
+      storageKey: updated.storageKey,
+    });
+
+    const analysis = await this.documentAnalysis.analyzeAndMerge(
+      projectId,
+      document.id,
+      { refreshEstimate: false },
+    );
+
+    const analysisNotes = analysis
+      ? [
+          analysis.summary?.trim(),
+          ...(analysis.keyFacts ?? []).slice(0, 8),
+          ...(analysis.packages ?? []).map(
+            (pkg) => `${pkg.trade}: ${pkg.description ?? ''}`.trim(),
+          ),
+        ]
+          .filter(Boolean)
+          .join('\n')
+      : '';
+
+    await this.scopeSync.applyUpdate(
       projectId,
       this.scopeSync.buildClarificationAttachmentUpdate({
         questionText: question.questionText,
         answerText: question.answer,
         attachmentName: updated.originalName,
+        analysisNotes: analysisNotes || undefined,
       }),
     );
 

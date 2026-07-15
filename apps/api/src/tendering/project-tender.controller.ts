@@ -2,6 +2,7 @@ import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Put, Query
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
+import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import { BidMessagesService } from './bid-messages.service';
 import { BidAnalysisService } from './bid-analysis.service';
@@ -337,6 +338,7 @@ export class ProjectTenderController {
     @Res() res: Response,
   ) {
     const user = await this.resolveUser(req);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
     const includeAttachments =
       withAttachments === '1' || withAttachments === 'true';
 
@@ -345,6 +347,7 @@ export class ProjectTenderController {
         user.id,
         bidId,
         projectId,
+        locale,
       );
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader(
@@ -359,6 +362,7 @@ export class ProjectTenderController {
       user.id,
       bidId,
       projectId,
+      locale,
     );
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(

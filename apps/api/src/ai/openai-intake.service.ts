@@ -90,7 +90,10 @@ export class OpenAiIntakeService {
 
   private questionSchemaHint(context: ProjectIntakeContext): string {
     const lang = this.outputLanguage(context);
-    return `Question object schema:
+    return `LANGUAGE (mandatory): Every user-facing string MUST be written in ${lang} only.
+- prompt, option labels, and placeholder must be ${lang}
+- Do not mix languages. Do not default to English when ${lang} is requested.
+Question object schema:
 {
   "id": "kebab-case unique id",
   "type": "single" | "multi" | "text",
@@ -113,9 +116,15 @@ For pool / swimming-pool projects (title or description mentions pool/бассе
 - Do NOT ask storey-count of an existing villa/house unless the project clearly includes building shell construction or extension
 - Ask pool depth when unknown — prefer question id "pool-depth"
 - Ask pump / equipment room placement when unknown — prefer question id "pool-pump-station"
+- Ask water treatment (chlorine / salt / chlorine-free UV-ozone) when unknown — prefer question id "pool-water-treatment"
+- Ask pool / underwater lighting level when unknown — prefer question id "pool-lighting"
 - Also clarify dimensions, overflow type, finishes, and filtration gaps if missing
+For MEP / utilities (new build, renovation, pool, or any project with electrical/plumbing scope):
+- Ask which external utility connections are needed — prefer question id "utility-connections" (multi)
+- Ask electrical package depth (wiring / board / fixtures / specialty lighting) — prefer question id "electrical-scope" (multi)
 For new_build / extension / commercial_fitout of buildings (not amenity-only pool jobs):
 - Ask about storey count when not already clear — use id "storey-count"
+- Ask approximate sanitary wet-point count when unknown — prefer question id "sanitary-points"
 - Ask special systems (elevator/lift, pool, basement, smart home) when not already clear — use id "special-systems" (multi-select)
 - Do not assume elevators or commercial-scale MEP unless explicitly confirmed
 If a major system is uncertain, ask before the estimate is finalized — do not guess`;
@@ -142,6 +151,8 @@ If a major system is uncertain, ask before the estimate is finalized — do not 
       uploadedDocuments: context.documents ?? [],
       previousAnswers: context.answers,
       askedQuestionIds: context.askedQuestionIds ?? [],
+      outputLanguage: this.outputLanguage(context),
+      locale: context.locale ?? DEFAULT_LOCALE,
     };
   }
 
@@ -151,6 +162,7 @@ If a major system is uncertain, ask before the estimate is finalized — do not 
     const lang = this.outputLanguage(context);
     const system = `You are a construction marketplace intake assistant. Improve project descriptions and suggest scope tags.
 Return JSON only with keys: improvedDescription, tagSlugs, confidence, nextQuestion.
+Output language: ${lang}. All user-facing text (improvedDescription, nextQuestion.prompt, nextQuestion.options[].label, placeholders) MUST be in ${lang}.
 ${this.questionSchemaHint(context)}
 Rules:
 - improvedDescription: clear professional ${lang}, 2-5 sentences, do not invent facts not implied by input or uploadedDocuments. Keep ${lang} throughout — do not translate into English or another language
@@ -211,6 +223,7 @@ ${this.documentContextRules()}`;
     const lang = this.outputLanguage(context);
     const system = `You continue a construction project intake interview one question at a time.
 Return JSON: { "nextQuestion": Question|null, "improvedDescription": string optional }.
+Output language: ${lang}. All user-facing text MUST be in ${lang} — never switch to English or another language.
 ${this.questionSchemaHint(context)}
 Rules:
 - Return exactly ONE next question or null when intake is complete

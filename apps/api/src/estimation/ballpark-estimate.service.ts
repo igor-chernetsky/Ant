@@ -19,6 +19,9 @@ import { ProjectBriefV1 } from '../projects/project-brief';
 import {
   buildEstimateScopeRules,
   buildEstimateUserContext,
+  collectEstimateNarrative,
+  detectPremiumScopeSignals,
+  applyPremiumScopePriceAdjustments,
   filterEstimateLines,
   mergePreviousEstimateLines,
 } from './estimate-scope.utils';
@@ -49,6 +52,9 @@ export class BallparkEstimateService {
     brief: ProjectBriefV1;
     locale?: SupportedLocale;
     previousLines?: EstimateLine[];
+    clarificationQa?: Array<{ question: string; answer: string }>;
+    clarificationSummary?: string | null;
+    scopeSummary?: string | null;
   }): Promise<BallparkEstimateResult> {
     if (this.apiKey.length > 0) {
       const ai = await this.generateWithOpenAi(input);
@@ -68,6 +74,9 @@ export class BallparkEstimateService {
     brief: ProjectBriefV1;
     locale?: SupportedLocale;
     previousLines?: EstimateLine[];
+    clarificationQa?: Array<{ question: string; answer: string }>;
+    clarificationSummary?: string | null;
+    scopeSummary?: string | null;
   }): Promise<BallparkEstimateResult | null> {
     const lang =
       input.locale && isSupportedLocale(input.locale)
@@ -83,9 +92,11 @@ export class BallparkEstimateService {
 Return JSON: { lines, totals, confidence, disclaimer }.
 Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lineMin, lineMax }.
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
-Use regional reference prices as guidance; prefer mid-to-high of catalog bands for lighting, fixtures, and water-supply connection.
-Include 4-14 lines covering the FULL confirmed scope (base construction + MEP + finishing + newly added items). confidence 0-1.
+Use regional reference prices as guidance; prefer mid-to-high of catalog bands for MEP networks, lighting fixtures, utility connections, and premium treatment systems.
+Include 5-16 lines covering the FULL confirmed scope (base construction + detailed MEP + finishing + newly added items). Split MEP into multiple lines when intake/premium signals justify it.
 lineMin/lineMax must equal quantity * unitPriceMin/Max (rounded).
+Obey pricingDirectives and premiumScopeSignals in the user payload — they must change amounts, not only wording.
+When clarificationQa or clarificationSummary is present, treat that as new pricing-relevant scope and revise MEP/network lines upward when they add utilities, lighting, treatment, or connection works.
 Write description and disclaimer fields in ${lang}.
 Scope rules:
 ${scopeRules}`;
@@ -148,6 +159,9 @@ ${scopeRules}`;
     tagSlugs: string[];
     brief: ProjectBriefV1;
     previousLines?: EstimateLine[];
+    clarificationQa?: Array<{ question: string; answer: string }>;
+    clarificationSummary?: string | null;
+    scopeSummary?: string | null;
   }): BallparkEstimateResult {
     const areaSqm =
       input.brief.property?.areaSqm ??
@@ -231,8 +245,23 @@ ${scopeRules}`;
       brief: input.brief,
       tagSlugs: input.tagSlugs,
     });
+    const signals = detectPremiumScopeSignals(
+      collectEstimateNarrative({
+        title: input.title,
+        description: input.description,
+        tagSlugs: input.tagSlugs,
+        brief: input.brief,
+        clarificationQa: input.clarificationQa,
+        clarificationSummary: input.clarificationSummary,
+        scopeSummary: input.scopeSummary,
+      }),
+    );
+    const adjustedLines = applyPremiumScopePriceAdjustments(
+      mergedLines,
+      signals,
+    ).map(normalizeLineAmounts);
 
-    const totals = computeTotals(mergedLines);
+    const totals = computeTotals(adjustedLines);
     const textLen = (input.description ?? '').length;
     const confidence = Math.min(
       0.65,
@@ -242,7 +271,7 @@ ${scopeRules}`;
     );
 
     return {
-      lines: mergedLines,
+      lines: adjustedLines,
       totals,
       confidence,
       disclaimer: DISCLAIMER,
@@ -253,12 +282,16 @@ ${scopeRules}`;
   private normalizeResult(
     raw: Record<string, unknown>,
     input: {
+      title: string;
       projectType: string;
       propertyType: string | null;
       description: string | null;
       brief: ProjectBriefV1;
       tagSlugs: string[];
       previousLines?: EstimateLine[];
+      clarificationQa?: Array<{ question: string; answer: string }>;
+      clarificationSummary?: string | null;
+      scopeSummary?: string | null;
     },
   ): BallparkEstimateResult {
     const rawLines = Array.isArray(raw.lines)
@@ -285,13 +318,28 @@ ${scopeRules}`;
       brief: input.brief,
     });
 
-    const lines = mergePreviousEstimateLines({
+    const merged = mergePreviousEstimateLines({
       nextLines: filtered,
       previousLines: input.previousLines ?? [],
       description: input.description,
       brief: input.brief,
       tagSlugs: input.tagSlugs,
-    }).map(normalizeLineAmounts);
+    });
+
+    const signals = detectPremiumScopeSignals(
+      collectEstimateNarrative({
+        title: input.title,
+        description: input.description,
+        tagSlugs: input.tagSlugs,
+        brief: input.brief,
+        clarificationQa: input.clarificationQa,
+        clarificationSummary: input.clarificationSummary,
+        scopeSummary: input.scopeSummary,
+      }),
+    );
+    const lines = applyPremiumScopePriceAdjustments(merged, signals).map(
+      normalizeLineAmounts,
+    );
 
     const totals = computeTotals(lines);
 

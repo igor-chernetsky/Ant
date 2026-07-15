@@ -56,6 +56,7 @@ import type { DiscoverLocationFilter } from './discover.types';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { normalizeSourceLocale } from '../localization/locale.utils';
 import type { SupportedLocale } from '../users/locale.types';
+import { DocumentsService } from '../documents/documents.service';
 
 const DELETABLE_STATUSES: ProjectStatus[] = [
   ProjectStatus.draft,
@@ -94,6 +95,8 @@ export class ProjectsService {
     private readonly projectReviews: ProjectReviewsService,
     private readonly locations: LocationsService,
     private readonly projectLocalization: ProjectLocalizationService,
+    @Inject(forwardRef(() => DocumentsService))
+    private readonly documents: DocumentsService,
   ) {}
 
 
@@ -753,8 +756,12 @@ export class ProjectsService {
       if (seen.has(doc.projectId)) continue;
       seen.add(doc.projectId);
       try {
+        const storageKey = doc.thumbnailStorageKey ?? doc.storageKey;
+        if (!doc.thumbnailStorageKey) {
+          this.documents.scheduleThumbnailGeneration(doc);
+        }
         const { downloadUrl } = await this.storage.createPresignedDownload(
-          doc.storageKey,
+          storageKey,
         );
         result.set(doc.projectId, downloadUrl);
       } catch {

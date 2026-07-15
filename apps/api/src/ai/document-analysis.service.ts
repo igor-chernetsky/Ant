@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Prisma, TagSource } from '@prisma/client';
+import { Prisma, ProjectStatus, TagSource } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { EstimatesService } from '../estimation/estimates.service';
 import { normalizeSourceLocale } from '../localization/locale.utils';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { StorageService } from '../storage/storage.service';
@@ -29,6 +30,7 @@ export class DocumentAnalysisService {
     private readonly openAiDocument: OpenAiDocumentService,
     private readonly pdfText: PdfTextService,
     private readonly projectLocalization: ProjectLocalizationService,
+    private readonly estimatesService: EstimatesService,
   ) {}
 
   scheduleAnalysis(projectId: string, documentId: string): void {
@@ -39,17 +41,22 @@ export class DocumentAnalysisService {
     });
   }
 
-  async analyzeAndMerge(projectId: string, documentId: string): Promise<void> {
+  async analyzeAndMerge(
+    projectId: string,
+    documentId: string,
+    options?: { refreshEstimate?: boolean },
+  ): Promise<DocumentAnalysisResult | null> {
+    const refreshEstimate = options?.refreshEstimate !== false;
     const doc = await this.prisma.document.findFirst({
       where: { id: documentId, projectId, status: 'uploaded' },
     });
-    if (!doc) return;
+    if (!doc) return null;
 
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: { tags: true },
     });
-    if (!project) return;
+    if (!project) return null;
 
     const tags = await this.prisma.tag.findMany({ select: { slug: true } });
     const availableTagSlugs = tags.map((t) => t.slug);
@@ -100,7 +107,7 @@ export class DocumentAnalysisService {
       where: { id: projectId },
       include: { tags: true },
     });
-    if (!freshProject) return;
+    if (!freshProject) return result;
 
     const brief = (freshProject.briefJson ?? {}) as unknown as ProjectBriefV1;
     const taggedPackages = result.packages.map((pkg) => ({
@@ -174,7 +181,34 @@ export class DocumentAnalysisService {
       },
     });
 
-    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
+    const hasEstimate = await this.prisma.estimate.findFirst({
+      where: { projectId },
+      select: { id: true },
+    });
+    const shouldRefreshEstimate =
+      refreshEstimate &&
+      (Boolean(hasEstimate) ||
+        freshProject.status === ProjectStatus.estimated ||
+        freshProject.status === ProjectStatus.ready_for_estimate ||
+        freshProject.status === ProjectStatus.intake ||
+        freshProject.status === ProjectStatus.in_tender);
+
+    if (shouldRefreshEstimate) {
+      try {
+        await this.estimatesService.generateAndStore(projectId);
+      } catch (err) {
+        this.logger.warn(
+          `Estimate refresh after document analysis failed for ${projectId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        this.projectLocalization.scheduleWarmProjectTranslations(projectId);
+      }
+    } else {
+      this.projectLocalization.scheduleWarmProjectTranslations(projectId);
+    }
+
+    return result;
   }
 
   private async analyzeTextDocument(input: {

@@ -5,12 +5,14 @@ type RouteContext = {
   params: Promise<{ id: string; documentId: string }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const { id, documentId } = await context.params;
+  const variant = new URL(request.url).searchParams.get('variant');
+  const query = variant === 'thumb' ? '?variant=thumb' : '';
 
   try {
     const backendResponse = await fetch(
-      `${getBackendApiUrl()}/v1/public/projects/${encodeURIComponent(id)}/documents/${encodeURIComponent(documentId)}/download-url`,
+      `${getBackendApiUrl()}/v1/public/projects/${encodeURIComponent(id)}/documents/${encodeURIComponent(documentId)}/download-url${query}`,
       { cache: 'no-store' },
     );
     const text = await backendResponse.text();
