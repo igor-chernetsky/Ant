@@ -6,6 +6,7 @@ import { EstimationModule } from './estimation/estimation.module';
 import { HealthModule } from './health/health.module';
 import { AmendmentsModule } from './amendments/amendments.module';
 import { IntakeModule } from './intake/intake.module';
+import { LocalizationModule } from './localization/localization.module';
 import { LocationsModule } from './locations/locations.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -23,6 +24,7 @@ import { VerificationModule } from './verification/verification.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    LocalizationModule,
     ProjectsModule,
     TagsModule,
     DocumentsModule,

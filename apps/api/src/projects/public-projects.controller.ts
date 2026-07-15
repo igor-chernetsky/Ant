@@ -36,16 +36,18 @@ export class PublicProjectsController {
       regionSlug: regionQuery?.trim() || undefined,
       areaSlug: areaQuery?.trim() || undefined,
     };
-    const userId = req.user
-      ? (await this.usersService.findOrCreateFromJwt(req.user)).id
+    const user = req.user
+      ? await this.usersService.findOrCreateFromJwt(req.user)
       : null;
+    const locale = resolveLocaleFromRequest(req, user?.preferredLocale);
     return this.projectsService.listDiscover(
-      userId,
+      user?.id ?? null,
       tagSlugs,
       statuses,
       location.regionSlug || location.areaSlug ? location : undefined,
       serviceSlugs,
       ownershipSlugs,
+      locale,
     );
   }
 

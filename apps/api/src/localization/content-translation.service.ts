@@ -105,12 +105,17 @@ export class ContentTranslationService {
       return cached.translatedText;
     }
 
-    const translated =
-      (await this.openAi.translateText(
-        sourceText,
-        sourceLocale,
-        targetLocale,
-      )) ?? sourceText;
+    const translated = await this.openAi.translateText(
+      sourceText,
+      sourceLocale,
+      targetLocale,
+    );
+    if (translated == null) {
+      this.logger.warn(
+        `Skipping cache for ${projectId}/${fieldKey}→${targetLocale}: translation unavailable`,
+      );
+      return sourceText;
+    }
 
     await this.upsertTranslation({
       projectId,
@@ -162,12 +167,17 @@ export class ContentTranslationService {
       }
     }
 
-    const translated =
-      (await this.openAi.translateJson(
-        sourceValue,
-        sourceLocale,
-        targetLocale,
-      )) ?? sourceValue;
+    const translated = await this.openAi.translateJson(
+      sourceValue,
+      sourceLocale,
+      targetLocale,
+    );
+    if (translated == null) {
+      this.logger.warn(
+        `Skipping cache for ${projectId}/${fieldKey}→${targetLocale}: JSON translation unavailable`,
+      );
+      return sourceValue;
+    }
     const translatedText = JSON.stringify(translated);
 
     await this.upsertTranslation({

@@ -1,4 +1,8 @@
 import { proxyOptionalBackendJson } from '@/lib/backend-proxy';
+import {
+  LOCALE_REQUEST_HEADER,
+  readLocaleFromCookieHeader,
+} from '@/lib/locale-request';
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -19,8 +23,17 @@ export async function GET(request: Request) {
     ...(area ? [`area=${encodeURIComponent(area)}`] : []),
   ].join('&');
 
+  const localeFromClient = request.headers.get(LOCALE_REQUEST_HEADER);
+
   return proxyOptionalBackendJson(
     `/v1/public/projects${qs ? `?${qs}` : ''}`,
-    { method: 'GET' },
+    {
+      method: 'GET',
+      headers: {
+        [LOCALE_REQUEST_HEADER]:
+          localeFromClient ??
+          readLocaleFromCookieHeader(request.headers.get('cookie')),
+      },
+    },
   );
 }

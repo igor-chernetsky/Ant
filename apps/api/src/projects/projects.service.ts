@@ -211,6 +211,7 @@ export class ProjectsService {
     location?: DiscoverLocationFilter,
     serviceSlugs: string[] = [],
     ownershipSlugs: string[] = [],
+    viewerLocale?: SupportedLocale,
   ): Promise<PublicProjectCard[]> {
     return this.listDiscover(
       null,
@@ -219,6 +220,7 @@ export class ProjectsService {
       location,
       serviceSlugs,
       ownershipSlugs,
+      viewerLocale,
     );
   }
 
@@ -229,6 +231,7 @@ export class ProjectsService {
     location?: DiscoverLocationFilter,
     serviceSlugs: string[] = [],
     ownershipSlugs: string[] = [],
+    viewerLocale?: SupportedLocale,
   ): Promise<PublicProjectCard[]> {
     const includesHidden = statuses.includes(DISCOVERY_FILTER_HIDDEN);
     const includesCompleted = statuses.includes(ProjectStatus.completed);
@@ -248,6 +251,7 @@ export class ProjectsService {
         location,
         serviceSlugs,
         ownershipSlugs,
+        viewerLocale,
       );
     }
 
@@ -356,7 +360,7 @@ export class ProjectsService {
       );
     });
 
-    return this.mapPublicProjectCards(visibleProjects);
+    return this.mapPublicProjectCards(visibleProjects, viewerLocale);
   }
 
   private buildDiscoverWhere(
@@ -417,6 +421,7 @@ export class ProjectsService {
     location?: DiscoverLocationFilter,
     serviceSlugs: string[] = [],
     ownershipSlugs: string[] = [],
+    viewerLocale?: SupportedLocale,
   ): Promise<PublicProjectCard[]> {
     const andParts: Prisma.ProjectWhereInput[] = [
       { clientId, isHidden: true },
@@ -459,7 +464,7 @@ export class ProjectsService {
       include: this.includeTags(),
     });
 
-    return this.mapPublicProjectCards(projects);
+    return this.mapPublicProjectCards(projects, viewerLocale);
   }
 
   private async mapPublicProjectCards(
@@ -468,33 +473,53 @@ export class ProjectsService {
         tender?: { status: string; closesAt: Date | null } | null;
       }
     >,
+    viewerLocale?: SupportedLocale,
   ): Promise<PublicProjectCard[]> {
     const projectIds = projects.map((p) => p.id);
     const coverByProject = await this.loadCoverUrls(projectIds);
 
-    return projects.map((project) => ({
-      id: project.id,
-      title: project.title,
-      description: project.description,
-      projectType: project.projectType,
-      district: project.district,
-      locationRegionSlug: project.locationRegionSlug,
-      locationAreaSlug: project.locationAreaSlug,
-      locationNote: project.locationNote,
-      regionCode: project.regionCode,
-      status: project.status,
-      isHidden: project.isHidden,
-      readinessScore: project.readinessScore,
-      tags: this.mapTags(project).map((t) => ({
-        slug: t.slug,
-        label: t.label,
-      })),
-      coverImageUrl: coverByProject.get(project.id) ?? null,
-      updatedAt: project.updatedAt.toISOString(),
-      applicationsDeadlinePassed:
-        this.shouldShowApplicationDeadlineWarning(project) &&
-        this.isApplicationsDeadlinePassedForProject(project),
-    }));
+    return Promise.all(
+      projects.map(async (project) => {
+        let title = project.title;
+        let description = project.description;
+
+        if (viewerLocale) {
+          const localized = await this.projectLocalization.localizePublicCard(
+            project,
+            viewerLocale,
+          );
+          title = localized.title;
+          description = localized.description;
+          if (localized.cacheMiss) {
+            this.projectLocalization.scheduleWarmProjectTranslations(project.id);
+          }
+        }
+
+        return {
+          id: project.id,
+          title,
+          description,
+          projectType: project.projectType,
+          district: project.district,
+          locationRegionSlug: project.locationRegionSlug,
+          locationAreaSlug: project.locationAreaSlug,
+          locationNote: project.locationNote,
+          regionCode: project.regionCode,
+          status: project.status,
+          isHidden: project.isHidden,
+          readinessScore: project.readinessScore,
+          tags: this.mapTags(project).map((t) => ({
+            slug: t.slug,
+            label: t.label,
+          })),
+          coverImageUrl: coverByProject.get(project.id) ?? null,
+          updatedAt: project.updatedAt.toISOString(),
+          applicationsDeadlinePassed:
+            this.shouldShowApplicationDeadlineWarning(project) &&
+            this.isApplicationsDeadlinePassedForProject(project),
+        };
+      }),
+    );
   }
 
   private shouldShowApplicationDeadlineWarning(project: {

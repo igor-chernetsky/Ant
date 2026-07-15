@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { IntakeQuestion } from '../ai/intake.types';
 import type { ProjectBriefV1 } from '../projects/project-brief';
@@ -10,6 +10,7 @@ import {
 } from '../users/locale.types';
 import { ContentTranslationService } from './content-translation.service';
 import { normalizeSourceLocale } from './locale.utils';
+import { OpenAiTranslationService } from './openai-translation.service';
 
 type TextField = {
   kind: 'text';
@@ -26,14 +27,29 @@ type JsonField = {
 type TranslatableField = TextField | JsonField;
 
 @Injectable()
-export class ProjectLocalizationService {
+export class ProjectLocalizationService implements OnModuleInit {
   private readonly logger = new Logger(ProjectLocalizationService.name);
   private readonly warmingProjects = new Set<string>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly translations: ContentTranslationService,
+    private readonly openAi: OpenAiTranslationService,
   ) {}
+
+  onModuleInit(): void {
+    if (!this.openAi.isConfigured()) {
+      return;
+    }
+    // Backfill titles for existing projects after the process is up.
+    setTimeout(() => {
+      void this.warmAllProjectTitles().catch((err) => {
+        this.logger.warn(
+          `Startup title warm failed: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
+    }, 3_000);
+  }
 
   scheduleWarmProjectTranslations(projectId: string): void {
     if (this.warmingProjects.has(projectId)) {
@@ -142,6 +158,104 @@ export class ProjectLocalizationService {
     }
   }
 
+  /** Backfill titles for all projects into every non-source locale. */
+  async warmAllProjectTitles(): Promise<{ processed: number }> {
+    if (!this.openAi.isConfigured()) {
+      this.logger.warn('Skipping title warm: OPENAI_API_KEY is not configured');
+      return { processed: 0 };
+    }
+
+    const projects = await this.prisma.project.findMany({
+      select: { id: true, title: true, sourceLocale: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    let processed = 0;
+    for (const project of projects) {
+      const title = project.title?.trim();
+      if (!title) {
+        continue;
+      }
+
+      const sourceLocale = normalizeSourceLocale(project.sourceLocale);
+      const targetLocales = SUPPORTED_LOCALES.filter(
+        (locale) => locale !== sourceLocale,
+      );
+
+      await Promise.all(
+        targetLocales.map((targetLocale) =>
+          this.translations.translateAndCacheText({
+            projectId: project.id,
+            fieldKey: 'title',
+            sourceText: project.title,
+            sourceLocale,
+            targetLocale,
+          }),
+        ),
+      );
+      processed += 1;
+    }
+
+    this.logger.log(`Warmed titles for ${processed} projects`);
+    return { processed };
+  }
+
+  async localizePublicCard(
+    project: {
+      id: string;
+      title: string;
+      description: string | null;
+      sourceLocale?: string | null;
+    },
+    targetLocale: SupportedLocale,
+  ): Promise<{
+    title: string;
+    description: string | null;
+    cacheMiss: boolean;
+  }> {
+    const sourceLocale = normalizeSourceLocale(project.sourceLocale);
+    if (sourceLocale === targetLocale) {
+      return {
+        title: project.title,
+        description: project.description,
+        cacheMiss: false,
+      };
+    }
+
+    let cacheMiss = false;
+
+    const titleCached = await this.translations.getCachedText({
+      projectId: project.id,
+      fieldKey: 'title',
+      sourceText: project.title,
+      targetLocale,
+    });
+    if (titleCached == null && project.title.trim()) {
+      cacheMiss = true;
+    }
+
+    let description = project.description;
+    if (project.description?.trim()) {
+      const descriptionCached = await this.translations.getCachedText({
+        projectId: project.id,
+        fieldKey: 'description',
+        sourceText: project.description,
+        targetLocale,
+      });
+      if (descriptionCached == null) {
+        cacheMiss = true;
+      } else {
+        description = descriptionCached;
+      }
+    }
+
+    return {
+      title: titleCached ?? project.title,
+      description,
+      cacheMiss,
+    };
+  }
+
   private async warmField(
     field: TranslatableField,
     projectId: string,
@@ -200,6 +314,8 @@ export class ProjectLocalizationService {
       return cached;
     };
 
+    const title = await readText('title', project.title);
+
     const description = project.description
       ? await readText('description', project.description)
       : project.description;
@@ -247,6 +363,7 @@ export class ProjectLocalizationService {
     return {
       response: {
         ...project,
+        title: title ?? project.title,
         description,
         scopeSummary,
         clarificationSummary,
@@ -401,6 +518,7 @@ export function collectTranslatableFields(
     }
   };
 
+  addText('title', project.title);
   addText('description', project.description);
   addText('scopeSummary', project.scopeSummary);
   addText('clarificationSummary', project.clarificationSummary);

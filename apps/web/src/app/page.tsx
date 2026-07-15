@@ -36,7 +36,7 @@ import {
 
 export default function HomePage() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [projects, setProjects] = useState<PublicProjectCard[]>([]);
   const [ownedProjectIds, setOwnedProjectIds] = useState<Set<string>>(new Set());
@@ -108,7 +108,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!sessionReady) return;
     void loadProjects(filters);
-  }, [sessionReady, filters, loadProjects]);
+  }, [sessionReady, filters, loadProjects, locale]);
 
   useEffect(() => {
     if (!sessionReady) return;
