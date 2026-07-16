@@ -2,7 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
-import { getGoogleMapsApiKey, loadGoogleMapsScript, markerIcon } from '@/lib/google-maps';
+import {
+  getGoogleMapsApiKey,
+  GOOGLE_MAPS_THEME,
+  loadGoogleMapsScript,
+  markerIcon,
+} from '@/lib/google-maps';
 import type { LocationCatalog } from '@/lib/locations';
 import { areasForRegion } from '@/lib/locations';
 
@@ -59,6 +64,7 @@ export function LocationSearchMap({
           streetViewControl: false,
           fullscreenControl: false,
           gestureHandling: 'cooperative',
+          styles: GOOGLE_MAPS_THEME,
         });
         setMapState('ready');
       })

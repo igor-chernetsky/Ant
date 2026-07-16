@@ -227,105 +227,110 @@ export function HomeProjectFilters({
         )}
       </div>
 
-      <div className="project-filters-location-section">
-        <span className="project-filters-field-label">{t('filters.location')}</span>
-        {locationCatalog ? (
-          <div className="project-filters-location-row">
-            <div className="project-filters-location-fields">
-              <div className="project-filters-location-select-group">
-                <span className="project-filters-location-select-label">
-                  {t('filters.region')}
-                </span>
-                <select
-                  className="project-filters-select"
-                  value={filters.regionSlug}
-                  aria-label={t('filters.region')}
-                  onChange={(e) =>
-                    update({
-                      regionSlug: e.target.value,
-                      areaSlug: '',
-                    })
-                  }
-                >
-                  <option value="">{t('filters.allRegions')}</option>
-                  {locationCatalog.regions.map((region) => (
-                    <option key={region.slug} value={region.slug}>
-                      {region.label}
-                    </option>
-                  ))}
-                </select>
+      <div className="project-filters-location-layout">
+        <div className="project-filters-location-panel">
+          <div className="project-filters-location-section">
+            <span className="project-filters-field-label">{t('filters.location')}</span>
+            {locationCatalog ? (
+              <div className="project-filters-location-fields">
+                <div className="project-filters-location-select-group">
+                  <span className="project-filters-location-select-label">
+                    {t('filters.region')}
+                  </span>
+                  <select
+                    className="project-filters-select"
+                    value={filters.regionSlug}
+                    aria-label={t('filters.region')}
+                    onChange={(e) =>
+                      update({
+                        regionSlug: e.target.value,
+                        areaSlug: '',
+                      })
+                    }
+                  >
+                    <option value="">{t('filters.allRegions')}</option>
+                    {locationCatalog.regions.map((region) => (
+                      <option key={region.slug} value={region.slug}>
+                        {region.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="project-filters-location-select-group">
+                  <span className="project-filters-location-select-label">
+                    {t('filters.area')}
+                  </span>
+                  <select
+                    className="project-filters-select"
+                    value={filters.areaSlug}
+                    aria-label={t('filters.area')}
+                    disabled={!filters.regionSlug || areas.length === 0}
+                    onChange={(e) => update({ areaSlug: e.target.value })}
+                  >
+                    <option value="">{t('filters.allAreas')}</option>
+                    {areas.map((area) => (
+                      <option key={area.slug} value={area.slug}>
+                        {area.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="project-filters-location-select-group">
-                <span className="project-filters-location-select-label">
-                  {t('filters.area')}
-                </span>
-                <select
-                  className="project-filters-select"
-                  value={filters.areaSlug}
-                  aria-label={t('filters.area')}
-                  disabled={!filters.regionSlug || areas.length === 0}
-                  onChange={(e) => update({ areaSlug: e.target.value })}
-                >
-                  <option value="">{t('filters.allAreas')}</option>
-                  {areas.map((area) => (
-                    <option key={area.slug} value={area.slug}>
-                      {area.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <LocationSearchMap
-              catalog={locationCatalog}
-              regionSlug={filters.regionSlug}
-              areaSlug={filters.areaSlug}
-              onRegionChange={(slug) =>
-                update({ regionSlug: slug, areaSlug: '' })
-              }
-              onAreaChange={(slug) => update({ areaSlug: slug })}
-            />
+            ) : (
+              <span className="muted project-filters-loading">{t('common.loading')}</span>
+            )}
           </div>
-        ) : (
-          <span className="muted project-filters-loading">{t('common.loading')}</span>
-        )}
-      </div>
 
-      <div className="project-filters-status-section">
-        <span className="project-filters-field-label">{t('filters.status')}</span>
-        <div
-          className="project-filters-segmented"
-          role="group"
-          aria-label={t('filters.statusAria')}
-        >
-          <button
-            type="button"
-            className={`project-filters-segment${
-              filters.statuses.length === 0
-                ? ' project-filters-segment--active'
-                : ''
-            }`}
-            aria-pressed={filters.statuses.length === 0}
-            onClick={() => update({ statuses: [] })}
-          >
-            {t('filters.all')}
-          </button>
-          {PRIMARY_STATUS_VALUES.map((value) => {
-            const active = filters.statuses.includes(value);
-            return (
+          <div className="project-filters-status-section">
+            <span className="project-filters-field-label">{t('filters.status')}</span>
+            <div
+              className="project-filters-segmented"
+              role="group"
+              aria-label={t('filters.statusAria')}
+            >
               <button
-                key={value}
                 type="button"
                 className={`project-filters-segment${
-                  active ? ' project-filters-segment--active' : ''
+                  filters.statuses.length === 0
+                    ? ' project-filters-segment--active'
+                    : ''
                 }`}
-                aria-pressed={active}
-                onClick={() => toggleStatus(value)}
+                aria-pressed={filters.statuses.length === 0}
+                onClick={() => update({ statuses: [] })}
               >
-                {formatProjectStatus(value)}
+                {t('filters.all')}
               </button>
-            );
-          })}
+              {PRIMARY_STATUS_VALUES.map((value) => {
+                const active = filters.statuses.includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`project-filters-segment${
+                      active ? ' project-filters-segment--active' : ''
+                    }`}
+                    aria-pressed={active}
+                    onClick={() => toggleStatus(value)}
+                  >
+                    {formatProjectStatus(value)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
+
+        {locationCatalog ? (
+          <LocationSearchMap
+            catalog={locationCatalog}
+            regionSlug={filters.regionSlug}
+            areaSlug={filters.areaSlug}
+            onRegionChange={(slug) =>
+              update({ regionSlug: slug, areaSlug: '' })
+            }
+            onAreaChange={(slug) => update({ areaSlug: slug })}
+          />
+        ) : null}
       </div>
 
       <details className="project-filters-advanced">
