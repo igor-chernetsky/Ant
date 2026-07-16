@@ -44,6 +44,37 @@ Rules:
 - Keep tone professional and clear
 - Return only the translated text with no quotes or commentary`;
 
+    return this.completeTranslation(system, text);
+  }
+
+  /**
+   * Translate user-authored content (Q&A, chat) when the true source locale
+   * may differ from the project source locale.
+   */
+  async translateTextAutoDetect(
+    text: string,
+    targetLocale: SupportedLocale,
+  ): Promise<string | null> {
+    if (!this.isConfigured() || !text.trim()) {
+      return null;
+    }
+
+    const toLang = localeLanguageName(targetLocale);
+    const system = `You translate construction marketplace content to ${toLang}.
+Rules:
+- Detect the source language automatically
+- If the text is already in ${toLang}, return it unchanged
+- Preserve numbers, units (sqm, THB), proper nouns, and technical trade names when appropriate
+- Keep tone professional and clear
+- Return only the translated text with no quotes or commentary`;
+
+    return this.completeTranslation(system, text);
+  }
+
+  private async completeTranslation(
+    system: string,
+    text: string,
+  ): Promise<string | null> {
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',

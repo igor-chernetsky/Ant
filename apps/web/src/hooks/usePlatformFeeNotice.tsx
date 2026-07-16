@@ -4,20 +4,18 @@ import { useCallback, useState } from 'react';
 import { PlatformFeeNoticeDialog } from '@/components/PlatformFeeNoticeDialog';
 import {
   buildPlatformFeeQuote,
-  type PlatformFeeNoticeStep,
   type PlatformFeeQuote,
 } from '@/lib/platform-fees';
 
 export function usePlatformFeeNotice() {
   const [state, setState] = useState<{
     quote: PlatformFeeQuote;
-    step: PlatformFeeNoticeStep;
     resolve: (value: boolean) => void;
   } | null>(null);
 
   const acknowledgePlatformFees = useCallback(
     (input: {
-      step: PlatformFeeNoticeStep;
+      step?: 'sign';
       contractAmount?: number | string | null;
       currency?: string | null;
     }) => {
@@ -26,7 +24,7 @@ export function usePlatformFeeNotice() {
         currency: input.currency,
       });
       return new Promise<boolean>((resolve) => {
-        setState({ quote, step: input.step, resolve });
+        setState({ quote, resolve });
       });
     },
     [],
@@ -43,7 +41,6 @@ export function usePlatformFeeNotice() {
     <PlatformFeeNoticeDialog
       isOpen={state != null}
       quote={state?.quote ?? null}
-      step={state?.step ?? 'sign'}
       onConfirm={() => close(true)}
       onCancel={() => close(false)}
     />

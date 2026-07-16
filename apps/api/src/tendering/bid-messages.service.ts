@@ -171,6 +171,7 @@ export class BidMessagesService {
           projectId: bid.tender.projectId,
           projectTitle: bid.tender.project.title,
           preview: body,
+          messageId: message.id,
         }),
       );
     }

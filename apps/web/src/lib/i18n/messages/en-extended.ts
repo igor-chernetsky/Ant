@@ -569,12 +569,9 @@ export const enExtended = {
     withdrawAwardLabel: "Withdraw",
   },
   platformFees: {
-    awardTitle: "Platform fees (client)",
-    awardIntro:
-      "Selecting a contractor activates Ant platform fees for this deal. Amounts below are listed for transparency.",
     signTitle: "Confirm platform fees before signing",
     signIntro:
-      "Before you sign, review the platform fees that apply to this contract. You are the paying party.",
+      "Before you sign, review the platform fees that apply to this contract. Contractors pay these fees; clients use Ant for free until premium services are enabled.",
     trialBadge: "Trial — {percent}% discount applied",
     trialPill: "Trial · no charge",
     accessFeeLabel: "Platform access fee",
@@ -586,10 +583,11 @@ export const enExtended = {
     dueNowLabel: "Due now",
     dueNowTrial: "Listed {listed} → payable {payable}",
     timingNote:
-      "The remaining success fee is due within one calendar month after signing — typically after your advance payment to the contractor.",
+      "The remaining success fee is due within one calendar month after signing — typically after you receive the client’s advance payment.",
     fxNote:
       "USD amounts are shown at an indicative rate of 1 USD ≈ {rate} THB for display only.",
-    payerNote: "Platform fees are charged to the client, not the contractor.",
+    payerNote:
+      "Platform fees are charged to the contractor. Clients use the core platform for free until premium services are enabled.",
     continueTrial: "Continue · $0 due (trial)",
     continuePaid: "Continue",
     summaryTitle: "Platform fees",
@@ -599,8 +597,8 @@ export const enExtended = {
     summarySuccess: "Success fee: {percent}% of contract ({amount})",
     summaryRemaining: "Remaining after credit: {amount}",
     summaryDueNow: "Due now (trial): {amount}",
-    contractorNote:
-      "Platform fees are paid by the client. During the trial they are waived (100% discount).",
+    clientNote:
+      "Platform fees are paid by the contractor. You can use Ant for free until premium services are enabled.",
   },
   projectDetail: {
     tagsRefreshHint: "Tags refresh when you apply client amendments.",

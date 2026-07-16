@@ -85,6 +85,122 @@ export class ProjectLocalizationService implements OnModuleInit {
       });
   }
 
+  scheduleWarmClarificationQa(
+    projectId: string,
+    rows: Array<{ id: string; questionText: string; answer?: string | null }>,
+  ): void {
+    if (!this.openAi.isConfigured() || rows.length === 0) {
+      return;
+    }
+
+    void this.warmClarificationQa(projectId, rows).catch((err) => {
+      this.logger.warn(
+        `Clarification Q&A warm failed for ${projectId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+  }
+
+  async warmClarificationQa(
+    projectId: string,
+    rows: Array<{ id: string; questionText: string; answer?: string | null }>,
+  ): Promise<void> {
+    for (const locale of SUPPORTED_LOCALES) {
+      await Promise.all(
+        rows.map(async (row) => {
+          if (row.questionText.trim()) {
+            await this.translations.translateAndCacheTextAuto({
+              projectId,
+              fieldKey: `clarification.question.${row.id}`,
+              sourceText: row.questionText,
+              targetLocale: locale,
+            });
+          }
+          if (row.answer?.trim()) {
+            await this.translations.translateAndCacheTextAuto({
+              projectId,
+              fieldKey: `clarification.answer.${row.id}`,
+              sourceText: row.answer,
+              targetLocale: locale,
+            });
+          }
+        }),
+      );
+    }
+  }
+
+  async localizeClarificationQa<
+    T extends { id: string; questionText: string; answer?: string | null },
+  >(
+    projectId: string,
+    rows: T[],
+    targetLocale: SupportedLocale,
+  ): Promise<T[]> {
+    if (rows.length === 0) {
+      return rows;
+    }
+
+    return Promise.all(
+      rows.map(async (row) => {
+        const questionText = row.questionText.trim()
+          ? await this.translations.translateAndCacheTextAuto({
+              projectId,
+              fieldKey: `clarification.question.${row.id}`,
+              sourceText: row.questionText,
+              targetLocale,
+            })
+          : row.questionText;
+
+        const answer =
+          row.answer?.trim()
+            ? await this.translations.translateAndCacheTextAuto({
+                projectId,
+                fieldKey: `clarification.answer.${row.id}`,
+                sourceText: row.answer,
+                targetLocale,
+              })
+            : row.answer;
+
+        return { ...row, questionText, answer };
+      }),
+    );
+  }
+
+  async localizeTextAuto(
+    projectId: string,
+    fieldKey: string,
+    sourceText: string,
+    targetLocale: SupportedLocale,
+  ): Promise<string> {
+    return this.translations.translateAndCacheTextAuto({
+      projectId,
+      fieldKey,
+      sourceText,
+      targetLocale,
+    });
+  }
+
+  async getLocalizedProjectTitle(
+    projectId: string,
+    sourceTitle: string,
+    targetLocale: SupportedLocale,
+  ): Promise<string> {
+    const cached = await this.translations.getCachedText({
+      projectId,
+      fieldKey: 'title',
+      sourceText: sourceTitle,
+      targetLocale,
+    });
+    if (cached != null) {
+      return cached;
+    }
+    return this.translations.translateAndCacheTextAuto({
+      projectId,
+      fieldKey: 'title',
+      sourceText: sourceTitle,
+      targetLocale,
+    });
+  }
+
   async warmProjectTranslations(projectId: string): Promise<void> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },

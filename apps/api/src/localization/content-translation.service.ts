@@ -129,6 +129,60 @@ export class ContentTranslationService {
     return translated;
   }
 
+  /**
+   * Translate and cache when source language is unknown or may differ from
+   * the project source locale (clarification Q&A, chat previews).
+   */
+  async translateAndCacheTextAuto(input: {
+    projectId: string;
+    fieldKey: string;
+    sourceText: string;
+    targetLocale: SupportedLocale;
+  }): Promise<string> {
+    const { projectId, fieldKey, sourceText, targetLocale } = input;
+
+    if (!sourceText.trim()) {
+      return sourceText;
+    }
+
+    const sourceHash = hashSourceText(sourceText);
+    const cached = await this.prisma.contentTranslation.findUnique({
+      where: {
+        projectId_fieldKey_targetLocale: {
+          projectId,
+          fieldKey,
+          targetLocale,
+        },
+      },
+    });
+
+    if (cached && cached.sourceHash === sourceHash) {
+      return cached.translatedText;
+    }
+
+    const translated = await this.openAi.translateTextAutoDetect(
+      sourceText,
+      targetLocale,
+    );
+    if (translated == null) {
+      this.logger.warn(
+        `Skipping auto-cache for ${projectId}/${fieldKey}→${targetLocale}: translation unavailable`,
+      );
+      return sourceText;
+    }
+
+    await this.upsertTranslation({
+      projectId,
+      fieldKey,
+      targetLocale,
+      sourceLocale: targetLocale,
+      sourceHash,
+      translatedText: translated,
+    });
+
+    return translated;
+  }
+
   async translateAndCacheJson<T>(input: {
     projectId: string;
     fieldKey: string;

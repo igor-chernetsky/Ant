@@ -22,7 +22,7 @@ interface ContractSigningPanelProps {
   asContractor?: boolean;
   hideHeading?: boolean;
   contract?: ProjectContract | null;
-  /** Awarded bid amount — used to show listed platform fees for the client. */
+  /** Awarded bid amount — used to show listed platform fees for the contractor. */
   bidAmount?: number | string | null;
   currency?: string | null;
   onSigned?: (contract: ProjectContract) => void;
@@ -75,7 +75,7 @@ export function ContractSigningPanel({
   }, [contractProp, loadContract]);
 
   const handleSign = async () => {
-    if (!asContractor) {
+    if (asContractor) {
       const feesOk = await acknowledgePlatformFees({
         step: 'sign',
         contractAmount: bidAmount,
@@ -164,7 +164,7 @@ export function ContractSigningPanel({
 
       <ContractSigningPartiesInline contract={contract} />
 
-      {!asContractor && !contract.fullySigned && (
+      {asContractor && !contract.fullySigned && (
         <PlatformFeeSummary
           contractAmount={bidAmount}
           currency={currency}
@@ -172,9 +172,9 @@ export function ContractSigningPanel({
         />
       )}
 
-      {asContractor && !contract.fullySigned && (
+      {!asContractor && !contract.fullySigned && (
         <p className="muted platform-fee-contractor-note">
-          {t('platformFees.contractorNote')}
+          {t('platformFees.clientNote')}
         </p>
       )}
 

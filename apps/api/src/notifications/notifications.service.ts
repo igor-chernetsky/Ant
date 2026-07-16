@@ -8,7 +8,14 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationsService } from '../locations/locations.service';
+import { ProjectLocalizationService } from '../localization/project-localization.service';
+import {
+  DEFAULT_LOCALE,
+  isSupportedLocale,
+  type SupportedLocale,
+} from '../users/locale.types';
 import { MailService } from './mail.service';
+import { bidMessageEmailCopy } from './notification-i18n';
 import {
   contractorProjectTypeMatches,
   contractorTagsMatchProject,
@@ -36,6 +43,7 @@ export class NotificationsService {
     private readonly mail: MailService,
     private readonly locations: LocationsService,
     private readonly config: ConfigService,
+    private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
   private appUrl(): string {
@@ -54,9 +62,15 @@ export class NotificationsService {
     return `${this.appUrl()}/projects/${projectId}/bids`;
   }
 
-  private wrapEmail(title: string, bodyHtml: string, ctaHref: string, ctaLabel: string): string {
+  private wrapEmail(
+    title: string,
+    bodyHtml: string,
+    ctaHref: string,
+    ctaLabel: string,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): string {
     return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"></head>
+<html lang="${locale}"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#f0f4fa;font-family:system-ui,sans-serif;color:#0f172a;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 16px;">
 <tr><td align="center">
@@ -69,6 +83,12 @@ export class NotificationsService {
 </td></tr></table>
 </td></tr></table>
 </body></html>`;
+  }
+
+  private resolveUserLocale(user: Pick<User, 'preferredLocale'>): SupportedLocale {
+    return isSupportedLocale(user.preferredLocale)
+      ? user.preferredLocale
+      : DEFAULT_LOCALE;
   }
 
   async getOrCreatePreferences(userId: string): Promise<NotificationPreferencesDto> {
@@ -171,17 +191,20 @@ export class NotificationsService {
     ctaHref: string;
     ctaLabel: string;
     textBody: string;
+    locale?: SupportedLocale;
   }): Promise<void> {
     if (!this.mail.isConfigured()) return;
 
     const { user, ok } = await this.shouldSend(params.userId, params.prefFlag);
     if (!ok || !user.email) return;
 
+    const locale = params.locale ?? this.resolveUserLocale(user);
     const html = this.wrapEmail(
       params.title,
       params.bodyHtml,
       params.ctaHref,
       params.ctaLabel,
+      locale,
     );
     const sent = await this.mail.send({
       to: user.email,
@@ -364,32 +387,61 @@ export class NotificationsService {
     projectId: string;
     projectTitle: string;
     preview: string;
+    messageId?: string;
   }): Promise<void> {
     const prefFlag =
       params.recipientRole === 'client'
         ? 'emailClientBidActivity'
         : 'emailContractorUpdates';
 
+    const recipient = await this.prisma.user.findUnique({
+      where: { id: params.recipientUserId },
+      select: { preferredLocale: true },
+    });
+    const locale = recipient
+      ? this.resolveUserLocale(recipient)
+      : DEFAULT_LOCALE;
+    const copy = bidMessageEmailCopy(locale);
+
+    const projectTitle =
+      await this.projectLocalization.getLocalizedProjectTitle(
+        params.projectId,
+        params.projectTitle,
+        locale,
+      );
+
+    const localizedPreview = params.messageId
+      ? await this.projectLocalization.localizeTextAuto(
+          params.projectId,
+          `bidMessage.${params.messageId}`,
+          params.preview,
+          locale,
+        )
+      : params.preview;
+
     const preview =
-      params.preview.length > 200
-        ? `${params.preview.slice(0, 197)}…`
-        : params.preview;
+      localizedPreview.length > 200
+        ? `${localizedPreview.slice(0, 197)}…`
+        : localizedPreview;
 
     await this.sendToUser({
       userId: params.recipientUserId,
       prefFlag,
       kind: NotificationEmailKind.contractor_bid_message,
       projectId: params.projectId,
-      subject: `New message on ${params.projectTitle}`,
-      title: 'New message on your bid',
-      bodyHtml: `<p>You have a new message regarding <strong>${escapeHtml(params.projectTitle)}</strong>:</p><p style="background:#f8fafc;padding:12px;border-radius:8px;">${escapeHtml(preview)}</p>`,
+      locale,
+      subject: copy.subject(projectTitle),
+      title: copy.title,
+      bodyHtml: `<p>${copy.bodyLead(escapeHtml(projectTitle))}</p><p style="background:#f8fafc;padding:12px;border-radius:8px;">${escapeHtml(preview)}</p>`,
       ctaHref:
         params.recipientRole === 'client'
           ? this.bidsUrl(params.projectId)
           : this.projectUrl(params.projectId),
       ctaLabel:
-        params.recipientRole === 'client' ? 'View applications' : 'Open conversation',
-      textBody: `New message on ${params.projectTitle}: ${preview}`,
+        params.recipientRole === 'client'
+          ? copy.ctaClient
+          : copy.ctaContractor,
+      textBody: `${copy.title}: ${projectTitle}: ${preview}`,
     });
   }
 

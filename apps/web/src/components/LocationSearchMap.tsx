@@ -15,8 +15,7 @@ interface LocationSearchMapProps {
   catalog: LocationCatalog;
   regionSlug: string;
   areaSlug: string;
-  onRegionChange: (regionSlug: string) => void;
-  onAreaChange: (areaSlug: string) => void;
+  onLocationChange: (next: { regionSlug: string; areaSlug: string }) => void;
 }
 
 const THAILAND_CENTER = { lat: 13.2, lng: 100.5 };
@@ -26,17 +25,14 @@ export function LocationSearchMap({
   catalog,
   regionSlug,
   areaSlug,
-  onRegionChange,
-  onAreaChange,
+  onLocationChange,
 }: LocationSearchMapProps) {
   const { t, locale } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
-  const onRegionChangeRef = useRef(onRegionChange);
-  const onAreaChangeRef = useRef(onAreaChange);
-  onRegionChangeRef.current = onRegionChange;
-  onAreaChangeRef.current = onAreaChange;
+  const onLocationChangeRef = useRef(onLocationChange);
+  onLocationChangeRef.current = onLocationChange;
   const [mapState, setMapState] = useState<'loading' | 'ready' | 'error'>(
     () => (getGoogleMapsApiKey() ? 'loading' : 'error'),
   );
@@ -127,8 +123,10 @@ export function LocationSearchMap({
           false,
           true,
           () => {
-            onRegionChangeRef.current(region.slug);
-            onAreaChangeRef.current('');
+            onLocationChangeRef.current({
+              regionSlug: region.slug,
+              areaSlug: '',
+            });
           },
         );
       }
@@ -140,8 +138,10 @@ export function LocationSearchMap({
           false,
           false,
           () => {
-            onRegionChangeRef.current(area.regionSlug);
-            onAreaChangeRef.current(area.slug);
+            onLocationChangeRef.current({
+              regionSlug: area.regionSlug,
+              areaSlug: area.slug,
+            });
           },
         );
       }
@@ -169,8 +169,10 @@ export function LocationSearchMap({
           !areaSlug,
           true,
           () => {
-            onRegionChangeRef.current(region.slug);
-            onAreaChangeRef.current('');
+            onLocationChangeRef.current({
+              regionSlug: region.slug,
+              areaSlug: '',
+            });
           },
         );
       }
@@ -182,8 +184,10 @@ export function LocationSearchMap({
           areaSlug === area.slug,
           false,
           () => {
-            onRegionChangeRef.current(area.regionSlug);
-            onAreaChangeRef.current(area.slug);
+            onLocationChangeRef.current({
+              regionSlug: area.regionSlug,
+              areaSlug: area.slug,
+            });
           },
         );
       }

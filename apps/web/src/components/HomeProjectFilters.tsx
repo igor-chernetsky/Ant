@@ -435,10 +435,12 @@ export function HomeProjectFilters({
             catalog={locationCatalog}
             regionSlug={filters.regionSlug}
             areaSlug={filters.areaSlug}
-            onRegionChange={(slug) =>
-              update({ regionSlug: slug, areaSlug: '' })
+            onLocationChange={(next) =>
+              update({
+                regionSlug: next.regionSlug,
+                areaSlug: next.areaSlug,
+              })
             }
-            onAreaChange={(slug) => update({ areaSlug: slug })}
           />
         ) : null}
       </div>

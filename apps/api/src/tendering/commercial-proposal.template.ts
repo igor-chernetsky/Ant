@@ -54,6 +54,17 @@ function buildAdvanceText(
   return 'No advance payment.';
 }
 
+function buildPaymentTermsText(periodMonths?: number): string {
+  const advanceTiming =
+    'The Advance Payment (if any) shall be paid by the Employer no later than two (2) weeks before the Works Commencement Date, unless the Parties agree otherwise when preparing this Commercial Proposal.';
+
+  if (periodMonths != null && periodMonths < 2) {
+    return `${advanceTiming} Given the Contract Period is less than two (2) months, the Final Payment shall be due within one (1) month after acceptance of the Works (Practical Completion).`;
+  }
+
+  return `${advanceTiming} Progress payments shall be based on monthly interim valuation in accordance with this Contract.`;
+}
+
 function buildRetentionText(terms?: BidContractTerms): string {
   const pct = terms?.retentionPercent ?? 10;
   const limit = terms?.retentionLimitPercent ?? 10;
@@ -199,6 +210,7 @@ export function buildCommercialProposalData(input: {
     contractAmountFormatted: formatThb(amount),
     contractAmountNumeric: amount.toFixed(2),
     advancePaymentText: buildAdvanceText(amount, contract),
+    paymentTermsText: buildPaymentTermsText(periodMonths),
     worksStartDate: formatDisplayDate(contract?.worksStartDate),
     contractPeriodText: periodText,
     retentionText: buildRetentionText(contract),
@@ -361,7 +373,7 @@ export function renderCommercialProposalHtml(
 
   <h2>Clause 6 — Payment, Retention &amp; Warranty</h2>
   <p class="clause"><span class="clause-num">6.1 Advance Payment:</span> ${escapeHtml(data.advancePaymentText)}</p>
-  <p class="clause"><span class="clause-num">6.2 Terms of Payment:</span> Progress payments based on monthly interim valuation in accordance with this Contract.</p>
+  <p class="clause"><span class="clause-num">6.2 Terms of Payment:</span> ${escapeHtml(data.paymentTermsText)}</p>
   <p class="clause"><span class="clause-num">6.5 Retention:</span> ${escapeHtml(data.retentionText)}</p>
   <p class="clause"><span class="clause-num">6.6 Release of Retention:</span></p>
   <p class="clause pre">${escapeHtml(data.retentionReleaseText)}</p>

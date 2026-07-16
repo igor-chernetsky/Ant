@@ -13,7 +13,7 @@ interface PlatformFeeSummaryProps {
   compact?: boolean;
 }
 
-/** Always-visible fee breakdown for the client (listed amounts; trial = $0 due). */
+/** Always-visible fee breakdown for the contractor (listed amounts; trial = $0 due). */
 export function PlatformFeeSummary({
   contractAmount,
   currency,

@@ -113,7 +113,8 @@ export class ProjectTenderController {
     @Param('projectId') projectId: string,
   ) {
     const user = await this.resolveUser(req);
-    return this.clarifications.listForClient(user.id, projectId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.clarifications.listForClient(user.id, projectId, locale);
   }
 
   @Patch('clarification-questions/:questionId')
@@ -124,11 +125,13 @@ export class ProjectTenderController {
     @Body() body: AnswerClarificationQuestionDto,
   ) {
     const user = await this.resolveUser(req);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
     return this.clarifications.answerQuestion(
       user.id,
       projectId,
       questionId,
       body,
+      locale,
     );
   }
 

@@ -238,9 +238,11 @@ export class ContractorTenderController {
     @Param('projectId') projectId: string,
   ) {
     const user = await this.resolveUser(req);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
     return this.clarifications.listAnswerAttachmentsForContractor(
       user.id,
       projectId,
+      locale,
     );
   }
 

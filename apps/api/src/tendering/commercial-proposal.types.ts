@@ -53,6 +53,7 @@ export interface CommercialProposalRenderData {
   contractAmountFormatted: string;
   contractAmountNumeric: string;
   advancePaymentText: string;
+  paymentTermsText: string;
   worksStartDate: string;
   contractPeriodText: string;
   retentionText: string;

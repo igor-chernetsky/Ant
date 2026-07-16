@@ -1,10 +1,13 @@
 /**
- * Client platform fees (trial: listed amounts, 100% discount, nothing charged).
+ * Contractor platform fees (trial: listed amounts, 100% discount, nothing charged).
  *
  * Model:
- * - Platform access fee: USD 100 (credited toward success fee) — unlocks contract signing flow.
+ * - Platform access fee: USD 100 (credited toward success fee) — disclosed when the
+ *   contractor signs the contract.
  * - Success fee: 2% of the awarded contract amount, minus the access-fee credit,
- *   due within one calendar month (after the client’s expected advance payment to the contractor).
+ *   due within one calendar month (typically after the contractor receives the
+ *   client’s advance payment).
+ * - Clients use the core platform for free until premium services are enabled.
  */
 
 export const PLATFORM_ACCESS_FEE_USD = 100;
@@ -16,7 +19,7 @@ export const PLATFORM_FEES_TRIAL_DISCOUNT_PERCENT = 100;
 export const INDICATIVE_USD_THB_RATE = 36;
 
 export type PlatformFeeAudience = 'client' | 'contractor';
-export type PlatformFeeNoticeStep = 'award' | 'sign';
+export type PlatformFeeNoticeStep = 'sign';
 
 export interface PlatformFeeQuote {
   contractAmount: number | null;

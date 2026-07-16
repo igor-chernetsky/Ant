@@ -21,6 +21,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { ProjectScopeSyncService } from '../projects/project-scope-sync.service';
 import { StorageService } from '../storage/storage.service';
+import type { SupportedLocale } from '../users/locale.types';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
   buildClarificationAttachmentStorageKey,
@@ -229,6 +230,7 @@ export class TenderClarificationsService {
   async listForClient(
     clientId: string,
     projectId: string,
+    viewerLocale?: SupportedLocale,
   ): Promise<ClarificationQuestionsForClientResponse> {
     await this.assertProjectOwner(projectId, clientId);
     const tender = await this.prisma.tender.findUnique({
@@ -254,9 +256,17 @@ export class TenderClarificationsService {
 
     const sorted = sortQuestionsByAskCount(rows);
     const stats = computeContractorAnswerStats(sorted);
+    const mapped = sorted.map((row) => this.mapQuestion(row));
+    const questions = viewerLocale
+      ? await this.projectLocalization.localizeClarificationQa(
+          projectId,
+          mapped,
+          viewerLocale,
+        )
+      : mapped;
 
     return {
-      questions: sorted.map((row) => this.mapQuestion(row)),
+      questions,
       ...stats,
     };
   }
@@ -334,6 +344,7 @@ export class TenderClarificationsService {
     projectId: string,
     questionId: string,
     dto: AnswerClarificationQuestionDto,
+    viewerLocale?: SupportedLocale,
   ): Promise<ClarificationQuestionResponse> {
     const project = await this.assertProjectOwner(projectId, clientId);
 
@@ -393,7 +404,24 @@ export class TenderClarificationsService {
       }),
     );
 
-    return this.mapQuestion(updated);
+    this.projectLocalization.scheduleWarmClarificationQa(projectId, [
+      {
+        id: updated.id,
+        questionText: updated.questionText,
+        answer: updated.answer,
+      },
+    ]);
+
+    const mapped = this.mapQuestion(updated);
+    if (!viewerLocale) {
+      return mapped;
+    }
+    const [localized] = await this.projectLocalization.localizeClarificationQa(
+      projectId,
+      [mapped],
+      viewerLocale,
+    );
+    return localized;
   }
 
   async presignAttachment(
@@ -575,6 +603,7 @@ export class TenderClarificationsService {
   async listAnswerAttachmentsForContractor(
     userId: string,
     projectId: string,
+    viewerLocale?: SupportedLocale,
   ): Promise<ContractorClarificationAttachmentsResponse> {
     const { tender } = await this.assertContractorBidOnProject(
       userId,
@@ -600,10 +629,33 @@ export class TenderClarificationsService {
       .map((row) => ({
         id: row.id,
         questionText: row.questionText,
+        answer: row.answer,
         attachments: row.attachments.map((item) => this.mapAttachment(item)),
       }));
 
-    return { questions };
+    if (!viewerLocale) {
+      return {
+        questions: questions.map(({ id, questionText, attachments }) => ({
+          id,
+          questionText,
+          attachments,
+        })),
+      };
+    }
+
+    const localized = await this.projectLocalization.localizeClarificationQa(
+      projectId,
+      questions,
+      viewerLocale,
+    );
+
+    return {
+      questions: localized.map(({ id, questionText, attachments }) => ({
+        id,
+        questionText,
+        attachments,
+      })),
+    };
   }
 
   async getAttachmentDownloadUrlForContractor(
@@ -862,6 +914,7 @@ export class TenderClarificationsService {
 
     if (exactNovel.length === 0) {
       await this.reorderQuestionsByAskCount(tenderId);
+      await this.warmTenderClarificationQa(tenderId);
       return;
     }
 
@@ -942,6 +995,25 @@ export class TenderClarificationsService {
     }
 
     await this.reorderQuestionsByAskCount(tenderId);
+    await this.warmTenderClarificationQa(tenderId);
+  }
+
+  private async warmTenderClarificationQa(tenderId: string): Promise<void> {
+    const tender = await this.prisma.tender.findUnique({
+      where: { id: tenderId },
+      select: { projectId: true },
+    });
+    if (!tender) {
+      return;
+    }
+    const allRows = await this.prisma.tenderClarificationQuestion.findMany({
+      where: { tenderId },
+      select: { id: true, questionText: true, answer: true },
+    });
+    this.projectLocalization.scheduleWarmClarificationQa(
+      tender.projectId,
+      allRows,
+    );
   }
 
   async summarizeAnsweredForProject(projectId: string): Promise<string | null> {

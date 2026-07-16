@@ -5,14 +5,12 @@ import { useTranslation } from '@/components/LocaleProvider';
 import {
   formatPlatformMoney,
   formatUsd,
-  type PlatformFeeNoticeStep,
   type PlatformFeeQuote,
 } from '@/lib/platform-fees';
 
 export interface PlatformFeeNoticeDialogProps {
   isOpen: boolean;
   quote: PlatformFeeQuote | null;
-  step: PlatformFeeNoticeStep;
   busy?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -21,7 +19,6 @@ export interface PlatformFeeNoticeDialogProps {
 export function PlatformFeeNoticeDialog({
   isOpen,
   quote,
-  step,
   busy = false,
   onConfirm,
   onCancel,
@@ -43,14 +40,8 @@ export function PlatformFeeNoticeDialog({
     return null;
   }
 
-  const title =
-    step === 'award'
-      ? t('platformFees.awardTitle')
-      : t('platformFees.signTitle');
-  const intro =
-    step === 'award'
-      ? t('platformFees.awardIntro')
-      : t('platformFees.signIntro');
+  const title = t('platformFees.signTitle');
+  const intro = t('platformFees.signIntro');
 
   const accessLocal =
     quote.accessFeeInCurrency != null
