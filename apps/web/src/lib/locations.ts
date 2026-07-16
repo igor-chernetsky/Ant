@@ -2,12 +2,16 @@ export interface LocationRegion {
   slug: string;
   label: string;
   countryCode: string;
+  lat: number;
+  lng: number;
 }
 
 export interface LocationArea {
   slug: string;
   label: string;
   regionSlug: string;
+  lat: number;
+  lng: number;
 }
 
 export interface ServiceLocation {

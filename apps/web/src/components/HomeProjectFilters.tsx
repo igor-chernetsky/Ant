@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { LocationSearchMap } from '@/components/LocationSearchMap';
 import {
   areaLabel,
   areasForRegion,
@@ -226,11 +227,11 @@ export function HomeProjectFilters({
         )}
       </div>
 
-      <div className="project-filters-toolbar">
-        <div className="project-filters-field">
-          <span className="project-filters-field-label">{t('filters.location')}</span>
-          {locationCatalog ? (
-            <div className="project-filters-field-controls">
+      <div className="project-filters-location-section">
+        <span className="project-filters-field-label">{t('filters.location')}</span>
+        {locationCatalog ? (
+          <div className="project-filters-location-row">
+            <div className="project-filters-location-fields">
               <select
                 className="project-filters-select"
                 value={filters.regionSlug}
@@ -264,47 +265,56 @@ export function HomeProjectFilters({
                 ))}
               </select>
             </div>
-          ) : (
-            <span className="muted project-filters-loading">{t('common.loading')}</span>
-          )}
-        </div>
-
-        <div className="project-filters-field project-filters-field--grow">
-          <span className="project-filters-field-label">{t('filters.status')}</span>
-          <div
-            className="project-filters-segmented"
-            role="group"
-            aria-label={t('filters.statusAria')}
-          >
-            <button
-              type="button"
-              className={`project-filters-segment${
-                filters.statuses.length === 0
-                  ? ' project-filters-segment--active'
-                  : ''
-              }`}
-              aria-pressed={filters.statuses.length === 0}
-              onClick={() => update({ statuses: [] })}
-            >
-              {t('filters.all')}
-            </button>
-            {PRIMARY_STATUS_VALUES.map((value) => {
-              const active = filters.statuses.includes(value);
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  className={`project-filters-segment${
-                    active ? ' project-filters-segment--active' : ''
-                  }`}
-                  aria-pressed={active}
-                  onClick={() => toggleStatus(value)}
-                >
-                  {formatProjectStatus(value)}
-                </button>
-              );
-            })}
+            <LocationSearchMap
+              catalog={locationCatalog}
+              regionSlug={filters.regionSlug}
+              areaSlug={filters.areaSlug}
+              onRegionChange={(slug) =>
+                update({ regionSlug: slug, areaSlug: '' })
+              }
+              onAreaChange={(slug) => update({ areaSlug: slug })}
+            />
           </div>
+        ) : (
+          <span className="muted project-filters-loading">{t('common.loading')}</span>
+        )}
+      </div>
+
+      <div className="project-filters-status-section">
+        <span className="project-filters-field-label">{t('filters.status')}</span>
+        <div
+          className="project-filters-segmented"
+          role="group"
+          aria-label={t('filters.statusAria')}
+        >
+          <button
+            type="button"
+            className={`project-filters-segment${
+              filters.statuses.length === 0
+                ? ' project-filters-segment--active'
+                : ''
+            }`}
+            aria-pressed={filters.statuses.length === 0}
+            onClick={() => update({ statuses: [] })}
+          >
+            {t('filters.all')}
+          </button>
+          {PRIMARY_STATUS_VALUES.map((value) => {
+            const active = filters.statuses.includes(value);
+            return (
+              <button
+                key={value}
+                type="button"
+                className={`project-filters-segment${
+                  active ? ' project-filters-segment--active' : ''
+                }`}
+                aria-pressed={active}
+                onClick={() => toggleStatus(value)}
+              >
+                {formatProjectStatus(value)}
+              </button>
+            );
+          })}
         </div>
       </div>
 
