@@ -4,9 +4,11 @@ import type {
   CommercialProposalRenderData,
 } from './commercial-proposal.types';
 import {
-  DEFAULT_PROPERTY_OWNERSHIP,
-  DEFAULT_RETENTION_RELEASE_NOTES,
-} from './contract-terms.defaults';
+  commercialProposalCopy,
+  type CommercialProposalCopy,
+} from './commercial-proposal.i18n';
+import type { SupportedLocale } from '../users/locale.types';
+import { DEFAULT_LOCALE } from '../users/locale.types';
 
 export function escapeHtml(value: string): string {
   return value
@@ -16,18 +18,26 @@ export function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function formatThb(amount: number): string {
-  return `THB ${amount.toLocaleString('en-US', {
+function formatThb(amount: number, locale: SupportedLocale): string {
+  const numberLocale =
+    locale === 'th' ? 'th-TH' : locale === 'ru' ? 'ru-RU' : 'en-US';
+  return `THB ${amount.toLocaleString(numberLocale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 }
 
-function formatDisplayDate(iso?: string | null): string {
-  if (!iso) return '—';
+function formatDisplayDate(
+  iso: string | null | undefined,
+  locale: SupportedLocale,
+  dash: string,
+): string {
+  if (!iso) return dash;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString('en-GB', {
+  const dateLocale =
+    locale === 'th' ? 'th-TH' : locale === 'ru' ? 'ru-RU' : 'en-GB';
+  return date.toLocaleDateString(dateLocale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -41,45 +51,53 @@ function monthsFromDays(days?: number | null): number | undefined {
 
 function buildAdvanceText(
   amount: number,
-  terms?: BidContractTerms,
+  terms: BidContractTerms | undefined,
+  copy: CommercialProposalCopy,
+  locale: SupportedLocale,
 ): string {
   if (terms?.advancePaymentAmount != null && terms.advancePaymentAmount > 0) {
-    return formatThb(terms.advancePaymentAmount);
+    return formatThb(terms.advancePaymentAmount, locale);
   }
   const pct = terms?.advancePaymentPercent;
   if (pct != null && pct > 0) {
     const value = (amount * pct) / 100;
-    return `${pct}% of the Contract Amount (${formatThb(value)})`;
+    return copy.advancePercentOf(pct, formatThb(value, locale));
   }
-  return 'No advance payment.';
+  return copy.noAdvancePayment;
 }
 
-function buildPaymentTermsText(periodMonths?: number): string {
-  const advanceTiming =
-    'The Advance Payment (if any) shall be paid by the Employer no later than two (2) weeks before the Works Commencement Date, unless the Parties agree otherwise when preparing this Commercial Proposal.';
-
+function buildPaymentTermsText(
+  periodMonths: number | undefined,
+  copy: CommercialProposalCopy,
+): string {
   if (periodMonths != null && periodMonths < 2) {
-    return `${advanceTiming} Given the Contract Period is less than two (2) months, the Final Payment shall be due within one (1) month after acceptance of the Works (Practical Completion).`;
+    return `${copy.paymentAdvanceTiming} ${copy.paymentShortPeriodFinal}`;
   }
-
-  return `${advanceTiming} Progress payments shall be based on monthly interim valuation in accordance with this Contract.`;
+  return `${copy.paymentAdvanceTiming} ${copy.paymentMonthlyProgress}`;
 }
 
-function buildRetentionText(terms?: BidContractTerms): string {
+function buildRetentionText(
+  terms: BidContractTerms | undefined,
+  copy: CommercialProposalCopy,
+): string {
   const pct = terms?.retentionPercent ?? 10;
   const limit = terms?.retentionLimitPercent ?? 10;
-  return `Retention shall be ${pct}% of the value of work executed, subject to a limit of ${limit}% of the Accepted Contract Amount.`;
+  return copy.retentionShallBe(pct, limit);
 }
 
-function buildBoqTable(lineItems?: BidLineItem[]): string {
+function buildBoqTable(
+  lineItems: BidLineItem[] | undefined,
+  copy: CommercialProposalCopy,
+  locale: SupportedLocale,
+): string {
   if (!lineItems?.length) return '';
   const rows = lineItems
     .map(
       (item) => `
       <tr>
         <td>${escapeHtml(item.trade)}</td>
-        <td>${escapeHtml(item.description ?? '—')}</td>
-        <td class="num">${escapeHtml(formatThb(Number(item.amount)))}</td>
+        <td>${escapeHtml(item.description ?? copy.dash)}</td>
+        <td class="num">${escapeHtml(formatThb(Number(item.amount), locale))}</td>
       </tr>`,
     )
     .join('');
@@ -91,16 +109,16 @@ function buildBoqTable(lineItems?: BidLineItem[]): string {
     <table class="boq">
       <thead>
         <tr>
-          <th>Trade / item</th>
-          <th>Description</th>
-          <th>Amount (THB)</th>
+          <th>${escapeHtml(copy.boqTrade)}</th>
+          <th>${escapeHtml(copy.boqDescription)}</th>
+          <th>${escapeHtml(copy.boqAmount)}</th>
         </tr>
       </thead>
       <tbody>
         ${rows}
         <tr class="subtotal">
-          <td colspan="2">Subtotal</td>
-          <td class="num">${escapeHtml(formatThb(subtotal))}</td>
+          <td colspan="2">${escapeHtml(copy.boqSubtotal)}</td>
+          <td class="num">${escapeHtml(formatThb(subtotal, locale))}</td>
         </tr>
       </tbody>
     </table>`;
@@ -112,10 +130,11 @@ function formatDocumentCategory(category: string): string {
 
 function buildAnnex2Html(
   documents: Array<{ originalName: string; category: string }>,
+  copy: CommercialProposalCopy,
 ): string {
   if (!documents.length) {
-    return `<p class="clause">Drawings, specifications, and other technical documents uploaded to the project on the platform are deemed part of this Contract when listed here.</p>
-    <p class="clause"><em>No project documents are recorded on the platform yet. Annex #2 to be supplemented with drawings and specifications before Works commence.</em></p>`;
+    return `<p class="clause">${escapeHtml(copy.annex2EmptyIntro)}</p>
+    <p class="clause"><em>${escapeHtml(copy.annex2EmptyNote)}</em></p>`;
   }
 
   const items = documents
@@ -125,9 +144,9 @@ function buildAnnex2Html(
     )
     .join('');
 
-  return `<p class="clause">The following project documents form Annex #2 (Drawings and Specifications):</p>
+  return `<p class="clause">${escapeHtml(copy.annex2ListIntro)}</p>
     <ul>${items}</ul>
-    <p class="clause muted">Full files are available in the project workspace on the platform.</p>`;
+    <p class="clause muted">${escapeHtml(copy.annex2FilesNote)}</p>`;
 }
 
 export function buildCommercialProposalData(input: {
@@ -141,15 +160,29 @@ export function buildCommercialProposalData(input: {
   projectDocuments?: Array<{ originalName: string; category: string }>;
   employerName: string;
   employerEmail?: string | null;
+  employerDisplayName?: string | null;
   contractorCompanyName: string;
   submittedAt?: string | null;
+  locale?: SupportedLocale;
 }): CommercialProposalRenderData {
+  const locale = input.locale ?? DEFAULT_LOCALE;
+  const copy = commercialProposalCopy(locale);
   const contract = input.terms?.contractTerms;
   const amount = input.bidAmount;
+  const employerOrgName =
+    contract?.employerName?.trim() || input.employerName;
+  const employerSignatoryName =
+    input.employerDisplayName?.trim() &&
+    input.employerDisplayName.trim() !== employerOrgName
+      ? input.employerDisplayName.trim()
+      : employerOrgName;
+  const contractorOrgName = input.contractorCompanyName;
+  const contractorSignatoryName =
+    contract?.contractorRepresentative?.trim() || contractorOrgName;
   const siteAddress =
     contract?.siteAddress?.trim() ||
     input.projectDistrict?.trim() ||
-    'To be confirmed on site';
+    copy.siteToBeConfirmed;
   const subject =
     contract?.subjectOfContract?.trim() ||
     input.terms?.scopeSummary?.trim() ||
@@ -158,113 +191,129 @@ export function buildCommercialProposalData(input: {
   const periodMonths =
     contract?.contractPeriodMonths ?? monthsFromDays(input.durationDays);
   const periodText = periodMonths
-    ? `${periodMonths} month${periodMonths === 1 ? '' : 's'} from the Works Commencement Date`
+    ? copy.periodMonthsFromStart(periodMonths)
     : input.durationDays
-      ? `${input.durationDays} days from the Works Commencement Date`
-      : 'As per the Master Schedule (Annex #3)';
+      ? copy.periodDaysFromStart(input.durationDays)
+      : copy.periodMasterSchedule;
 
   const employerBlock = [
-    contract?.employerName?.trim() || input.employerName,
+    employerOrgName,
     contract?.employerAddress?.trim(),
     contract?.employerRegistrationNo?.trim()
-      ? `Registration no. ${contract.employerRegistrationNo.trim()}`
+      ? copy.registrationNo(contract.employerRegistrationNo.trim())
       : input.employerEmail?.trim(),
   ]
     .filter(Boolean)
     .join(', ');
 
   const contractorBlock = [
-    input.contractorCompanyName,
+    contractorOrgName,
     contract?.contractorAddress?.trim(),
     contract?.contractorRegistrationNo?.trim()
-      ? `Registration no. ${contract.contractorRegistrationNo.trim()}`
+      ? copy.registrationNo(contract.contractorRegistrationNo.trim())
       : null,
     contract?.contractorRepresentative?.trim()
-      ? `Represented by ${contract.contractorRepresentative.trim()}`
+      ? copy.representedBy(contract.contractorRepresentative.trim())
       : null,
   ]
     .filter(Boolean)
     .join(', ');
 
   const lineItems = input.terms?.lineItems;
-  const boqTableHtml = buildBoqTable(lineItems);
+  const boqTableHtml = buildBoqTable(lineItems, copy, locale);
 
   return {
-    documentTitle: `Commercial Proposal — ${input.projectTitle}`,
-    contractHeading: 'CONSTRUCTION CONTRACT',
+    documentTitle: copy.documentTitle(input.projectTitle),
+    contractHeading: copy.contractHeading,
+    locale,
     projectTitle: input.projectTitle,
     siteAddress,
     documentDate: formatDisplayDate(
       input.submittedAt ?? new Date().toISOString(),
+      locale,
+      copy.dash,
     ),
     employerBlock,
     contractorBlock,
     subjectOfContract: subject,
     propertyOwnership:
-      contract?.propertyOwnership?.trim() || DEFAULT_PROPERTY_OWNERSHIP,
+      contract?.propertyOwnership?.trim() || copy.defaultPropertyOwnership,
     scopeSummary:
-      input.terms?.scopeSummary?.trim() ||
-      'As shown and described in the Contract Documents, Drawings and Specifications (Annex #2).',
-    approach: input.terms?.approach?.trim() || '—',
-    notes: input.terms?.notes?.trim() || '—',
-    contractAmountFormatted: formatThb(amount),
+      input.terms?.scopeSummary?.trim() || copy.scopeFallback,
+    approach: input.terms?.approach?.trim() || copy.dash,
+    notes: input.terms?.notes?.trim() || copy.dash,
+    contractAmountFormatted: formatThb(amount, locale),
     contractAmountNumeric: amount.toFixed(2),
-    advancePaymentText: buildAdvanceText(amount, contract),
-    paymentTermsText: buildPaymentTermsText(periodMonths),
-    worksStartDate: formatDisplayDate(contract?.worksStartDate),
+    advancePaymentText: buildAdvanceText(amount, contract, copy, locale),
+    paymentTermsText: buildPaymentTermsText(periodMonths, copy),
+    worksStartDate: formatDisplayDate(
+      contract?.worksStartDate,
+      locale,
+      copy.dash,
+    ),
     contractPeriodText: periodText,
-    retentionText: buildRetentionText(contract),
+    retentionText: buildRetentionText(contract, copy),
     retentionReleaseText:
-      contract?.retentionReleaseNotes?.trim() ||
-      DEFAULT_RETENTION_RELEASE_NOTES,
+      contract?.retentionReleaseNotes?.trim() || copy.defaultRetentionRelease,
     warrantyText:
       contract?.warrantyPeriodNotes?.trim() ||
-      `Defect Notification Period: ${contract?.defectNotificationMonths ?? 24} months from Practical Completion.`,
+      copy.defaultWarranty(contract?.defectNotificationMonths ?? 24),
     delayDamagesText:
-      contract?.delayDamagesNotes?.trim() ||
-      'Delay damages at 0.2% per day of the Contract Amount, maximum 20% of the Contract Amount.',
+      contract?.delayDamagesNotes?.trim() || copy.defaultDelayDamages,
     specialConditions: contract?.specialConditions?.trim() ?? '',
     hasSpecialConditions: Boolean(contract?.specialConditions?.trim()),
     boqTableHtml,
     hasBoq: Boolean(lineItems?.length),
-    annex2Html: buildAnnex2Html(input.projectDocuments ?? []),
+    annex2Html: buildAnnex2Html(input.projectDocuments ?? [], copy),
     hasAnnex2Documents: (input.projectDocuments?.length ?? 0) > 0,
     clarificationSummary: input.clarificationSummary?.trim() ?? '',
     hasClarificationSummary: Boolean(input.clarificationSummary?.trim()),
+    contractorOrgName,
+    contractorSignatoryName,
+    contractorSignatoryTitle: copy.defaultContractorTitle,
+    employerOrgName,
+    employerSignatoryName,
+    employerSignatoryTitle: copy.defaultEmployerTitle,
   };
 }
 
 export function renderCommercialProposalHtml(
   data: CommercialProposalRenderData,
 ): string {
+  const copy = commercialProposalCopy(data.locale);
   const boqSection = data.hasBoq
     ? `
-    <h2>Annex #1 — Bill of Quantity</h2>
+    <h2>${escapeHtml(copy.annex1Boq)}</h2>
     ${data.boqTableHtml}
   `
     : '';
 
   const annex2Section = `
-    <h2>Annex #2 — Drawings and Specifications</h2>
+    <h2>${escapeHtml(copy.annex2Drawings)}</h2>
     ${data.annex2Html}
   `;
 
   const clarificationSection = data.hasClarificationSummary
     ? `
-    <h2>Contractor Clarifications</h2>
+    <h2>${escapeHtml(copy.clarifications)}</h2>
     <p class="clause pre">${escapeHtml(data.clarificationSummary)}</p>
   `
     : '';
 
   const specialConditionsSection = data.hasSpecialConditions
     ? `
-  <h2>Special Conditions</h2>
+  <h2>${escapeHtml(copy.specialConditions)}</h2>
   <p class="clause pre">${escapeHtml(data.specialConditions)}</p>
   `
     : '';
 
+  const amountSentence = copy.employerAgreesToPay(
+    data.contractAmountFormatted,
+    data.contractAmountNumeric,
+  );
+
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${escapeHtml(data.locale)}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -329,6 +378,51 @@ export function renderCommercialProposalHtml(
       border-top: 1px solid var(--border);
       padding-top: 0.75rem;
     }
+    .signatures {
+      margin-top: 2.5rem;
+      page-break-inside: avoid;
+    }
+    .signatures h2 {
+      margin-bottom: 1rem;
+    }
+    .signature-grid {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: separate;
+      border-spacing: 1.5rem 0;
+    }
+    .signature-col {
+      display: table-cell;
+      width: 50%;
+      vertical-align: top;
+    }
+    .signature-party {
+      margin: 0 0 1rem;
+      font-weight: 700;
+    }
+    .signature-org {
+      margin: 0 0 1.25rem;
+      font-size: 11pt;
+    }
+    .signature-line-block {
+      margin: 0 0 0.85rem;
+    }
+    .signature-line {
+      display: block;
+      border-bottom: 1px solid var(--text);
+      height: 1.6rem;
+      margin-bottom: 0.25rem;
+    }
+    .signature-caption {
+      margin: 0;
+      font-size: 10pt;
+      color: var(--muted);
+    }
+    .signature-filled {
+      margin: 0.15rem 0 0;
+      min-height: 1.2rem;
+    }
     @media print {
       body { padding: 0.5in; max-width: none; }
     }
@@ -336,56 +430,111 @@ export function renderCommercialProposalHtml(
 </head>
 <body>
   <h1>${escapeHtml(data.contractHeading)}</h1>
-  <p class="subtitle">of</p>
+  <p class="subtitle">${escapeHtml(copy.of)}</p>
   <p class="project-line">${escapeHtml(data.projectTitle)}</p>
   <p class="address-line">${escapeHtml(data.siteAddress)}</p>
   <p class="date-line">${escapeHtml(data.documentDate)}</p>
 
   <div class="parties">
-    <p><strong>By and between:</strong></p>
-    <p>${escapeHtml(data.employerBlock)}, hereinafter referred to as the <strong>“Employer”</strong>, and</p>
-    <p>${escapeHtml(data.contractorBlock)}, hereinafter referred to as the <strong>“Contractor”</strong>.</p>
-    <p>Both Parties agree to make this Contract subject to the following terms and conditions:</p>
+    <p><strong>${escapeHtml(copy.byAndBetween)}</strong></p>
+    <p>${escapeHtml(data.employerBlock)}, ${escapeHtml(copy.employerReferred)} <strong>“${escapeHtml(copy.employerLabel)}”</strong>, ${escapeHtml(copy.andConnector)}</p>
+    <p>${escapeHtml(data.contractorBlock)}, ${escapeHtml(copy.contractorReferred)} <strong>“${escapeHtml(copy.contractorLabel)}”</strong>.</p>
+    <p>${escapeHtml(copy.partiesAgree)}</p>
   </div>
 
-  <h2>Clause 1 — Definitions</h2>
-  <p class="clause"><span class="clause-num">“Construction Works”</span> means ${escapeHtml(data.subjectOfContract)} at ${escapeHtml(data.siteAddress)}.</p>
-  <p class="clause"><span class="clause-num">“The Project”</span> means completion of the Works as described in Annex #2 (Drawings and Specifications) and this Contract.</p>
-  <p class="clause"><span class="clause-num">Property / site rights:</span> ${escapeHtml(data.propertyOwnership)}</p>
+  <h2>${escapeHtml(copy.clause1)}</h2>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.constructionWorks)}</span> ${escapeHtml(copy.meansAt(data.subjectOfContract, data.siteAddress))}</p>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.theProject)}</span> ${escapeHtml(copy.projectMeans)}</p>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.propertySiteRights)}</span> ${escapeHtml(data.propertyOwnership)}</p>
 
-  <h2>Clause 2 — Scope of Works</h2>
+  <h2>${escapeHtml(copy.clause2)}</h2>
   <p class="clause">${escapeHtml(data.scopeSummary)}</p>
-  <p class="clause"><strong>Implementation approach:</strong> ${escapeHtml(data.approach)}</p>
-  <p class="clause"><strong>Comments / assumptions:</strong> ${escapeHtml(data.notes)}</p>
+  <p class="clause"><strong>${escapeHtml(copy.implementationApproach)}</strong> ${escapeHtml(data.approach)}</p>
+  <p class="clause"><strong>${escapeHtml(copy.commentsAssumptions)}</strong> ${escapeHtml(data.notes)}</p>
 
-  <h2>Clause 3 — Contract Amount</h2>
-  <p class="clause">The Employer agrees to pay the Contract Amount (including applicable taxes) of <strong>${escapeHtml(data.contractAmountFormatted)}</strong> (THB ${escapeHtml(data.contractAmountNumeric)}) (the <strong>“Contract Amount”</strong>).</p>
-  <p class="clause">No adjustment shall be allowed for changes in cost of materials, labour, equipment or services during the Contract period unless agreed in writing as a Variation Order.</p>
+  <h2>${escapeHtml(copy.clause3)}</h2>
+  <p class="clause">${escapeHtml(amountSentence)}</p>
+  <p class="clause">${escapeHtml(copy.noAdjustment)}</p>
 
   ${boqSection}
 
   ${annex2Section}
 
-  <h2>Clause 5 — Contract Period</h2>
-  <p class="clause"><strong>Works Commencement Date:</strong> ${escapeHtml(data.worksStartDate)}</p>
-  <p class="clause">The whole scope of the Works shall be completed within ${escapeHtml(data.contractPeriodText)}.</p>
-  <p class="clause"><strong>Delay damages:</strong> ${escapeHtml(data.delayDamagesText)}</p>
+  <h2>${escapeHtml(copy.clause5)}</h2>
+  <p class="clause"><strong>${escapeHtml(copy.worksCommencementDate)}</strong> ${escapeHtml(data.worksStartDate)}</p>
+  <p class="clause">${escapeHtml(copy.worksCompletedWithin(data.contractPeriodText))}</p>
+  <p class="clause"><strong>${escapeHtml(copy.delayDamages)}</strong> ${escapeHtml(data.delayDamagesText)}</p>
 
-  <h2>Clause 6 — Payment, Retention &amp; Warranty</h2>
-  <p class="clause"><span class="clause-num">6.1 Advance Payment:</span> ${escapeHtml(data.advancePaymentText)}</p>
-  <p class="clause"><span class="clause-num">6.2 Terms of Payment:</span> ${escapeHtml(data.paymentTermsText)}</p>
-  <p class="clause"><span class="clause-num">6.5 Retention:</span> ${escapeHtml(data.retentionText)}</p>
-  <p class="clause"><span class="clause-num">6.6 Release of Retention:</span></p>
+  <h2>${escapeHtml(copy.clause6)}</h2>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.advancePayment)}</span> ${escapeHtml(data.advancePaymentText)}</p>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.termsOfPayment)}</span> ${escapeHtml(data.paymentTermsText)}</p>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.retention)}</span> ${escapeHtml(data.retentionText)}</p>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.releaseOfRetention)}</span></p>
   <p class="clause pre">${escapeHtml(data.retentionReleaseText)}</p>
-  <p class="clause"><span class="clause-num">6.7 Defect Notification / Warranty:</span> ${escapeHtml(data.warrantyText)}</p>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.defectWarranty)}</span> ${escapeHtml(data.warrantyText)}</p>
+
+  <h2>${escapeHtml(copy.clauseForceMajeure)}</h2>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.forceMajeureDefinitionTitle)}</span> ${escapeHtml(copy.forceMajeureDefinition)}</p>
+  <ul>
+    ${copy.forceMajeureEvents
+      .map((item) => `<li>${escapeHtml(item)}</li>`)
+      .join('')}
+  </ul>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.forceMajeureNoticeTitle)}</span> ${escapeHtml(copy.forceMajeureNotice)}</p>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.forceMajeureReliefTitle)}</span> ${escapeHtml(copy.forceMajeureRelief)}</p>
 
   ${clarificationSection}
 
   ${specialConditionsSection}
 
+  <div class="signatures">
+    <h2>${escapeHtml(copy.signaturesHeading)}</h2>
+    <div class="signature-grid">
+      <div class="signature-col">
+        <p class="signature-party">${escapeHtml(copy.forContractor)}</p>
+        <p class="signature-org">${escapeHtml(data.contractorOrgName)}</p>
+        <div class="signature-line-block">
+          <span class="signature-line"></span>
+          <p class="signature-caption">${escapeHtml(copy.signatureLabel)}</p>
+        </div>
+        <div class="signature-line-block">
+          <p class="signature-filled">${escapeHtml(data.contractorSignatoryName)}</p>
+          <p class="signature-caption">${escapeHtml(copy.nameLabel)}</p>
+        </div>
+        <div class="signature-line-block">
+          <p class="signature-filled">${escapeHtml(data.contractorSignatoryTitle)}</p>
+          <p class="signature-caption">${escapeHtml(copy.titleLabel)}</p>
+        </div>
+        <div class="signature-line-block">
+          <span class="signature-line"></span>
+          <p class="signature-caption">${escapeHtml(copy.dateLabel)}</p>
+        </div>
+      </div>
+      <div class="signature-col">
+        <p class="signature-party">${escapeHtml(copy.forEmployer)}</p>
+        <p class="signature-org">${escapeHtml(data.employerOrgName)}</p>
+        <div class="signature-line-block">
+          <span class="signature-line"></span>
+          <p class="signature-caption">${escapeHtml(copy.signatureLabel)}</p>
+        </div>
+        <div class="signature-line-block">
+          <p class="signature-filled">${escapeHtml(data.employerSignatoryName)}</p>
+          <p class="signature-caption">${escapeHtml(copy.nameLabel)}</p>
+        </div>
+        <div class="signature-line-block">
+          <p class="signature-filled">${escapeHtml(data.employerSignatoryTitle)}</p>
+          <p class="signature-caption">${escapeHtml(copy.titleLabel)}</p>
+        </div>
+        <div class="signature-line-block">
+          <span class="signature-line"></span>
+          <p class="signature-caption">${escapeHtml(copy.dateLabel)}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <p class="footer-note">
-    Draft commercial proposal generated by the platform from submitted bid data.
-    This document is intended for review and execution by both Parties; legal review is recommended before signing.
+    ${escapeHtml(copy.footerNote)}
   </p>
 </body>
 </html>`;

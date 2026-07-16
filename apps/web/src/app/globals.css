@@ -4691,8 +4691,37 @@ select:disabled {
 .commercial-proposal-download-inline {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.65rem 1rem;
+}
+
+.commercial-proposal-download-locales {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.commercial-proposal-download-locales legend {
+  padding: 0;
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.commercial-proposal-download-locale-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+}
+
+.commercial-proposal-download-locales-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .commercial-proposal-download-option,

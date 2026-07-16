@@ -816,15 +816,21 @@ export async function fetchCommercialProposalAttachmentCount(
 export async function downloadCommercialProposal(
   bidId: string,
   projectId?: string,
-  options?: { withAttachments?: boolean },
+  options?: { withAttachments?: boolean; locales?: string[] },
 ): Promise<void> {
   const pathBase = projectId
     ? `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/commercial-proposal`
     : `/api/contractor/bids/${encodeURIComponent(bidId)}/commercial-proposal`;
 
-  const path = options?.withAttachments
-    ? `${pathBase}?withAttachments=1`
-    : pathBase;
+  const params = new URLSearchParams();
+  if (options?.withAttachments) {
+    params.set('withAttachments', '1');
+  }
+  if (options?.locales?.length) {
+    params.set('locales', options.locales.join(','));
+  }
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const path = `${pathBase}${query}`;
 
   const response = await fetchWithAuth(path);
   if (!response.ok) {

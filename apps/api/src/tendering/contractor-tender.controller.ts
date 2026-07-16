@@ -31,6 +31,7 @@ import {
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
+import { parseCommercialProposalLocales } from './commercial-proposal.i18n';
 import { ContractsService } from './contracts.service';
 import { ProjectsService } from '../projects/projects.service';
 import { ProjectReviewsService } from '../projects/project-reviews.service';
@@ -160,41 +161,26 @@ export class ContractorTenderController {
     @Req() req: Request & { user: JwtPayload },
     @Param('bidId') bidId: string,
     @Query('withAttachments') withAttachments: string | undefined,
+    @Query('locales') localesRaw: string | undefined,
     @Res() res: Response,
   ) {
     const user = await this.resolveUser(req);
-    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    const fallbackLocale = resolveLocaleFromRequest(req, user.preferredLocale);
+    const locales = parseCommercialProposalLocales(localesRaw);
     const includeAttachments =
       withAttachments === '1' || withAttachments === 'true';
 
-    if (includeAttachments) {
-      const { zip, fileName } = await this.commercialProposal.renderZip(
-        user.id,
-        bidId,
-        undefined,
-        locale,
-      );
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="${fileName}"`,
-      );
-      res.send(zip);
-      return;
-    }
-
-    const { pdf, fileName } = await this.commercialProposal.renderPdf(
-      user.id,
-      bidId,
-      undefined,
-      locale,
-    );
-    res.setHeader('Content-Type', 'application/pdf');
+    const { buffer, fileName, contentType } =
+      await this.commercialProposal.renderDownload(user.id, bidId, undefined, {
+        locales: locales.length > 0 ? locales : [fallbackLocale],
+        withAttachments: includeAttachments,
+      });
+    res.setHeader('Content-Type', contentType);
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${fileName}"`,
     );
-    res.send(pdf);
+    res.send(buffer);
   }
 
   @Get('projects/:projectId/participation')

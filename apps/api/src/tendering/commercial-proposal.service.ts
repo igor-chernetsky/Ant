@@ -13,7 +13,10 @@ import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 import { StorageService } from '../storage/storage.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { normalizeSourceLocale } from '../localization/locale.utils';
-import type { SupportedLocale } from '../users/locale.types';
+import {
+  DEFAULT_LOCALE,
+  type SupportedLocale,
+} from '../users/locale.types';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
   buildCommercialProposalData,
@@ -21,6 +24,10 @@ import {
 } from './commercial-proposal.template';
 import { BidTermsV1, BidContractTerms } from './tendering.types';
 import { normalizeContractTerms } from './commercial-proposal.template';
+import {
+  commercialProposalCopy,
+  parseCommercialProposalLocales,
+} from './commercial-proposal.i18n';
 
 const CLIENT_DOWNLOADABLE_BID_STATUSES: BidStatus[] = [
   BidStatus.submitted,
@@ -130,55 +137,111 @@ export class CommercialProposalService {
     return { pdf, fileName };
   }
 
-  async renderZip(
+  async renderDownload(
     userId: string,
     bidId: string,
-    projectId?: string,
-    viewerLocale?: SupportedLocale,
-  ): Promise<{ zip: Buffer; fileName: string }> {
-    if (!this.storage.isConfigured()) {
+    projectId: string | undefined,
+    options: {
+      locales: SupportedLocale[];
+      withAttachments: boolean;
+    },
+  ): Promise<{
+    buffer: Buffer;
+    fileName: string;
+    contentType: string;
+  }> {
+    const locales =
+      options.locales.length > 0
+        ? options.locales
+        : ([DEFAULT_LOCALE] as SupportedLocale[]);
+    const multiLocale = locales.length > 1;
+    const needsZip = options.withAttachments || multiLocale;
+
+    if (!needsZip) {
+      const { pdf, fileName } = await this.renderPdf(
+        userId,
+        bidId,
+        projectId,
+        locales[0],
+      );
+      return {
+        buffer: pdf,
+        fileName,
+        contentType: 'application/pdf',
+      };
+    }
+
+    if (options.withAttachments && !this.storage.isConfigured()) {
       throw new ServiceUnavailableException(
         'File storage is not configured. Cannot bundle attachments.',
       );
     }
 
     const bid = await this.loadAndAuthorizeBid(userId, bidId, projectId);
-    const { pdf, fileName: pdfFileName } = await this.renderPdf(
-      userId,
-      bidId,
-      projectId,
-      viewerLocale,
-    );
-
-    const attachmentFiles = await this.collectAttachmentFiles(
-      bid.tender.projectId,
-    );
     const usedNames = new Set<string>();
-    const entries: ZipEntry[] = [
-      {
-        name: uniqueZipName(pdfFileName, usedNames),
-        buffer: pdf,
-      },
-    ];
+    const entries: ZipEntry[] = [];
 
-    for (const file of attachmentFiles) {
-      try {
-        const buffer = await this.storage.getObjectBuffer(file.storageKey);
-        entries.push({
-          name: uniqueZipName(file.zipPath, usedNames),
-          buffer,
-        });
-      } catch {
-        // Skip files that cannot be read; contract PDF still downloads.
+    for (const locale of locales) {
+      const { pdf, fileName } = await this.renderPdf(
+        userId,
+        bidId,
+        projectId,
+        locale,
+      );
+      const localizedName = multiLocale
+        ? fileName.replace(/\.pdf$/i, `-${locale}.pdf`)
+        : fileName;
+      entries.push({
+        name: uniqueZipName(localizedName, usedNames),
+        buffer: pdf,
+      });
+    }
+
+    if (options.withAttachments) {
+      const attachmentFiles = await this.collectAttachmentFiles(
+        bid.tender.projectId,
+      );
+      for (const file of attachmentFiles) {
+        try {
+          const buffer = await this.storage.getObjectBuffer(file.storageKey);
+          entries.push({
+            name: uniqueZipName(file.zipPath, usedNames),
+            buffer,
+          });
+        } catch {
+          // Skip files that cannot be read; contract PDF still downloads.
+        }
       }
     }
 
     const zip = await buildZipBuffer(entries);
-    const slug = slugifyProjectTitle(bid.tender.project.title, bidId.slice(0, 8));
+    const slug = slugifyProjectTitle(
+      bid.tender.project.title,
+      bidId.slice(0, 8),
+    );
+    const suffix = options.withAttachments
+      ? multiLocale
+        ? '-multilang-with-attachments'
+        : '-with-attachments'
+      : '-multilang';
     return {
-      zip,
-      fileName: `contract-draft-${slug}-with-attachments.zip`,
+      buffer: zip,
+      fileName: `contract-draft-${slug}${suffix}.zip`,
+      contentType: 'application/zip',
     };
+  }
+
+  async renderZip(
+    userId: string,
+    bidId: string,
+    projectId?: string,
+    viewerLocale?: SupportedLocale,
+  ): Promise<{ zip: Buffer; fileName: string }> {
+    const result = await this.renderDownload(userId, bidId, projectId, {
+      locales: viewerLocale ? [viewerLocale] : [],
+      withAttachments: true,
+    });
+    return { zip: result.buffer, fileName: result.fileName };
   }
 
   private async loadAndAuthorizeBid(
@@ -312,8 +375,8 @@ export class CommercialProposalService {
 
     const terms = (bid.termsJson as BidTermsV1 | null) ?? null;
     const project = bid.tender.project;
-    const sourceLocale = normalizeSourceLocale(project.sourceLocale);
-    const targetLocale = viewerLocale ?? sourceLocale;
+    const targetLocale = viewerLocale ?? normalizeSourceLocale(project.sourceLocale);
+    const copy = commercialProposalCopy(targetLocale);
 
     const projectTerms =
       normalizeContractTerms(
@@ -335,40 +398,42 @@ export class CommercialProposalService {
           }
         : null;
 
-    let localizedTitle = project.title;
-    let localizedDescription = project.description;
-    let localizedClarificationSummary = project.clarificationSummary;
-    let localizedMergedTerms = mergedTerms;
+    const localized =
+      await this.projectLocalization.localizeCommercialProposalContent(
+        project.id,
+        bidId,
+        {
+          title: project.title,
+          description: project.description,
+          district: project.district,
+          scopeSummary: mergedTerms?.scopeSummary ?? project.scopeSummary,
+          clarificationSummary: project.clarificationSummary,
+          approach: mergedTerms?.approach ?? null,
+          notes: mergedTerms?.notes ?? null,
+          contractTerms: mergedTerms?.contractTerms ?? projectTerms,
+          lineItems: mergedTerms?.lineItems,
+        },
+        targetLocale,
+      );
 
-    if (targetLocale !== sourceLocale) {
-      const localized =
-        await this.projectLocalization.localizeTenderPackageTexts(
-          project.id,
-          {
-            title: project.title,
-            description: project.description,
-            scopeSummary: mergedTerms?.scopeSummary ?? project.scopeSummary,
-            clarificationSummary: project.clarificationSummary,
-            contractTerms: mergedTerms?.contractTerms ?? projectTerms,
-            sourceLocale: project.sourceLocale,
-          },
-          targetLocale,
-        );
-      if (localized.cacheMiss) {
-        this.projectLocalization.scheduleWarmProjectTranslations(project.id);
-      }
-
-      localizedTitle = localized.title ?? project.title;
-      localizedDescription = localized.description;
-      localizedClarificationSummary = localized.clarificationSummary;
-      localizedMergedTerms = mergedTerms
+    const localizedMergedTerms: BidTermsV1 | null = mergedTerms
+      ? {
+          ...mergedTerms,
+          scopeSummary: localized.scopeSummary ?? undefined,
+          approach: localized.approach ?? undefined,
+          notes: localized.notes ?? undefined,
+          contractTerms: localized.contractTerms,
+          lineItems: localized.lineItems.length
+            ? localized.lineItems
+            : mergedTerms.lineItems,
+        }
+      : localized.scopeSummary || Object.keys(localized.contractTerms).length > 0
         ? {
-            ...mergedTerms,
             scopeSummary: localized.scopeSummary ?? undefined,
             contractTerms: localized.contractTerms,
+            lineItems: localized.lineItems,
           }
         : null;
-    }
 
     const projectDocuments = await this.prisma.document.findMany({
       where: {
@@ -380,10 +445,10 @@ export class CommercialProposalService {
     });
 
     const data = buildCommercialProposalData({
-      projectTitle: localizedTitle,
-      projectDistrict: bid.tender.project.district,
-      projectDescription: localizedDescription,
-      clarificationSummary: localizedClarificationSummary,
+      projectTitle: localized.title || project.title,
+      projectDistrict: localized.district ?? project.district,
+      projectDescription: localized.description,
+      clarificationSummary: localized.clarificationSummary,
       bidAmount: Number(bid.amount),
       durationDays: bid.durationDays,
       terms: localizedMergedTerms,
@@ -392,17 +457,23 @@ export class CommercialProposalService {
         category: doc.category,
       })),
       employerName:
-        localizedMergedTerms?.contractTerms?.employerName?.trim() ||
+        localized.contractTerms.employerName?.trim() ||
         project.client.displayName ||
         bid.tender.project.client.email ||
-        'Employer',
+        copy.employerFallback,
       employerEmail: project.client.email,
-      contractorCompanyName: bid.contractor.companyName ?? 'Contractor',
+      employerDisplayName: project.client.displayName,
+      contractorCompanyName:
+        bid.contractor.companyName ?? copy.contractorFallback,
       submittedAt: bid.submittedAt?.toISOString() ?? null,
+      locale: targetLocale,
     });
 
     const html = renderCommercialProposalHtml(data);
-    const slug = slugifyProjectTitle(localizedTitle, bidId.slice(0, 8));
+    const slug = slugifyProjectTitle(
+      localized.title || project.title,
+      bidId.slice(0, 8),
+    );
     const fileName = `contract-draft-${slug}.pdf`;
 
     return { html, fileName };

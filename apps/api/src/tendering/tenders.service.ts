@@ -103,6 +103,25 @@ export class TendersService {
     };
   }
 
+  private async localizeBidResponse(
+    projectId: string,
+    bid: BidResponse,
+    locale: SupportedLocale,
+  ): Promise<BidResponse> {
+    if (!bid.terms) {
+      return bid;
+    }
+    return {
+      ...bid,
+      terms: await this.projectLocalization.localizeBidTermsForViewer(
+        projectId,
+        `bid.${bid.id}`,
+        bid.terms,
+        locale,
+      ),
+    };
+  }
+
   private mapTender(
     tender: TenderWithRelations,
     projectContractTerms: BidContractTerms = {},
@@ -234,6 +253,7 @@ export class TendersService {
   async getForProject(
     clientId: string,
     projectId: string,
+    locale: SupportedLocale = 'en',
   ): Promise<TenderResponse | null> {
     const project = await this.assertProjectOwner(projectId, clientId);
 
@@ -249,10 +269,18 @@ export class TendersService {
       return null;
     }
 
-    return this.mapTender(
+    const mapped = this.mapTender(
       await this.loadTender(tender.id),
       this.resolveProjectContractTerms(project),
     );
+
+    mapped.bids = await Promise.all(
+      mapped.bids.map((bid) =>
+        this.localizeBidResponse(projectId, bid, locale),
+      ),
+    );
+
+    return mapped;
   }
 
   private resolveProjectContractTerms(project: {
@@ -652,6 +680,7 @@ export class TendersService {
     clientId: string,
     projectId: string,
     bidId: string,
+    locale: SupportedLocale = 'en',
   ): Promise<TenderResponse> {
     await this.assertProjectOwner(projectId, clientId);
 
@@ -739,10 +768,14 @@ export class TendersService {
       }
     }
 
-    return this.mapTender(
+    const mapped = this.mapTender(
       updated,
       project ? this.resolveProjectContractTerms(project) : {},
     );
+    mapped.bids = await Promise.all(
+      mapped.bids.map((b) => this.localizeBidResponse(projectId, b, locale)),
+    );
+    return mapped;
   }
 
   async releaseAwardedContractor(
@@ -1619,6 +1652,11 @@ export class TendersService {
           amount: String(dto.amount),
         }),
       );
+      this.projectLocalization.scheduleWarmBidTerms(
+        tenderRow.project.id,
+        `bid.${bid.id}`,
+        terms,
+      );
     }
 
     return this.mapBid(bid);
@@ -1629,6 +1667,7 @@ export class TendersService {
     projectId: string,
     bidId: string,
     dto: UpdateBidContractTermsDto,
+    locale: SupportedLocale = 'en',
   ): Promise<BidResponse> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -1690,7 +1729,7 @@ export class TendersService {
       }),
     );
 
-    return this.mapBid(updated);
+    return this.localizeBidResponse(projectId, this.mapBid(updated), locale);
   }
 
   async updateBidContractTermsForContractor(
@@ -1741,6 +1780,12 @@ export class TendersService {
       },
       include: { contractor: true },
     });
+
+    this.projectLocalization.scheduleWarmBidTerms(
+      bid.tender.projectId,
+      `bid.${bidId}`,
+      updatedTerms,
+    );
 
     this.notifications.dispatch(
       this.notifications.notifyContractTermsUpdated({

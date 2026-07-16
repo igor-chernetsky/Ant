@@ -7,6 +7,8 @@ import {
 import { BidStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ProjectLocalizationService } from '../localization/project-localization.service';
+import type { SupportedLocale } from '../users/locale.types';
 import {
   BidOfferResponse,
   BidTermsV1,
@@ -27,6 +29,7 @@ export class BidOffersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
   private mapOffer(offer: {
@@ -113,15 +116,35 @@ export class BidOffersService {
     userId: string,
     bidId: string,
     projectId?: string,
+    locale: SupportedLocale = 'en',
   ): Promise<BidOfferResponse[]> {
-    await this.assertBidAccess(userId, bidId, projectId);
+    const bid = await this.assertBidAccess(userId, bidId, projectId);
 
     const offers = await this.prisma.bidOffer.findMany({
       where: { bidId },
       orderBy: { createdAt: 'asc' },
     });
 
-    return offers.map((offer) => this.mapOffer(offer));
+    const resolvedProjectId = projectId ?? bid.tender.projectId;
+
+    return Promise.all(
+      offers.map(async (offer) => {
+        const mapped = this.mapOffer(offer);
+        if (!mapped.terms) {
+          return mapped;
+        }
+        return {
+          ...mapped,
+          terms: await this.projectLocalization.localizeBidTermsForViewer(
+            resolvedProjectId,
+            `bidOffer.${offer.id}`,
+            mapped.terms,
+            locale,
+            { includeContractorContractTerms: false },
+          ),
+        };
+      }),
+    );
   }
 
   async listPendingCounterOfferTargets(
@@ -336,5 +359,7 @@ export class BidOffersService {
     if (!isClient && !isContractor) {
       throw new ForbiddenException('Access denied');
     }
+
+    return bid;
   }
 }

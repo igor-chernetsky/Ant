@@ -13,6 +13,7 @@ import { normalizeSourceLocale } from './locale.utils';
 import { OpenAiTranslationService } from './openai-translation.service';
 import type {
   BidContractTerms,
+  BidTermsV1,
   DefaultCostBreakdownItem,
 } from '../tendering/tendering.types';
 
@@ -23,10 +24,23 @@ export const CONTRACT_TERMS_TRANSLATABLE_KEYS = [
   'propertyOwnership',
   'employerName',
   'employerAddress',
+  'contractorAddress',
+  'contractorRepresentative',
   'retentionReleaseNotes',
   'warrantyPeriodNotes',
   'delayDamagesNotes',
   'specialConditions',
+] as const satisfies ReadonlyArray<keyof BidContractTerms>;
+
+/**
+ * Contractor-only free-text contract fields shown to the client.
+ * Safe to localize in API responses because the client save payload
+ * does not include these keys (see pickClientContractTerms).
+ */
+const BID_VIEW_CONTRACTOR_TERM_KEYS = [
+  'subjectOfContract',
+  'contractorAddress',
+  'contractorRepresentative',
 ] as const satisfies ReadonlyArray<keyof BidContractTerms>;
 
 type TextField = {
@@ -177,6 +191,226 @@ export class ProjectLocalizationService implements OnModuleInit {
       sourceText,
       targetLocale,
     });
+  }
+
+  /**
+   * Force all commercial-proposal free text into one target language.
+   * Uses auto-detect translation so UI-language option values (ru/th/en)
+   * do not leak into a document generated for another locale.
+   */
+  /**
+   * Localize contractor-authored bid/proposal text for an in-app viewer.
+   * Uses the same cache keys as PDF generation where possible so viewing
+   * warms translations for later downloads.
+   */
+  async localizeBidTermsForViewer(
+    projectId: string,
+    entityKey: string,
+    terms: BidTermsV1 | null | undefined,
+    targetLocale: SupportedLocale,
+    options?: { includeContractorContractTerms?: boolean },
+  ): Promise<BidTermsV1 | null> {
+    if (!terms) {
+      return null;
+    }
+
+    const translate = async (
+      fieldKey: string,
+      sourceText: string | null | undefined,
+    ): Promise<string | undefined> => {
+      if (!sourceText?.trim()) {
+        return sourceText ?? undefined;
+      }
+      return this.translations.translateAndCacheTextAuto({
+        projectId,
+        fieldKey,
+        sourceText,
+        targetLocale,
+      });
+    };
+
+    const scopeSummary = await translate(
+      `${entityKey}.scopeSummary`,
+      terms.scopeSummary,
+    );
+    const notes = await translate(`${entityKey}.notes`, terms.notes);
+    const approach = await translate(`${entityKey}.approach`, terms.approach);
+
+    const lineItems = terms.lineItems
+      ? await Promise.all(
+          terms.lineItems.map(async (item, index) => ({
+            ...item,
+            trade:
+              (await translate(`${entityKey}.line.${index}.trade`, item.trade)) ??
+              item.trade,
+            description: item.description?.trim()
+              ? ((await translate(
+                  `${entityKey}.line.${index}.description`,
+                  item.description,
+                )) ?? item.description)
+              : item.description,
+          })),
+        )
+      : undefined;
+
+    let contractTerms = terms.contractTerms;
+    if (
+      options?.includeContractorContractTerms !== false &&
+      terms.contractTerms
+    ) {
+      const next: BidContractTerms = { ...terms.contractTerms };
+      for (const key of BID_VIEW_CONTRACTOR_TERM_KEYS) {
+        const sourceText = terms.contractTerms[key];
+        if (typeof sourceText !== 'string' || !sourceText.trim()) {
+          continue;
+        }
+        next[key] = (await translate(
+          `${entityKey}.contractTerms.${key}`,
+          sourceText,
+        )) as never;
+      }
+      contractTerms = next;
+    }
+
+    return {
+      ...terms,
+      scopeSummary,
+      notes,
+      approach,
+      lineItems,
+      contractTerms,
+    };
+  }
+
+  scheduleWarmBidTerms(
+    projectId: string,
+    entityKey: string,
+    terms: BidTermsV1 | null | undefined,
+  ): void {
+    if (!this.openAi.isConfigured() || !terms) {
+      return;
+    }
+
+    void this.warmBidTerms(projectId, entityKey, terms).catch((err) => {
+      this.logger.warn(
+        `Bid terms warm failed for ${projectId}/${entityKey}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    });
+  }
+
+  async warmBidTerms(
+    projectId: string,
+    entityKey: string,
+    terms: BidTermsV1,
+  ): Promise<void> {
+    for (const locale of SUPPORTED_LOCALES) {
+      await this.localizeBidTermsForViewer(
+        projectId,
+        entityKey,
+        terms,
+        locale,
+      );
+    }
+  }
+
+  async localizeCommercialProposalContent(
+    projectId: string,
+    bidId: string,
+    input: {
+      title?: string | null;
+      description?: string | null;
+      district?: string | null;
+      scopeSummary?: string | null;
+      clarificationSummary?: string | null;
+      approach?: string | null;
+      notes?: string | null;
+      contractTerms?: BidContractTerms | null;
+      lineItems?: Array<{ trade: string; description?: string; amount: number }>;
+    },
+    targetLocale: SupportedLocale,
+  ): Promise<{
+    title: string;
+    description: string | null;
+    district: string | null;
+    scopeSummary: string | null;
+    clarificationSummary: string | null;
+    approach: string | null;
+    notes: string | null;
+    contractTerms: BidContractTerms;
+    lineItems: Array<{ trade: string; description?: string; amount: number }>;
+  }> {
+    const translate = async (
+      fieldKey: string,
+      sourceText: string | null | undefined,
+    ): Promise<string | null> => {
+      if (!sourceText?.trim()) {
+        return sourceText ?? null;
+      }
+      return this.translations.translateAndCacheTextAuto({
+        projectId,
+        fieldKey,
+        sourceText,
+        targetLocale,
+      });
+    };
+
+    const title =
+      (await translate('title', input.title)) ?? input.title ?? '';
+    const description = await translate('description', input.description);
+    const district = await translate('district', input.district);
+    const scopeSummary = await translate(
+      `bid.${bidId}.scopeSummary`,
+      input.scopeSummary,
+    );
+    const clarificationSummary = await translate(
+      'clarificationSummary',
+      input.clarificationSummary,
+    );
+    const approach = await translate(`bid.${bidId}.approach`, input.approach);
+    const notes = await translate(`bid.${bidId}.notes`, input.notes);
+
+    const contractTerms: BidContractTerms = {
+      ...(input.contractTerms ?? {}),
+    };
+    for (const key of CONTRACT_TERMS_TRANSLATABLE_KEYS) {
+      const sourceText = input.contractTerms?.[key];
+      if (typeof sourceText !== 'string' || !sourceText.trim()) {
+        continue;
+      }
+      contractTerms[key] = (await translate(
+        `contractTerms.${key}`,
+        sourceText,
+      )) as never;
+    }
+
+    const lineItems = await Promise.all(
+      (input.lineItems ?? []).map(async (item, index) => ({
+        ...item,
+        trade:
+          (await translate(`bid.${bidId}.line.${index}.trade`, item.trade)) ??
+          item.trade,
+        description: item.description?.trim()
+          ? ((await translate(
+              `bid.${bidId}.line.${index}.description`,
+              item.description,
+            )) ?? item.description)
+          : item.description,
+      })),
+    );
+
+    return {
+      title,
+      description,
+      district,
+      scopeSummary,
+      clarificationSummary,
+      approach,
+      notes,
+      contractTerms,
+      lineItems,
+    };
   }
 
   async getLocalizedProjectTitle(

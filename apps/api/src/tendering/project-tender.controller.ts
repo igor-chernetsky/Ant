@@ -12,6 +12,7 @@ import { PresignClarificationAttachmentDto } from './clarification-attachments.t
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
+import { parseCommercialProposalLocales } from './commercial-proposal.i18n';
 
 @Controller('v1/projects/:projectId/tender')
 @UseGuards(JwtAuthGuard)
@@ -36,7 +37,12 @@ export class ProjectTenderController {
     @Param('projectId') projectId: string,
   ) {
     const user = await this.resolveUser(req);
-    const tender = await this.tendersService.getForProject(user.id, projectId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    const tender = await this.tendersService.getForProject(
+      user.id,
+      projectId,
+      locale,
+    );
     return tender ?? { tender: null };
   }
 
@@ -231,7 +237,8 @@ export class ProjectTenderController {
     @Param('bidId') bidId: string,
   ) {
     const user = await this.resolveUser(req);
-    return this.tendersService.selectBid(user.id, projectId, bidId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.tendersService.selectBid(user.id, projectId, bidId, locale);
   }
 
   @Get('counter-offer-targets')
@@ -250,7 +257,8 @@ export class ProjectTenderController {
     @Param('bidId') bidId: string,
   ) {
     const user = await this.resolveUser(req);
-    return this.bidOffers.listForBid(user.id, bidId, projectId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.bidOffers.listForBid(user.id, bidId, projectId, locale);
   }
 
   @Post('bids/:bidId/counter-offers')
@@ -309,11 +317,13 @@ export class ProjectTenderController {
     @Body() body: UpdateBidContractTermsDto,
   ) {
     const user = await this.resolveUser(req);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
     return this.tendersService.updateBidContractTermsForClient(
       user.id,
       projectId,
       bidId,
       body,
+      locale,
     );
   }
 
@@ -338,40 +348,25 @@ export class ProjectTenderController {
     @Param('projectId') projectId: string,
     @Param('bidId') bidId: string,
     @Query('withAttachments') withAttachments: string | undefined,
+    @Query('locales') localesRaw: string | undefined,
     @Res() res: Response,
   ) {
     const user = await this.resolveUser(req);
-    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    const fallbackLocale = resolveLocaleFromRequest(req, user.preferredLocale);
+    const locales = parseCommercialProposalLocales(localesRaw);
     const includeAttachments =
       withAttachments === '1' || withAttachments === 'true';
 
-    if (includeAttachments) {
-      const { zip, fileName } = await this.commercialProposal.renderZip(
-        user.id,
-        bidId,
-        projectId,
-        locale,
-      );
-      res.setHeader('Content-Type', 'application/zip');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="${fileName}"`,
-      );
-      res.send(zip);
-      return;
-    }
-
-    const { pdf, fileName } = await this.commercialProposal.renderPdf(
-      user.id,
-      bidId,
-      projectId,
-      locale,
-    );
-    res.setHeader('Content-Type', 'application/pdf');
+    const { buffer, fileName, contentType } =
+      await this.commercialProposal.renderDownload(user.id, bidId, projectId, {
+        locales: locales.length > 0 ? locales : [fallbackLocale],
+        withAttachments: includeAttachments,
+      });
+    res.setHeader('Content-Type', contentType);
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${fileName}"`,
     );
-    res.send(pdf);
+    res.send(buffer);
   }
 }

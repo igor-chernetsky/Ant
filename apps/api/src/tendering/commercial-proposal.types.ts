@@ -40,6 +40,7 @@ export interface BidContractTerms {
 export interface CommercialProposalRenderData {
   documentTitle: string;
   contractHeading: string;
+  locale: string;
   projectTitle: string;
   siteAddress: string;
   documentDate: string;
@@ -68,4 +69,10 @@ export interface CommercialProposalRenderData {
   hasAnnex2Documents: boolean;
   clarificationSummary: string;
   hasClarificationSummary: boolean;
+  contractorOrgName: string;
+  contractorSignatoryName: string;
+  contractorSignatoryTitle: string;
+  employerOrgName: string;
+  employerSignatoryName: string;
+  employerSignatoryTitle: string;
 }
