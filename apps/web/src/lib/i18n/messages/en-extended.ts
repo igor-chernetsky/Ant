@@ -74,6 +74,7 @@ export const enExtended = {
     status: "Status",
     statusAria: "Project status",
     all: "All",
+    any: "Any",
     moreFilters: "More filters",
     otherStatuses: "Other statuses",
     tradesAndScope: "Trades & scope",

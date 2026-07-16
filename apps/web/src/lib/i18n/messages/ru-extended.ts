@@ -74,6 +74,7 @@ export const ruExtended = {
     status: "Статус",
     statusAria: "Статус проекта",
     all: "Все",
+    any: "Любые",
     moreFilters: "Больше фильтров",
     otherStatuses: "Другие статусы",
     tradesAndScope: "Работы и объём",

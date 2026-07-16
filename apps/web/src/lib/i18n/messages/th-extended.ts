@@ -74,6 +74,7 @@ export const thExtended = {
     status: "สถานะ",
     statusAria: "สถานะโครงการ",
     all: "ทั้งหมด",
+    any: "ใดก็ได้",
     moreFilters: "ตัวกรองเพิ่มเติม",
     otherStatuses: "สถานะอื่นๆ",
     tradesAndScope: "งานและขอบเขต",

@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
+import { FilterMultiSelect } from '@/components/FilterMultiSelect';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { LocationSearchMap } from '@/components/LocationSearchMap';
 import {
@@ -65,8 +66,14 @@ export function HomeProjectFilters({
   const activeCount = countActiveFilters(filters);
   const hasFilters = activeCount > 0;
 
-  const visibleSecondaryStatuses = SECONDARY_STATUS_VALUES.filter(
-    (value) => value !== 'hidden' || showHiddenFilter,
+  const statusValues = useMemo(
+    () => [
+      ...PRIMARY_STATUS_VALUES,
+      ...SECONDARY_STATUS_VALUES.filter(
+        (value) => value !== 'hidden' || showHiddenFilter,
+      ),
+    ],
+    [showHiddenFilter],
   );
 
   const areas = useMemo(
@@ -76,14 +83,6 @@ export function HomeProjectFilters({
         : [],
     [locationCatalog, filters.regionSlug],
   );
-
-  const advancedCount =
-    filters.tags.length +
-    filters.services.length +
-    filters.propertyOwnership.length +
-    filters.statuses.filter(
-      (status) => !PRIMARY_STATUS_VALUES.some((value) => value === status),
-    ).length;
 
   const update = (patch: Partial<HomeProjectFilterState>) => {
     onChange({ ...filters, ...patch });
@@ -188,20 +187,11 @@ export function HomeProjectFilters({
     });
   }
 
-  const renderServiceChip = (slug: ServiceFilterSlug) => {
-    const active = filters.services.includes(slug);
-    return (
-      <button
-        key={slug}
-        type="button"
-        className={`filter-chip${active ? ' filter-chip-active' : ''}`}
-        aria-pressed={active}
-        onClick={() => toggleService(slug)}
-      >
-        {t(serviceFilterI18nKey(slug))}
-      </button>
-    );
-  };
+  const serviceGroupLabels = [
+    t('filters.serviceType'),
+    t('filters.newConstruction'),
+    t('filters.design'),
+  ] as const;
 
   return (
     <section className="project-filters" aria-label={t('filters.ariaLabel')}>
@@ -300,7 +290,7 @@ export function HomeProjectFilters({
               >
                 {t('filters.all')}
               </button>
-              {PRIMARY_STATUS_VALUES.map((value) => {
+              {statusValues.map((value) => {
                 const active = filters.statuses.includes(value);
                 return (
                   <button
@@ -319,115 +309,49 @@ export function HomeProjectFilters({
             </div>
           </div>
 
-          <details className="project-filters-advanced">
-            <summary className="project-filters-advanced-summary">
-              <span>{t('filters.moreFilters')}</span>
-              {advancedCount > 0 && (
-                <span className="project-filters-advanced-badge">
-                  {advancedCount}
-                </span>
-              )}
-            </summary>
-            <div className="project-filters-advanced-body">
-              <div className="project-filters-advanced-group">
-                <p className="project-filters-group-label">
-                  {t('filters.serviceType')}
-                </p>
-                <div className="project-filters-chips project-filters-chips-wrap">
-                  {SERVICE_FILTER_GROUPS[0].slugs.map(renderServiceChip)}
-                </div>
-              </div>
+          <div className="project-filters-extra-grid">
+            {SERVICE_FILTER_GROUPS.map((group, index) => (
+              <FilterMultiSelect
+                key={group.id}
+                label={serviceGroupLabels[index]}
+                emptyLabel={t('filters.any')}
+                options={group.slugs.map((slug) => ({
+                  value: slug,
+                  label: t(serviceFilterI18nKey(slug)),
+                }))}
+                selected={filters.services.filter((slug) =>
+                  (group.slugs as readonly string[]).includes(slug),
+                )}
+                onToggle={(value) => toggleService(value as ServiceFilterSlug)}
+              />
+            ))}
 
-              <div className="project-filters-advanced-group">
-                <p className="project-filters-group-label">
-                  {t('filters.newConstruction')}
-                </p>
-                <div className="project-filters-chips project-filters-chips-wrap">
-                  {SERVICE_FILTER_GROUPS[1].slugs.map(renderServiceChip)}
-                </div>
-              </div>
+            <FilterMultiSelect
+              label={t('filters.propertyOwnership')}
+              emptyLabel={t('filters.any')}
+              options={PROPERTY_OWNERSHIP_FILTER_SLUGS.map((slug) => ({
+                value: slug,
+                label: t(ownershipFilterI18nKey(slug)),
+              }))}
+              selected={filters.propertyOwnership}
+              onToggle={(value) =>
+                toggleOwnership(value as PropertyOwnershipFilterSlug)
+              }
+            />
 
-              <div className="project-filters-advanced-group">
-                <p className="project-filters-group-label">{t('filters.design')}</p>
-                <div className="project-filters-chips project-filters-chips-wrap">
-                  {SERVICE_FILTER_GROUPS[2].slugs.map(renderServiceChip)}
-                </div>
-              </div>
-
-              <div className="project-filters-advanced-group">
-                <p className="project-filters-group-label">
-                  {t('filters.propertyOwnership')}
-                </p>
-                <div className="project-filters-chips project-filters-chips-wrap">
-                  {PROPERTY_OWNERSHIP_FILTER_SLUGS.map((slug) => {
-                    const active = filters.propertyOwnership.includes(slug);
-                    return (
-                      <button
-                        key={slug}
-                        type="button"
-                        className={`filter-chip${active ? ' filter-chip-active' : ''}`}
-                        aria-pressed={active}
-                        onClick={() => toggleOwnership(slug)}
-                      >
-                        {t(ownershipFilterI18nKey(slug))}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {visibleSecondaryStatuses.length > 0 && (
-                <div className="project-filters-advanced-group">
-                  <p className="project-filters-group-label">
-                    {t('filters.otherStatuses')}
-                  </p>
-                  <div className="project-filters-chips">
-                    {visibleSecondaryStatuses.map((value) => {
-                      const active = filters.statuses.includes(value);
-                      return (
-                        <button
-                          key={value}
-                          type="button"
-                          className={`filter-chip${
-                            active ? ' filter-chip-active' : ''
-                          }`}
-                          aria-pressed={active}
-                          onClick={() => toggleStatus(value)}
-                        >
-                          {formatProjectStatus(value)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {tags.length > 0 && (
-                <div className="project-filters-advanced-group">
-                  <p className="project-filters-group-label">
-                    {t('filters.tradesAndScope')}
-                  </p>
-                  <div className="project-filters-chips project-filters-chips-wrap">
-                    {tags.map((tag) => {
-                      const active = filters.tags.includes(tag.slug);
-                      return (
-                        <button
-                          key={tag.slug}
-                          type="button"
-                          className={`filter-chip${
-                            active ? ' filter-chip-active' : ''
-                          }`}
-                          aria-pressed={active}
-                          onClick={() => toggleTag(tag.slug)}
-                        >
-                          {tag.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </details>
+            {tags.length > 0 && (
+              <FilterMultiSelect
+                label={t('filters.tradesAndScope')}
+                emptyLabel={t('filters.any')}
+                options={tags.map((tag) => ({
+                  value: tag.slug,
+                  label: tag.label,
+                }))}
+                selected={filters.tags}
+                onToggle={toggleTag}
+              />
+            )}
+          </div>
         </div>
 
         {locationCatalog ? (
