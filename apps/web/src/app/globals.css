@@ -960,7 +960,8 @@ pre {
 
 @media (min-width: 768px) {
   .project-filters-location-row {
-    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+    grid-template-columns: minmax(220px, 260px) minmax(280px, 360px);
+    justify-content: space-between;
   }
 }
 
@@ -968,6 +969,23 @@ pre {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+}
+
+.project-filters-location-select-group {
+  display: grid;
+  gap: 0.32rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.project-filters-location-select-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .project-filters-location-fields .project-filters-select {
@@ -978,14 +996,24 @@ pre {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
+  align-content: start;
 }
 
 .project-filters-map {
   width: 100%;
-  min-height: 220px;
+  min-height: 280px;
+  aspect-ratio: 4 / 5;
+  max-width: 360px;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--steel-100);
+}
+
+@media (max-width: 767px) {
+  .project-filters-map {
+    max-width: none;
+    aspect-ratio: 1 / 1;
+  }
 }
 
 .project-filters-map--placeholder {

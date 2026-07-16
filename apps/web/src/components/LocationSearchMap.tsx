@@ -119,8 +119,32 @@ export function LocationSearchMap({
           },
         );
       }
-      map.setCenter(THAILAND_CENTER);
-      map.setZoom(DEFAULT_ZOOM);
+
+      for (const area of catalog.areas) {
+        addMarker(
+          { lat: area.lat, lng: area.lng },
+          area.label,
+          false,
+          false,
+          () => {
+            onRegionChangeRef.current(area.regionSlug);
+            onAreaChangeRef.current(area.slug);
+          },
+        );
+      }
+
+      if (nextMarkers.length > 0) {
+        map.fitBounds(bounds, 40);
+        google.maps.event.addListenerOnce(map, 'idle', () => {
+          const zoom = map.getZoom();
+          if (zoom != null && zoom > 7) {
+            map.setZoom(7);
+          }
+        });
+      } else {
+        map.setCenter(THAILAND_CENTER);
+        map.setZoom(DEFAULT_ZOOM);
+      }
     } else {
       const region = catalog.regions.find((item) => item.slug === regionSlug);
       const areas = areasForRegion(catalog, regionSlug);
@@ -131,7 +155,10 @@ export function LocationSearchMap({
           region.label,
           !areaSlug,
           true,
-          () => onAreaChangeRef.current(''),
+          () => {
+            onRegionChangeRef.current(region.slug);
+            onAreaChangeRef.current('');
+          },
         );
       }
 
@@ -141,7 +168,10 @@ export function LocationSearchMap({
           area.label,
           areaSlug === area.slug,
           false,
-          () => onAreaChangeRef.current(area.slug),
+          () => {
+            onRegionChangeRef.current(area.regionSlug);
+            onAreaChangeRef.current(area.slug);
+          },
         );
       }
 
