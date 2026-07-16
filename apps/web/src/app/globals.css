@@ -971,18 +971,20 @@ pre {
 }
 
 .project-filters-location-fields {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 0.55rem;
+}
+
+@media (min-width: 900px) {
+  .project-filters-location-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: end;
+  }
 }
 
 .project-filters-location-select-group {
   display: grid;
   gap: 0.32rem;
-  padding: 0.65rem;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
 .project-filters-location-select-label {
@@ -1131,9 +1133,8 @@ pre {
 }
 
 .project-filters-advanced {
-  margin-top: 0.85rem;
   border-top: 1px solid var(--border);
-  padding-top: 0.65rem;
+  padding-top: 0.7rem;
 }
 
 .project-filters-advanced-summary {

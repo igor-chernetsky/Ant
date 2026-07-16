@@ -29,7 +29,7 @@ export function LocationSearchMap({
   onRegionChange,
   onAreaChange,
 }: LocationSearchMapProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
@@ -47,8 +47,15 @@ export function LocationSearchMap({
     }
 
     let cancelled = false;
+    setMapState('loading');
+    for (const marker of markersRef.current) {
+      marker.setMap(null);
+    }
+    markersRef.current = [];
 
-    void loadGoogleMapsScript()
+    mapRef.current = null;
+
+    void loadGoogleMapsScript(locale)
       .then(() => {
         if (cancelled || !containerRef.current || mapRef.current) {
           if (!cancelled) {
@@ -77,7 +84,7 @@ export function LocationSearchMap({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     const map = mapRef.current;

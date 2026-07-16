@@ -1,4 +1,5 @@
 let loadPromise: Promise<void> | null = null;
+let loadedLanguage: string | null = null;
 
 export const GOOGLE_MAPS_THEME: google.maps.MapTypeStyle[] = [
   {
@@ -73,18 +74,36 @@ export function getGoogleMapsApiKey(): string {
   return process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? '';
 }
 
-export function loadGoogleMapsScript(): Promise<void> {
+export function loadGoogleMapsScript(language = 'en'): Promise<void> {
   const apiKey = getGoogleMapsApiKey();
   if (!apiKey) {
     return Promise.reject(new Error('GOOGLE_MAPS_API_KEY is not configured'));
   }
 
-  if (typeof window !== 'undefined' && window.google?.maps) {
+  if (
+    typeof window !== 'undefined' &&
+    window.google?.maps &&
+    loadedLanguage === language
+  ) {
     return Promise.resolve();
   }
 
-  if (loadPromise) {
+  if (loadPromise && loadedLanguage === language) {
     return loadPromise;
+  }
+
+  if (typeof document !== 'undefined') {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-google-maps-loader]',
+    );
+    if (existing && loadedLanguage !== language) {
+      existing.remove();
+      loadPromise = null;
+      loadedLanguage = null;
+      if (typeof window !== 'undefined' && 'google' in window) {
+        delete (window as Window & { google?: typeof google }).google;
+      }
+    }
   }
 
   loadPromise = new Promise((resolve, reject) => {
@@ -102,11 +121,14 @@ export function loadGoogleMapsScript(): Promise<void> {
     }
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&language=${encodeURIComponent(language)}`;
     script.async = true;
     script.defer = true;
     script.dataset.googleMapsLoader = 'true';
-    script.onload = () => resolve();
+    script.onload = () => {
+      loadedLanguage = language;
+      resolve();
+    };
     script.onerror = () => reject(new Error('Failed to load Google Maps'));
     document.head.appendChild(script);
   });
