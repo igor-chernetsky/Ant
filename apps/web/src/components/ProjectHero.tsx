@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslation } from '@/components/LocaleProvider';
+import { ProjectLocationMap } from '@/components/ProjectLocationMap';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { formatDateTime, type Project, type ProjectTag } from '@/lib/projects';
 
@@ -115,6 +116,13 @@ export function ProjectHero({
               {tagsHint && <p className="project-hero-tags-hint muted">{tagsHint}</p>}
             </div>
           )}
+          {project.locationRegionSlug ? (
+            <ProjectLocationMap
+              regionSlug={project.locationRegionSlug}
+              areaSlug={project.locationAreaSlug}
+              caption={project.district}
+            />
+          ) : null}
         </div>
       </div>
     </section>

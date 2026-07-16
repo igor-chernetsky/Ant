@@ -140,6 +140,9 @@ export const ruExtended = {
     scopeTagsAria: "Теги объёма проекта",
     tagSelectedDuringIntake: "Выбрано при создании",
     tagSuggestedByAi: "Предложено ИИ",
+    locationMap: "Локация",
+    locationMapAria: "Карта локации проекта",
+    locationMapAriaNamed: "Карта локации проекта: {location}",
   },
   clarificationMode: {
     open_chat: "Открытый чат",

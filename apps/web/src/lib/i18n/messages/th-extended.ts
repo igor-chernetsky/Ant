@@ -140,6 +140,9 @@ export const thExtended = {
     scopeTagsAria: "แท็กขอบเขตโครงการ",
     tagSelectedDuringIntake: "เลือกระหว่างรับข้อมูล",
     tagSuggestedByAi: "แนะนำโดย AI",
+    locationMap: "ตำแหน่ง",
+    locationMapAria: "แผนที่ตำแหน่งโครงการ",
+    locationMapAriaNamed: "แผนที่ตำแหน่งโครงการ: {location}",
   },
   clarificationMode: {
     open_chat: "แชทเปิด",

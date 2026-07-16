@@ -140,6 +140,9 @@ export const enExtended = {
     scopeTagsAria: "Project scope tags",
     tagSelectedDuringIntake: "Selected during intake",
     tagSuggestedByAi: "Suggested by AI",
+    locationMap: "Location",
+    locationMapAria: "Project location map",
+    locationMapAriaNamed: "Project location map: {location}",
   },
   clarificationMode: {
     open_chat: "Open chat",
