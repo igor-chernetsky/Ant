@@ -444,6 +444,16 @@ export class CommercialProposalService {
       select: { originalName: true, category: true },
     });
 
+    const contract = await this.prisma.contract.findUnique({
+      where: { bidId },
+      select: {
+        clientSignedAt: true,
+        contractorSignedAt: true,
+        clientSignatureDataUrl: true,
+        contractorSignatureDataUrl: true,
+      },
+    });
+
     const data = buildCommercialProposalData({
       projectTitle: localized.title || project.title,
       projectDistrict: localized.district ?? project.district,
@@ -467,6 +477,10 @@ export class CommercialProposalService {
         bid.contractor.companyName ?? copy.contractorFallback,
       submittedAt: bid.submittedAt?.toISOString() ?? null,
       locale: targetLocale,
+      contractorSignatureDataUrl: contract?.contractorSignatureDataUrl,
+      employerSignatureDataUrl: contract?.clientSignatureDataUrl,
+      contractorSignedAt: contract?.contractorSignedAt?.toISOString() ?? null,
+      employerSignedAt: contract?.clientSignedAt?.toISOString() ?? null,
     });
 
     const html = renderCommercialProposalHtml(data);

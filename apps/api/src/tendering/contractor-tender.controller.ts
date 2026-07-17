@@ -33,6 +33,7 @@ import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { parseCommercialProposalLocales } from './commercial-proposal.i18n';
 import { ContractsService } from './contracts.service';
+import type { SignContractDto } from './contracts.types';
 import { ProjectsService } from '../projects/projects.service';
 import { ProjectReviewsService } from '../projects/project-reviews.service';
 
@@ -213,9 +214,10 @@ export class ContractorTenderController {
   async signContract(
     @Req() req: Request & { user: JwtPayload },
     @Param('projectId') projectId: string,
+    @Body() body: SignContractDto,
   ) {
     const user = await this.resolveUser(req);
-    return this.contracts.signForProject(user.id, projectId);
+    return this.contracts.signForProject(user.id, projectId, body ?? {});
   }
 
   @Get('projects/:projectId/clarification-attachments')

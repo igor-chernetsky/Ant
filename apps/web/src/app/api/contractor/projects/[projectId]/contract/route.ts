@@ -9,10 +9,15 @@ export async function GET(_request: Request, context: RouteContext) {
   );
 }
 
-export async function POST(_request: Request, context: RouteContext) {
+export async function POST(request: Request, context: RouteContext) {
   const { projectId } = await context.params;
+  const body = await request.text();
   return proxyBackendJson(
     `/v1/contractor/projects/${encodeURIComponent(projectId)}/contract/sign`,
-    { method: 'POST' },
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    },
   );
 }

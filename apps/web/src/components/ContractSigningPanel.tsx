@@ -1,12 +1,16 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fetchProjectContract,
   signProjectContract,
   type ProjectContract,
 } from '@/lib/contracts';
 import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
+import {
+  ContractSignaturePad,
+  type ContractSignaturePadHandle,
+} from '@/components/ContractSignaturePad';
 import { ContractSigningPartiesInline } from '@/components/ContractSigningPartiesInline';
 import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPill';
 import { PlatformFeeSummary } from '@/components/PlatformFeeSummary';
@@ -46,6 +50,7 @@ export function ContractSigningPanel({
   const [loading, setLoading] = useState(!contractProp);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const signaturePadRef = useRef<ContractSignaturePadHandle | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const { acknowledgePlatformFees, dialog: feeDialog } = usePlatformFeeNotice();
 
@@ -94,8 +99,13 @@ export function ContractSigningPanel({
     setBusy(true);
     setError(null);
     try {
-      const updated = await signProjectContract(projectId, { asContractor });
+      const signatureDataUrl = signaturePadRef.current?.toDataURL() ?? null;
+      const updated = await signProjectContract(projectId, {
+        asContractor,
+        signatureDataUrl,
+      });
       setContract(updated);
+      signaturePadRef.current?.clear();
       onSigned?.(updated);
     } catch (err: unknown) {
       setError(
@@ -176,6 +186,10 @@ export function ContractSigningPanel({
         <p className="muted platform-fee-contractor-note">
           {t('platformFees.clientNote')}
         </p>
+      )}
+
+      {contract.canSign && (
+        <ContractSignaturePad padRef={signaturePadRef} disabled={busy} />
       )}
 
       <div className="contract-signing-actions-wrap">

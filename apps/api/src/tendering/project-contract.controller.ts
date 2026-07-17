@@ -1,9 +1,10 @@
-import { Controller, Get, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
 import { ContractsService } from './contracts.service';
+import type { SignContractDto } from './contracts.types';
 
 @Controller('v1/projects/:projectId/contract')
 @UseGuards(JwtAuthGuard)
@@ -32,8 +33,9 @@ export class ProjectContractController {
   async signContract(
     @Req() req: Request & { user: JwtPayload },
     @Param('projectId') projectId: string,
+    @Body() body: SignContractDto,
   ) {
     const user = await this.resolveUser(req);
-    return this.contracts.signForProject(user.id, projectId);
+    return this.contracts.signForProject(user.id, projectId, body ?? {});
   }
 }

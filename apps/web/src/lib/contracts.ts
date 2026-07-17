@@ -10,6 +10,8 @@ export interface ProjectContract {
   projectStatus: string;
   clientSignedAt: string | null;
   contractorSignedAt: string | null;
+  hasClientSignature: boolean;
+  hasContractorSignature: boolean;
   canSign: boolean;
   fullySigned: boolean;
 }
@@ -44,11 +46,20 @@ export async function fetchProjectContract(
 
 export async function signProjectContract(
   projectId: string,
-  options?: { asContractor?: boolean },
+  options?: {
+    asContractor?: boolean;
+    signatureDataUrl?: string | null;
+  },
 ): Promise<ProjectContract> {
   const response = await fetchWithAuth(
     contractPath(projectId, Boolean(options?.asContractor)),
-    { method: 'POST' },
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        signatureDataUrl: options?.signatureDataUrl ?? null,
+      }),
+    },
   );
   if (!response.ok) {
     await parseError(response, 'Failed to sign contract');

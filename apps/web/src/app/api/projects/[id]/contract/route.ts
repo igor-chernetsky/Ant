@@ -7,10 +7,15 @@ export async function GET(_request: Request, context: RouteContext) {
   return proxyBackendJson(`/v1/projects/${encodeURIComponent(id)}/contract`);
 }
 
-export async function POST(_request: Request, context: RouteContext) {
+export async function POST(request: Request, context: RouteContext) {
   const { id } = await context.params;
+  const body = await request.text();
   return proxyBackendJson(
     `/v1/projects/${encodeURIComponent(id)}/contract/sign`,
-    { method: 'POST' },
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    },
   );
 }

@@ -12,7 +12,8 @@
     "next": "^15.3.0",
     "nodemailer": "^9.0.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-signature-canvas": "^1.0.7"
   },
   "devDependencies": {
     "@types/google.maps": "^3.65.2",
@@ -20,6 +21,7 @@
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@types/react-signature-canvas": "^1.0.7",
     "typescript": "^5.8.0"
   }
 }

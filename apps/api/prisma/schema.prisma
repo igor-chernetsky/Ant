@@ -590,16 +590,18 @@ model ProjectReviewAttachment {
 }
 
 model Contract {
-  id                 String         @id @default(uuid())
-  projectId          String         @unique @map("project_id")
-  project            Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  bidId              String         @unique @map("bid_id")
-  bid                Bid            @relation(fields: [bidId], references: [id], onDelete: Cascade)
-  status             ContractStatus @default(pending_signatures)
-  clientSignedAt     DateTime?      @map("client_signed_at")
-  contractorSignedAt DateTime?      @map("contractor_signed_at")
-  createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")
+  id                       String         @id @default(uuid())
+  projectId                String         @unique @map("project_id")
+  project                  Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  bidId                    String         @unique @map("bid_id")
+  bid                      Bid            @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  status                   ContractStatus @default(pending_signatures)
+  clientSignedAt           DateTime?      @map("client_signed_at")
+  contractorSignedAt       DateTime?      @map("contractor_signed_at")
+  clientSignatureDataUrl   String?        @map("client_signature_data_url") @db.Text
+  contractorSignatureDataUrl String?      @map("contractor_signature_data_url") @db.Text
+  createdAt                DateTime       @default(now()) @map("created_at")
+  updatedAt                DateTime       @updatedAt @map("updated_at")
 
   @@map("contracts")
 }

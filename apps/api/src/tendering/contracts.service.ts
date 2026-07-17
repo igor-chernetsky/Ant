@@ -15,6 +15,10 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import { ContractResponse } from './contracts.types';
+import {
+  normalizeOptionalSignatureDataUrl,
+  type SignContractDto,
+} from './contracts.types';
 
 type ContractParticipant = {
   project: Project & {
@@ -60,6 +64,8 @@ export class ContractsService {
       projectStatus: project.status,
       clientSignedAt: contract.clientSignedAt?.toISOString() ?? null,
       contractorSignedAt: contract.contractorSignedAt?.toISOString() ?? null,
+      hasClientSignature: Boolean(contract.clientSignatureDataUrl),
+      hasContractorSignature: Boolean(contract.contractorSignatureDataUrl),
       canSign,
       fullySigned,
     };
@@ -120,6 +126,7 @@ export class ContractsService {
   async signForProject(
     userId: string,
     projectId: string,
+    dto: SignContractDto = {},
   ): Promise<ContractResponse> {
     const participant = await this.loadParticipant(userId, projectId);
     const { project, isClient, isSelectedContractor } = participant;
@@ -147,14 +154,33 @@ export class ContractsService {
       throw new BadRequestException('You have already signed this contract');
     }
 
+    let signatureDataUrl: string | null = null;
+    try {
+      signatureDataUrl = normalizeOptionalSignatureDataUrl(dto.signatureDataUrl);
+    } catch (err: unknown) {
+      throw new BadRequestException(
+        err instanceof Error ? err.message : 'Invalid signature',
+      );
+    }
+
     const now = new Date();
     const otherPartySigned = isClient
       ? Boolean(contract.contractorSignedAt)
       : Boolean(contract.clientSignedAt);
 
     const updateData: Prisma.ContractUpdateInput = isClient
-      ? { clientSignedAt: now }
-      : { contractorSignedAt: now };
+      ? {
+          clientSignedAt: now,
+          ...(signatureDataUrl
+            ? { clientSignatureDataUrl: signatureDataUrl }
+            : {}),
+        }
+      : {
+          contractorSignedAt: now,
+          ...(signatureDataUrl
+            ? { contractorSignatureDataUrl: signatureDataUrl }
+            : {}),
+        };
 
     if (otherPartySigned) {
       updateData.status = ContractStatus.fully_signed;

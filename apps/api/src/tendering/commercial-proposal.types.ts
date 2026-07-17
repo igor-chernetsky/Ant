@@ -72,7 +72,11 @@ export interface CommercialProposalRenderData {
   contractorOrgName: string;
   contractorSignatoryName: string;
   contractorSignatoryTitle: string;
+  contractorSignatureImageHtml: string;
+  contractorSignedDate: string;
   employerOrgName: string;
   employerSignatoryName: string;
   employerSignatoryTitle: string;
+  employerSignatureImageHtml: string;
+  employerSignedDate: string;
 }

@@ -44,6 +44,17 @@ function formatDisplayDate(
   });
 }
 
+function signatureImageHtml(dataUrl: string | null | undefined): string {
+  if (!dataUrl?.trim()) {
+    return '<span class="signature-line"></span>';
+  }
+  const trimmed = dataUrl.trim();
+  if (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(trimmed)) {
+    return '<span class="signature-line"></span>';
+  }
+  return `<img class="signature-image" src="${trimmed}" alt="" />`;
+}
+
 function monthsFromDays(days?: number | null): number | undefined {
   if (days == null || days < 1) return undefined;
   return Math.max(1, Math.round(days / 30));
@@ -164,6 +175,10 @@ export function buildCommercialProposalData(input: {
   contractorCompanyName: string;
   submittedAt?: string | null;
   locale?: SupportedLocale;
+  contractorSignatureDataUrl?: string | null;
+  employerSignatureDataUrl?: string | null;
+  contractorSignedAt?: string | null;
+  employerSignedAt?: string | null;
 }): CommercialProposalRenderData {
   const locale = input.locale ?? DEFAULT_LOCALE;
   const copy = commercialProposalCopy(locale);
@@ -271,9 +286,21 @@ export function buildCommercialProposalData(input: {
     contractorOrgName,
     contractorSignatoryName,
     contractorSignatoryTitle: copy.defaultContractorTitle,
+    contractorSignatureImageHtml: signatureImageHtml(
+      input.contractorSignatureDataUrl,
+    ),
+    contractorSignedDate: formatDisplayDate(
+      input.contractorSignedAt,
+      locale,
+      '',
+    ),
     employerOrgName,
     employerSignatoryName,
     employerSignatoryTitle: copy.defaultEmployerTitle,
+    employerSignatureImageHtml: signatureImageHtml(
+      input.employerSignatureDataUrl,
+    ),
+    employerSignedDate: formatDisplayDate(input.employerSignedAt, locale, ''),
   };
 }
 
@@ -414,6 +441,15 @@ export function renderCommercialProposalHtml(
       height: 1.6rem;
       margin-bottom: 0.25rem;
     }
+    .signature-image {
+      display: block;
+      max-width: 100%;
+      max-height: 4.5rem;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      margin-bottom: 0.25rem;
+    }
     .signature-caption {
       margin: 0;
       font-size: 10pt;
@@ -494,7 +530,7 @@ export function renderCommercialProposalHtml(
         <p class="signature-party">${escapeHtml(copy.forContractor)}</p>
         <p class="signature-org">${escapeHtml(data.contractorOrgName)}</p>
         <div class="signature-line-block">
-          <span class="signature-line"></span>
+          ${data.contractorSignatureImageHtml}
           <p class="signature-caption">${escapeHtml(copy.signatureLabel)}</p>
         </div>
         <div class="signature-line-block">
@@ -506,7 +542,11 @@ export function renderCommercialProposalHtml(
           <p class="signature-caption">${escapeHtml(copy.titleLabel)}</p>
         </div>
         <div class="signature-line-block">
-          <span class="signature-line"></span>
+          ${
+            data.contractorSignedDate
+              ? `<p class="signature-filled">${escapeHtml(data.contractorSignedDate)}</p>`
+              : '<span class="signature-line"></span>'
+          }
           <p class="signature-caption">${escapeHtml(copy.dateLabel)}</p>
         </div>
       </div>
@@ -514,7 +554,7 @@ export function renderCommercialProposalHtml(
         <p class="signature-party">${escapeHtml(copy.forEmployer)}</p>
         <p class="signature-org">${escapeHtml(data.employerOrgName)}</p>
         <div class="signature-line-block">
-          <span class="signature-line"></span>
+          ${data.employerSignatureImageHtml}
           <p class="signature-caption">${escapeHtml(copy.signatureLabel)}</p>
         </div>
         <div class="signature-line-block">
@@ -526,7 +566,11 @@ export function renderCommercialProposalHtml(
           <p class="signature-caption">${escapeHtml(copy.titleLabel)}</p>
         </div>
         <div class="signature-line-block">
-          <span class="signature-line"></span>
+          ${
+            data.employerSignedDate
+              ? `<p class="signature-filled">${escapeHtml(data.employerSignedDate)}</p>`
+              : '<span class="signature-line"></span>'
+          }
           <p class="signature-caption">${escapeHtml(copy.dateLabel)}</p>
         </div>
       </div>
