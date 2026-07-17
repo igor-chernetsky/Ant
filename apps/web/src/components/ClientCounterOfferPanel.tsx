@@ -131,19 +131,6 @@ export function ClientCounterOfferPanel({
       {tenderOpen && (
         <div className="client-counter-offer-form-wrap">
           <h4 className="bid-analysis-subtitle">{t('negotiation.sendTitle')}</h4>
-          {canBulkSend && (
-            <label className="client-counter-offer-bulk-option">
-              <input
-                type="checkbox"
-                checked={applyToAllPending}
-                onChange={(event) => setApplyToAllPending(event.target.checked)}
-                disabled={busy}
-              />
-              <span>
-                {t('negotiation.bulkOption', { count: pendingTargetCount })}
-              </span>
-            </label>
-          )}
           <BidProposalForm
             prefillBid={bid}
             projectTitle={projectTitle}
@@ -162,6 +149,25 @@ export function ClientCounterOfferPanel({
               applyToAllPending && canBulkSend
                 ? t('negotiation.sendToMany', { count: pendingTargetCount })
                 : t('negotiation.sendCounterOffer')
+            }
+            footerExtra={
+              canBulkSend ? (
+                <label className="client-counter-offer-bulk-option">
+                  <input
+                    type="checkbox"
+                    checked={applyToAllPending}
+                    onChange={(event) =>
+                      setApplyToAllPending(event.target.checked)
+                    }
+                    disabled={busy}
+                  />
+                  <span>
+                    {t('negotiation.bulkOption', {
+                      count: pendingTargetCount,
+                    })}
+                  </span>
+                </label>
+              ) : null
             }
             onSubmit={handleSubmit}
           />

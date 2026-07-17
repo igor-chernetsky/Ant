@@ -4796,9 +4796,20 @@ select:disabled {
   cursor: pointer;
 }
 
+.bid-proposal-form-footer .client-counter-offer-bulk-option {
+  flex: 1 1 14rem;
+  align-items: center;
+  max-width: 28rem;
+  line-height: 1.35;
+}
+
 .commercial-proposal-download-option input,
 .client-counter-offer-bulk-option input {
   margin-top: 0.15rem;
+}
+
+.bid-proposal-form-footer .client-counter-offer-bulk-option input {
+  margin-top: 0;
 }
 
 .form-success {

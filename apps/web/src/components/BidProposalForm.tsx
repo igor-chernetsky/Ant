@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import type { ProjectBriefV1 } from '@/lib/projects';
 import { formatThb } from '@/lib/estimate';
@@ -52,6 +52,8 @@ interface BidProposalFormProps {
   scopeLabel?: string;
   scopeHint?: string;
   submitLabel?: string;
+  /** Rendered next to the submit button (e.g. bulk counter-offer checkbox). */
+  footerExtra?: ReactNode;
   onSubmit: (input: BidProposalInput) => Promise<void>;
   onWithdraw?: () => Promise<void>;
 }
@@ -162,6 +164,7 @@ export function BidProposalForm({
   scopeLabel,
   scopeHint,
   submitLabel,
+  footerExtra,
   onSubmit,
   onWithdraw,
 }: BidProposalFormProps) {
@@ -541,6 +544,7 @@ export function BidProposalForm({
                 ? t('bid.updateProposal')
                 : t('bid.submitProposal'))}
         </button>
+        {footerExtra}
         {existingBid?.status === 'submitted' && onWithdraw && (
           <button
             type="button"
