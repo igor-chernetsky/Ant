@@ -53,6 +53,16 @@ export const th: Messages = {
     alreadyHaveAccount: 'มีบัญชีอยู่แล้ว?',
     signInFailed: 'เข้าสู่ระบบไม่สำเร็จ',
     signUpFailed: 'สร้างบัญชีไม่สำเร็จ',
+    forgotPasswordLink: 'ลืมรหัสผ่าน?',
+    forgotPasswordTitle: 'รีเซ็ตรหัสผ่าน',
+    forgotPasswordSubtitle:
+      'กรอกอีเมล แล้วเราจะส่งลิงก์ให้ตั้งรหัสผ่านใหม่',
+    sendResetLink: 'ส่งลิงก์รีเซ็ต',
+    sendingResetLink: 'กำลังส่ง…',
+    forgotPasswordSent:
+      'หากมีบัญชีที่ใช้อีเมลนี้ คุณจะได้รับลิงก์รีเซ็ตรหัสผ่านในไม่ช้า ตรวจสอบกล่องจดหมายและสแปม',
+    forgotPasswordFailed: 'ส่งอีเมลรีเซ็ตรหัสผ่านไม่สำเร็จ ลองอีกครั้งภายหลัง',
+    rememberedPassword: 'จำรหัสผ่านได้แล้ว?',
     verifyEmailDefault:
       'สร้างบัญชีแล้ว ตรวจสอบอีเมลและยืนยันที่อยู่อีเมลก่อนเข้าสู่ระบบ',
     roleClient: 'ลูกค้า',

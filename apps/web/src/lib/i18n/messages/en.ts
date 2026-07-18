@@ -52,6 +52,16 @@ export const en = {
     alreadyHaveAccount: 'Already have an account?',
     signInFailed: 'Sign in failed',
     signUpFailed: 'Sign up failed',
+    forgotPasswordLink: 'Forgot password?',
+    forgotPasswordTitle: 'Reset your password',
+    forgotPasswordSubtitle:
+      'Enter your email and we will send a link to choose a new password.',
+    sendResetLink: 'Send reset link',
+    sendingResetLink: 'Sending…',
+    forgotPasswordSent:
+      'If an account exists for that email, you will receive a password reset link shortly. Check your inbox and spam folder.',
+    forgotPasswordFailed: 'Could not send a password reset email. Try again later.',
+    rememberedPassword: 'Remembered your password?',
     verifyEmailDefault:
       'Account created. Check your email and verify your address before signing in.',
     roleClient: 'Client',

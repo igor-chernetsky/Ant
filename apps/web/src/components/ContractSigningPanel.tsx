@@ -192,19 +192,22 @@ export function ContractSigningPanel({
         <ContractSignaturePad padRef={signaturePadRef} disabled={busy} />
       )}
 
-      <div className="contract-signing-actions-wrap">
-        <div className="participation-toolbar contract-signing-toolbar">
-          <CommercialProposalDownload
-            bidId={bidId}
-            projectId={asContractor ? undefined : projectId}
-            label={
-              contract.fullySigned
-                ? t('commercialProposal.downloadSigned')
-                : t('commercialProposal.downloadDraft')
-            }
-            className="secondary"
-            inline
-          />
+      <div className="contract-signing-download">
+        <CommercialProposalDownload
+          bidId={bidId}
+          projectId={asContractor ? undefined : projectId}
+          label={
+            contract.fullySigned
+              ? t('commercialProposal.downloadSigned')
+              : t('commercialProposal.downloadDraft')
+          }
+          className="secondary"
+          embedded
+        />
+      </div>
+
+      {(contract.canSign || (!contract.fullySigned && !asContractor)) && (
+        <div className="contract-signing-actions">
           {contract.canSign && (
             <button
               type="button"
@@ -228,7 +231,7 @@ export function ContractSigningPanel({
             </button>
           )}
         </div>
-      </div>
+      )}
 
       {contract.fullySigned && (
         <p className="contract-signing-complete muted">

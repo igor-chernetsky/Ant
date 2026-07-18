@@ -19,29 +19,35 @@ export function ContractSigningPartiesInline({
       : t('contractPanel.awaiting');
 
   return (
-    <p className="contract-signing-parties-inline muted">
-      <span
+    <ul className="contract-signing-parties" aria-label={t('contractPanel.signingTitle')}>
+      <li
         className={
           contract.clientSignedAt
-            ? 'contract-signing-party-inline contract-signing-party-inline--signed'
-            : 'contract-signing-party-inline'
+            ? 'contract-signing-party contract-signing-party--signed'
+            : 'contract-signing-party'
         }
       >
-        {t('contractPanel.partyClient')}: {partyLabel(contract.clientSignedAt)}
-      </span>
-      <span className="contract-signing-parties-inline-sep" aria-hidden>
-        ·
-      </span>
-      <span
+        <span className="contract-signing-party-role">
+          {t('contractPanel.partyClient')}
+        </span>
+        <span className="contract-signing-party-status">
+          {partyLabel(contract.clientSignedAt)}
+        </span>
+      </li>
+      <li
         className={
           contract.contractorSignedAt
-            ? 'contract-signing-party-inline contract-signing-party-inline--signed'
-            : 'contract-signing-party-inline'
+            ? 'contract-signing-party contract-signing-party--signed'
+            : 'contract-signing-party'
         }
       >
-        {t('contractPanel.partyContractor')}:{' '}
-        {partyLabel(contract.contractorSignedAt)}
-      </span>
-    </p>
+        <span className="contract-signing-party-role">
+          {t('contractPanel.partyContractor')}
+        </span>
+        <span className="contract-signing-party-status">
+          {partyLabel(contract.contractorSignedAt)}
+        </span>
+      </li>
+    </ul>
   );
 }

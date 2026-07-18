@@ -3,13 +3,19 @@
 import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/components/LocaleProvider';
-import { loginWithPassword, signupWithPassword } from '@/lib/session';
+import {
+  loginWithPassword,
+  requestPasswordReset,
+  signupWithPassword,
+} from '@/lib/session';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => Promise<void> | void;
 }
+
+type AuthMode = 'signin' | 'signup' | 'forgot';
 
 const ROLE_KEYS = {
   client: 'auth.roleClient',
@@ -19,7 +25,7 @@ const ROLE_KEYS = {
 
 export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -35,12 +41,15 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     return null;
   }
 
-  const switchMode = (next: 'signin' | 'signup') => {
+  const switchMode = (next: AuthMode) => {
     setMode(next);
     setError(null);
     setSuccessNotice(null);
     setAcceptedPrivacy(false);
     setAcceptedTerms(false);
+    if (next === 'forgot' && !email && username) {
+      setEmail(username);
+    }
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -67,6 +76,10 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         setAcceptedTerms(false);
         await onSuccess();
         onClose();
+      } else if (mode === 'forgot') {
+        const message = await requestPasswordReset(email.trim());
+        setSuccessNotice(message || t('auth.forgotPasswordSent'));
+        setPassword('');
       } else {
         const result = await signupWithPassword({
           email,
@@ -97,7 +110,9 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           ? err.message
           : mode === 'signin'
             ? t('auth.signInFailed')
-            : t('auth.signUpFailed'),
+            : mode === 'forgot'
+              ? t('auth.forgotPasswordFailed')
+              : t('auth.signUpFailed'),
       );
     } finally {
       setSubmitting(false);
@@ -105,6 +120,20 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   };
 
   const canSubmitSignup = acceptedPrivacy && acceptedTerms;
+
+  const title =
+    mode === 'signin'
+      ? t('auth.welcomeBack')
+      : mode === 'forgot'
+        ? t('auth.forgotPasswordTitle')
+        : t('auth.createAccount');
+
+  const subtitle =
+    mode === 'signin'
+      ? t('auth.signInSubtitle')
+      : mode === 'forgot'
+        ? t('auth.forgotPasswordSubtitle')
+        : t('auth.signUpSubtitle');
 
   return (
     <div
@@ -123,9 +152,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         aria-labelledby="login-modal-title"
       >
         <div className="modal-header">
-          <h2 id="login-modal-title">
-            {mode === 'signin' ? t('auth.welcomeBack') : t('auth.createAccount')}
-          </h2>
+          <h2 id="login-modal-title">{title}</h2>
           <button
             type="button"
             className="icon-button"
@@ -136,11 +163,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           </button>
         </div>
 
-        <p className="muted modal-subtitle">
-          {mode === 'signin'
-            ? t('auth.signInSubtitle')
-            : t('auth.signUpSubtitle')}
-        </p>
+        <p className="muted modal-subtitle">{subtitle}</p>
 
         <form onSubmit={handleSubmit} className="modal-form">
           {mode === 'signin' ? (
@@ -151,6 +174,18 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                 autoComplete="username"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
+                placeholder={t('auth.emailPlaceholder')}
+                required
+              />
+            </label>
+          ) : mode === 'forgot' ? (
+            <label>
+              {t('common.email')}
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
                 placeholder={t('auth.emailPlaceholder')}
                 required
               />
@@ -214,17 +249,34 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             </>
           )}
 
-          <label>
-            {t('common.password')}
-            <input
-              type="password"
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              minLength={mode === 'signup' ? 8 : undefined}
-              required
-            />
-          </label>
+          {mode !== 'forgot' && (
+            <label>
+              {t('common.password')}
+              <input
+                type="password"
+                autoComplete={
+                  mode === 'signin' ? 'current-password' : 'new-password'
+                }
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                minLength={mode === 'signup' ? 8 : undefined}
+                required
+              />
+            </label>
+          )}
+
+          {mode === 'signin' && (
+            <p className="auth-forgot-row">
+              <button
+                type="button"
+                className="text-link"
+                onClick={() => switchMode('forgot')}
+                disabled={submitting}
+              >
+                {t('auth.forgotPasswordLink')}
+              </button>
+            </p>
+          )}
 
           {mode === 'signup' && (
             <div className="auth-legal-consents">
@@ -284,10 +336,14 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             {submitting
               ? mode === 'signin'
                 ? t('auth.signingIn')
-                : t('auth.creatingAccount')
+                : mode === 'forgot'
+                  ? t('auth.sendingResetLink')
+                  : t('auth.creatingAccount')
               : mode === 'signin'
                 ? t('header.signIn')
-                : t('auth.createAccountButton')}
+                : mode === 'forgot'
+                  ? t('auth.sendResetLink')
+                  : t('auth.createAccountButton')}
           </button>
 
           <p className="auth-mode-footer muted">
@@ -301,6 +357,18 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                   disabled={submitting}
                 >
                   {t('auth.createAnAccount')}
+                </button>
+              </>
+            ) : mode === 'forgot' ? (
+              <>
+                {t('auth.rememberedPassword')}{' '}
+                <button
+                  type="button"
+                  className="text-link"
+                  onClick={() => switchMode('signin')}
+                  disabled={submitting}
+                >
+                  {t('header.signIn')}
                 </button>
               </>
             ) : (

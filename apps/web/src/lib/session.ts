@@ -197,6 +197,27 @@ export async function signupWithPassword(input: {
   return { verifyEmail: false };
 }
 
+export async function requestPasswordReset(email: string): Promise<string> {
+  const response = await fetch('/api/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+
+  const body = (await response.json().catch(() => null)) as {
+    message?: string;
+  } | null;
+
+  if (!response.ok) {
+    throw new Error(body?.message ?? 'Password reset failed');
+  }
+
+  return (
+    body?.message ??
+    'If an account exists for that email, you will receive a password reset link shortly.'
+  );
+}
+
 export async function logoutSession(): Promise<void> {
   await fetch('/api/auth/logout', {
     method: 'POST',

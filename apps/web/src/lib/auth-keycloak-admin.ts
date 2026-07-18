@@ -338,6 +338,83 @@ async function sendKeycloakVerificationEmail(
   return true;
 }
 
+async function sendKeycloakExecuteActionsEmail(
+  adminToken: string,
+  userId: string,
+  actions: string[],
+  redirectUri?: string,
+): Promise<boolean> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const params = new URLSearchParams();
+  params.set('client_id', getVerifyEmailClientId());
+  if (redirectUri) {
+    params.set('redirect_uri', redirectUri);
+  }
+  // 12 hours — enough time to open the email.
+  params.set('lifespan', String(12 * 60 * 60));
+
+  const response = await fetch(
+    `${baseUrl}/admin/realms/${realm}/users/${userId}/execute-actions-email?${params.toString()}`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(actions),
+      cache: 'no-store',
+    },
+  );
+
+  if (!response.ok) {
+    console.warn(
+      `[auth-keycloak] execute-actions-email failed (${response.status}):`,
+      await response.text().catch(() => ''),
+    );
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Request a Keycloak password-reset email for the given login/email.
+ * Returns a generic outcome so callers do not leak whether the account exists.
+ */
+export async function requestKeycloakPasswordReset(
+  login: string,
+): Promise<'sent' | 'unavailable'> {
+  const normalized = login.trim().toLowerCase();
+  if (!normalized || !normalized.includes('@')) {
+    return 'unavailable';
+  }
+
+  let adminToken: string | null = null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch {
+    return 'unavailable';
+  }
+  if (!adminToken) {
+    return 'unavailable';
+  }
+
+  const user = await findKeycloakUserByLogin(adminToken, normalized);
+  if (!user?.id || user.enabled === false) {
+    // Same success path for unknown accounts (anti-enumeration).
+    return 'sent';
+  }
+
+  const sent = await sendKeycloakExecuteActionsEmail(
+    adminToken,
+    user.id,
+    ['UPDATE_PASSWORD'],
+    getAppRedirectUri(),
+  );
+
+  return sent ? 'sent' : 'unavailable';
+}
+
 async function finalizeKeycloakUser(
   adminToken: string,
   userId: string,

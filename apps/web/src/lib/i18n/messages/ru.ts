@@ -56,6 +56,17 @@ export const ru: Messages = {
     alreadyHaveAccount: 'Уже есть аккаунт?',
     signInFailed: 'Не удалось войти',
     signUpFailed: 'Не удалось зарегистрироваться',
+    forgotPasswordLink: 'Забыли пароль?',
+    forgotPasswordTitle: 'Сброс пароля',
+    forgotPasswordSubtitle:
+      'Укажите email — мы отправим ссылку для выбора нового пароля.',
+    sendResetLink: 'Отправить ссылку',
+    sendingResetLink: 'Отправка…',
+    forgotPasswordSent:
+      'Если аккаунт с таким email существует, вы получите ссылку для сброса пароля. Проверьте почту и папку «Спам».',
+    forgotPasswordFailed:
+      'Не удалось отправить письмо для сброса пароля. Попробуйте позже.',
+    rememberedPassword: 'Вспомнили пароль?',
     verifyEmailDefault:
       'Аккаунт создан. Проверьте почту и подтвердите адрес перед входом.',
     roleClient: 'Заказчик',
