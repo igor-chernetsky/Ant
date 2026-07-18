@@ -285,6 +285,8 @@ export const enExtended = {
     withdrawFromAwardHint: "If you cannot agree on contract terms, you can withdraw before signing. The tender will reopen for other contractors.",
     yourProposal: "Your proposal",
     clientCounterOffers: "Client counter-offers",
+    proposalUnderReview:
+      "Your proposal is under review by the client. You will see a counter-offer here if they send one.",
     acceptCounterOffer: "Accept client's counter-offer",
     acceptCounterOfferHint: "Prefills the proposal form below with the latest counter-offer. Review and edit any field before submitting.",
     counterOfferApplied: "Counter-offer applied to the form — adjust as needed, then update your proposal.",

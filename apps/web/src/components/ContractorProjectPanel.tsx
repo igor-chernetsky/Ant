@@ -245,6 +245,9 @@ export function ContractorProjectPanel({
     !structuredQa && (inClarification || enrolled || submitted);
   const showPostAwardChat = selected && structuredQa;
   const latestClientOffer = latestClientCounterOffer(counterOffers);
+  const clientCounterOffers = counterOffers.filter(
+    (offer) => offer.authorRole === 'client',
+  );
   const appliedCounterOffer =
     appliedCounterOfferId != null
       ? (counterOffers.find((offer) => offer.id === appliedCounterOfferId) ??
@@ -429,39 +432,45 @@ export function ContractorProjectPanel({
         </div>
       )}
 
-      {counterOffers.length > 0 && (
+      {submitted && myBid && (
         <div className="tender-subsection">
           <h3 className="tender-subsection-title">
             {t('contractor.clientCounterOffers')}
           </h3>
-          <ul className="bid-offer-list">
-            {counterOffers.map((offer) => (
-              <li key={offer.id} className="bid-offer-item">
-                <BidOfferSummary offer={offer} />
-              </li>
-            ))}
-          </ul>
-          {latestClientOffer && participation.canSubmitProposal && (
-            <div className="counter-offer-accept">
-              <button
-                type="button"
-                className="secondary"
-                disabled={busy}
-                onClick={() =>
-                  setAppliedCounterOfferId(latestClientOffer.id)
-                }
-              >
-                {t('contractor.acceptCounterOffer')}
-              </button>
-              <p className="muted counter-offer-accept-hint">
-                {t('contractor.acceptCounterOfferHint')}
-              </p>
-              {appliedCounterOffer?.id === latestClientOffer.id && (
-                <p className="counter-offer-accept-applied">
-                  {t('contractor.counterOfferApplied')}
-                </p>
+          {clientCounterOffers.length > 0 ? (
+            <>
+              <ul className="bid-offer-list">
+                {clientCounterOffers.map((offer) => (
+                  <li key={offer.id} className="bid-offer-item">
+                    <BidOfferSummary offer={offer} />
+                  </li>
+                ))}
+              </ul>
+              {latestClientOffer && participation.canSubmitProposal && (
+                <div className="counter-offer-accept">
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      setAppliedCounterOfferId(latestClientOffer.id)
+                    }
+                  >
+                    {t('contractor.acceptCounterOffer')}
+                  </button>
+                  <p className="muted counter-offer-accept-hint">
+                    {t('contractor.acceptCounterOfferHint')}
+                  </p>
+                  {appliedCounterOffer?.id === latestClientOffer.id && (
+                    <p className="counter-offer-accept-applied">
+                      {t('contractor.counterOfferApplied')}
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
+            </>
+          ) : (
+            <p className="muted">{t('contractor.proposalUnderReview')}</p>
           )}
         </div>
       )}
