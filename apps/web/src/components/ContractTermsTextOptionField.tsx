@@ -2,23 +2,13 @@
 
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
-import type { ContractTermsTextOption } from '@/lib/contract-terms-options';
+import {
+  localizedContractTermsOptionValue,
+  matchContractTermsOptionId,
+  type ContractTermsTextOption,
+} from '@/lib/contract-terms-options';
 
 export const CONTRACT_TERMS_CUSTOM_OPTION_ID = '__custom__';
-
-function resolveOptionId(
-  value: string,
-  options: ContractTermsTextOption[],
-): string {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return '';
-  }
-  return (
-    options.find((option) => option.value.trim() === trimmed)?.id ??
-    CONTRACT_TERMS_CUSTOM_OPTION_ID
-  );
-}
 
 interface ContractTermsTextOptionFieldProps {
   label: React.ReactNode;
@@ -46,7 +36,11 @@ export function ContractTermsTextOptionField({
   const { t } = useTranslation();
   const selectId = useId();
   const matchedOptionId = useMemo(
-    () => resolveOptionId(value, options),
+    () => matchContractTermsOptionId(value, options),
+    [value, options],
+  );
+  const displayValue = useMemo(
+    () => localizedContractTermsOptionValue(value, options),
     [value, options],
   );
   const [customSelected, setCustomSelected] = useState(false);
@@ -103,7 +97,7 @@ export function ContractTermsTextOptionField({
             readOnly
             disabled
             aria-readonly
-            value={value}
+            value={displayValue}
             placeholder={customPlaceholder}
           />
         ) : (
@@ -112,7 +106,7 @@ export function ContractTermsTextOptionField({
             readOnly
             disabled
             aria-readonly
-            value={value}
+            value={displayValue}
             placeholder={customPlaceholder}
           />
         )}
@@ -152,7 +146,7 @@ export function ContractTermsTextOptionField({
           <textarea
             rows={rows}
             disabled={disabled}
-            value={value}
+            value={showCustomInput ? value : displayValue}
             placeholder={customPlaceholder}
             onChange={(event) => onChange(event.target.value)}
           />
@@ -160,7 +154,7 @@ export function ContractTermsTextOptionField({
           <input
             type="text"
             disabled={disabled}
-            value={value}
+            value={showCustomInput ? value : displayValue}
             placeholder={customPlaceholder}
             onChange={(event) => onChange(event.target.value)}
           />
