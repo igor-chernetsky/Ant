@@ -24,8 +24,15 @@ const ELECTRICAL_SCOPE_FACT_PATTERN =
 const WATER_TREATMENT_FACT_PATTERN =
   /\b(chlorine[- ]?free|без\s*хлор|salt\s*water|солев|uv\s*treat|озон|ozone|ultraviolet|ультрафиолет|salt\s*chlorin)\b/i;
 
-export function intakeNarrative(context: ProjectIntakeContext): string {
-  const docText =
+export const POOL_INTAKE_QUESTION_IDS = [
+  'pool-depth',
+  'pool-pump-station',
+  'pool-water-treatment',
+  'pool-lighting',
+] as const;
+
+function documentNarrative(context: ProjectIntakeContext): string {
+  return (
     context.documents
       ?.map((doc) =>
         [
@@ -36,8 +43,18 @@ export function intakeNarrative(context: ProjectIntakeContext): string {
           ),
         ].join(' '),
       )
-      .join(' ') ?? '';
+      .join(' ') ?? ''
+  );
+}
 
+/** Title, client description, and uploaded plan/document text — not AI rewrites or prior answers. */
+export function projectSourceNarrative(context: ProjectIntakeContext): string {
+  return [context.title, context.description ?? '', documentNarrative(context)]
+    .join(' ')
+    .trim();
+}
+
+export function intakeNarrative(context: ProjectIntakeContext): string {
   const answersText = context.answers
     .map((a) => {
       if (a.skipped) return '';
@@ -47,18 +64,37 @@ export function intakeNarrative(context: ProjectIntakeContext): string {
     .join(' ');
 
   return [
-    context.title,
-    context.description ?? '',
+    projectSourceNarrative(context),
     context.improvedDescription ?? '',
-    docText,
     answersText,
   ]
     .join(' ')
     .trim();
 }
 
+/** True when the user explicitly confirmed a pool via special-systems. */
+export function userSelectedPoolInAnswers(
+  context: ProjectIntakeContext,
+): boolean {
+  return context.answers.some((a) => {
+    if (a.questionId !== 'special-systems' || a.skipped) {
+      return false;
+    }
+    const values = Array.isArray(a.value) ? a.value : [a.value];
+    return values.includes('pool');
+  });
+}
+
+/** Pool is in scope only when mentioned in title/description/plan or explicitly selected. */
+export function projectMentionsPool(context: ProjectIntakeContext): boolean {
+  if (POOL_PATTERN.test(projectSourceNarrative(context))) {
+    return true;
+  }
+  return userSelectedPoolInAnswers(context);
+}
+
 export function isPoolFocusedProject(context: ProjectIntakeContext): boolean {
-  return POOL_PATTERN.test(intakeNarrative(context));
+  return projectMentionsPool(context);
 }
 
 /** True when the main job is constructing/renovating a building shell, not an amenity-only scope. */
@@ -71,10 +107,7 @@ export function isBuildingShellPrimary(context: ProjectIntakeContext): boolean {
   }
 
   const mentionsBuilding = BUILDING_PRIMARY_PATTERN.test(narrative);
-  const poolIsHeadlined =
-    POOL_PATTERN.test(context.title) ||
-    POOL_PATTERN.test(context.description ?? '') ||
-    POOL_PATTERN.test(context.improvedDescription ?? '');
+  const poolIsHeadlined = POOL_PATTERN.test(projectSourceNarrative(context));
 
   if (
     poolIsHeadlined &&
@@ -147,7 +180,40 @@ export function shouldAskStoreyCount(context: ProjectIntakeContext): boolean {
 export function shouldAskPoolScopeQuestions(
   context: ProjectIntakeContext,
 ): boolean {
-  return isPoolFocusedProject(context);
+  return projectMentionsPool(context);
+}
+
+export function shouldAskSpecialSystemsQuestion(
+  context: ProjectIntakeContext,
+): boolean {
+  if (projectMentionsPool(context)) {
+    return false;
+  }
+  if (
+    !['new_build', 'extension', 'commercial_fitout'].includes(
+      context.projectType,
+    )
+  ) {
+    return false;
+  }
+  if (documentMentionsSpecialSystems(context)) {
+    return false;
+  }
+  return isBuildingShellPrimary(context);
+}
+
+function documentMentionsSpecialSystems(
+  context: ProjectIntakeContext,
+): boolean {
+  const pattern =
+    /\b(elevator|lift|pool|basement|подвал|лифт|бассейн|smart\s*home|умн.*дом)\b/i;
+  return Boolean(
+    context.documents?.some(
+      (doc) =>
+        pattern.test(doc.summary) ||
+        doc.keyFacts?.some((fact) => pattern.test(fact)),
+    ),
+  );
 }
 
 export function shouldAskUtilityConnectionQuestions(

@@ -12,11 +12,13 @@ import { suggestTagSlugsFromText } from '../projects/project-brief';
 import {
   narrativeHasPoolDepthFact,
   narrativeHasPumpStationFact,
+  projectMentionsPool,
   shouldAskElectricalScopeQuestions,
   shouldAskPoolLightingQuestions,
   shouldAskPoolScopeQuestions,
   shouldAskPoolWaterTreatmentQuestions,
   shouldAskSanitaryPointsQuestions,
+  shouldAskSpecialSystemsQuestion,
   shouldAskStoreyCount,
   shouldAskUtilityConnectionQuestions,
 } from './intake-scope-heuristics';
@@ -84,6 +86,11 @@ export class IntakeFallbackService {
     return {
       nextQuestion: next ? sanitizeIntakeQuestion(next) : null,
     };
+  }
+
+  /** First fallback question respecting property type and scope heuristics. */
+  getFirstFallbackQuestion(context: ProjectIntakeContext): IntakeQuestion | null {
+    return this.firstFallbackQuestion(context);
   }
 
   finalizeIntake(context: ProjectIntakeContext): FinalIntakeResult {
@@ -155,25 +162,6 @@ export class IntakeFallbackService {
       queue.push(getFallbackApproxAreaQuestion(locale));
     }
 
-    const needsBuildingSystemsQuestions = [
-      'new_build',
-      'extension',
-      'commercial_fitout',
-    ].includes(context.projectType);
-    const hasDocSpecialSystems = Boolean(
-      context.documents?.some(
-        (doc) =>
-          /\b(elevator|lift|pool|basement|подвал|лифт|бассейн)\b/i.test(
-            doc.summary,
-          ) ||
-          doc.keyFacts?.some((fact) =>
-            /\b(elevator|lift|pool|basement|подвал|лифт|бассейн)\b/i.test(
-              fact,
-            ),
-          ),
-      ),
-    );
-
     if (shouldAskStoreyCount(context)) {
       queue.push(getFallbackStoreyCountQuestion(locale));
     }
@@ -206,8 +194,12 @@ export class IntakeFallbackService {
       if (shouldAskPoolLightingQuestions(context)) {
         queue.push(getFallbackPoolLightingQuestion(locale));
       }
-    } else if (needsBuildingSystemsQuestions && !hasDocSpecialSystems) {
-      queue.push(getFallbackSpecialSystemsQuestion(locale));
+    } else if (shouldAskSpecialSystemsQuestion(context)) {
+      queue.push(
+        getFallbackSpecialSystemsQuestion(locale, {
+          includePool: projectMentionsPool(context),
+        }),
+      );
     }
 
     queue.push(

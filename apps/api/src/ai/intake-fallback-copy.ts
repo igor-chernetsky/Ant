@@ -418,8 +418,13 @@ export function getFallbackPoolPumpQuestion(
 
 export function getFallbackSpecialSystemsQuestion(
   locale?: string | null,
+  options?: { includePool?: boolean },
 ): IntakeQuestion {
-  return { ...SPECIAL_SYSTEMS[resolveLocale(locale)] };
+  const question = { ...SPECIAL_SYSTEMS[resolveLocale(locale)] };
+  if (options?.includePool === false) {
+    question.options = question.options?.filter((option) => option.id !== 'pool');
+  }
+  return question;
 }
 
 export function getFallbackTimelineQuestion(

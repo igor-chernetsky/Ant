@@ -112,7 +112,11 @@ Question object schema:
 
   private buildingSystemsIntakeRules(): string {
     return `Ask only questions relevant to the primary scope. Prefer project-specific gaps over generic building FAQs.
-For pool / swimming-pool projects (title or description mentions pool/бассейн):
+Swimming pool / бассейн questions — STRICT RULE:
+- NEVER ask pool-depth, pool-pump-station, pool-water-treatment, pool-lighting, or any pool-specific question unless the title, description, or uploadedDocuments explicitly mention a pool / swimming pool / бассейн
+- Retail shops, offices, warehouses, and commercial fit-out without a pool in scope: do NOT mention pools at all
+- Do NOT infer a pool from project type alone (new_build, villa area, etc.)
+For pool projects only (pool explicitly in title, description, or uploadedDocuments):
 - Do NOT ask storey-count of an existing villa/house unless the project clearly includes building shell construction or extension
 - Ask pool depth when unknown — prefer question id "pool-depth"
 - Ask pump / equipment room placement when unknown — prefer question id "pool-pump-station"
@@ -125,7 +129,8 @@ For MEP / utilities (new build, renovation, pool, or any project with electrical
 For new_build / extension / commercial_fitout of buildings (not amenity-only pool jobs):
 - Ask about storey count when not already clear — use id "storey-count"
 - Ask approximate sanitary wet-point count when unknown — prefer question id "sanitary-points"
-- Ask special systems (elevator/lift, pool, basement, smart home) when not already clear — use id "special-systems" (multi-select)
+- Ask special systems (elevator/lift, basement, smart home) when not already clear — use id "special-systems" (multi-select)
+- Include the "pool" option in special-systems ONLY when a pool is already mentioned in title, description, or uploadedDocuments — otherwise omit it entirely
 - Do not assume elevators or commercial-scale MEP unless explicitly confirmed
 If a major system is uncertain, ask before the estimate is finalized — do not guess`;
   }

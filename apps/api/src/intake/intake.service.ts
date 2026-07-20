@@ -7,7 +7,7 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { Prisma, ProjectStatus, TagSource } from '@prisma/client';
-import { sanitizeIntakeQuestion } from '../ai/intake-question.utils';
+import { sanitizeIntakeQuestion, filterIntakeQuestionForScope } from '../ai/intake-question.utils';
 import { IntakeFallbackService } from '../ai/intake-fallback.service';
 import {
   INTAKE_OTHER_OPTION_ID,
@@ -65,6 +65,28 @@ export class IntakeService {
     }
     if (!result) {
       result = this.fallback.runInitialIntake(context);
+    }
+
+    if (result.intake.currentQuestion) {
+      result.intake.currentQuestion = filterIntakeQuestionForScope(
+        context,
+        sanitizeIntakeQuestion(result.intake.currentQuestion),
+      );
+      if (!result.intake.currentQuestion) {
+        const fallbackNext = this.fallback.getFirstFallbackQuestion(context);
+        result.intake.currentQuestion = filterIntakeQuestionForScope(
+          context,
+          fallbackNext ? sanitizeIntakeQuestion(fallbackNext) : null,
+        );
+        result.intake.status = result.intake.currentQuestion
+          ? 'awaiting_answers'
+          : 'ready_to_submit';
+        if (result.intake.currentQuestion) {
+          result.intake.askedQuestionIds = [result.intake.currentQuestion.id];
+        } else {
+          result.intake.askedQuestionIds = [];
+        }
+      }
     }
 
     const tagSlugs = await this.reconcileProjectAiTags({
@@ -178,6 +200,7 @@ export class IntakeService {
           next.nextQuestion,
           intake.askedQuestionIds,
           answers,
+          context,
         );
         if (next.improvedDescription) {
           improvedDescription = next.improvedDescription;
@@ -191,6 +214,7 @@ export class IntakeService {
         fallbackNext.nextQuestion,
         intake.askedQuestionIds,
         answers,
+        context,
       );
     }
 
@@ -343,11 +367,18 @@ export class IntakeService {
     candidate: IntakeQuestion | null,
     askedQuestionIds: string[],
     answers: Array<{ questionId: string }>,
+    context: ProjectIntakeContext,
   ): IntakeQuestion | null {
     if (!candidate) {
       return null;
     }
-    const resolved = sanitizeIntakeQuestion(candidate);
+    const resolved = filterIntakeQuestionForScope(
+      context,
+      sanitizeIntakeQuestion(candidate),
+    );
+    if (!resolved) {
+      return null;
+    }
     const seen = new Set([
       ...askedQuestionIds,
       ...answers.map((a) => a.questionId),
