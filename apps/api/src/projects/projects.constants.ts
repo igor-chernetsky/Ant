@@ -1,9 +1,11 @@
 import { ProjectStatus } from '@prisma/client';
 
-/** Statuses shown on the public homepage by default (excludes completed). */
+/**
+ * Statuses shown on the public homepage by default.
+ * Pre-tender stages (ready_for_estimate, estimated) stay client-only until
+ * the client publishes a tender and matching contractors are notified.
+ */
 export const DISCOVERY_STATUSES: ProjectStatus[] = [
-  ProjectStatus.ready_for_estimate,
-  ProjectStatus.estimated,
   ProjectStatus.in_tender,
   ProjectStatus.awarded,
   ProjectStatus.active,

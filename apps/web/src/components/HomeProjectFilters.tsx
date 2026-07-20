@@ -20,7 +20,7 @@ import {
   type ServiceFilterSlug,
 } from '@/lib/service-filters';
 
-const PRIMARY_STATUS_VALUES = ['in_tender', 'estimated', 'active'] as const;
+const PRIMARY_STATUS_VALUES = ['in_tender', 'active'] as const;
 
 const SECONDARY_STATUS_VALUES = ['awarded', 'completed', 'hidden'] as const;
 
