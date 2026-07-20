@@ -20,9 +20,10 @@ import {
   type ServiceFilterSlug,
 } from '@/lib/service-filters';
 
-const PRIMARY_STATUS_VALUES = ['in_tender', 'active'] as const;
+// Keep order aligned with the project lifecycle presented on the product UI.
+const PRIMARY_STATUS_VALUES = ['in_tender', 'awarded', 'active'] as const;
 
-const SECONDARY_STATUS_VALUES = ['awarded', 'completed', 'hidden'] as const;
+const SECONDARY_STATUS_VALUES = ['completed', 'hidden'] as const;
 
 export interface HomeProjectFilterState {
   tags: string[];
@@ -40,6 +41,7 @@ interface HomeProjectFiltersProps {
   onChange: (next: HomeProjectFilterState) => void;
   resultCount?: number;
   showHiddenFilter?: boolean;
+  showCompletedFilter?: boolean;
 }
 
 function countActiveFilters(filters: HomeProjectFilterState): number {
@@ -60,6 +62,7 @@ export function HomeProjectFilters({
   onChange,
   resultCount,
   showHiddenFilter = false,
+  showCompletedFilter = false,
 }: HomeProjectFiltersProps) {
   const { t } = useTranslation();
   const { formatProjectStatus } = useAppFormatters();
@@ -69,11 +72,13 @@ export function HomeProjectFilters({
   const statusValues = useMemo(
     () => [
       ...PRIMARY_STATUS_VALUES,
-      ...SECONDARY_STATUS_VALUES.filter(
-        (value) => value !== 'hidden' || showHiddenFilter,
-      ),
+      ...SECONDARY_STATUS_VALUES.filter((value) => {
+        if (value === 'hidden') return showHiddenFilter;
+        if (value === 'completed') return showCompletedFilter;
+        return true;
+      }),
     ],
-    [showHiddenFilter],
+    [showHiddenFilter, showCompletedFilter],
   );
 
   const areas = useMemo(
