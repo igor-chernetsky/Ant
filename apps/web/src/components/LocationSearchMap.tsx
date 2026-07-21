@@ -116,6 +116,7 @@ export function LocationSearchMap({
     };
 
     if (!regionSlug) {
+      // Country view: only region hubs (no area clutter).
       for (const region of catalog.regions) {
         addMarker(
           { lat: region.lat, lng: region.lng },
@@ -126,21 +127,6 @@ export function LocationSearchMap({
             onLocationChangeRef.current({
               regionSlug: region.slug,
               areaSlug: '',
-            });
-          },
-        );
-      }
-
-      for (const area of catalog.areas) {
-        addMarker(
-          { lat: area.lat, lng: area.lng },
-          area.label,
-          false,
-          false,
-          () => {
-            onLocationChangeRef.current({
-              regionSlug: area.regionSlug,
-              areaSlug: area.slug,
             });
           },
         );
@@ -159,23 +145,9 @@ export function LocationSearchMap({
         map.setZoom(DEFAULT_ZOOM);
       }
     } else {
+      // Region selected: only areas inside that region.
       const region = catalog.regions.find((item) => item.slug === regionSlug);
       const areas = areasForRegion(catalog, regionSlug);
-
-      if (region) {
-        addMarker(
-          { lat: region.lat, lng: region.lng },
-          region.label,
-          !areaSlug,
-          true,
-          () => {
-            onLocationChangeRef.current({
-              regionSlug: region.slug,
-              areaSlug: '',
-            });
-          },
-        );
-      }
 
       for (const area of areas) {
         addMarker(
@@ -200,6 +172,9 @@ export function LocationSearchMap({
             map.setZoom(13);
           }
         });
+      } else if (region) {
+        map.setCenter({ lat: region.lat, lng: region.lng });
+        map.setZoom(11);
       }
     }
 

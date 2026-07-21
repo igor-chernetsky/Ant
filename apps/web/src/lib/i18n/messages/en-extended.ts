@@ -68,7 +68,7 @@ export const enExtended = {
     allRegions: "All regions",
     allAreas: "All areas",
     mapAria: "Location map",
-    mapHint: "Tap a marker to pick a region or area. Blue = selected.",
+    mapHint: "Tap a region marker first, then an area inside it. Blue = selected.",
     mapLoading: "Loading map…",
     mapUnavailable: "Map preview is unavailable. Use the lists to filter by location.",
     status: "Status",
