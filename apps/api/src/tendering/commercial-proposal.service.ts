@@ -21,12 +21,15 @@ import { ContractorProfilesService } from './contractor-profiles.service';
 import {
   buildCommercialProposalData,
   renderCommercialProposalHtml,
+  renderMultilingualCommercialProposalHtml,
 } from './commercial-proposal.template';
+import type { CommercialProposalRenderData } from './commercial-proposal.types';
 import { BidTermsV1, BidContractTerms } from './tendering.types';
 import { normalizeContractTerms } from './commercial-proposal.template';
 import {
   commercialProposalCopy,
   parseCommercialProposalLocales,
+  sortCommercialProposalLocales,
 } from './commercial-proposal.i18n';
 
 const CLIENT_DOWNLOADABLE_BID_STATUSES: BidStatus[] = [
@@ -152,12 +155,27 @@ export class CommercialProposalService {
   }> {
     const locales =
       options.locales.length > 0
-        ? options.locales
+        ? sortCommercialProposalLocales(options.locales)
         : ([DEFAULT_LOCALE] as SupportedLocale[]);
     const multiLocale = locales.length > 1;
-    const needsZip = options.withAttachments || multiLocale;
+    const needsZip = options.withAttachments;
 
     if (!needsZip) {
+      if (multiLocale) {
+        const { html, fileName } = await this.buildMultilingualHtmlDocument(
+          userId,
+          bidId,
+          projectId,
+          locales,
+        );
+        const pdf = await this.htmlToPdf.render(html);
+        return {
+          buffer: pdf,
+          fileName,
+          contentType: 'application/pdf',
+        };
+      }
+
       const { pdf, fileName } = await this.renderPdf(
         userId,
         bidId,
@@ -171,7 +189,7 @@ export class CommercialProposalService {
       };
     }
 
-    if (options.withAttachments && !this.storage.isConfigured()) {
+    if (!this.storage.isConfigured()) {
       throw new ServiceUnavailableException(
         'File storage is not configured. Cannot bundle attachments.',
       );
@@ -181,18 +199,27 @@ export class CommercialProposalService {
     const usedNames = new Set<string>();
     const entries: ZipEntry[] = [];
 
-    for (const locale of locales) {
+    if (multiLocale) {
+      const { html, fileName } = await this.buildMultilingualHtmlDocument(
+        userId,
+        bidId,
+        projectId,
+        locales,
+      );
+      const pdf = await this.htmlToPdf.render(html);
+      entries.push({
+        name: uniqueZipName(fileName, usedNames),
+        buffer: pdf,
+      });
+    } else {
       const { pdf, fileName } = await this.renderPdf(
         userId,
         bidId,
         projectId,
-        locale,
+        locales[0],
       );
-      const localizedName = multiLocale
-        ? fileName.replace(/\.pdf$/i, `-${locale}.pdf`)
-        : fileName;
       entries.push({
-        name: uniqueZipName(localizedName, usedNames),
+        name: uniqueZipName(fileName, usedNames),
         buffer: pdf,
       });
     }
@@ -365,17 +392,12 @@ export class CommercialProposalService {
     return files;
   }
 
-  private async buildHtmlDocument(
-    userId: string,
-    bidId: string,
-    projectId?: string,
-    viewerLocale?: SupportedLocale,
-  ): Promise<{ html: string; fileName: string }> {
-    const bid = await this.loadAndAuthorizeBid(userId, bidId, projectId);
-
+  private async buildProposalDataForLocale(
+    bid: LoadedBid,
+    targetLocale: SupportedLocale,
+  ): Promise<CommercialProposalRenderData> {
     const terms = (bid.termsJson as BidTermsV1 | null) ?? null;
     const project = bid.tender.project;
-    const targetLocale = viewerLocale ?? normalizeSourceLocale(project.sourceLocale);
     const copy = commercialProposalCopy(targetLocale);
 
     const projectTerms =
@@ -401,7 +423,7 @@ export class CommercialProposalService {
     const localized =
       await this.projectLocalization.localizeCommercialProposalContent(
         project.id,
-        bidId,
+        bid.id,
         {
           title: project.title,
           description: project.description,
@@ -445,7 +467,7 @@ export class CommercialProposalService {
     });
 
     const contract = await this.prisma.contract.findUnique({
-      where: { bidId },
+      where: { bidId: bid.id },
       select: {
         clientSignedAt: true,
         contractorSignedAt: true,
@@ -454,7 +476,7 @@ export class CommercialProposalService {
       },
     });
 
-    const data = buildCommercialProposalData({
+    return buildCommercialProposalData({
       projectTitle: localized.title || project.title,
       projectDistrict: localized.district ?? project.district,
       projectDescription: localized.description,
@@ -482,13 +504,49 @@ export class CommercialProposalService {
       contractorSignedAt: contract?.contractorSignedAt?.toISOString() ?? null,
       employerSignedAt: contract?.clientSignedAt?.toISOString() ?? null,
     });
+  }
 
+  private async buildHtmlDocument(
+    userId: string,
+    bidId: string,
+    projectId?: string,
+    viewerLocale?: SupportedLocale,
+  ): Promise<{ html: string; fileName: string }> {
+    const bid = await this.loadAndAuthorizeBid(userId, bidId, projectId);
+    const project = bid.tender.project;
+    const targetLocale = viewerLocale ?? normalizeSourceLocale(project.sourceLocale);
+    const data = await this.buildProposalDataForLocale(bid, targetLocale);
     const html = renderCommercialProposalHtml(data);
     const slug = slugifyProjectTitle(
-      localized.title || project.title,
+      data.projectTitle || project.title,
       bidId.slice(0, 8),
     );
     const fileName = `contract-draft-${slug}.pdf`;
+
+    return { html, fileName };
+  }
+
+  private async buildMultilingualHtmlDocument(
+    userId: string,
+    bidId: string,
+    projectId: string | undefined,
+    locales: SupportedLocale[],
+  ): Promise<{ html: string; fileName: string }> {
+    const bid = await this.loadAndAuthorizeBid(userId, bidId, projectId);
+    const ordered = sortCommercialProposalLocales(locales);
+    const dataByLocale = {} as Record<SupportedLocale, CommercialProposalRenderData>;
+
+    for (const locale of ordered) {
+      dataByLocale[locale] = await this.buildProposalDataForLocale(bid, locale);
+    }
+
+    const primary = ordered[0];
+    const html = renderMultilingualCommercialProposalHtml(dataByLocale, ordered);
+    const slug = slugifyProjectTitle(
+      dataByLocale[primary].projectTitle || bid.tender.project.title,
+      bidId.slice(0, 8),
+    );
+    const fileName = `contract-draft-${slug}-multilang.pdf`;
 
     return { html, fileName };
   }

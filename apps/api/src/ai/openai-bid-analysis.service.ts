@@ -4,6 +4,10 @@ import {
   BidAnalysisContext,
   BidAnalysisResult,
 } from './bid-analysis.types';
+import {
+  employerBidAnalysisPromptRules,
+  serializeBidForEmployerAnalysis,
+} from './bid-analysis-employer.utils';
 
 @Injectable()
 export class OpenAiBidAnalysisService {
@@ -27,29 +31,30 @@ export class OpenAiBidAnalysisService {
 
     const bidIds = new Set(context.bids.map((bid) => bid.id));
 
-    const system = `You are an independent construction procurement advisor helping a homeowner choose a contractor bid.
-Critically compare each bid against the project scope and against each other.
+    const system = `You are an independent construction procurement advisor helping an EMPLOYER (client / project owner) choose the best contractor bid.
+Critically compare each bid against the project scope and against each other from the EMPLOYER's perspective only.
 Return JSON only with keys:
 recommendedBidId, recommendedCompanyName, summary, reasoning, comparisons, confidence.
 
 Rules:
 - recommendedBidId must be one of the provided bid ids, or null if no bid is recommendable.
-- summary: 2-4 sentences with a clear recommendation.
-- reasoning: detailed argumentation (4-8 sentences) covering price, scope coverage, timeline, and risks.
+- summary: 2-4 sentences with a clear recommendation for the employer.
+- reasoning: detailed argumentation (4-8 sentences) covering price, scope coverage, timeline, and employer-side contract risks.
 - comparisons: one entry per bid with bidId, strengths[], weaknesses[], riskFlags[] (short bullet phrases).
-- Do not invent facts missing from the bid data; flag gaps as risks.
-- Price alone must not decide the winner if scope or risk differs materially.
+- Do not invent facts missing from the bid data; flag gaps as employer risks.
+- Price alone must not decide the winner if scope or employer-side risk differs materially.
 - confidence: 0-1.
-- Write in English.`;
+${employerBidAnalysisPromptRules()}`;
 
     const user = JSON.stringify({
+      audience: 'employer_client',
       project: {
         title: context.projectTitle,
         description: context.projectDescription,
         briefSummary: context.briefSummary,
         ballparkMid: context.ballparkMid,
       },
-      bids: context.bids,
+      bids: context.bids.map(serializeBidForEmployerAnalysis),
     });
 
     try {

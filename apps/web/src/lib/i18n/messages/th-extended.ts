@@ -767,7 +767,7 @@ export const thExtended = {
   },
   bidAnalysis: {
     title: "การวิเคราะห์ข้อเสนอด้วย AI",
-    hint: "ตรวจสอบราคา ขอบเขต ระยะเวลา และความเสี่ยงของข้อเสนอที่ส่งทั้งหมด",
+    hint: "ตรวจสอบในมุมเจ้าของโครงการ — ราคา ขอบเขต ระยะเวลา และความเสี่ยงตามสัญญา (เงินล่วงหน้า ค่าปรับ เงินค้ำ)",
     analysisCurrent: "การวิเคราะห์เป็นปัจจุบันสำหรับข้อเสนอเหล่านี้",
     analysisUpToDate: "การวิเคราะห์เป็นปัจจุบัน",
     analyzeBids: "วิเคราะห์ข้อเสนอ",
@@ -866,7 +866,8 @@ export const thExtended = {
     preparing: "กำลังเตรียม…",
     downloadLanguages: "ภาษาของเอกสาร",
     singleLanguageHint: "ร่างสัญญาจะถูกสร้างในภาษาที่เลือก",
-    multiLanguageHint: "หลายภาษาจะถูกแพ็กเป็นไฟล์ ZIP เดียว",
+    multiLanguageHint:
+      "แต่ละข้อจะแสดงทุกภาษาที่เลือก (อังกฤษ แล้วไทย แล้วรัสเซีย) ในไฟล์ PDF เดียว",
     includeAttachments: "รวมไฟล์แนบ ({count} {documents})",
     document_one: "เอกสาร",
     document_other: "เอกสาร",

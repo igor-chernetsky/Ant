@@ -468,3 +468,18 @@ export function parseCommercialProposalLocales(
   }
   return unique;
 }
+
+/** Contract PDF language order when multiple locales are selected. */
+export const COMMERCIAL_PROPOSAL_LOCALE_ORDER: SupportedLocale[] = [
+  'en',
+  'th',
+  'ru',
+];
+
+export function sortCommercialProposalLocales(
+  locales: SupportedLocale[],
+): SupportedLocale[] {
+  return COMMERCIAL_PROPOSAL_LOCALE_ORDER.filter((locale) =>
+    locales.includes(locale),
+  );
+}

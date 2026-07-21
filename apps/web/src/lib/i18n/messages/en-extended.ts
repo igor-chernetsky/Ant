@@ -767,7 +767,7 @@ export const enExtended = {
   },
   bidAnalysis: {
     title: "AI bid analysis",
-    hint: "Independent review of price, scope, timeline, and risks across all submitted bids.",
+    hint: "Independent review for you as the employer — price, scope, timeline, and contract risks (advance, penalties, retention).",
     analysisCurrent: "Analysis is current for these bids",
     analysisUpToDate: "Analysis up to date",
     analyzeBids: "Analyze bids",
@@ -866,7 +866,8 @@ export const enExtended = {
     preparing: "Preparing…",
     downloadLanguages: "Document languages",
     singleLanguageHint: "The contract draft will be generated in the selected language.",
-    multiLanguageHint: "Multiple languages will be packed into one ZIP archive.",
+    multiLanguageHint:
+      "Each clause appears in every selected language (English, then Thai, then Russian) in one PDF.",
     includeAttachments: "Include attachments ({count} {documents})",
     document_one: "document",
     document_other: "documents",

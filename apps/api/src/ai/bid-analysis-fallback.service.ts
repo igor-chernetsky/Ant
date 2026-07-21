@@ -3,6 +3,7 @@ import {
   BidAnalysisContext,
   BidAnalysisResult,
 } from './bid-analysis.types';
+import { employerContractTermNotes } from './bid-analysis-employer.utils';
 
 @Injectable()
 export class BidAnalysisFallbackService {
@@ -49,6 +50,11 @@ export class BidAnalysisFallbackService {
         strengths.push(`${bid.durationDays}-day timeline stated`);
       }
 
+      const employerTerms = employerContractTermNotes(bid, context.bids);
+      strengths.push(...employerTerms.strengths);
+      weaknesses.push(...employerTerms.weaknesses);
+      riskFlags.push(...employerTerms.riskFlags);
+
       return {
         bidId: bid.id,
         companyName: bid.companyName,
@@ -59,11 +65,11 @@ export class BidAnalysisFallbackService {
     });
 
     const summary = recommended
-      ? `${recommended.companyName ?? 'One contractor'} submitted the lowest price. Review scope detail and risks before awarding — automated fallback only compares basic bid fields.`
+      ? `${recommended.companyName ?? 'One contractor'} submitted the lowest price. Review scope and employer-side contract terms (advance, penalties, retention) before awarding — automated fallback only compares basic bid fields.`
       : 'No bids available to compare.';
 
     const reasoning = recommended
-      ? `With limited AI configuration, the fallback ranks bids primarily by total price. ${recommended.companyName ?? 'The lowest bidder'} at ${Number(recommended.amount).toLocaleString()} THB is the default pick, but you should validate that scope, exclusions, and timeline match your project needs.`
+      ? `With limited AI configuration, the fallback ranks bids primarily by total price from the employer's perspective. ${recommended.companyName ?? 'The lowest bidder'} at ${Number(recommended.amount).toLocaleString()} THB is the default pick, but validate scope, exclusions, timeline, and contract terms (lower advance and stronger delay damages favour you as employer).`
       : 'Add at least two contractor bids before running analysis.';
 
     return {

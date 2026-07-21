@@ -5,6 +5,7 @@ import type {
 } from './commercial-proposal.types';
 import {
   commercialProposalCopy,
+  sortCommercialProposalLocales,
   type CommercialProposalCopy,
 } from './commercial-proposal.i18n';
 import type { SupportedLocale } from '../users/locale.types';
@@ -304,48 +305,8 @@ export function buildCommercialProposalData(input: {
   };
 }
 
-export function renderCommercialProposalHtml(
-  data: CommercialProposalRenderData,
-): string {
-  const copy = commercialProposalCopy(data.locale);
-  const boqSection = data.hasBoq
-    ? `
-    <h2>${escapeHtml(copy.annex1Boq)}</h2>
-    ${data.boqTableHtml}
-  `
-    : '';
-
-  const annex2Section = `
-    <h2>${escapeHtml(copy.annex2Drawings)}</h2>
-    ${data.annex2Html}
-  `;
-
-  const clarificationSection = data.hasClarificationSummary
-    ? `
-    <h2>${escapeHtml(copy.clarifications)}</h2>
-    <p class="clause pre">${escapeHtml(data.clarificationSummary)}</p>
-  `
-    : '';
-
-  const specialConditionsSection = data.hasSpecialConditions
-    ? `
-  <h2>${escapeHtml(copy.specialConditions)}</h2>
-  <p class="clause pre">${escapeHtml(data.specialConditions)}</p>
-  `
-    : '';
-
-  const amountSentence = copy.employerAgreesToPay(
-    data.contractAmountFormatted,
-    data.contractAmountNumeric,
-  );
-
-  return `<!DOCTYPE html>
-<html lang="${escapeHtml(data.locale)}">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${escapeHtml(data.documentTitle)}</title>
-  <style>
+function commercialProposalStyles(): string {
+  return `
     :root {
       color-scheme: light;
       --text: #111827;
@@ -398,6 +359,24 @@ export function renderCommercialProposalHtml(
     table.boq td.num, table.boq th:last-child { text-align: right; white-space: nowrap; }
     table.boq tr.subtotal td { font-weight: 700; background: #fafafa; }
     .pre { white-space: pre-wrap; }
+    .locale-block {
+      margin-bottom: 1.25rem;
+      page-break-inside: avoid;
+    }
+    .locale-block--header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .locale-block--clause {
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px dotted #e5e7eb;
+    }
+    .locale-block--clause:last-child {
+      border-bottom: none;
+      margin-bottom: 1.5rem;
+    }
     .footer-note {
       margin-top: 2rem;
       font-size: 10pt;
@@ -411,6 +390,7 @@ export function renderCommercialProposalHtml(
     }
     .signatures h2 {
       margin-bottom: 1rem;
+      text-transform: none;
     }
     .signature-grid {
       display: table;
@@ -461,54 +441,117 @@ export function renderCommercialProposalHtml(
     }
     @media print {
       body { padding: 0.5in; max-width: none; }
-    }
-  </style>
-</head>
-<body>
+    }`;
+}
+
+function wrapLocaleBlock(
+  html: string,
+  locale: SupportedLocale,
+  variant: 'header' | 'clause' | 'section',
+): string {
+  return `<div class="locale-block locale-block--${variant}" lang="${escapeHtml(locale)}">${html}</div>`;
+}
+
+function renderHeaderAndParties(
+  data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  return `
   <h1>${escapeHtml(data.contractHeading)}</h1>
   <p class="subtitle">${escapeHtml(copy.of)}</p>
   <p class="project-line">${escapeHtml(data.projectTitle)}</p>
   <p class="address-line">${escapeHtml(data.siteAddress)}</p>
   <p class="date-line">${escapeHtml(data.documentDate)}</p>
-
   <div class="parties">
     <p><strong>${escapeHtml(copy.byAndBetween)}</strong></p>
     <p>${escapeHtml(data.employerBlock)}, ${escapeHtml(copy.employerReferred)} <strong>“${escapeHtml(copy.employerLabel)}”</strong>, ${escapeHtml(copy.andConnector)}</p>
     <p>${escapeHtml(data.contractorBlock)}, ${escapeHtml(copy.contractorReferred)} <strong>“${escapeHtml(copy.contractorLabel)}”</strong>.</p>
     <p>${escapeHtml(copy.partiesAgree)}</p>
-  </div>
+  </div>`;
+}
 
+function renderClause1(
+  data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  return `
   <h2>${escapeHtml(copy.clause1)}</h2>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.constructionWorks)}</span> ${escapeHtml(copy.meansAt(data.subjectOfContract, data.siteAddress))}</p>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.theProject)}</span> ${escapeHtml(copy.projectMeans)}</p>
-  <p class="clause"><span class="clause-num">${escapeHtml(copy.propertySiteRights)}</span> ${escapeHtml(data.propertyOwnership)}</p>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.propertySiteRights)}</span> ${escapeHtml(data.propertyOwnership)}</p>`;
+}
 
+function renderClause2(
+  data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  return `
   <h2>${escapeHtml(copy.clause2)}</h2>
   <p class="clause">${escapeHtml(data.scopeSummary)}</p>
   <p class="clause"><strong>${escapeHtml(copy.implementationApproach)}</strong> ${escapeHtml(data.approach)}</p>
-  <p class="clause"><strong>${escapeHtml(copy.commentsAssumptions)}</strong> ${escapeHtml(data.notes)}</p>
+  <p class="clause"><strong>${escapeHtml(copy.commentsAssumptions)}</strong> ${escapeHtml(data.notes)}</p>`;
+}
 
+function renderClause3(
+  data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  const amountSentence = copy.employerAgreesToPay(
+    data.contractAmountFormatted,
+    data.contractAmountNumeric,
+  );
+  return `
   <h2>${escapeHtml(copy.clause3)}</h2>
   <p class="clause">${escapeHtml(amountSentence)}</p>
-  <p class="clause">${escapeHtml(copy.noAdjustment)}</p>
+  <p class="clause">${escapeHtml(copy.noAdjustment)}</p>`;
+}
 
-  ${boqSection}
+function renderBoqSection(
+  data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  if (!data.hasBoq) return '';
+  return `
+  <h2>${escapeHtml(copy.annex1Boq)}</h2>
+  ${data.boqTableHtml}`;
+}
 
-  ${annex2Section}
+function renderAnnex2Section(
+  data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  return `
+  <h2>${escapeHtml(copy.annex2Drawings)}</h2>
+  ${data.annex2Html}`;
+}
 
+function renderClause5(
+  data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  return `
   <h2>${escapeHtml(copy.clause5)}</h2>
   <p class="clause"><strong>${escapeHtml(copy.worksCommencementDate)}</strong> ${escapeHtml(data.worksStartDate)}</p>
   <p class="clause">${escapeHtml(copy.worksCompletedWithin(data.contractPeriodText))}</p>
-  <p class="clause"><strong>${escapeHtml(copy.delayDamages)}</strong> ${escapeHtml(data.delayDamagesText)}</p>
+  <p class="clause"><strong>${escapeHtml(copy.delayDamages)}</strong> ${escapeHtml(data.delayDamagesText)}</p>`;
+}
 
+function renderClause6(
+  data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  return `
   <h2>${escapeHtml(copy.clause6)}</h2>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.advancePayment)}</span> ${escapeHtml(data.advancePaymentText)}</p>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.termsOfPayment)}</span> ${escapeHtml(data.paymentTermsText)}</p>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.retention)}</span> ${escapeHtml(data.retentionText)}</p>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.releaseOfRetention)}</span></p>
   <p class="clause pre">${escapeHtml(data.retentionReleaseText)}</p>
-  <p class="clause"><span class="clause-num">${escapeHtml(copy.defectWarranty)}</span> ${escapeHtml(data.warrantyText)}</p>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.defectWarranty)}</span> ${escapeHtml(data.warrantyText)}</p>`;
+}
 
+function renderForceMajeure(copy: CommercialProposalCopy): string {
+  return `
   <h2>${escapeHtml(copy.clauseForceMajeure)}</h2>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.forceMajeureDefinitionTitle)}</span> ${escapeHtml(copy.forceMajeureDefinition)}</p>
   <ul>
@@ -517,29 +560,88 @@ export function renderCommercialProposalHtml(
       .join('')}
   </ul>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.forceMajeureNoticeTitle)}</span> ${escapeHtml(copy.forceMajeureNotice)}</p>
-  <p class="clause"><span class="clause-num">${escapeHtml(copy.forceMajeureReliefTitle)}</span> ${escapeHtml(copy.forceMajeureRelief)}</p>
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.forceMajeureReliefTitle)}</span> ${escapeHtml(copy.forceMajeureRelief)}</p>`;
+}
 
-  ${clarificationSection}
+function renderClarifications(
+  data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  if (!data.hasClarificationSummary) return '';
+  return `
+  <h2>${escapeHtml(copy.clarifications)}</h2>
+  <p class="clause pre">${escapeHtml(data.clarificationSummary)}</p>`;
+}
 
-  ${specialConditionsSection}
+function renderSpecialConditions(data: CommercialProposalRenderData, copy: CommercialProposalCopy): string {
+  if (!data.hasSpecialConditions) return '';
+  return `
+  <h2>${escapeHtml(copy.specialConditions)}</h2>
+  <p class="clause pre">${escapeHtml(data.specialConditions)}</p>`;
+}
 
+function joinMultilingualLabels(
+  locales: SupportedLocale[],
+  pick: (copy: CommercialProposalCopy) => string,
+): string {
+  return locales
+    .map((locale) => pick(commercialProposalCopy(locale)))
+    .join(' / ');
+}
+
+function renderSignaturesBlock(
+  data: CommercialProposalRenderData,
+  locales: SupportedLocale[],
+): string {
+  const headingLocales =
+    locales.length > 0 ? locales : [data.locale as SupportedLocale];
+  const signaturesHeading = joinMultilingualLabels(
+    headingLocales,
+    (copy) => copy.signaturesHeading,
+  );
+  const signatureLabel = joinMultilingualLabels(
+    headingLocales,
+    (copy) => copy.signatureLabel,
+  );
+  const nameLabel = joinMultilingualLabels(
+    headingLocales,
+    (copy) => copy.nameLabel,
+  );
+  const titleLabel = joinMultilingualLabels(
+    headingLocales,
+    (copy) => copy.titleLabel,
+  );
+  const dateLabel = joinMultilingualLabels(
+    headingLocales,
+    (copy) => copy.dateLabel,
+  );
+  const forContractor = joinMultilingualLabels(
+    headingLocales,
+    (copy) => copy.forContractor,
+  );
+  const forEmployer = joinMultilingualLabels(
+    headingLocales,
+    (copy) => copy.forEmployer,
+  );
+
+  return `
   <div class="signatures">
-    <h2>${escapeHtml(copy.signaturesHeading)}</h2>
+    <h2>${escapeHtml(signaturesHeading)}</h2>
     <div class="signature-grid">
       <div class="signature-col">
-        <p class="signature-party">${escapeHtml(copy.forContractor)}</p>
+        <p class="signature-party">${escapeHtml(forContractor)}</p>
         <p class="signature-org">${escapeHtml(data.contractorOrgName)}</p>
         <div class="signature-line-block">
           ${data.contractorSignatureImageHtml}
-          <p class="signature-caption">${escapeHtml(copy.signatureLabel)}</p>
+          <p class="signature-caption">${escapeHtml(signatureLabel)}</p>
         </div>
         <div class="signature-line-block">
           <p class="signature-filled">${escapeHtml(data.contractorSignatoryName)}</p>
-          <p class="signature-caption">${escapeHtml(copy.nameLabel)}</p>
+          <p class="signature-caption">${escapeHtml(nameLabel)}</p>
         </div>
         <div class="signature-line-block">
           <p class="signature-filled">${escapeHtml(data.contractorSignatoryTitle)}</p>
-          <p class="signature-caption">${escapeHtml(copy.titleLabel)}</p>
+          <p class="signature-caption">${escapeHtml(titleLabel)}</p>
         </div>
         <div class="signature-line-block">
           ${
@@ -547,23 +649,23 @@ export function renderCommercialProposalHtml(
               ? `<p class="signature-filled">${escapeHtml(data.contractorSignedDate)}</p>`
               : '<span class="signature-line"></span>'
           }
-          <p class="signature-caption">${escapeHtml(copy.dateLabel)}</p>
+          <p class="signature-caption">${escapeHtml(dateLabel)}</p>
         </div>
       </div>
       <div class="signature-col">
-        <p class="signature-party">${escapeHtml(copy.forEmployer)}</p>
+        <p class="signature-party">${escapeHtml(forEmployer)}</p>
         <p class="signature-org">${escapeHtml(data.employerOrgName)}</p>
         <div class="signature-line-block">
           ${data.employerSignatureImageHtml}
-          <p class="signature-caption">${escapeHtml(copy.signatureLabel)}</p>
+          <p class="signature-caption">${escapeHtml(signatureLabel)}</p>
         </div>
         <div class="signature-line-block">
           <p class="signature-filled">${escapeHtml(data.employerSignatoryName)}</p>
-          <p class="signature-caption">${escapeHtml(copy.nameLabel)}</p>
+          <p class="signature-caption">${escapeHtml(nameLabel)}</p>
         </div>
         <div class="signature-line-block">
           <p class="signature-filled">${escapeHtml(data.employerSignatoryTitle)}</p>
-          <p class="signature-caption">${escapeHtml(copy.titleLabel)}</p>
+          <p class="signature-caption">${escapeHtml(titleLabel)}</p>
         </div>
         <div class="signature-line-block">
           ${
@@ -571,11 +673,131 @@ export function renderCommercialProposalHtml(
               ? `<p class="signature-filled">${escapeHtml(data.employerSignedDate)}</p>`
               : '<span class="signature-line"></span>'
           }
-          <p class="signature-caption">${escapeHtml(copy.dateLabel)}</p>
+          <p class="signature-caption">${escapeHtml(dateLabel)}</p>
         </div>
       </div>
     </div>
-  </div>
+  </div>`;
+}
+
+function renderInterleavedSection(
+  locales: SupportedLocale[],
+  dataByLocale: Record<string, CommercialProposalRenderData>,
+  renderSection: (
+    data: CommercialProposalRenderData,
+    copy: CommercialProposalCopy,
+  ) => string,
+  variant: 'clause' | 'section' = 'clause',
+): string {
+  return locales
+    .map((locale) => {
+      const data = dataByLocale[locale];
+      const copy = commercialProposalCopy(locale);
+      const html = renderSection(data, copy);
+      if (!html.trim()) return '';
+      return wrapLocaleBlock(html, locale, variant);
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+export function renderMultilingualCommercialProposalHtml(
+  dataByLocale: Record<SupportedLocale, CommercialProposalRenderData>,
+  locales: SupportedLocale[],
+): string {
+  const ordered = sortCommercialProposalLocales(locales);
+  const primary = ordered[0] ?? DEFAULT_LOCALE;
+  const primaryData = dataByLocale[primary];
+  const primaryCopy = commercialProposalCopy(primary);
+  const documentTitle = primaryData.documentTitle;
+
+  const headers = ordered
+    .map((locale) =>
+      wrapLocaleBlock(
+        renderHeaderAndParties(dataByLocale[locale], commercialProposalCopy(locale)),
+        locale,
+        'header',
+      ),
+    )
+    .join('\n');
+
+  const bodySections = [
+    renderInterleavedSection(ordered, dataByLocale, renderClause1),
+    renderInterleavedSection(ordered, dataByLocale, renderClause2),
+    renderInterleavedSection(ordered, dataByLocale, renderClause3),
+    renderInterleavedSection(ordered, dataByLocale, renderBoqSection, 'section'),
+    renderInterleavedSection(ordered, dataByLocale, renderAnnex2Section, 'section'),
+    renderInterleavedSection(ordered, dataByLocale, renderClause5),
+    renderInterleavedSection(ordered, dataByLocale, renderClause6),
+    renderInterleavedSection(
+      ordered,
+      dataByLocale,
+      (_data, copy) => renderForceMajeure(copy),
+    ),
+    renderInterleavedSection(ordered, dataByLocale, renderClarifications),
+    renderInterleavedSection(ordered, dataByLocale, renderSpecialConditions),
+  ].join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="multi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(documentTitle)}</title>
+  <style>${commercialProposalStyles()}</style>
+</head>
+<body>
+  ${headers}
+  ${bodySections}
+  ${renderSignaturesBlock(primaryData, ordered)}
+  <p class="footer-note">
+    ${escapeHtml(primaryCopy.footerNote)}
+  </p>
+</body>
+</html>`;
+}
+
+export function renderCommercialProposalHtml(
+  data: CommercialProposalRenderData,
+): string {
+  const copy = commercialProposalCopy(data.locale);
+  const boqSection = renderBoqSection(data, copy);
+  const annex2Section = renderAnnex2Section(data, copy);
+  const clarificationSection = renderClarifications(data, copy);
+  const specialConditionsSection = renderSpecialConditions(data, copy);
+
+  return `<!DOCTYPE html>
+<html lang="${escapeHtml(data.locale)}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(data.documentTitle)}</title>
+  <style>${commercialProposalStyles()}</style>
+</head>
+<body>
+  ${renderHeaderAndParties(data, copy)}
+
+  ${renderClause1(data, copy)}
+
+  ${renderClause2(data, copy)}
+
+  ${renderClause3(data, copy)}
+
+  ${boqSection}
+
+  ${annex2Section}
+
+  ${renderClause5(data, copy)}
+
+  ${renderClause6(data, copy)}
+
+  ${renderForceMajeure(copy)}
+
+  ${clarificationSection}
+
+  ${specialConditionsSection}
+
+  ${renderSignaturesBlock(data, [data.locale as SupportedLocale])}
 
   <p class="footer-note">
     ${escapeHtml(copy.footerNote)}
