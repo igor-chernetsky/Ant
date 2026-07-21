@@ -4294,6 +4294,47 @@ select:disabled {
   font-size: 0.9rem;
 }
 
+.contract-secondary-details {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface, #fff) 92%, var(--accent) 8%);
+  overflow: hidden;
+}
+
+.contract-secondary-details-summary {
+  cursor: pointer;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+  list-style: none;
+}
+
+.contract-secondary-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.contract-secondary-details-summary::before {
+  content: '▸ ';
+  display: inline-block;
+  color: var(--accent);
+  transition: transform 0.15s ease;
+}
+
+.contract-secondary-details[open] .contract-secondary-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.contract-secondary-details-body {
+  padding: 0 0.85rem 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.client-contract-chat {
+  margin-top: 1.1rem;
+}
+
 .client-contract-header {
   display: flex;
   flex-wrap: wrap;

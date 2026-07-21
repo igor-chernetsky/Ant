@@ -879,6 +879,7 @@ export const thExtended = {
     hint: "ตรวจสอบร่างสัญญาและลงนามเพื่อเปิดใช้งานโครงการ",
     viewApplications: "ดูใบสมัคร",
     loading: "กำลังโหลดสัญญา…",
+    commercialProposalToggle: "เงื่อนไขข้อเสนอเชิงพาณิชย์",
     signingTitle: "การลงนามสัญญา",
     signingHint: "ทั้งสองฝ่ายต้องลงนามร่างสัญญาก่อนโครงการจะเริ่ม",
     drawSignatureOptional: "วาดลายเซ็น (ไม่บังคับ)",

@@ -242,7 +242,7 @@ export function ContractorProjectPanel({
     !submitted &&
     !selected;
   const showOpenChat =
-    !structuredQa && (inClarification || enrolled || submitted);
+    !structuredQa && (inClarification || enrolled || submitted || selected);
   const showPostAwardChat = selected && structuredQa;
   const latestClientOffer = latestClientCounterOffer(counterOffers);
   const clientCounterOffers = counterOffers.filter(
@@ -506,19 +506,26 @@ export function ContractorProjectPanel({
         </div>
       )}
 
-      {participation.canEditCommercialProposal && myBid && (
-        <div className="tender-subsection">
-          <ClientCommercialProposalPanel
-            projectId={projectId}
-            bid={myBid}
-            audience="contractor"
-            projectTitle={projectTitle}
-            projectDistrict={projectDistrict}
-            projectContractTerms={participation.projectContractTerms}
-            readOnly={participation.contractFullySigned}
-            onBidUpdated={() => void loadParticipation()}
-          />
-        </div>
+      {(participation.canEditCommercialProposal ||
+        (selected && myBid)) &&
+        myBid && (
+        <details className="contract-secondary-details">
+          <summary className="contract-secondary-details-summary">
+            {t('contractPanel.commercialProposalToggle')}
+          </summary>
+          <div className="contract-secondary-details-body">
+            <ClientCommercialProposalPanel
+              projectId={projectId}
+              bid={myBid}
+              audience="contractor"
+              projectTitle={projectTitle}
+              projectDistrict={projectDistrict}
+              projectContractTerms={participation.projectContractTerms}
+              readOnly={participation.contractFullySigned}
+              onBidUpdated={() => void loadParticipation()}
+            />
+          </div>
+        </details>
       )}
 
       {participation.canSubmitProposal && participation.tenderId && (

@@ -2,12 +2,15 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { BidChat } from '@/components/BidChat';
+import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPill';
+import { useSession } from '@/components/SessionProvider';
+import { useTranslation } from '@/components/LocaleProvider';
 import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
 import { fetchProject, type Project } from '@/lib/projects';
-import { fetchProjectTender, type Tender } from '@/lib/tendering';
-import { useTranslation } from '@/components/LocaleProvider';
+import { fetchProjectTender, type Bid, type Tender } from '@/lib/tendering';
 
 interface ClientContractPanelProps {
   projectId: string;
@@ -25,6 +28,7 @@ export function ClientContractPanel({
   onProjectUpdated,
 }: ClientContractPanelProps) {
   const { t } = useTranslation();
+  const { me } = useSession();
   const [tender, setTender] = useState<Tender | null>(null);
   const [contract, setContract] = useState<ProjectContract | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +82,24 @@ export function ClientContractPanel({
     void fetchProject(projectId).then(onProjectUpdated);
   };
 
+  const handleBidUpdated = (updated: Bid) => {
+    setTender((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        bids: current.bids.map((bid) =>
+          bid.id === updated.id ? { ...bid, ...updated } : bid,
+        ),
+      };
+    });
+  };
+
+  const contractReadOnly = contract?.fullySigned ?? false;
+  const showWinnerChat =
+    Boolean(me?.id && awardedBidId) &&
+    (project.clarificationMode === 'open_chat' ||
+      project.clarificationMode === 'structured_qa');
+
   return (
     <section className="card client-contract-card">
       <div className="client-contract-header">
@@ -94,20 +116,55 @@ export function ClientContractPanel({
       {loading ? (
         <p className="muted">{t('contractPanel.loading')}</p>
       ) : awardedBidId ? (
-        <ContractSigningPanel
-          projectId={projectId}
-          bidId={awardedBidId}
-          hideHeading
-          contract={contract}
-          bidAmount={awardedBid?.amount}
-          currency={tender?.currency ?? 'THB'}
-          onSigned={handleSigned}
-          onAwardReleased={() => {
-            void loadTender();
-            void loadContract();
-            onProjectUpdated?.(project);
-          }}
-        />
+        <>
+          <ContractSigningPanel
+            projectId={projectId}
+            bidId={awardedBidId}
+            hideHeading
+            contract={contract}
+            bidAmount={awardedBid?.amount}
+            currency={tender?.currency ?? 'THB'}
+            onSigned={handleSigned}
+            onAwardReleased={() => {
+              void loadTender();
+              void loadContract();
+              onProjectUpdated?.(project);
+            }}
+          />
+
+          {awardedBid && (
+            <details className="contract-secondary-details">
+              <summary className="contract-secondary-details-summary">
+                {t('contractPanel.commercialProposalToggle')}
+              </summary>
+              <div className="contract-secondary-details-body">
+                <ClientCommercialProposalPanel
+                  projectId={projectId}
+                  bid={awardedBid}
+                  projectTitle={project.title}
+                  projectDistrict={project.district}
+                  projectContractTerms={tender?.projectContractTerms}
+                  audience="client"
+                  readOnly={contractReadOnly}
+                  onBidUpdated={handleBidUpdated}
+                />
+              </div>
+            </details>
+          )}
+
+          {showWinnerChat && me?.id && (
+            <div className="tender-subsection client-contract-chat">
+              <BidChat
+                bidId={awardedBidId}
+                projectId={projectId}
+                currentUserId={me.id}
+                title={t('bidApplication.chatWith', {
+                  name: awardedBid?.companyName ?? t('common.contractor'),
+                })}
+              />
+            </div>
+          )}
+        </>
       ) : null}
     </section>
   );

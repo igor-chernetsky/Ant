@@ -879,6 +879,7 @@ export const enExtended = {
     hint: "Review the contract draft and sign to activate the project.",
     viewApplications: "View applications",
     loading: "Loading contract…",
+    commercialProposalToggle: "Commercial proposal terms",
     signingTitle: "Contract signing",
     signingHint: "Both parties must sign the contract draft before the project becomes active.",
     drawSignatureOptional: "Draw signature (optional)",
