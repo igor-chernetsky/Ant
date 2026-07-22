@@ -880,6 +880,18 @@ export const enExtended = {
     viewApplications: "View applications",
     loading: "Loading contract…",
     commercialProposalToggle: "Commercial proposal terms",
+    editorToggle: "Contract document (English)",
+    editorHint:
+      "Edit the English contract text. This is the master for the English PDF; translations use the structured template for now.",
+    editorReadOnlyHint:
+      "The contract is fully signed. The English document is shown read-only.",
+    saveDocument: "Save document",
+    documentSaved: "Document saved.",
+    saveDocumentFailed: "Failed to save contract document",
+    toolbarBold: "Bold",
+    toolbarItalic: "Italic",
+    toolbarHeading: "Heading",
+    toolbarList: "List",
     signingTitle: "Contract signing",
     signingHint: "Both parties must sign the contract draft before the project becomes active.",
     drawSignatureOptional: "Draw signature (optional)",

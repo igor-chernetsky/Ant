@@ -880,6 +880,18 @@ export const thExtended = {
     viewApplications: "ดูใบสมัคร",
     loading: "กำลังโหลดสัญญา…",
     commercialProposalToggle: "เงื่อนไขข้อเสนอเชิงพาณิชย์",
+    editorToggle: "เอกสารสัญญา (ภาษาอังกฤษ)",
+    editorHint:
+      "แก้ไขข้อความสัญญาภาษาอังกฤษ ใช้เป็นต้นฉบับสำหรับ PDF ภาษาอังกฤษ ส่วนหลายภาษายังใช้เทมเพลต",
+    editorReadOnlyHint:
+      "ลงนามครบแล้ว เอกสารภาษาอังกฤษแสดงแบบอ่านอย่างเดียว",
+    saveDocument: "บันทึกเอกสาร",
+    documentSaved: "บันทึกเอกสารแล้ว",
+    saveDocumentFailed: "บันทึกเอกสารสัญญาไม่สำเร็จ",
+    toolbarBold: "ตัวหนา",
+    toolbarItalic: "ตัวเอียง",
+    toolbarHeading: "หัวข้อ",
+    toolbarList: "รายการ",
     signingTitle: "การลงนามสัญญา",
     signingHint: "ทั้งสองฝ่ายต้องลงนามร่างสัญญาก่อนโครงการจะเริ่ม",
     drawSignatureOptional: "วาดลายเซ็น (ไม่บังคับ)",

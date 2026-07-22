@@ -1,8 +1,10 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import {
   Contract,
@@ -13,11 +15,14 @@ import {
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CommercialProposalService } from './commercial-proposal.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
+import { sanitizeContractBodyHtml } from './contract-html.sanitize';
 import { ContractResponse } from './contracts.types';
 import {
   normalizeOptionalSignatureDataUrl,
   type SignContractDto,
+  type UpdateContractDocumentDto,
 } from './contracts.types';
 
 type ContractParticipant = {
@@ -40,6 +45,8 @@ export class ContractsService {
     private readonly prisma: PrismaService,
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly notifications: NotificationsService,
+    @Inject(forwardRef(() => CommercialProposalService))
+    private readonly commercialProposal: CommercialProposalService,
   ) {}
 
   private toResponse(
@@ -55,6 +62,10 @@ export class ContractsService {
       contract.status === ContractStatus.pending_signatures &&
       ((participant.isClient && !clientSigned) ||
         (participant.isSelectedContractor && !contractorSigned));
+    const canEditDocument =
+      !fullySigned &&
+      project.status === ProjectStatus.awarded &&
+      (participant.isClient || participant.isSelectedContractor);
 
     return {
       id: contract.id,
@@ -66,7 +77,9 @@ export class ContractsService {
       contractorSignedAt: contract.contractorSignedAt?.toISOString() ?? null,
       hasClientSignature: Boolean(contract.clientSignatureDataUrl),
       hasContractorSignature: Boolean(contract.contractorSignatureDataUrl),
+      englishBodyHtml: contract.englishBodyHtml ?? null,
       canSign,
+      canEditDocument,
       fullySigned,
     };
   }
@@ -115,12 +128,101 @@ export class ContractsService {
     projectId: string,
   ): Promise<ContractResponse | null> {
     const participant = await this.loadParticipant(userId, projectId);
-    const contract = participant.project.contract;
+    let contract = participant.project.contract;
     if (!contract) {
       return null;
     }
 
+    if (!contract.englishBodyHtml?.trim()) {
+      contract = await this.ensureEnglishBodyHtml(contract);
+    }
+
     return this.toResponse(contract, participant.project, participant);
+  }
+
+  async updateDocument(
+    userId: string,
+    projectId: string,
+    dto: UpdateContractDocumentDto,
+  ): Promise<ContractResponse> {
+    const participant = await this.loadParticipant(userId, projectId);
+    const { project } = participant;
+    const contract = project.contract;
+
+    if (!contract) {
+      throw new NotFoundException('Contract not found for this project');
+    }
+
+    if (contract.status === ContractStatus.fully_signed) {
+      throw new BadRequestException(
+        'Fully signed contracts cannot be edited',
+      );
+    }
+
+    if (project.status !== ProjectStatus.awarded) {
+      throw new BadRequestException(
+        'Contract document can only be edited while awaiting signatures',
+      );
+    }
+
+    let sanitized: string;
+    try {
+      sanitized = sanitizeContractBodyHtml(dto.englishBodyHtml);
+    } catch (err: unknown) {
+      throw new BadRequestException(
+        err instanceof Error ? err.message : 'Invalid document content',
+      );
+    }
+
+    const previousBody = (contract.englishBodyHtml ?? '').trim();
+    if (previousBody === sanitized) {
+      return this.toResponse(contract, project, participant);
+    }
+
+    const updated = await this.prisma.contract.update({
+      where: { id: contract.id },
+      data: { englishBodyHtml: sanitized },
+    });
+
+    const editorRole = participant.isClient ? 'client' : 'contractor';
+    const contractorUserId =
+      project.tender?.awardedBid?.contractor.userId ?? null;
+    const recipientUserId =
+      editorRole === 'client' ? contractorUserId : project.clientId;
+    const recipientRole =
+      editorRole === 'client' ? 'contractor' : 'client';
+
+    if (recipientUserId) {
+      this.notifications.dispatch(
+        this.notifications.notifyContractDocumentUpdated({
+          recipientUserId,
+          recipientRole,
+          editorRole,
+          projectId,
+          projectTitle: project.title,
+        }),
+      );
+    }
+
+    return this.toResponse(updated, project, participant);
+  }
+
+  async ensureEnglishBodyHtml(contract: Contract): Promise<Contract> {
+    if (contract.englishBodyHtml?.trim()) {
+      return contract;
+    }
+
+    try {
+      const body = await this.commercialProposal.generateEnglishBodyHtml(
+        contract.bidId,
+      );
+      return this.prisma.contract.update({
+        where: { id: contract.id },
+        data: { englishBodyHtml: body },
+      });
+    } catch {
+      return contract;
+    }
   }
 
   async signForProject(
@@ -251,5 +353,16 @@ export class ContractsService {
         status: ContractStatus.pending_signatures,
       },
     });
+  }
+
+  /** Populate englishBodyHtml after award transaction commits. */
+  async generateEnglishBodyAfterAward(projectId: string): Promise<void> {
+    const contract = await this.prisma.contract.findUnique({
+      where: { projectId },
+    });
+    if (!contract || contract.englishBodyHtml?.trim()) {
+      return;
+    }
+    await this.ensureEnglishBodyHtml(contract);
   }
 }

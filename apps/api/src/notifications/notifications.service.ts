@@ -526,6 +526,34 @@ export class NotificationsService {
     ]);
   }
 
+  async notifyContractDocumentUpdated(params: {
+    recipientUserId: string;
+    recipientRole: 'client' | 'contractor';
+    editorRole: 'client' | 'contractor';
+    projectId: string;
+    projectTitle: string;
+  }): Promise<void> {
+    const editorLabel =
+      params.editorRole === 'client' ? 'The client' : 'The contractor';
+    const prefFlag =
+      params.recipientRole === 'client'
+        ? 'emailClientBidActivity'
+        : 'emailContractorUpdates';
+
+    await this.sendToUser({
+      userId: params.recipientUserId,
+      prefFlag,
+      kind: NotificationEmailKind.contract_terms_updated,
+      projectId: params.projectId,
+      subject: `Contract document updated — ${params.projectTitle}`,
+      title: 'Contract document was updated',
+      bodyHtml: `<p>${editorLabel} updated the English contract document for <strong>${escapeHtml(params.projectTitle)}</strong> before signing.</p><p>Open the project, review the contract editor, and continue signing when you are ready.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'View project',
+      textBody: `${editorLabel} updated the contract document for ${params.projectTitle}.`,
+    });
+  }
+
   async notifyContractTermsUpdated(params: {
     recipientUserId: string;
     recipientRole: 'client' | 'contractor';

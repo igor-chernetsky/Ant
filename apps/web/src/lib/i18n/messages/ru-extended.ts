@@ -880,6 +880,18 @@ export const ruExtended = {
     viewApplications: "Просмотреть заявки",
     loading: "Загрузка договора…",
     commercialProposalToggle: "Условия коммерческого предложения",
+    editorToggle: "Документ договора (английский)",
+    editorHint:
+      "Редактируйте английский текст договора. Он — основа для английского PDF; переводы пока идут из шаблона.",
+    editorReadOnlyHint:
+      "Договор полностью подписан. Английский документ доступен только для просмотра.",
+    saveDocument: "Сохранить документ",
+    documentSaved: "Документ сохранён.",
+    saveDocumentFailed: "Не удалось сохранить документ договора",
+    toolbarBold: "Жирный",
+    toolbarItalic: "Курсив",
+    toolbarHeading: "Заголовок",
+    toolbarList: "Список",
     signingTitle: "Подписание договора",
     signingHint: "Обе стороны должны подписать черновик договора перед началом работ.",
     drawSignatureOptional: "Нарисовать подпись (необязательно)",

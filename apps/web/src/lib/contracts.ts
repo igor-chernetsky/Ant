@@ -12,7 +12,9 @@ export interface ProjectContract {
   contractorSignedAt: string | null;
   hasClientSignature: boolean;
   hasContractorSignature: boolean;
+  englishBodyHtml: string | null;
   canSign: boolean;
+  canEditDocument: boolean;
   fullySigned: boolean;
 }
 
@@ -63,6 +65,26 @@ export async function signProjectContract(
   );
   if (!response.ok) {
     await parseError(response, 'Failed to sign contract');
+  }
+  return response.json() as Promise<ProjectContract>;
+}
+
+export async function updateProjectContractDocument(
+  projectId: string,
+  englishBodyHtml: string,
+  options?: { asContractor?: boolean },
+): Promise<ProjectContract> {
+  const asContractor = Boolean(options?.asContractor);
+  const path = asContractor
+    ? `/api/contractor/projects/${encodeURIComponent(projectId)}/contract/document`
+    : `/api/projects/${encodeURIComponent(projectId)}/contract/document`;
+  const response = await fetchWithAuth(path, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ englishBodyHtml }),
+  });
+  if (!response.ok) {
+    await parseError(response, 'Failed to save contract document');
   }
   return response.json() as Promise<ProjectContract>;
 }

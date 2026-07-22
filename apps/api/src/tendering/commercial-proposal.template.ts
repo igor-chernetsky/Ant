@@ -444,6 +444,25 @@ function commercialProposalStyles(): string {
     }`;
 }
 
+/** Wrap TipTap/editor body HTML into a printable English contract document. */
+export function wrapEnglishContractBodyForPdf(
+  bodyHtml: string,
+  documentTitle: string,
+): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(documentTitle)}</title>
+  <style>${commercialProposalStyles()}</style>
+</head>
+<body>
+  ${bodyHtml}
+</body>
+</html>`;
+}
+
 function wrapLocaleBlock(
   html: string,
   locale: SupportedLocale,

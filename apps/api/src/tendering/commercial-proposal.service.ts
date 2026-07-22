@@ -22,6 +22,7 @@ import {
   buildCommercialProposalData,
   renderCommercialProposalHtml,
   renderMultilingualCommercialProposalHtml,
+  wrapEnglishContractBodyForPdf,
 } from './commercial-proposal.template';
 import type { CommercialProposalRenderData } from './commercial-proposal.types';
 import { BidTermsV1, BidContractTerms } from './tendering.types';
@@ -31,6 +32,7 @@ import {
   parseCommercialProposalLocales,
   sortCommercialProposalLocales,
 } from './commercial-proposal.i18n';
+import { extractBodyInnerHtml } from './contract-html.sanitize';
 
 const CLIENT_DOWNLOADABLE_BID_STATUSES: BidStatus[] = [
   BidStatus.submitted,
@@ -176,6 +178,17 @@ export class CommercialProposalService {
         };
       }
 
+      if (locales[0] === 'en') {
+        const edited = await this.tryRenderEditedEnglishPdf(
+          userId,
+          bidId,
+          projectId,
+        );
+        if (edited) {
+          return edited;
+        }
+      }
+
       const { pdf, fileName } = await this.renderPdf(
         userId,
         bidId,
@@ -211,6 +224,29 @@ export class CommercialProposalService {
         name: uniqueZipName(fileName, usedNames),
         buffer: pdf,
       });
+    } else if (locales[0] === 'en') {
+      const edited = await this.tryRenderEditedEnglishPdf(
+        userId,
+        bidId,
+        projectId,
+      );
+      if (edited) {
+        entries.push({
+          name: uniqueZipName(edited.fileName, usedNames),
+          buffer: edited.buffer,
+        });
+      } else {
+        const { pdf, fileName } = await this.renderPdf(
+          userId,
+          bidId,
+          projectId,
+          locales[0],
+        );
+        entries.push({
+          name: uniqueZipName(fileName, usedNames),
+          buffer: pdf,
+        });
+      }
     } else {
       const { pdf, fileName } = await this.renderPdf(
         userId,
@@ -269,6 +305,52 @@ export class CommercialProposalService {
       withAttachments: true,
     });
     return { zip: result.buffer, fileName: result.fileName };
+  }
+
+  private async tryRenderEditedEnglishPdf(
+    userId: string,
+    bidId: string,
+    projectId?: string,
+  ): Promise<{ buffer: Buffer; fileName: string; contentType: string } | null> {
+    const bid = await this.loadAndAuthorizeBid(userId, bidId, projectId);
+    const contract = await this.prisma.contract.findUnique({
+      where: { bidId: bid.id },
+      select: { englishBodyHtml: true },
+    });
+    const body = contract?.englishBodyHtml?.trim();
+    if (!body) {
+      return null;
+    }
+
+    const title = bid.tender.project.title;
+    const html = wrapEnglishContractBodyForPdf(body, title);
+    const pdf = await this.htmlToPdf.render(html);
+    const slug = slugifyProjectTitle(title, bidId.slice(0, 8));
+    return {
+      buffer: pdf,
+      fileName: `contract-draft-${slug}.pdf`,
+      contentType: 'application/pdf',
+    };
+  }
+
+  async generateEnglishBodyHtml(bidId: string): Promise<string> {
+    const bid = await this.prisma.bid.findUnique({
+      where: { id: bidId },
+      include: {
+        contractor: { include: { user: true } },
+        tender: { include: { project: { include: { client: true } } } },
+      },
+    });
+    if (!bid) {
+      throw new NotFoundException('Bid not found');
+    }
+    if (bid.amount == null) {
+      throw new BadRequestException('Bid has no contract amount');
+    }
+
+    const data = await this.buildProposalDataForLocale(bid, 'en');
+    const fullHtml = renderCommercialProposalHtml(data);
+    return extractBodyInnerHtml(fullHtml);
   }
 
   private async loadAndAuthorizeBid(

@@ -741,6 +741,8 @@ export class TendersService {
       return nextTender;
     });
 
+    await this.contracts.generateEnglishBodyAfterAward(projectId);
+
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });

@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
-import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
+import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPill';
 import { useSession } from '@/components/SessionProvider';
 import { useTranslation } from '@/components/LocaleProvider';
 import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
 import { fetchProject, type Project } from '@/lib/projects';
-import { fetchProjectTender, type Bid, type Tender } from '@/lib/tendering';
+import { fetchProjectTender, type Tender } from '@/lib/tendering';
 
 interface ClientContractPanelProps {
   projectId: string;
@@ -82,19 +82,6 @@ export function ClientContractPanel({
     void fetchProject(projectId).then(onProjectUpdated);
   };
 
-  const handleBidUpdated = (updated: Bid) => {
-    setTender((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        bids: current.bids.map((bid) =>
-          bid.id === updated.id ? { ...bid, ...updated } : bid,
-        ),
-      };
-    });
-  };
-
-  const contractReadOnly = contract?.fullySigned ?? false;
   const showWinnerChat =
     Boolean(me?.id && awardedBidId) &&
     (project.clarificationMode === 'open_chat' ||
@@ -132,24 +119,12 @@ export function ClientContractPanel({
             }}
           />
 
-          {awardedBid && (
-            <details className="contract-secondary-details">
-              <summary className="contract-secondary-details-summary">
-                {t('contractPanel.commercialProposalToggle')}
-              </summary>
-              <div className="contract-secondary-details-body">
-                <ClientCommercialProposalPanel
-                  projectId={projectId}
-                  bid={awardedBid}
-                  projectTitle={project.title}
-                  projectDistrict={project.district}
-                  projectContractTerms={tender?.projectContractTerms}
-                  audience="client"
-                  readOnly={contractReadOnly}
-                  onBidUpdated={handleBidUpdated}
-                />
-              </div>
-            </details>
+          {contract && (
+            <ContractDocumentEditor
+              projectId={projectId}
+              contract={contract}
+              onSaved={setContract}
+            />
           )}
 
           {showWinnerChat && me?.id && (

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
-import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
+import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidOfferSummary } from '@/components/BidOfferSummary';
@@ -13,6 +13,7 @@ import { useTranslation } from '@/components/LocaleProvider';
 import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
 import {
   fetchBidCounterOffers,
   fetchContractorProjectParticipation,
@@ -84,6 +85,7 @@ export function ContractorProjectPanel({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contract, setContract] = useState<ProjectContract | null>(null);
 
   const formatParticipationStatus = (
     data: ContractorProjectParticipation,
@@ -109,6 +111,18 @@ export function ContractorProjectPanel({
       } else {
         setCounterOffers([]);
       }
+      if (data?.myBid?.status === 'selected') {
+        try {
+          const nextContract = await fetchProjectContract(projectId, {
+            asContractor: true,
+          });
+          setContract(nextContract);
+        } catch {
+          setContract(null);
+        }
+      } else {
+        setContract(null);
+      }
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -117,6 +131,7 @@ export function ContractorProjectPanel({
       );
       setParticipation(null);
       setCounterOffers([]);
+      setContract(null);
     } finally {
       setLoading(false);
     }
@@ -483,9 +498,21 @@ export function ContractorProjectPanel({
             asContractor
             bidAmount={myBid.amount}
             currency="THB"
-            onSigned={() => void loadParticipation()}
+            contract={contract}
+            onSigned={(updated) => {
+              setContract(updated);
+              void loadParticipation();
+            }}
             onAwardReleased={() => void loadParticipation()}
           />
+          {contract && (
+            <ContractDocumentEditor
+              projectId={projectId}
+              contract={contract}
+              asContractor
+              onSaved={setContract}
+            />
+          )}
           {participation.canWithdrawFromAward && (
             <div className="participation-actions">
               <p className="muted participation-actions-hint">
@@ -504,28 +531,6 @@ export function ContractorProjectPanel({
             </div>
           )}
         </div>
-      )}
-
-      {(participation.canEditCommercialProposal ||
-        (selected && myBid)) &&
-        myBid && (
-        <details className="contract-secondary-details">
-          <summary className="contract-secondary-details-summary">
-            {t('contractPanel.commercialProposalToggle')}
-          </summary>
-          <div className="contract-secondary-details-body">
-            <ClientCommercialProposalPanel
-              projectId={projectId}
-              bid={myBid}
-              audience="contractor"
-              projectTitle={projectTitle}
-              projectDistrict={projectDistrict}
-              projectContractTerms={participation.projectContractTerms}
-              readOnly={participation.contractFullySigned}
-              onBidUpdated={() => void loadParticipation()}
-            />
-          </div>
-        </details>
       )}
 
       {participation.canSubmitProposal && participation.tenderId && (

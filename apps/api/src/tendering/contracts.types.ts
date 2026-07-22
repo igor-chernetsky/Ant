@@ -5,6 +5,10 @@ export interface SignContractDto {
   signatureDataUrl?: string | null;
 }
 
+export interface UpdateContractDocumentDto {
+  englishBodyHtml: string;
+}
+
 export interface ContractResponse {
   id: string;
   projectId: string;
@@ -15,7 +19,9 @@ export interface ContractResponse {
   contractorSignedAt: string | null;
   hasClientSignature: boolean;
   hasContractorSignature: boolean;
+  englishBodyHtml: string | null;
   canSign: boolean;
+  canEditDocument: boolean;
   fullySigned: boolean;
 }
 

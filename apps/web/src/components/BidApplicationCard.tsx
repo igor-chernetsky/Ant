@@ -171,10 +171,8 @@ export function BidApplicationCard({
           />
 
           {clientCounterOffer &&
-            (bid.status === 'submitted' ||
-              bid.status === 'selected' ||
-              bid.status === 'rejected') &&
-            (tenderStatus !== 'awarded' || bid.status === 'selected') &&
+            (bid.status === 'submitted' || bid.status === 'rejected') &&
+            tenderStatus !== 'awarded' &&
             !contractReadOnly && (
               <ClientCommercialProposalPanel
                 projectId={clientCounterOffer.projectId}

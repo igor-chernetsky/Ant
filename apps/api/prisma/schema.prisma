@@ -600,6 +600,7 @@ model Contract {
   contractorSignedAt       DateTime?      @map("contractor_signed_at")
   clientSignatureDataUrl   String?        @map("client_signature_data_url") @db.Text
   contractorSignatureDataUrl String?      @map("contractor_signature_data_url") @db.Text
+  englishBodyHtml          String?        @map("english_body_html") @db.Text
   createdAt                DateTime       @default(now()) @map("created_at")
   updatedAt                DateTime       @updatedAt @map("updated_at")
 
