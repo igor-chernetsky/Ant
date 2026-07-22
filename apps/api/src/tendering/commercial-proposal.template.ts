@@ -444,7 +444,18 @@ function commercialProposalStyles(): string {
     }`;
 }
 
-/** Wrap TipTap/editor body HTML into a printable English contract document. */
+/** Signatures + footer appended when rendering the edited EN body to PDF. */
+export function englishContractClosingHtml(
+  data: CommercialProposalRenderData,
+): string {
+  const copy = commercialProposalCopy(data.locale);
+  return `
+  ${renderSignaturesBlock(data, [data.locale as SupportedLocale])}
+  <p class="footer-note">
+    ${escapeHtml(copy.footerNote)}
+  </p>`;
+}
+
 export function wrapEnglishContractBodyForPdf(
   bodyHtml: string,
   documentTitle: string,

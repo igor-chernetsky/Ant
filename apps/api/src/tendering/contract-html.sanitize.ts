@@ -88,4 +88,47 @@ export function extractBodyInnerHtml(fullHtml: string): string {
   return (match?.[1] ?? fullHtml).trim();
 }
 
+/**
+ * Remove the party signatures block from editor HTML.
+ * Signatures are rendered live when building the PDF, not edited in TipTap.
+ */
+export function stripContractSignaturesBlock(html: string): string {
+  let out = html;
+
+  const openRe =
+    /<div\b[^>]*\bclass=(["'])[^"']*\bsignatures\b[^"']*\1[^>]*>/i;
+  const openMatch = openRe.exec(out);
+  if (openMatch) {
+    const start = openMatch.index;
+    let depth = 1;
+    let pos = out.indexOf('>', start) + 1;
+    const lower = out.toLowerCase();
+    while (pos < out.length && depth > 0) {
+      const nextOpen = lower.indexOf('<div', pos);
+      const nextClose = lower.indexOf('</div>', pos);
+      if (nextClose < 0) {
+        break;
+      }
+      if (nextOpen >= 0 && nextOpen < nextClose) {
+        depth += 1;
+        pos = nextOpen + 4;
+      } else {
+        depth -= 1;
+        pos = nextClose + 6;
+      }
+    }
+    out = `${out.slice(0, start)}${out.slice(pos)}`;
+  } else {
+    // TipTap may unwrap the signatures div — drop from EN heading onward.
+    out = out.replace(/<h2\b[^>]*>\s*Signatures\s*<\/h2>[\s\S]*$/i, '');
+  }
+
+  out = out.replace(
+    /<p\b[^>]*\bclass=(["'])[^"']*\bfooter-note\b[^"']*\1[^>]*>[\s\S]*?<\/p>/gi,
+    '',
+  );
+
+  return out.trim();
+}
+
 export { MAX_CONTRACT_BODY_HTML_LENGTH };

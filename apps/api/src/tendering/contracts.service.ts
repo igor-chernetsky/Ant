@@ -17,7 +17,10 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
-import { sanitizeContractBodyHtml } from './contract-html.sanitize';
+import {
+  sanitizeContractBodyHtml,
+  stripContractSignaturesBlock,
+} from './contract-html.sanitize';
 import { ContractResponse } from './contracts.types';
 import {
   normalizeOptionalSignatureDataUrl,
@@ -77,7 +80,9 @@ export class ContractsService {
       contractorSignedAt: contract.contractorSignedAt?.toISOString() ?? null,
       hasClientSignature: Boolean(contract.clientSignatureDataUrl),
       hasContractorSignature: Boolean(contract.contractorSignatureDataUrl),
-      englishBodyHtml: contract.englishBodyHtml ?? null,
+      englishBodyHtml: contract.englishBodyHtml
+        ? stripContractSignaturesBlock(contract.englishBodyHtml)
+        : null,
       canSign,
       canEditDocument,
       fullySigned,
@@ -167,7 +172,9 @@ export class ContractsService {
 
     let sanitized: string;
     try {
-      sanitized = sanitizeContractBodyHtml(dto.englishBodyHtml);
+      sanitized = stripContractSignaturesBlock(
+        sanitizeContractBodyHtml(dto.englishBodyHtml),
+      );
     } catch (err: unknown) {
       throw new BadRequestException(
         err instanceof Error ? err.message : 'Invalid document content',

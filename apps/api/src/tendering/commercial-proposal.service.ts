@@ -20,6 +20,7 @@ import {
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
   buildCommercialProposalData,
+  englishContractClosingHtml,
   renderCommercialProposalHtml,
   renderMultilingualCommercialProposalHtml,
   wrapEnglishContractBodyForPdf,
@@ -32,7 +33,10 @@ import {
   parseCommercialProposalLocales,
   sortCommercialProposalLocales,
 } from './commercial-proposal.i18n';
-import { extractBodyInnerHtml } from './contract-html.sanitize';
+import {
+  extractBodyInnerHtml,
+  stripContractSignaturesBlock,
+} from './contract-html.sanitize';
 
 const CLIENT_DOWNLOADABLE_BID_STATUSES: BidStatus[] = [
   BidStatus.submitted,
@@ -317,12 +321,14 @@ export class CommercialProposalService {
       where: { bidId: bid.id },
       select: { englishBodyHtml: true },
     });
-    const body = contract?.englishBodyHtml?.trim();
-    if (!body) {
+    const rawBody = contract?.englishBodyHtml?.trim();
+    if (!rawBody) {
       return null;
     }
 
     const title = bid.tender.project.title;
+    const data = await this.buildProposalDataForLocale(bid, 'en');
+    const body = `${stripContractSignaturesBlock(rawBody)}\n${englishContractClosingHtml(data)}`;
     const html = wrapEnglishContractBodyForPdf(body, title);
     const pdf = await this.htmlToPdf.render(html);
     const slug = slugifyProjectTitle(title, bidId.slice(0, 8));
@@ -350,7 +356,7 @@ export class CommercialProposalService {
 
     const data = await this.buildProposalDataForLocale(bid, 'en');
     const fullHtml = renderCommercialProposalHtml(data);
-    return extractBodyInnerHtml(fullHtml);
+    return stripContractSignaturesBlock(extractBodyInnerHtml(fullHtml));
   }
 
   private async loadAndAuthorizeBid(
