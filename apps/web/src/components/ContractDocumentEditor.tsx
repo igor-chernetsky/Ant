@@ -2,9 +2,14 @@
 
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
+  regenerateProjectContractDocument,
   updateProjectContractDocument,
   type ProjectContract,
 } from '@/lib/contracts';
@@ -30,7 +35,18 @@ export function ContractDocumentEditor({
   const [dirty, setDirty] = useState(false);
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Table.configure({
+        resizable: false,
+        HTMLAttributes: {
+          class: 'contract-editor-table',
+        },
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+    ],
     content: contract.englishBodyHtml || '<p></p>',
     editable: !readOnly,
     immediatelyRender: false,
@@ -74,6 +90,33 @@ export function ContractDocumentEditor({
         err instanceof Error
           ? err.message
           : t('contractPanel.saveDocumentFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (readOnly) return;
+    setBusy(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const updated = await regenerateProjectContractDocument(projectId, {
+        asContractor,
+      });
+      setDirty(false);
+      onSaved?.(updated);
+      if (editor) {
+        editor.commands.setContent(updated.englishBodyHtml || '<p></p>', {
+          emitUpdate: false,
+        });
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('contractPanel.regenerateFailed'),
       );
     } finally {
       setBusy(false);
@@ -134,6 +177,21 @@ export function ContractDocumentEditor({
             >
               {t('contractPanel.toolbarList')}
             </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() =>
+                runCommand(() =>
+                  editor
+                    .chain()
+                    .focus()
+                    .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                    .run(),
+                )
+              }
+            >
+              {t('contractPanel.toolbarTable')}
+            </button>
           </div>
         )}
 
@@ -156,6 +214,14 @@ export function ContractDocumentEditor({
               {busy
                 ? t('common.saving')
                 : t('contractPanel.saveDocument')}
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => void handleRegenerate()}
+            >
+              {t('contractPanel.regenerateDocument')}
             </button>
             {saved && (
               <p className="muted">{t('contractPanel.documentSaved')}</p>

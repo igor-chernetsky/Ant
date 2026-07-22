@@ -4385,6 +4385,55 @@ select:disabled {
   margin: 0.35rem 0 0.35rem 1.25rem;
 }
 
+.contract-document-editor .tiptap table,
+.contract-document-editor .tiptap .contract-editor-table,
+.contract-document-editor .tiptap table.boq {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0 1rem;
+  font-size: 0.9rem;
+  table-layout: fixed;
+}
+
+.contract-document-editor .tiptap th,
+.contract-document-editor .tiptap td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.5rem;
+  vertical-align: top;
+  min-width: 1em;
+}
+
+.contract-document-editor .tiptap th {
+  background: #f8fafc;
+  font-weight: 600;
+  text-align: left;
+}
+
+.contract-document-editor .tiptap td.num,
+.contract-document-editor .tiptap th:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.contract-document-editor .tiptap tr.subtotal td {
+  font-weight: 700;
+  background: #fafafa;
+}
+
+.contract-document-editor .tiptap .selectedCell::after {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.contract-document-editor .tiptap td,
+.contract-document-editor .tiptap th {
+  position: relative;
+}
+
 .contract-document-editor--readonly {
   background: color-mix(in srgb, var(--surface, #fff) 94%, #94a3b8 6%);
 }

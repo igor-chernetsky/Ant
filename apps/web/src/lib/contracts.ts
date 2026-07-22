@@ -88,3 +88,18 @@ export async function updateProjectContractDocument(
   }
   return response.json() as Promise<ProjectContract>;
 }
+
+export async function regenerateProjectContractDocument(
+  projectId: string,
+  options?: { asContractor?: boolean },
+): Promise<ProjectContract> {
+  const asContractor = Boolean(options?.asContractor);
+  const path = asContractor
+    ? `/api/contractor/projects/${encodeURIComponent(projectId)}/contract/document/regenerate`
+    : `/api/projects/${encodeURIComponent(projectId)}/contract/document/regenerate`;
+  const response = await fetchWithAuth(path, { method: 'POST' });
+  if (!response.ok) {
+    await parseError(response, 'Failed to regenerate contract document');
+  }
+  return response.json() as Promise<ProjectContract>;
+}

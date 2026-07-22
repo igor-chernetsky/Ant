@@ -39,6 +39,16 @@ export class ProjectContractController {
     return this.contracts.updateDocument(user.id, projectId, body);
   }
 
+  @Post('document/regenerate')
+  @HttpCode(200)
+  async regenerateDocument(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contracts.regenerateDocument(user.id, projectId);
+  }
+
   @Post('sign')
   @HttpCode(200)
   async signContract(

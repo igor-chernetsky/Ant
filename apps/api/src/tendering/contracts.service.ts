@@ -207,6 +207,41 @@ export class ContractsService {
     return this.toResponse(updated, project, participant);
   }
 
+  async regenerateDocument(
+    userId: string,
+    projectId: string,
+  ): Promise<ContractResponse> {
+    const participant = await this.loadParticipant(userId, projectId);
+    const { project } = participant;
+    const contract = project.contract;
+
+    if (!contract) {
+      throw new NotFoundException('Contract not found for this project');
+    }
+
+    if (contract.status === ContractStatus.fully_signed) {
+      throw new BadRequestException(
+        'Fully signed contracts cannot be edited',
+      );
+    }
+
+    if (project.status !== ProjectStatus.awarded) {
+      throw new BadRequestException(
+        'Contract document can only be edited while awaiting signatures',
+      );
+    }
+
+    const body = await this.commercialProposal.generateEnglishBodyHtml(
+      contract.bidId,
+    );
+    const updated = await this.prisma.contract.update({
+      where: { id: contract.id },
+      data: { englishBodyHtml: body },
+    });
+
+    return this.toResponse(updated, project, participant);
+  }
+
   async ensureEnglishBodyHtml(contract: Contract): Promise<Contract> {
     if (contract.englishBodyHtml?.trim()) {
       return contract;

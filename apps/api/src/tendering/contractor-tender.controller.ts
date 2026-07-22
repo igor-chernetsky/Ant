@@ -220,6 +220,16 @@ export class ContractorTenderController {
     return this.contracts.updateDocument(user.id, projectId, body);
   }
 
+  @Post('projects/:projectId/contract/document/regenerate')
+  @HttpCode(200)
+  async regenerateContractDocument(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contracts.regenerateDocument(user.id, projectId);
+  }
+
   @Post('projects/:projectId/contract/sign')
   @HttpCode(200)
   async signContract(
