@@ -4335,6 +4335,13 @@ select:disabled {
   margin-top: 1.1rem;
 }
 
+/* Avoid stacked separators: document box already has a bottom border. */
+.contract-secondary-details + .tender-subsection.client-contract-chat {
+  margin-top: 1.1rem;
+  padding-top: 0;
+  border-top: none;
+}
+
 .contract-document-editor-hint {
   margin: 0.65rem 0 0.75rem;
   font-size: 0.88rem;
