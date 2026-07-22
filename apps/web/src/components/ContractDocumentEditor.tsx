@@ -6,7 +6,7 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   regenerateProjectContractDocument,
@@ -14,75 +14,112 @@ import {
   type ProjectContract,
 } from '@/lib/contracts';
 
-function ToolbarIcon({ children }: { children: ReactNode }) {
+function BoldIcon() {
   return (
     <svg
+      className="contract-document-toolbar-icon"
       width="16"
       height="16"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      {children}
-    </svg>
-  );
-}
-
-function BoldIcon() {
-  return (
-    <ToolbarIcon>
       <path d="M6 4h8a4 4 0 0 1 0 8H6z" />
       <path d="M6 12h9a4 4 0 0 1 0 8H6z" />
-    </ToolbarIcon>
+    </svg>
   );
 }
 
 function ItalicIcon() {
   return (
-    <ToolbarIcon>
+    <svg
+      className="contract-document-toolbar-icon"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <line x1="19" x2="10" y1="4" y2="4" />
       <line x1="14" x2="5" y1="20" y2="20" />
       <line x1="15" x2="9" y1="4" y2="20" />
-    </ToolbarIcon>
+    </svg>
   );
 }
 
 function HeadingIcon() {
   return (
-    <ToolbarIcon>
-      <path d="M6 4v16" />
-      <path d="M18 4v16" />
-      <path d="M6 12h12" />
-    </ToolbarIcon>
+    <svg
+      className="contract-document-toolbar-icon"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M4 12h16" />
+      <path d="M4 18V6" />
+      <path d="M20 18V6" />
+    </svg>
   );
 }
 
 function ListIcon() {
   return (
-    <ToolbarIcon>
+    <svg
+      className="contract-document-toolbar-icon"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <line x1="8" x2="21" y1="6" y2="6" />
       <line x1="8" x2="21" y1="12" y2="12" />
       <line x1="8" x2="21" y1="18" y2="18" />
       <line x1="3" x2="3.01" y1="6" y2="6" />
       <line x1="3" x2="3.01" y1="12" y2="12" />
       <line x1="3" x2="3.01" y1="18" y2="18" />
-    </ToolbarIcon>
+    </svg>
   );
 }
 
 function TableIcon() {
   return (
-    <ToolbarIcon>
+    <svg
+      className="contract-document-toolbar-icon"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <rect width="18" height="18" x="3" y="3" rx="2" />
       <path d="M3 9h18" />
       <path d="M3 15h18" />
       <path d="M9 3v18" />
       <path d="M15 3v18" />
-    </ToolbarIcon>
+    </svg>
   );
 }
 

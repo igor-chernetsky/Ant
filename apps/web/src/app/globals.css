@@ -4360,8 +4360,18 @@ select:disabled {
   justify-content: center;
   width: 2rem;
   height: 2rem;
+  min-width: 2rem;
   padding: 0;
-  line-height: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.contract-document-toolbar-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .contract-document-editor {
