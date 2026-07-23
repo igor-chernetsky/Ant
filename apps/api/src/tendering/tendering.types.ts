@@ -103,6 +103,31 @@ export interface BidResponse {
   durationDays: number | null;
   terms: BidTermsV1 | null;
   submittedAt: string | null;
+  withdrawalReason: BidWithdrawalReasonCode | null;
+  withdrawalNote: string | null;
+  withdrawnAt: string | null;
+}
+
+export type BidWithdrawalReasonCode =
+  | 'specialization_mismatch'
+  | 'incomplete_information'
+  | 'capacity_insufficient'
+  | 'commercial_terms_unacceptable'
+  | 'other';
+
+export const BID_WITHDRAWAL_REASON_CODES: BidWithdrawalReasonCode[] = [
+  'specialization_mismatch',
+  'incomplete_information',
+  'capacity_insufficient',
+  'commercial_terms_unacceptable',
+  'other',
+];
+
+export interface WithdrawBidDto {
+  /** Required when withdrawing from enrolled/submitted (decline to submit KP). */
+  reasonCode?: BidWithdrawalReasonCode;
+  /** Required when reasonCode is `other`. */
+  reasonNote?: string;
 }
 
 export interface BidOfferResponse {

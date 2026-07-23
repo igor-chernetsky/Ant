@@ -18,6 +18,21 @@ export type BidStatus =
   | 'selected'
   | 'rejected';
 
+export type BidWithdrawalReasonCode =
+  | 'specialization_mismatch'
+  | 'incomplete_information'
+  | 'capacity_insufficient'
+  | 'commercial_terms_unacceptable'
+  | 'other';
+
+export const BID_WITHDRAWAL_REASON_CODES: BidWithdrawalReasonCode[] = [
+  'specialization_mismatch',
+  'incomplete_information',
+  'capacity_insufficient',
+  'commercial_terms_unacceptable',
+  'other',
+];
+
 export interface BidLineItem {
   trade: string;
   description?: string;
@@ -67,6 +82,9 @@ export interface Bid {
   durationDays: number | null;
   terms: BidTerms | null;
   submittedAt: string | null;
+  withdrawalReason?: BidWithdrawalReasonCode | null;
+  withdrawalNote?: string | null;
+  withdrawnAt?: string | null;
 }
 
 export interface DefaultCostBreakdownItem {
@@ -851,10 +869,23 @@ export async function downloadCommercialProposal(
   URL.revokeObjectURL(url);
 }
 
-export async function withdrawContractorBid(tenderId: string): Promise<Bid> {
+export async function withdrawContractorBid(
+  tenderId: string,
+  options?: {
+    reasonCode?: BidWithdrawalReasonCode;
+    reasonNote?: string;
+  },
+): Promise<Bid> {
   const response = await fetchWithAuth(
-    `/api/contractor/tenders/${encodeURIComponent(tenderId)}/bids`,
-    { method: 'DELETE' },
+    `/api/contractor/tenders/${encodeURIComponent(tenderId)}/bids/withdraw`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reasonCode: options?.reasonCode,
+        reasonNote: options?.reasonNote,
+      }),
+    },
   );
   if (!response.ok) {
     await parseError(response, 'Failed to withdraw bid');

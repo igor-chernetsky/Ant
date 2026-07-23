@@ -27,6 +27,7 @@ import {
   SubmitBidClarificationQuestionsDto,
   UpdateBidContractTermsDto,
   UpsertContractorProfileDto,
+  WithdrawBidDto,
 } from './tendering.types';
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
@@ -333,12 +334,23 @@ export class ContractorTenderController {
     return this.tendersService.submitBid(user.id, tenderId, body);
   }
 
-  @Delete('tenders/:tenderId/bids')
+  @Post('tenders/:tenderId/bids/withdraw')
   async withdrawBid(
     @Req() req: Request & { user: JwtPayload },
     @Param('tenderId') tenderId: string,
+    @Body() body: WithdrawBidDto,
   ) {
     const user = await this.resolveUser(req);
-    return this.tendersService.withdrawBid(user.id, tenderId);
+    return this.tendersService.withdrawBid(user.id, tenderId, body ?? {});
+  }
+
+  @Delete('tenders/:tenderId/bids')
+  async withdrawBidLegacy(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('tenderId') tenderId: string,
+    @Body() body?: WithdrawBidDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.tendersService.withdrawBid(user.id, tenderId, body ?? {});
   }
 }

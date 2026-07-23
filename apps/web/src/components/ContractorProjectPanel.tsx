@@ -9,6 +9,7 @@ import { BidOfferSummary } from '@/components/BidOfferSummary';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { StructuredClarificationForm } from '@/components/StructuredClarificationForm';
 import { ContractorClarificationAttachments } from '@/components/ContractorClarificationAttachments';
+import { DeclineProposalDialog } from '@/components/DeclineProposalDialog';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
@@ -21,6 +22,7 @@ import {
   submitContractorBid,
   withdrawContractorBid,
   type BidOffer,
+  type BidWithdrawalReasonCode,
   type ContractorProjectParticipation,
 } from '@/lib/tendering';
 import type { ProjectBriefV1 } from '@/lib/projects';
@@ -86,6 +88,7 @@ export function ContractorProjectPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [contract, setContract] = useState<ProjectContract | null>(null);
+  const [declineOpen, setDeclineOpen] = useState(false);
 
   const formatParticipationStatus = (
     data: ContractorProjectParticipation,
@@ -190,6 +193,29 @@ export function ContractorProjectPanel({
     }
   };
 
+  const handleDeclineProposal = async (input: {
+    reasonCode: BidWithdrawalReasonCode;
+    reasonNote?: string;
+  }) => {
+    if (!participation?.tenderId) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await withdrawContractorBid(participation.tenderId, input);
+      setDeclineOpen(false);
+      await loadParticipation();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('contractor.declineProposalFailed'),
+      );
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleWithdrawFromAward = async () => {
     if (!participation?.tenderId) return;
     const confirmed = await confirm({
@@ -253,8 +279,13 @@ export function ContractorProjectPanel({
   const canLeaveDiscussion =
     participation.canWithdraw &&
     myBid &&
-    (inClarification || enrolled) &&
+    inClarification &&
     !submitted &&
+    !selected;
+  const canDeclineProposal =
+    participation.canWithdraw &&
+    myBid &&
+    (enrolled || submitted) &&
     !selected;
   const showOpenChat =
     !structuredQa && (inClarification || enrolled || submitted || selected);
@@ -440,6 +471,21 @@ export function ContractorProjectPanel({
         </div>
       )}
 
+      {canDeclineProposal && !participation.canSubmitProposal && (
+        <div className="participation-actions">
+          <div className="participation-toolbar">
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => setDeclineOpen(true)}
+            >
+              {t('contractor.declineProposal')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {submitted && myBid && (
         <div className="tender-subsection">
           <h3 className="tender-subsection-title">{t('contractor.yourProposal')}</h3>
@@ -554,7 +600,13 @@ export function ContractorProjectPanel({
               projectScopeSummary={participation.projectScopeSummary}
               projectContractTerms={participation.projectContractTerms}
               onSubmit={handleSubmitBid}
-              onWithdraw={participation.canWithdraw ? handleWithdraw : undefined}
+              onWithdraw={
+                canDeclineProposal
+                  ? async () => {
+                      setDeclineOpen(true);
+                    }
+                  : undefined
+              }
             />
           )}
         </div>
@@ -562,6 +614,12 @@ export function ContractorProjectPanel({
 
       {error && <p className="form-error contractor-participation-error">{error}</p>}
       {confirmDialog}
+      <DeclineProposalDialog
+        isOpen={declineOpen}
+        busy={busy}
+        onCancel={() => setDeclineOpen(false)}
+        onConfirm={handleDeclineProposal}
+      />
     </section>
   );
 }

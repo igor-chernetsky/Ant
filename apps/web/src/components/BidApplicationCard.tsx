@@ -10,6 +10,9 @@ import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { ContractorPortfolioGallery } from '@/components/ContractorPortfolioGallery';
+import {
+  formatBidWithdrawalReason,
+} from '@/components/DeclineProposalDialog';
 import type { Bid, BidContractTerms, DefaultCostBreakdownItem } from '@/lib/tendering';
 
 interface BidApplicationCardProps {
@@ -97,6 +100,13 @@ export function BidApplicationCard({
     };
   }, [bid.status, projectId]);
 
+  const declineReason = formatBidWithdrawalReason(
+    t,
+    bid.withdrawalReason,
+    bid.withdrawalNote,
+  );
+  const isDeclined = bid.status === 'withdrawn' && Boolean(bid.withdrawalReason);
+
   const headerContent = (
     <>
       <span className="bid-application-card-primary">
@@ -104,7 +114,11 @@ export function BidApplicationCard({
           {bid.companyName ?? t('common.contractor')}
         </strong>
             <span className="bid-application-card-amount">
-              {amount != null ? formatThb(amount) : t('bidApplication.noProposalYet')}
+              {isDeclined
+                ? t('bidApplication.declinedProposal')
+                : amount != null
+                  ? formatThb(amount)
+                  : t('bidApplication.noProposalYet')}
             </span>
       </span>
       <span className="bid-application-card-meta muted">
@@ -119,9 +133,11 @@ export function BidApplicationCard({
             })}
           </span>
         )}
-        {(bid.submittedAt || bid.enrolledAt) && (
+        {(bid.submittedAt || bid.enrolledAt || bid.withdrawnAt) && (
           <span>
-            {new Date(bid.submittedAt ?? bid.enrolledAt!).toLocaleDateString()}
+            {new Date(
+              bid.withdrawnAt ?? bid.submittedAt ?? bid.enrolledAt!,
+            ).toLocaleDateString()}
           </span>
         )}
       </span>
@@ -158,19 +174,31 @@ export function BidApplicationCard({
           {bid.status === 'rejected' && (
             <span className="status-pill">{t('bidApplication.notSelected')}</span>
           )}
+          {isDeclined && (
+            <span className="status-pill">{t('bidApplication.declinedProposal')}</span>
+          )}
         </div>
       </div>
 
       {isOpen && (
         <div className="bid-application-card-body">
-          <BidProposalSummary bid={bid} ballparkMid={ballparkMid} detailsOnly />
+          {isDeclined && declineReason ? (
+            <p className="bid-application-decline-reason">
+              <strong>{t('bidApplication.declineReasonLabel')}:</strong>{' '}
+              {declineReason}
+            </p>
+          ) : (
+            <BidProposalSummary bid={bid} ballparkMid={ballparkMid} detailsOnly />
+          )}
 
+          {!isDeclined && (
           <ContractorPortfolioGallery
             contractorId={bid.contractorId}
             companyName={bid.companyName}
           />
+          )}
 
-          {clientCounterOffer &&
+          {!isDeclined && clientCounterOffer &&
             (bid.status === 'submitted' || bid.status === 'rejected') &&
             tenderStatus !== 'awarded' &&
             !contractReadOnly && (
@@ -185,7 +213,7 @@ export function BidApplicationCard({
               />
             )}
 
-          {bid.status === 'selected' && (
+          {!isDeclined && bid.status === 'selected' && (
             <div className="contract-draft-panel">
               <ContractSigningPanel
                 projectId={projectId}
@@ -215,7 +243,7 @@ export function BidApplicationCard({
             )}
           </div>
 
-          {showBidChat && (
+          {showBidChat && !isDeclined && (
             <BidChat
               bidId={bid.id}
               projectId={projectId}
@@ -226,7 +254,7 @@ export function BidApplicationCard({
             />
           )}
 
-          {clientCounterOffer && (
+          {clientCounterOffer && !isDeclined && (
             <ClientCounterOfferPanel
               projectId={clientCounterOffer.projectId}
               bid={bid}

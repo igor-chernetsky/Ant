@@ -281,6 +281,26 @@ export const enExtended = {
     discussionWithClient: "Discussion with client",
     clarificationsTitle: "Clarifications & questions",
     leaveDiscussion: "Leave discussion",
+    declineProposal: "Decline to submit proposal",
+    declineProposalTitle: "Decline commercial proposal",
+    declineProposalHint:
+      "Tell the client why you will not submit a commercial proposal. This helps them understand your decision.",
+    declineProposalReasonLegend: "Reason",
+    declineProposalOtherLabel: "Please describe the reason",
+    declineProposalOtherPlaceholder: "Briefly explain why you cannot submit a proposal…",
+    declineProposalOtherRequired: "Please describe the reason.",
+    declineProposalConfirm: "Decline proposal",
+    decliningProposal: "Declining…",
+    declineProposalFailed: "Failed to decline proposal",
+    declineReasonSpecializationMismatch:
+      "The scope of works does not match the contractor’s specialization",
+    declineReasonIncompleteInformation:
+      "Client information is incomplete and does not allow a commercial proposal",
+    declineReasonCapacityInsufficient:
+      "Contractor capacity is insufficient to deliver within the required timeline",
+    declineReasonCommercialTermsUnacceptable:
+      "Client commercial terms cannot be accepted",
+    declineReasonOther: "Other reason",
     withdrawFromAward: "Withdraw from award",
     withdrawFromAwardHint: "If you cannot agree on contract terms, you can withdraw before signing. The tender will reopen for other contractors.",
     yourProposal: "Your proposal",
@@ -803,6 +823,8 @@ export const enExtended = {
     enrolled: "Enrolled",
     selected: "Selected",
     notSelected: "Not selected",
+    declinedProposal: "Declined to propose",
+    declineReasonLabel: "Reason",
     noProposalYet: "No proposal yet",
     vsBallpark: "{delta}% vs ballpark",
     selectThisBid: "Select this bid",

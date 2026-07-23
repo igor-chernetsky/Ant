@@ -102,6 +102,14 @@ enum BidStatus {
   rejected
 }
 
+enum BidWithdrawalReason {
+  specialization_mismatch
+  incomplete_information
+  capacity_insufficient
+  commercial_terms_unacceptable
+  other
+}
+
 enum BidOfferAuthor {
   client
   contractor
@@ -175,6 +183,7 @@ enum NotificationEmailKind {
   contract_terms_updated
   tender_resumed
   client_contractor_withdrew_award
+  client_contractor_declined_proposal
   contractor_award_released
   contractor_verification_approved
   contractor_verification_rejected
@@ -444,6 +453,9 @@ model Bid {
   contenderNumber Int?           @map("contender_number")
   enrolledAt   DateTime?         @map("enrolled_at")
   submittedAt  DateTime?         @map("submitted_at")
+  withdrawalReason BidWithdrawalReason? @map("withdrawal_reason")
+  withdrawalNote   String?              @map("withdrawal_note")
+  withdrawnAt      DateTime?            @map("withdrawn_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
   awardedTender Tender?          @relation("AwardedBid")
   messages     BidMessage[]

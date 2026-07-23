@@ -545,14 +545,14 @@ export function BidProposalForm({
                 : t('bid.submitProposal'))}
         </button>
         {footerExtra}
-        {existingBid?.status === 'submitted' && onWithdraw && (
+        {onWithdraw && (
           <button
             type="button"
             className="secondary participation-toolbar-withdraw"
             disabled={busy}
             onClick={() => void onWithdraw()}
           >
-            {t('common.withdraw')}
+            {t('contractor.declineProposal')}
           </button>
         )}
       </div>

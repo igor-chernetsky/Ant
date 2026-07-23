@@ -281,6 +281,26 @@ export const thExtended = {
     discussionWithClient: "สนทนากับลูกค้า",
     clarificationsTitle: "การชี้แจงและคำถาม",
     leaveDiscussion: "ออกจากการสนทนา",
+    declineProposal: "ปฏิเสธการส่งข้อเสนอ",
+    declineProposalTitle: "ปฏิเสธข้อเสนอเชิงพาณิชย์",
+    declineProposalHint:
+      "แจ้งเหตุผลที่ไม่ส่งข้อเสนอเชิงพาณิชย์ ลูกค้าจะเห็นเหตุผลนี้เพื่อทราบ",
+    declineProposalReasonLegend: "เหตุผล",
+    declineProposalOtherLabel: "โปรดอธิบายเหตุผล",
+    declineProposalOtherPlaceholder: "อธิบายสั้นๆ ว่าทำไมจึงไม่สามารถส่งข้อเสนอได้…",
+    declineProposalOtherRequired: "โปรดอธิบายเหตุผล",
+    declineProposalConfirm: "ปฏิเสธข้อเสนอ",
+    decliningProposal: "กำลังปฏิเสธ…",
+    declineProposalFailed: "ปฏิเสธข้อเสนอไม่สำเร็จ",
+    declineReasonSpecializationMismatch:
+      "ขอบเขตงานไม่ตรงกับความเชี่ยวชาญของผู้รับเหมา",
+    declineReasonIncompleteInformation:
+      "ข้อมูลจากลูกค้าไม่ครบถ้วนจนไม่สามารถจัดทำข้อเสนอเชิงพาณิชย์ได้",
+    declineReasonCapacityInsufficient:
+      "กำลังการผลิตของผู้รับเหมาไม่เพียงพอสำหรับกำหนดเวลาที่กำหนด",
+    declineReasonCommercialTermsUnacceptable:
+      "เงื่อนไขเชิงพาณิชย์ของลูกค้าไม่สามารถยอมรับได้",
+    declineReasonOther: "เหตุผลอื่น",
     withdrawFromAward: "ถอนตัวจากการได้รับเลือก",
     withdrawFromAwardHint: "หากไม่สามารถตกลงเงื่อนไขสัญญาได้ คุณสามารถถอนตัวก่อนลงนาม การประมูลจะเปิดอีกครั้งสำหรับผู้รับเหมาคนอื่น",
     yourProposal: "ข้อเสนอของคุณ",
@@ -803,6 +823,8 @@ export const thExtended = {
     enrolled: "ลงทะเบียนแล้ว",
     selected: "ได้รับเลือก",
     notSelected: "ไม่ได้รับเลือก",
+    declinedProposal: "ปฏิเสธการเสนอ",
+    declineReasonLabel: "เหตุผล",
     noProposalYet: "ยังไม่มีข้อเสนอ",
     vsBallpark: "{delta}% เทียบประมาณการ",
     selectThisBid: "เลือกข้อเสนอนี้",

@@ -50,7 +50,6 @@ export function ProjectLocationFields({
         </label>
         <label>
           {t('location.area')}
-          <span className="field-hint muted">{t('location.areaHint')}</span>
           <select
             value={areaSlug}
             disabled={disabled || areas.length === 0}
@@ -63,6 +62,7 @@ export function ProjectLocationFields({
               </option>
             ))}
           </select>
+          <span className="field-hint muted">{t('location.areaHint')}</span>
         </label>
       </div>
       <label>

@@ -635,6 +635,53 @@ export class NotificationsService {
     });
   }
 
+  async notifyClientContractorDeclinedProposal(params: {
+    clientId: string;
+    projectId: string;
+    projectTitle: string;
+    companyName: string;
+    reasonCode: string;
+    reasonNote: string | null;
+  }): Promise<void> {
+    const reasonLabel = this.formatDeclineReasonLabel(
+      params.reasonCode,
+      params.reasonNote,
+    );
+    await this.sendToUser({
+      userId: params.clientId,
+      prefFlag: 'emailClientBidActivity',
+      kind: NotificationEmailKind.client_contractor_declined_proposal,
+      projectId: params.projectId,
+      subject: `Contractor declined to propose — ${params.projectTitle}`,
+      title: 'Contractor declined to submit a proposal',
+      bodyHtml: `<p><strong>${escapeHtml(params.companyName)}</strong> declined to submit a commercial proposal on <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Reason: <strong>${escapeHtml(reasonLabel)}</strong></p>`,
+      ctaHref: this.bidsUrl(params.projectId),
+      ctaLabel: 'View applications',
+      textBody: `${params.companyName} declined to submit a proposal on ${params.projectTitle}. Reason: ${reasonLabel}`,
+    });
+  }
+
+  private formatDeclineReasonLabel(
+    reasonCode: string,
+    reasonNote: string | null,
+  ): string {
+    const labels: Record<string, string> = {
+      specialization_mismatch:
+        'The scope does not match the contractor’s specialization',
+      incomplete_information:
+        'Client information is incomplete and does not allow a commercial proposal',
+      capacity_insufficient:
+        'Contractor capacity is insufficient for the required timeline',
+      commercial_terms_unacceptable:
+        'Client commercial terms cannot be accepted',
+      other: reasonNote?.trim() || 'Other reason',
+    };
+    if (reasonCode === 'other' && reasonNote?.trim()) {
+      return reasonNote.trim();
+    }
+    return labels[reasonCode] ?? reasonCode;
+  }
+
   async notifyContractorAwardReleased(params: {
     contractorUserId: string;
     projectId: string;

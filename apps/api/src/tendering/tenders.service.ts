@@ -7,6 +7,7 @@ import {
 import {
   Bid,
   BidStatus,
+  BidWithdrawalReason,
   ClarificationMode,
   ContractStatus,
   ContractorProfile,
@@ -44,8 +45,10 @@ import {
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import type { SupportedLocale } from '../users/locale.types';
 import {
+  BID_WITHDRAWAL_REASON_CODES,
   BidResponse,
   BidTermsV1,
+  BidWithdrawalReasonCode,
   DefaultCostBreakdownItem,
   MAX_BID_APPROACH_LENGTH,
   MAX_BID_LINE_ITEMS,
@@ -61,6 +64,7 @@ import {
   ContractorApplicationItem,
   BidContractTerms,
   ContractorCoveragePreview,
+  WithdrawBidDto,
 } from './tendering.types';
 
 type TenderWithRelations = Tender & {
@@ -100,6 +104,9 @@ export class TendersService {
       durationDays: bid.durationDays,
       terms: (bid.termsJson as BidTermsV1 | null) ?? null,
       submittedAt: bid.submittedAt?.toISOString() ?? null,
+      withdrawalReason: bid.withdrawalReason ?? null,
+      withdrawalNote: bid.withdrawalNote ?? null,
+      withdrawnAt: bid.withdrawnAt?.toISOString() ?? null,
     };
   }
 
@@ -127,7 +134,10 @@ export class TendersService {
     projectContractTerms: BidContractTerms = {},
   ): TenderResponse {
     const bids = tender.bids
-      .filter((b) => b.status !== BidStatus.withdrawn)
+      .filter(
+        (b) =>
+          b.status !== BidStatus.withdrawn || b.withdrawalReason != null,
+      )
       .map((b) => this.mapBid(b));
 
     return {
@@ -142,7 +152,8 @@ export class TendersService {
       applicationsDeadlinePassed: isApplicationsDeadlinePassed(tender.closesAt),
       awardedBidId: tender.awardedBidId,
       bids,
-      applicationCount: bids.length,
+      applicationCount: bids.filter((b) => b.status !== BidStatus.withdrawn)
+        .length,
       submittedBidCount: bids.filter((b) => b.status === BidStatus.submitted)
         .length,
       defaultCostBreakdown: this.costBreakdown.parseStored(
@@ -1218,6 +1229,9 @@ export class TendersService {
         amount: null,
         durationDays: null,
         termsJson: Prisma.DbNull,
+        withdrawalReason: null,
+        withdrawalNote: null,
+        withdrawnAt: null,
       },
       include: { contractor: true },
     });
@@ -1802,7 +1816,11 @@ export class TendersService {
     return this.mapBid(updated);
   }
 
-  async withdrawBid(userId: string, tenderId: string): Promise<BidResponse> {
+  async withdrawBid(
+    userId: string,
+    tenderId: string,
+    dto: WithdrawBidDto = {},
+  ): Promise<BidResponse> {
     const profile = await this.contractorProfiles.requireByUserId(userId);
     const tender = await this.loadTender(tenderId);
 
@@ -1852,17 +1870,85 @@ export class TendersService {
       throw new NotFoundException('No active bid to withdraw');
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const nextBid = await tx.bid.update({
-        where: { id: bid.id },
-        data: { status: BidStatus.withdrawn },
-        include: { contractor: true },
-      });
+    const requiresDeclineReason =
+      bid.status === BidStatus.enrolled || bid.status === BidStatus.submitted;
+    const { reason, note } = this.resolveWithdrawalReason(
+      dto,
+      requiresDeclineReason,
+    );
 
-      return nextBid;
+    const updated = await this.prisma.bid.update({
+      where: { id: bid.id },
+      data: {
+        status: BidStatus.withdrawn,
+        withdrawalReason: reason,
+        withdrawalNote: note,
+        withdrawnAt: new Date(),
+      },
+      include: { contractor: true },
     });
 
+    if (requiresDeclineReason && reason) {
+      const companyName =
+        updated.contractor.companyName?.trim() || 'A contractor';
+      this.notifications.dispatch(
+        this.notifications.notifyClientContractorDeclinedProposal({
+          clientId: project.clientId,
+          projectId: project.id,
+          projectTitle: project.title,
+          companyName,
+          reasonCode: reason,
+          reasonNote: note,
+        }),
+      );
+    }
+
     return this.mapBid(updated);
+  }
+
+  private resolveWithdrawalReason(
+    dto: WithdrawBidDto,
+    required: boolean,
+  ): {
+    reason: BidWithdrawalReason | null;
+    note: string | null;
+  } {
+    const code = dto.reasonCode?.trim() as BidWithdrawalReasonCode | undefined;
+    const note = dto.reasonNote?.trim() || null;
+
+    if (!code) {
+      if (required) {
+        throw new BadRequestException(
+          'Please select a reason for declining to submit a proposal',
+        );
+      }
+      return { reason: null, note: null };
+    }
+
+    if (!BID_WITHDRAWAL_REASON_CODES.includes(code)) {
+      throw new BadRequestException('Invalid withdrawal reason');
+    }
+
+    if (code === 'other') {
+      if (!note || note.length < 3) {
+        throw new BadRequestException(
+          'Please describe the reason for declining',
+        );
+      }
+      if (note.length > 1000) {
+        throw new BadRequestException('Reason note is too long');
+      }
+      return { reason: BidWithdrawalReason.other, note };
+    }
+
+    if (note && note.length > 1000) {
+      throw new BadRequestException('Reason note is too long');
+    }
+
+    return {
+      reason: code as BidWithdrawalReason,
+      note,
+    };
   }
 
   async getTenderForContractor(userId: string, tenderId: string) {

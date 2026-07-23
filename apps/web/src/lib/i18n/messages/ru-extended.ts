@@ -281,6 +281,27 @@ export const ruExtended = {
     discussionWithClient: "Обсуждение с заказчиком",
     clarificationsTitle: "Уточнения и вопросы",
     leaveDiscussion: "Покинуть обсуждение",
+    declineProposal: "Отказаться от КП",
+    declineProposalTitle: "Отказ от коммерческого предложения",
+    declineProposalHint:
+      "Укажите причину, по которой вы не направите коммерческое предложение. Заказчик увидит её для сведения.",
+    declineProposalReasonLegend: "Причина",
+    declineProposalOtherLabel: "Опишите причину",
+    declineProposalOtherPlaceholder:
+      "Кратко объясните, почему не можете направить предложение…",
+    declineProposalOtherRequired: "Пожалуйста, опишите причину.",
+    declineProposalConfirm: "Отказаться от КП",
+    decliningProposal: "Отказ…",
+    declineProposalFailed: "Не удалось оформить отказ",
+    declineReasonSpecializationMismatch:
+      "Набор работ не соответствует специализации подрядчика",
+    declineReasonIncompleteInformation:
+      "Предоставленная заказчиком информация не является полной и не позволяет сформировать коммерческое предложение",
+    declineReasonCapacityInsufficient:
+      "Мощностей подрядчика недостаточно для исполнения заказа в установленные сроки",
+    declineReasonCommercialTermsUnacceptable:
+      "Коммерческие условия заказчика не могут быть приняты подрядчиком",
+    declineReasonOther: "Иные причины",
     withdrawFromAward: "Выйти из тендера",
     withdrawFromAwardHint: "Если не удаётся согласовать условия договора, можно выйти до подписания. Тендер снова откроется для других подрядчиков.",
     yourProposal: "Ваше предложение",
@@ -803,6 +824,8 @@ export const ruExtended = {
     enrolled: "Зарегистрирован",
     selected: "Выбран",
     notSelected: "Не выбран",
+    declinedProposal: "Отказ от КП",
+    declineReasonLabel: "Причина",
     noProposalYet: "Предложения пока нет",
     vsBallpark: "{delta}% к оценке",
     selectThisBid: "Выбрать эту ставку",
