@@ -32,7 +32,9 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const [displayName, setDisplayName] = useState('');
   const [roles, setRoles] = useState<string[]>(['client']);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedClientAgreement, setAcceptedClientAgreement] = useState(false);
+  const [acceptedContractorAgreement, setAcceptedContractorAgreement] =
+    useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -46,7 +48,8 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     setError(null);
     setSuccessNotice(null);
     setAcceptedPrivacy(false);
-    setAcceptedTerms(false);
+    setAcceptedClientAgreement(false);
+    setAcceptedContractorAgreement(false);
     if (next === 'forgot' && !email && username) {
       setEmail(username);
     }
@@ -57,7 +60,15 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     setError(null);
     setSuccessNotice(null);
 
-    if (mode === 'signup' && (!acceptedPrivacy || !acceptedTerms)) {
+    const needsClientAgreement = roles.includes('client');
+    const needsContractorAgreement =
+      roles.includes('contractor') || roles.includes('designer');
+    if (
+      mode === 'signup' &&
+      (!acceptedPrivacy ||
+        (needsClientAgreement && !acceptedClientAgreement) ||
+        (needsContractorAgreement && !acceptedContractorAgreement))
+    ) {
       setError(t('auth.acceptLegalRequired'));
       return;
     }
@@ -73,7 +84,8 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         setDisplayName('');
         setRoles(['client']);
         setAcceptedPrivacy(false);
-        setAcceptedTerms(false);
+        setAcceptedClientAgreement(false);
+        setAcceptedContractorAgreement(false);
         await onSuccess();
         onClose();
       } else if (mode === 'forgot') {
@@ -91,7 +103,8 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         setDisplayName('');
         setRoles(['client']);
         setAcceptedPrivacy(false);
-        setAcceptedTerms(false);
+        setAcceptedClientAgreement(false);
+        setAcceptedContractorAgreement(false);
         setUsername(email);
         setEmail('');
         setMode('signin');
@@ -119,7 +132,13 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     }
   };
 
-  const canSubmitSignup = acceptedPrivacy && acceptedTerms;
+  const needsClientAgreement = roles.includes('client');
+  const needsContractorAgreement =
+    roles.includes('contractor') || roles.includes('designer');
+  const canSubmitSignup =
+    acceptedPrivacy &&
+    (!needsClientAgreement || acceptedClientAgreement) &&
+    (!needsContractorAgreement || acceptedContractorAgreement);
 
   const title =
     mode === 'signin'
@@ -213,8 +232,10 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                   required
                 />
               </label>
-              <fieldset className="tag-fieldset">
-                <legend>{t('auth.roleLegend')}</legend>
+              <fieldset className="tag-fieldset auth-role-fieldset">
+                <legend className="auth-role-legend">
+                  {t('auth.roleLegend')}
+                </legend>
                 <p className="muted tag-hint">{t('auth.roleHint')}</p>
                 <div className="tag-picker">
                   {(
@@ -300,26 +321,54 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                   </Link>
                 </span>
               </label>
-              <label className="checkbox-label auth-legal-consent">
-                <input
-                  type="checkbox"
-                  checked={acceptedTerms}
-                  onChange={(event) => setAcceptedTerms(event.target.checked)}
-                  required
-                  disabled={submitting}
-                />
-                <span>
-                  {t('auth.acceptTermsPrefix')}{' '}
-                  <Link
-                    href="/terms"
-                    className="text-link"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t('footer.termsOfService')}
-                  </Link>
-                </span>
-              </label>
+              {needsClientAgreement && (
+                <label className="checkbox-label auth-legal-consent">
+                  <input
+                    type="checkbox"
+                    checked={acceptedClientAgreement}
+                    onChange={(event) =>
+                      setAcceptedClientAgreement(event.target.checked)
+                    }
+                    required
+                    disabled={submitting}
+                  />
+                  <span>
+                    {t('auth.acceptClientAgreementPrefix')}{' '}
+                    <Link
+                      href="/client-agreement"
+                      className="text-link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t('footer.clientAgreement')}
+                    </Link>
+                  </span>
+                </label>
+              )}
+              {needsContractorAgreement && (
+                <label className="checkbox-label auth-legal-consent">
+                  <input
+                    type="checkbox"
+                    checked={acceptedContractorAgreement}
+                    onChange={(event) =>
+                      setAcceptedContractorAgreement(event.target.checked)
+                    }
+                    required
+                    disabled={submitting}
+                  />
+                  <span>
+                    {t('auth.acceptContractorAgreementPrefix')}{' '}
+                    <Link
+                      href="/contractor-agreement"
+                      className="text-link"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t('footer.contractorAgreement')}
+                    </Link>
+                  </span>
+                </label>
+              )}
             </div>
           )}
 

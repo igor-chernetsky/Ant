@@ -34,6 +34,8 @@ export const en = {
     legalNav: 'Legal',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
+    clientAgreement: 'Client Agreement',
+    contractorAgreement: 'Contractor Agreement',
   },
   auth: {
     welcomeBack: 'Welcome back',
@@ -42,7 +44,7 @@ export const en = {
     signUpSubtitle: 'Join Ant to publish projects or respond to tenders.',
     fullName: 'Full name',
     emailPlaceholder: 'you@example.com',
-    roleLegend: 'I am a…',
+    roleLegend: 'Your roles',
     roleHint: 'Choose how you will use the platform. You can update this later.',
     signingIn: 'Signing in…',
     creatingAccount: 'Creating account…',
@@ -69,8 +71,10 @@ export const en = {
     roleDesigner: 'Designer',
     acceptPrivacyPrefix: 'I agree to the',
     acceptTermsPrefix: 'I agree to the',
+    acceptClientAgreementPrefix: 'I agree to the',
+    acceptContractorAgreementPrefix: 'I agree to the',
     acceptLegalRequired:
-      'Please accept the Privacy Policy and Terms of Service to create an account.',
+      'Please accept the Privacy Policy and the agreement(s) for your selected role(s) to create an account.',
   },
   home: {
     kicker: 'Ant marketplace',

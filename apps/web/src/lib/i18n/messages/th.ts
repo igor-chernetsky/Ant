@@ -35,6 +35,8 @@ export const th: Messages = {
     legalNav: 'ข้อมูลทางกฎหมาย',
     privacyPolicy: 'นโยบายความเป็นส่วนตัว',
     termsOfService: 'เงื่อนไขการใช้บริการ',
+    clientAgreement: 'ข้อตกลงลูกค้า',
+    contractorAgreement: 'ข้อตกลงผู้รับเหมา',
   },
   auth: {
     welcomeBack: 'ยินดีต้อนรับกลับ',
@@ -43,7 +45,7 @@ export const th: Messages = {
     signUpSubtitle: 'เข้าร่วม Ant เพื่อเผยแพร่โครงการหรือตอบรับการประมูล',
     fullName: 'ชื่อ-นามสกุล',
     emailPlaceholder: 'you@example.com',
-    roleLegend: 'ฉันคือ…',
+    roleLegend: 'บทบาทของคุณ',
     roleHint: 'เลือกวิธีใช้งานแพลตฟอร์ม คุณสามารถเปลี่ยนได้ภายหลัง',
     signingIn: 'กำลังเข้าสู่ระบบ…',
     creatingAccount: 'กำลังสร้างบัญชี…',
@@ -70,8 +72,10 @@ export const th: Messages = {
     roleDesigner: 'นักออกแบบ',
     acceptPrivacyPrefix: 'ฉันยอมรับ',
     acceptTermsPrefix: 'ฉันยอมรับ',
+    acceptClientAgreementPrefix: 'ฉันยอมรับ',
+    acceptContractorAgreementPrefix: 'ฉันยอมรับ',
     acceptLegalRequired:
-      'โปรดยอมรับนโยบายความเป็นส่วนตัวและเงื่อนไขการใช้บริการเพื่อสร้างบัญชี',
+      'โปรดยอมรับนโยบายความเป็นส่วนตัวและข้อตกลงสำหรับบทบาทที่เลือกเพื่อสร้างบัญชี',
   },
   home: {
     kicker: 'ตลาด Ant',

@@ -20,6 +20,12 @@ export function SiteFooter() {
           <Link href="/terms" className="text-link">
             {t('footer.termsOfService')}
           </Link>
+          <Link href="/client-agreement" className="text-link">
+            {t('footer.clientAgreement')}
+          </Link>
+          <Link href="/contractor-agreement" className="text-link">
+            {t('footer.contractorAgreement')}
+          </Link>
         </nav>
       </div>
     </footer>

@@ -11,7 +11,11 @@ import type { LegalDocument } from '@/lib/legal';
 
 interface LegalDocumentPageProps {
   document: LegalDocument;
-  breadcrumbKey: 'privacyPolicy' | 'termsOfService';
+  breadcrumbKey:
+    | 'privacyPolicy'
+    | 'termsOfService'
+    | 'clientAgreement'
+    | 'contractorAgreement';
 }
 
 export function LegalDocumentPage({

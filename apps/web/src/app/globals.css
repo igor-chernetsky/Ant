@@ -2263,19 +2263,53 @@ pre {
   margin: 0.15rem 0 0.25rem;
 }
 
-.auth-legal-consent {
+.modal-form .auth-legal-consent,
+.modal-form label.checkbox-label {
+  display: flex;
+  flex-direction: row;
   align-items: flex-start;
+  gap: 0.55rem;
   line-height: 1.45;
   font-size: 0.9rem;
 }
 
 .auth-legal-consent input[type='checkbox'] {
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
   flex-shrink: 0;
+}
+
+.auth-legal-consent > span {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .auth-legal-consent .text-link {
   font-weight: 600;
+}
+
+.auth-role-fieldset {
+  padding-top: 0.85rem;
+}
+
+.auth-role-fieldset .auth-role-legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent;
+}
+
+.auth-role-fieldset::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+.auth-role-fieldset .tag-hint {
+  margin-top: 0;
 }
 
 .trade-tag-picker {

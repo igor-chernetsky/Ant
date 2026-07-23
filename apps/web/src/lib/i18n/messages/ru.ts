@@ -35,6 +35,8 @@ export const ru: Messages = {
     legalNav: 'Правовая информация',
     privacyPolicy: 'Политика конфиденциальности',
     termsOfService: 'Условия использования',
+    clientAgreement: 'Клиентское соглашение',
+    contractorAgreement: 'Соглашение подрядчика',
   },
   auth: {
     welcomeBack: 'С возвращением',
@@ -45,7 +47,7 @@ export const ru: Messages = {
       'Присоединяйтесь к Ant — публикуйте проекты или участвуйте в тендерах.',
     fullName: 'Полное имя',
     emailPlaceholder: 'you@example.com',
-    roleLegend: 'Я…',
+    roleLegend: 'Ваши роли',
     roleHint:
       'Выберите, как вы будете использовать платформу. Позже можно изменить.',
     signingIn: 'Вход…',
@@ -74,8 +76,10 @@ export const ru: Messages = {
     roleDesigner: 'Дизайнер',
     acceptPrivacyPrefix: 'Я принимаю',
     acceptTermsPrefix: 'Я принимаю',
+    acceptClientAgreementPrefix: 'Я принимаю',
+    acceptContractorAgreementPrefix: 'Я принимаю',
     acceptLegalRequired:
-      'Чтобы создать аккаунт, примите Политику конфиденциальности и Условия использования.',
+      'Чтобы создать аккаунт, примите Политику конфиденциальности и соглашение(я) для выбранной роли.',
   },
   home: {
     kicker: 'Маркетплейс Ant',
