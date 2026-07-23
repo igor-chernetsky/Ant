@@ -628,8 +628,20 @@ export class CommercialProposalService {
       dataByLocale[locale] = await this.buildProposalDataForLocale(bid, locale);
     }
 
+    const contract = ordered.includes('en')
+      ? await this.prisma.contract.findUnique({
+          where: { bidId: bid.id },
+          select: { englishBodyHtml: true },
+        })
+      : null;
+    const editedEnglishBodyHtml = contract?.englishBodyHtml?.trim() || null;
+
     const primary = ordered[0];
-    const html = renderMultilingualCommercialProposalHtml(dataByLocale, ordered);
+    const html = renderMultilingualCommercialProposalHtml(
+      dataByLocale,
+      ordered,
+      { editedEnglishBodyHtml },
+    );
     const slug = slugifyProjectTitle(
       dataByLocale[primary].projectTitle || bid.tender.project.title,
       bidId.slice(0, 8),

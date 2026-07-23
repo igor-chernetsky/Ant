@@ -11,6 +11,7 @@ import {
 import type { SupportedLocale } from '../users/locale.types';
 import { DEFAULT_LOCALE } from '../users/locale.types';
 import { calendarDaysBetween } from './contract-terms-inference';
+import { stripContractSignaturesBlock } from './contract-html.sanitize';
 
 export function escapeHtml(value: string): string {
   return value
@@ -394,6 +395,13 @@ function commercialProposalStyles(): string {
       border-bottom: none;
       margin-bottom: 1.5rem;
     }
+    .locale-block--document + .locale-block--document {
+      page-break-before: always;
+      break-before: page;
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
     .footer-note {
       margin-top: 2rem;
       font-size: 10pt;
@@ -494,7 +502,7 @@ export function wrapEnglishContractBodyForPdf(
 function wrapLocaleBlock(
   html: string,
   locale: SupportedLocale,
-  variant: 'header' | 'clause' | 'section',
+  variant: 'header' | 'clause' | 'section' | 'document',
 ): string {
   return `<div class="locale-block locale-block--${variant}" lang="${escapeHtml(locale)}">${html}</div>`;
 }
@@ -749,11 +757,91 @@ function renderInterleavedSection(
     .join('\n');
 }
 
+export function renderCommercialProposalBodyContent(
+  data: CommercialProposalRenderData,
+): string {
+  const copy = commercialProposalCopy(data.locale);
+  return `
+  ${renderHeaderAndParties(data, copy)}
+
+  ${renderClause1(data, copy)}
+
+  ${renderClause2(data, copy)}
+
+  ${renderClause3(data, copy)}
+
+  ${renderBoqSection(data, copy)}
+
+  ${renderAnnex2Section(data, copy)}
+
+  ${renderClause5(data, copy)}
+
+  ${renderClause6(data, copy)}
+
+  ${renderForceMajeure(copy)}
+
+  ${renderClarifications(data, copy)}
+
+  ${renderSpecialConditions(data, copy)}`;
+}
+
+function renderStackedMultilingualWithEditedEnglish(
+  dataByLocale: Record<SupportedLocale, CommercialProposalRenderData>,
+  locales: SupportedLocale[],
+  editedEnglishBodyHtml: string,
+): string {
+  const ordered = sortCommercialProposalLocales(locales);
+  const primary = ordered[0] ?? DEFAULT_LOCALE;
+  const primaryData = dataByLocale[primary];
+  const primaryCopy = commercialProposalCopy(primary);
+  const editedBody = stripContractSignaturesBlock(editedEnglishBodyHtml);
+
+  const documents = ordered
+    .map((locale) => {
+      if (locale === 'en') {
+        return wrapLocaleBlock(editedBody, 'en', 'document');
+      }
+      return wrapLocaleBlock(
+        renderCommercialProposalBodyContent(dataByLocale[locale]),
+        locale,
+        'document',
+      );
+    })
+    .join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="multi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(primaryData.documentTitle)}</title>
+  <style>${commercialProposalStyles()}</style>
+</head>
+<body>
+  ${documents}
+  ${renderSignaturesBlock(primaryData, ordered)}
+  <p class="footer-note">
+    ${escapeHtml(primaryCopy.footerNote)}
+  </p>
+</body>
+</html>`;
+}
+
 export function renderMultilingualCommercialProposalHtml(
   dataByLocale: Record<SupportedLocale, CommercialProposalRenderData>,
   locales: SupportedLocale[],
+  options?: { editedEnglishBodyHtml?: string | null },
 ): string {
   const ordered = sortCommercialProposalLocales(locales);
+  const editedEnglish = options?.editedEnglishBodyHtml?.trim();
+  if (editedEnglish && ordered.includes('en')) {
+    return renderStackedMultilingualWithEditedEnglish(
+      dataByLocale,
+      ordered,
+      editedEnglish,
+    );
+  }
+
   const primary = ordered[0] ?? DEFAULT_LOCALE;
   const primaryData = dataByLocale[primary];
   const primaryCopy = commercialProposalCopy(primary);
@@ -809,10 +897,6 @@ export function renderCommercialProposalHtml(
   data: CommercialProposalRenderData,
 ): string {
   const copy = commercialProposalCopy(data.locale);
-  const boqSection = renderBoqSection(data, copy);
-  const annex2Section = renderAnnex2Section(data, copy);
-  const clarificationSection = renderClarifications(data, copy);
-  const specialConditionsSection = renderSpecialConditions(data, copy);
 
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(data.locale)}">
@@ -823,27 +907,7 @@ export function renderCommercialProposalHtml(
   <style>${commercialProposalStyles()}</style>
 </head>
 <body>
-  ${renderHeaderAndParties(data, copy)}
-
-  ${renderClause1(data, copy)}
-
-  ${renderClause2(data, copy)}
-
-  ${renderClause3(data, copy)}
-
-  ${boqSection}
-
-  ${annex2Section}
-
-  ${renderClause5(data, copy)}
-
-  ${renderClause6(data, copy)}
-
-  ${renderForceMajeure(copy)}
-
-  ${clarificationSection}
-
-  ${specialConditionsSection}
+  ${renderCommercialProposalBodyContent(data)}
 
   ${renderSignaturesBlock(data, [data.locale as SupportedLocale])}
 
