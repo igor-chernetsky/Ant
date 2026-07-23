@@ -277,6 +277,7 @@ export default function HomePage() {
           resultCount={!loading && !error ? projects.length : undefined}
           showHiddenFilter={canAddProject}
           showCompletedFilter={Boolean(me)}
+          showClientWorkspaceFilters={canAddProject}
         />
 
         {loading && (

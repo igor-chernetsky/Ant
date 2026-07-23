@@ -21,6 +21,12 @@ import {
 } from '@/lib/service-filters';
 
 // Keep order aligned with the project lifecycle presented on the product UI.
+const CLIENT_WORKSPACE_STATUS_VALUES = [
+  'intake',
+  'ready_for_estimate',
+  'estimated',
+] as const;
+
 const PRIMARY_STATUS_VALUES = ['in_tender', 'awarded', 'active'] as const;
 
 const SECONDARY_STATUS_VALUES = ['completed', 'hidden'] as const;
@@ -42,6 +48,8 @@ interface HomeProjectFiltersProps {
   resultCount?: number;
   showHiddenFilter?: boolean;
   showCompletedFilter?: boolean;
+  /** Show pre-tender statuses (intake / estimate) for the creating client. */
+  showClientWorkspaceFilters?: boolean;
 }
 
 function countActiveFilters(filters: HomeProjectFilterState): number {
@@ -63,6 +71,7 @@ export function HomeProjectFilters({
   resultCount,
   showHiddenFilter = false,
   showCompletedFilter = false,
+  showClientWorkspaceFilters = false,
 }: HomeProjectFiltersProps) {
   const { t } = useTranslation();
   const { formatProjectStatus } = useAppFormatters();
@@ -71,6 +80,7 @@ export function HomeProjectFilters({
 
   const statusValues = useMemo(
     () => [
+      ...(showClientWorkspaceFilters ? CLIENT_WORKSPACE_STATUS_VALUES : []),
       ...PRIMARY_STATUS_VALUES,
       ...SECONDARY_STATUS_VALUES.filter((value) => {
         if (value === 'hidden') return showHiddenFilter;
@@ -78,7 +88,7 @@ export function HomeProjectFilters({
         return true;
       }),
     ],
-    [showHiddenFilter, showCompletedFilter],
+    [showClientWorkspaceFilters, showHiddenFilter, showCompletedFilter],
   );
 
   const areas = useMemo(

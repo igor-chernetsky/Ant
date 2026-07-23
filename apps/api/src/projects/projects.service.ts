@@ -20,7 +20,7 @@ import { EstimatesService } from '../estimation/estimates.service';
 import { LocationsService } from '../locations/locations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { isPubliclyDiscoverable, isPubliclyViewable, DISCOVERY_FILTER_HIDDEN, DISCOVERY_STATUSES } from './projects.constants';
+import { isPubliclyDiscoverable, isPubliclyViewable, CLIENT_WORKSPACE_STATUSES, DISCOVERY_FILTER_HIDDEN, DISCOVERY_STATUSES } from './projects.constants';
 import { shouldHideProjectFromPublicDiscovery } from '../tendering/tender-deadline';
 import {
   buildOwnershipFilter,
@@ -276,14 +276,27 @@ export class ProjectsService {
     const orClauses: Prisma.ProjectWhereInput[] = [];
 
     if (statusFilters.length > 0) {
-      const allowed = statusFilters.filter((status): status is ProjectStatus =>
+      const publicAllowed = statusFilters.filter((status): status is ProjectStatus =>
         DISCOVERY_STATUSES.includes(status),
       );
-      if (allowed.length > 0) {
+      if (publicAllowed.length > 0) {
         orClauses.push({
-          status: { in: allowed },
+          status: { in: publicAllowed },
           isHidden: false,
         });
+      }
+
+      if (userId) {
+        const ownAllowed = statusFilters.filter((status): status is ProjectStatus =>
+          CLIENT_WORKSPACE_STATUSES.includes(status),
+        );
+        if (ownAllowed.length > 0) {
+          orClauses.push({
+            clientId: userId,
+            status: { in: ownAllowed },
+            isHidden: false,
+          });
+        }
       }
     }
 
@@ -292,6 +305,13 @@ export class ProjectsService {
         status: { in: DISCOVERY_STATUSES },
         isHidden: false,
       });
+      if (userId) {
+        orClauses.push({
+          clientId: userId,
+          status: { in: CLIENT_WORKSPACE_STATUSES },
+          isHidden: false,
+        });
+      }
     }
 
     if (includesCompleted) {
@@ -622,11 +642,19 @@ export class ProjectsService {
       },
     });
 
-    if (!project || !isPubliclyViewable(project.status)) {
+    if (!project) {
       throw new NotFoundException('Project not found');
     }
 
-    if (!isPubliclyDiscoverable(project)) {
+    const isOwner = Boolean(userId && project.clientId === userId);
+    const isOwnerWorkspace =
+      isOwner && CLIENT_WORKSPACE_STATUSES.includes(project.status);
+
+    if (!isPubliclyViewable(project.status) && !isOwnerWorkspace) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (!isPubliclyDiscoverable(project) && !isOwnerWorkspace) {
       const participantProjectIds = userId
         ? await this.loadParticipantProjectIds(userId)
         : new Set<string>();
