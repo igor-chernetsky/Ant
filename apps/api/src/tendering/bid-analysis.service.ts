@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
-import { Bid, BidStatus, Prisma } from '@prisma/client';
+import { Bid, BidStatus, Prisma, TenderStatus } from '@prisma/client';
 import { ProjectBriefV1 } from '../projects/project-brief';
 import { BidAnalysisFallbackService } from '../ai/bid-analysis-fallback.service';
 import {
@@ -78,6 +78,7 @@ export class BidAnalysisService {
   buildAnalysisResponse(
     bids: BidForFingerprint[],
     storedRaw: unknown,
+    tenderStatus?: TenderStatus,
   ): BidAnalysisResponse {
     const fingerprint = this.computeBidsFingerprint(bids);
     const submittedBidCount = bids.filter(
@@ -87,13 +88,22 @@ export class BidAnalysisService {
     const analysisUpToDate = Boolean(
       stored && stored.fingerprint === fingerprint && stored.result,
     );
+    // After award, bid statuses change (selected/rejected) and invalidate the
+    // fingerprint — still return the last analysis for historical review.
+    const keepHistorical =
+      Boolean(stored?.result) &&
+      (tenderStatus === TenderStatus.awarded ||
+        tenderStatus === TenderStatus.closed) &&
+      submittedBidCount < 2;
 
     return {
-      analysis: analysisUpToDate ? stored!.result : null,
+      analysis:
+        analysisUpToDate || keepHistorical ? stored!.result : null,
       fingerprint,
-      generatedAt: analysisUpToDate ? stored!.generatedAt : null,
+      generatedAt:
+        analysisUpToDate || keepHistorical ? stored!.generatedAt : null,
       canAnalyze: submittedBidCount >= 2 && !analysisUpToDate,
-      analysisUpToDate,
+      analysisUpToDate: analysisUpToDate || keepHistorical,
       submittedBidCount,
     };
   }
@@ -115,7 +125,11 @@ export class BidAnalysisService {
       },
     });
 
-    return this.buildAnalysisResponse(bids, tender.bidAnalysisJson);
+    return this.buildAnalysisResponse(
+      bids,
+      tender.bidAnalysisJson,
+      tender.status,
+    );
   }
 
   async analyzeBids(

@@ -5740,6 +5740,14 @@ select:disabled {
   flex-wrap: wrap;
 }
 
+.project-bids-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
 .project-bids-title {
   margin: 0;
   font-size: clamp(1.35rem, 2.2vw, 1.75rem);

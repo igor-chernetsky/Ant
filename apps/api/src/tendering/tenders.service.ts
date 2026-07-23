@@ -28,8 +28,11 @@ import { ProjectsService } from '../projects/projects.service';
 import type { ProjectBriefV1 } from '../projects/project-brief';
 import { inferPropertyOwnershipForm } from '../projects/discover-filters';
 import {
+  calendarDaysBetween,
   inferContractPeriodMonths,
+  inferWorksFinishDate,
   inferWorksStartDate,
+  monthsFromDurationDays,
 } from './contract-terms-inference';
 import {
   DEFAULT_PROPERTY_OWNERSHIP,
@@ -338,13 +341,26 @@ export class TendersService {
       };
 
     const brief = (project.briefJson ?? null) as ProjectBriefV1 | null;
+    const worksStartDate =
+      contractTerms.worksStartDate?.trim() || inferWorksStartDate(brief);
+    const contractPeriodMonths =
+      contractTerms.contractPeriodMonths ??
+      inferContractPeriodMonths({ brief });
+    const worksFinishDate =
+      contractTerms.worksFinishDate?.trim() ||
+      inferWorksFinishDate({
+        worksStartDate,
+        contractPeriodMonths,
+      });
+    const periodDays = calendarDaysBetween(worksStartDate, worksFinishDate);
     return {
       ...contractTerms,
-      worksStartDate:
-        contractTerms.worksStartDate?.trim() || inferWorksStartDate(brief),
+      worksStartDate,
+      worksFinishDate,
       contractPeriodMonths:
-        contractTerms.contractPeriodMonths ??
-        inferContractPeriodMonths({ brief }),
+        periodDays != null
+          ? monthsFromDurationDays(periodDays)
+          : contractPeriodMonths,
     };
   }
 
@@ -358,8 +374,12 @@ export class TendersService {
     });
 
     const defaultCostBreakdown =
-      tender && this.costBreakdown.parseStored(tender.defaultCostBreakdown).length > 0
-        ? this.costBreakdown.parseStored(tender.defaultCostBreakdown)
+      tender != null
+        ? await this.costBreakdown.resolveForTender(
+            tender.id,
+            projectId,
+            tender.defaultCostBreakdown,
+          )
         : await this.costBreakdown.generateForProject(projectId);
 
     let clarificationSummary = project.clarificationSummary;
@@ -550,9 +570,13 @@ export class TendersService {
     const existingBreakdown = this.costBreakdown.parseStored(
       updated.defaultCostBreakdown,
     );
-    if (existingBreakdown.length === 0) {
-      await this.costBreakdown.generateAndStoreForTender(updated.id, projectId);
-    }
+    await this.costBreakdown.resolveForTender(
+      updated.id,
+      projectId,
+      existingBreakdown.length > 0
+        ? updated.defaultCostBreakdown
+        : [],
+    );
 
     const projectAfterOpen = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -626,13 +650,20 @@ export class TendersService {
     return this.mapTender(await this.loadTender(updated.id));
   }
 
-  private defaultCostBreakdownForTender(
-    tender: { defaultCostBreakdown: unknown } | null | undefined,
-  ): DefaultCostBreakdownItem[] {
+  private async defaultCostBreakdownForTender(
+    tender:
+      | { id: string; projectId: string; defaultCostBreakdown: unknown }
+      | null
+      | undefined,
+  ): Promise<DefaultCostBreakdownItem[]> {
     if (!tender) {
       return [];
     }
-    return this.costBreakdown.parseStored(tender.defaultCostBreakdown);
+    return this.costBreakdown.resolveForTender(
+      tender.id,
+      tender.projectId,
+      tender.defaultCostBreakdown,
+    );
   }
 
   async revertTenderToEstimated(
@@ -1071,7 +1102,9 @@ export class TendersService {
     const contractFullySigned =
       contract?.status === ContractStatus.fully_signed;
 
-    const defaultCostBreakdown = this.defaultCostBreakdownForTender(tender);
+    const defaultCostBreakdown = await this.defaultCostBreakdownForTender(
+      tender,
+    );
     const projectContractTerms = this.parseProjectContractTerms(
       project.tenderContractTermsJson,
     );
@@ -1514,6 +1547,30 @@ export class TendersService {
     return merged;
   }
 
+  private pickClientOnlyContractTerms(
+    incoming?: BidContractTerms,
+  ): BidContractTerms | undefined {
+    if (!incoming) {
+      return undefined;
+    }
+    const clientOnlyKeys: (keyof BidContractTerms)[] = [
+      'siteAddress',
+      'propertyOwnership',
+      'employerName',
+      'employerAddress',
+      'employerRegistrationNo',
+    ];
+    const picked: BidContractTerms = {};
+    for (const key of clientOnlyKeys) {
+      if (incoming[key] !== undefined) {
+        (picked as Record<string, BidContractTerms[keyof BidContractTerms]>)[
+          key
+        ] = incoming[key] as BidContractTerms[keyof BidContractTerms];
+      }
+    }
+    return Object.keys(picked).length > 0 ? picked : undefined;
+  }
+
   private mergeContractTermsForContractor(
     existingTerms: BidTermsV1 | null,
     incoming?: SubmitBidDto['contractTerms'],
@@ -1704,13 +1761,11 @@ export class TendersService {
     }
 
     const editableStatuses: BidStatus[] = [
-      BidStatus.submitted,
       BidStatus.selected,
-      BidStatus.rejected,
     ];
     if (!editableStatuses.includes(bid.status)) {
       throw new BadRequestException(
-        'Contract terms can be updated after a proposal is submitted',
+        'Commercial proposal terms cannot be edited directly after submission. Send a counter-offer to propose changes.',
       );
     }
 
@@ -1718,8 +1773,11 @@ export class TendersService {
 
     const existingTerms = (bid.termsJson as BidTermsV1 | null) ?? {};
     const projectTerms = this.resolveProjectContractTerms(project);
+    // After award, the client may only adjust employer / site fields — not the
+    // contractor's commercial terms (those go through counter-offer earlier).
+    const clientOnlyIncoming = this.pickClientOnlyContractTerms(dto.contractTerms);
     const contractTerms = this.normalizeAndValidateContractTerms(
-      this.mergeContractTerms(existingTerms, dto.contractTerms, projectTerms),
+      this.mergeContractTerms(existingTerms, clientOnlyIncoming, projectTerms),
     );
 
     const updatedTerms: BidTermsV1 = {

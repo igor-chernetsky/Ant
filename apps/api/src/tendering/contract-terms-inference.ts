@@ -40,6 +40,65 @@ export function monthsFromDurationDays(
   return Math.max(1, Math.round(days / 30));
 }
 
+/** Calendar days from start to finish (same day = 1). */
+export function calendarDaysBetween(
+  startIso?: string | null,
+  finishIso?: string | null,
+): number | undefined {
+  const startRaw = typeof startIso === 'string' ? parseIsoDate(startIso) : undefined;
+  const finishRaw =
+    typeof finishIso === 'string' ? parseIsoDate(finishIso) : undefined;
+  if (!startRaw || !finishRaw) {
+    return undefined;
+  }
+  const start = new Date(`${startRaw}T00:00:00`);
+  const finish = new Date(`${finishRaw}T00:00:00`);
+  const days = Math.round(
+    (finish.getTime() - start.getTime()) / 86_400_000,
+  );
+  if (days < 0) {
+    return undefined;
+  }
+  return Math.max(1, days || 1);
+}
+
+export function addCalendarDays(
+  startIso: string,
+  days: number,
+): string | undefined {
+  const startRaw = parseIsoDate(startIso);
+  if (!startRaw || !Number.isFinite(days)) {
+    return undefined;
+  }
+  const start = new Date(`${startRaw}T00:00:00`);
+  return formatDateForInput(addDays(start, days));
+}
+
+export function inferWorksFinishDate(input: {
+  worksStartDate?: string | null;
+  durationDays?: number | null;
+  contractPeriodMonths?: number | null;
+}): string | undefined {
+  const startRaw =
+    typeof input.worksStartDate === 'string'
+      ? parseIsoDate(input.worksStartDate)
+      : undefined;
+  if (!startRaw) {
+    return undefined;
+  }
+  if (input.durationDays != null && input.durationDays >= 1) {
+    return addCalendarDays(startRaw, input.durationDays);
+  }
+  if (
+    input.contractPeriodMonths != null &&
+    input.contractPeriodMonths >= 1
+  ) {
+    const start = new Date(`${startRaw}T00:00:00`);
+    return formatDateForInput(addMonths(start, input.contractPeriodMonths));
+  }
+  return undefined;
+}
+
 export function parseDurationMonthsFromText(text: string): number | undefined {
   const monthsMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:months?|mo\b)/i);
   if (monthsMatch) {

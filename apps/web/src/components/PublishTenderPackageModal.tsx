@@ -91,17 +91,24 @@ export function PublishTenderPackageModal({
 
   const isClarificationPublish = mode === 'create' && structuredQa;
 
+  // Load preview once per open session. Do not depend on `project` / `t` /
+  // `initialDeadline` object identity — parent re-renders were remounting the
+  // form mid-edit and wiping in-progress KP fields.
   useEffect(() => {
     if (!isOpen) return;
+
     setDeadline(initialDeadline);
     setError(null);
     if (isClarificationPublish) {
       return;
     }
+
+    let cancelled = false;
     void (async () => {
       setLoading(true);
       try {
         const data = await fetchTenderPublishPreview(projectId);
+        if (cancelled) return;
         setPreview({
           ...data,
           contractTerms: contractTermsFromProject({
@@ -114,6 +121,7 @@ export function PublishTenderPackageModal({
               : [{ trade: '', description: '' }],
         });
       } catch (err: unknown) {
+        if (cancelled) return;
         setPreview(emptyPreview(project, t));
         setError(
           err instanceof Error
@@ -121,10 +129,17 @@ export function PublishTenderPackageModal({
             : t('tenderCard.loadPreviewFailed'),
         );
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     })();
-  }, [isOpen, isClarificationPublish, projectId, project, initialDeadline, t]);
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: open/projectId only
+  }, [isOpen, isClarificationPublish, projectId]);
 
   if (!isOpen) {
     return null;

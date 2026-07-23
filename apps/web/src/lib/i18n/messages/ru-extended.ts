@@ -418,6 +418,10 @@ export const ruExtended = {
     propertyOwnership: "Право собственности / права на объект",
     propertyOwnershipHint: "Титул, аренда, согласие застройщика и т.д.",
     worksStartDate: "Дата начала работ",
+    worksFinishDate: "Дата окончания работ",
+    contractPeriodDays: "Срок договора",
+    contractPeriodDaysValue: "{days} календ. дн.",
+    contractPeriodDaysPlaceholder: "Укажите даты начала и окончания",
     contractPeriodMonths: "Срок договора (мес.)",
     advancePaymentPercent: "Аванс (%)",
     fixedAdvanceThb: "Фиксированный аванс (THB)",
@@ -774,6 +778,8 @@ export const ruExtended = {
     loading: "Загрузка ставок…",
     signInPrompt: "Войдите, чтобы просматривать ставки по проекту.",
     compareTitle: "Сравнение ставок",
+    refresh: "Обновить",
+    refreshing: "Обновление…",
     backToProject: "К проекту",
     projects: "Проекты",
     bids: "Ставки",
@@ -880,6 +886,8 @@ export const ruExtended = {
   commercialProposal: {
     termsTitle: "Условия коммерческого предложения",
     readOnlyHint: "Согласованные условия КП зафиксированы. Скачайте итоговый документ ниже.",
+    reviewHint:
+      "Просмотрите условия КП подрядчика. Чтобы предложить изменения, отправьте встречное предложение ниже — прямое редактирование недоступно.",
     editableHint: "Настройте сведения об объекте, оплату, график и особые условия. Поля предложения подрядчика только для чтения.",
     contractorEditableHint: "Обновите данные компании, предмет договора и общие коммерческие условия. Поля объекта и собственности заказчика только для чтения.",
     saveTerms: "Сохранить условия",

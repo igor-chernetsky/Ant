@@ -208,7 +208,7 @@ export function BidApplicationCard({
                 projectTitle={clientCounterOffer.projectTitle}
                 projectDistrict={clientCounterOffer.projectDistrict}
                 projectContractTerms={clientCounterOffer.projectContractTerms}
-                readOnly={contractReadOnly}
+                readOnly
                 onBidUpdated={clientCounterOffer.onBidUpdated}
               />
             )}

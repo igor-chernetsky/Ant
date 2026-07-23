@@ -12,7 +12,11 @@ import {
   pickContractorContractTerms,
   type ContractTermsAudience,
 } from '@/components/BidContractTermsFields';
-import { inferContractPeriodMonths } from '@/lib/contract-terms-inference';
+import {
+  addCalendarDays,
+  calendarDaysBetween,
+  monthsFromDurationDays,
+} from '@/lib/contract-terms-inference';
 import {
   activeBreakdownLineItems,
   breakdownLineItemsSubtotal,
@@ -223,17 +227,26 @@ export function BidProposalForm({
     setDurationDays(value);
     const parsed = value.trim() ? Number(value) : undefined;
     if (
-      parsed !== undefined &&
-      Number.isFinite(parsed) &&
-      parsed >= 1 &&
-      contractTerms.contractPeriodMonths == null
+      parsed === undefined ||
+      !Number.isFinite(parsed) ||
+      parsed < 1 ||
+      !contractTerms.worksStartDate
     ) {
-      setContractTerms((current) => ({
-        ...current,
-        contractPeriodMonths:
-          inferContractPeriodMonths({ durationDays: parsed, brief: projectBrief }) ??
-          Math.max(1, Math.round(parsed / 30)),
-      }));
+      return;
+    }
+    const finish = addCalendarDays(contractTerms.worksStartDate, parsed);
+    setContractTerms((current) => ({
+      ...current,
+      worksFinishDate: finish,
+      contractPeriodMonths: monthsFromDurationDays(parsed),
+    }));
+  };
+
+  const handleContractTermsChange = (next: BidContractTerms) => {
+    setContractTerms(next);
+    const days = calendarDaysBetween(next.worksStartDate, next.worksFinishDate);
+    if (days != null) {
+      setDurationDays(String(days));
     }
   };
 
@@ -399,7 +412,7 @@ export function BidProposalForm({
         {contractTermsAudience !== 'none' && (
           <BidContractTermsFields
             value={contractTerms}
-            onChange={setContractTerms}
+            onChange={handleContractTermsChange}
             audience={contractTermsAudience}
             projectTitle={projectTitle}
             projectDistrict={projectDistrict}

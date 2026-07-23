@@ -23,6 +23,9 @@ export interface BidContractTerms {
   advancePaymentPercent?: number;
   advancePaymentAmount?: number;
   worksStartDate?: string;
+  /** Planned works completion date (ISO date). */
+  worksFinishDate?: string;
+  /** Legacy / derived period in months (kept for older bids & payment terms). */
   contractPeriodMonths?: number;
   retentionPercent?: number;
   retentionLimitPercent?: number;

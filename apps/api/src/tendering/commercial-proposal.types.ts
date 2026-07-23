@@ -20,7 +20,9 @@ export interface BidContractTerms {
   advancePaymentAmount?: number;
   /** Works commencement date (ISO date). */
   worksStartDate?: string;
-  /** Contract period in months (alternative to duration days on bid). */
+  /** Planned works completion date (ISO date). */
+  worksFinishDate?: string;
+  /** Legacy / derived period in months (kept for older bids & payment terms). */
   contractPeriodMonths?: number;
   /** Retention % of work executed. */
   retentionPercent?: number;
@@ -56,6 +58,7 @@ export interface CommercialProposalRenderData {
   advancePaymentText: string;
   paymentTermsText: string;
   worksStartDate: string;
+  worksFinishDate: string;
   contractPeriodText: string;
   retentionText: string;
   retentionReleaseText: string;

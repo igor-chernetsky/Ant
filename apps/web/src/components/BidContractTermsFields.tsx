@@ -9,6 +9,10 @@ import {
   type ContractTermsAudience,
 } from '@/lib/contract-terms-fields';
 import {
+  calendarDaysBetween,
+  monthsFromDurationDays,
+} from '@/lib/contract-terms-inference';
+import {
   buildDelayDamagesOptions,
   buildPropertyOwnershipOptions,
   buildRetentionReleaseOptions,
@@ -87,6 +91,21 @@ export function BidContractTermsFields({
     onChange({ ...value, [key]: fieldValue });
   };
 
+  const setSchedule = (patch: Partial<BidContractTerms>) => {
+    const next = { ...value, ...patch };
+    const days = calendarDaysBetween(next.worksStartDate, next.worksFinishDate);
+    onChange({
+      ...next,
+      contractPeriodMonths:
+        days != null ? monthsFromDurationDays(days) : next.contractPeriodMonths,
+    });
+  };
+
+  const contractPeriodDays = calendarDaysBetween(
+    value.worksStartDate,
+    value.worksFinishDate,
+  );
+
   const fieldDisabled = (key: keyof BidContractTerms) =>
     disabled || !canEditContractTermField(key, audience);
 
@@ -148,32 +167,48 @@ export function BidContractTermsFields({
           rows={2}
         />
 
-        <div className="bid-proposal-form-row bid-proposal-form-row--pair">
+        <div className="bid-proposal-form-row bid-proposal-form-row--triple">
           <label className="bid-proposal-field">
             <span className="field-label">{t('contractTerms.worksStartDate')}</span>
             <input
               type="date"
               disabled={fieldDisabled('worksStartDate')}
               value={value.worksStartDate ?? ''}
-              onChange={(e) => set('worksStartDate', e.target.value)}
+              onChange={(e) =>
+                setSchedule({ worksStartDate: e.target.value || undefined })
+              }
             />
           </label>
           <label className="bid-proposal-field">
             <span className="field-label">
-              {t('contractTerms.contractPeriodMonths')}
+              {t('contractTerms.worksFinishDate')}
             </span>
             <input
-              type="number"
-              min="1"
-              disabled={fieldDisabled('contractPeriodMonths')}
-              value={value.contractPeriodMonths ?? ''}
-              placeholder="7"
+              type="date"
+              disabled={fieldDisabled('worksFinishDate')}
+              min={value.worksStartDate || undefined}
+              value={value.worksFinishDate ?? ''}
               onChange={(e) =>
-                set(
-                  'contractPeriodMonths',
-                  e.target.value ? Number(e.target.value) : undefined,
-                )
+                setSchedule({ worksFinishDate: e.target.value || undefined })
               }
+            />
+          </label>
+          <label className="bid-proposal-field">
+            <span className="field-label">
+              {t('contractTerms.contractPeriodDays')}
+            </span>
+            <input
+              type="text"
+              readOnly
+              disabled
+              value={
+                contractPeriodDays != null
+                  ? t('contractTerms.contractPeriodDaysValue', {
+                      days: contractPeriodDays,
+                    })
+                  : ''
+              }
+              placeholder={t('contractTerms.contractPeriodDaysPlaceholder')}
             />
           </label>
         </div>

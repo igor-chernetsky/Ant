@@ -10,6 +10,7 @@ import {
 } from './commercial-proposal.i18n';
 import type { SupportedLocale } from '../users/locale.types';
 import { DEFAULT_LOCALE } from '../users/locale.types';
+import { calendarDaysBetween } from './contract-terms-inference';
 
 export function escapeHtml(value: string): string {
   return value
@@ -204,12 +205,23 @@ export function buildCommercialProposalData(input: {
     input.terms?.scopeSummary?.trim() ||
     input.projectDescription?.trim() ||
     input.projectTitle;
+  const periodDaysFromDates = calendarDaysBetween(
+    contract?.worksStartDate,
+    contract?.worksFinishDate,
+  );
+  const periodDays =
+    periodDaysFromDates ??
+    (input.durationDays != null && input.durationDays >= 1
+      ? input.durationDays
+      : undefined);
   const periodMonths =
-    contract?.contractPeriodMonths ?? monthsFromDays(input.durationDays);
-  const periodText = periodMonths
-    ? copy.periodMonthsFromStart(periodMonths)
-    : input.durationDays
-      ? copy.periodDaysFromStart(input.durationDays)
+    contract?.contractPeriodMonths ??
+    monthsFromDays(periodDays) ??
+    monthsFromDays(input.durationDays);
+  const periodText = periodDays
+    ? copy.periodDaysFromStart(periodDays)
+    : periodMonths
+      ? copy.periodMonthsFromStart(periodMonths)
       : copy.periodMasterSchedule;
 
   const employerBlock = [
@@ -264,6 +276,11 @@ export function buildCommercialProposalData(input: {
     paymentTermsText: buildPaymentTermsText(periodMonths, copy),
     worksStartDate: formatDisplayDate(
       contract?.worksStartDate,
+      locale,
+      copy.dash,
+    ),
+    worksFinishDate: formatDisplayDate(
+      contract?.worksFinishDate,
       locale,
       copy.dash,
     ),
@@ -562,6 +579,7 @@ function renderClause5(
   return `
   <h2>${escapeHtml(copy.clause5)}</h2>
   <p class="clause"><strong>${escapeHtml(copy.worksCommencementDate)}</strong> ${escapeHtml(data.worksStartDate)}</p>
+  <p class="clause"><strong>${escapeHtml(copy.worksCompletionDate)}</strong> ${escapeHtml(data.worksFinishDate)}</p>
   <p class="clause">${escapeHtml(copy.worksCompletedWithin(data.contractPeriodText))}</p>
   <p class="clause"><strong>${escapeHtml(copy.delayDamages)}</strong> ${escapeHtml(data.delayDamagesText)}</p>`;
 }
@@ -861,6 +879,7 @@ export function normalizeContractTerms(
         ? Math.max(0, raw.advancePaymentAmount)
         : undefined,
     worksStartDate: trim(raw.worksStartDate),
+    worksFinishDate: trim(raw.worksFinishDate),
     contractPeriodMonths:
       raw.contractPeriodMonths != null &&
       Number.isFinite(raw.contractPeriodMonths)
@@ -878,6 +897,14 @@ export function normalizeContractTerms(
     delayDamagesNotes: trim(raw.delayDamagesNotes),
     specialConditions: trim(raw.specialConditions),
   };
+
+  const periodDays = calendarDaysBetween(
+    normalized.worksStartDate,
+    normalized.worksFinishDate,
+  );
+  if (periodDays != null) {
+    normalized.contractPeriodMonths = monthsFromDays(periodDays);
+  }
 
   const hasValue = Object.values(normalized).some(
     (v) => v !== undefined && v !== '',

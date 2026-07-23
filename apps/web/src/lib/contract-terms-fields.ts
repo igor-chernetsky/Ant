@@ -1,8 +1,11 @@
 import type { BidContractTerms } from '@/lib/tendering';
 import type { ProjectBriefV1 } from '@/lib/projects';
 import {
+  calendarDaysBetween,
   inferContractPeriodMonths,
+  inferWorksFinishDate,
   inferWorksStartDate,
+  monthsFromDurationDays,
 } from '@/lib/contract-terms-inference';
 
 export const DEFAULT_PROPERTY_OWNERSHIP =
@@ -35,6 +38,7 @@ export interface ContractTermsProjectContext {
 
 const SHARED_KEYS: ContractTermsFieldKey[] = [
   'worksStartDate',
+  'worksFinishDate',
   'contractPeriodMonths',
   'advancePaymentPercent',
   'advancePaymentAmount',
@@ -121,6 +125,27 @@ export function contractTermsFromBid(
   const projectDefaults = projectContractTerms ?? {};
   const defaultSubject = defaultScopeSummary(terms, project) || undefined;
 
+  const worksStartDate =
+    existing.worksStartDate?.trim() ||
+    projectDefaults.worksStartDate?.trim() ||
+    inferWorksStartDate(project?.brief);
+  const contractPeriodMonthsFallback =
+    existing.contractPeriodMonths ??
+    projectDefaults.contractPeriodMonths ??
+    inferContractPeriodMonths({
+      durationDays,
+      brief: project?.brief,
+    });
+  const worksFinishDate =
+    existing.worksFinishDate?.trim() ||
+    projectDefaults.worksFinishDate?.trim() ||
+    inferWorksFinishDate({
+      worksStartDate,
+      durationDays,
+      contractPeriodMonths: contractPeriodMonthsFallback,
+    });
+  const periodDays = calendarDaysBetween(worksStartDate, worksFinishDate);
+
   return {
     ...DEFAULT_CONTRACT_TERMS,
     ...projectDefaults,
@@ -134,17 +159,12 @@ export function contractTermsFromBid(
       existing.subjectOfContract ??
       projectDefaults.subjectOfContract ??
       defaultSubject,
-    worksStartDate:
-      existing.worksStartDate?.trim() ||
-      projectDefaults.worksStartDate?.trim() ||
-      inferWorksStartDate(project?.brief),
+    worksStartDate,
+    worksFinishDate,
     contractPeriodMonths:
-      existing.contractPeriodMonths ??
-      projectDefaults.contractPeriodMonths ??
-      inferContractPeriodMonths({
-        durationDays,
-        brief: project?.brief,
-      }),
+      periodDays != null
+        ? monthsFromDurationDays(periodDays)
+        : contractPeriodMonthsFallback,
     propertyOwnership:
       existing.propertyOwnership?.trim() ||
       projectDefaults.propertyOwnership?.trim() ||

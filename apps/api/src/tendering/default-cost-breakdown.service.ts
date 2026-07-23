@@ -53,46 +53,46 @@ export class DefaultCostBreakdownService {
     tenderId: string,
     projectId: string,
   ): Promise<DefaultCostBreakdownItem[]> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      include: {
-        tags: { include: { tag: true } },
-        estimates: { orderBy: { createdAt: 'desc' }, take: 1 },
-      },
-    });
-
-    if (!project) {
-      return [];
-    }
-
-    const estimate = project.estimates[0];
-    const estimateLines = estimate
-      ? (estimate.linesJson as EstimateLine[] | null) ?? []
-      : [];
-    const brief = (project.briefJson as ProjectBriefV1 | null) ?? null;
-
-    const items =
-      (await this.generateWithOpenAi({
-        title: project.title,
-        description: project.description,
-        projectType: project.projectType,
-        propertyType: project.propertyType,
-        district: project.district,
-        tagSlugs: project.tags.map((pt) => pt.tag.slug),
-        brief,
-        estimateLines,
-      })) ?? this.generateFallback(brief, estimateLines, project.projectType);
-
-    const normalized = this.normalizeItems(items);
+    const items = await this.generateForProject(projectId);
 
     await this.prisma.tender.update({
       where: { id: tenderId },
       data: {
-        defaultCostBreakdown: normalized as unknown as Prisma.InputJsonValue,
+        defaultCostBreakdown: items as unknown as Prisma.InputJsonValue,
       },
     });
 
-    return normalized;
+    return items;
+  }
+
+  /**
+   * Prefer ballpark estimate lines when the stored tender template is empty
+   * or clearly thinner than the latest estimate (e.g. AI collapsed 9 lines to 2).
+   */
+  async resolveForTender(
+    tenderId: string,
+    projectId: string,
+    storedRaw: unknown,
+  ): Promise<DefaultCostBreakdownItem[]> {
+    const stored = this.parseStored(storedRaw);
+    const estimateItems = await this.itemsFromLatestEstimate(projectId);
+
+    if (estimateItems.length > 0 && estimateItems.length > stored.length) {
+      await this.prisma.tender.update({
+        where: { id: tenderId },
+        data: {
+          defaultCostBreakdown:
+            estimateItems as unknown as Prisma.InputJsonValue,
+        },
+      });
+      return estimateItems;
+    }
+
+    if (stored.length > 0) {
+      return stored;
+    }
+
+    return this.generateAndStoreForTender(tenderId, projectId);
   }
 
   async generateForProject(projectId: string): Promise<DefaultCostBreakdownItem[]> {
@@ -110,9 +110,15 @@ export class DefaultCostBreakdownService {
 
     const estimate = project.estimates[0];
     const estimateLines = estimate
-      ? (estimate.linesJson as EstimateLine[] | null) ?? []
+      ? ((estimate.linesJson as EstimateLine[] | null) ?? [])
       : [];
     const brief = (project.briefJson as ProjectBriefV1 | null) ?? null;
+
+    // Ballpark lines are the source of truth when present — do not let AI
+    // collapse a detailed estimate into a short generic template.
+    if (estimateLines.length > 0) {
+      return this.normalizeItems(this.itemsFromEstimateLines(estimateLines));
+    }
 
     const items =
       (await this.generateWithOpenAi({
@@ -129,7 +135,36 @@ export class DefaultCostBreakdownService {
     return this.normalizeItems(items);
   }
 
-  private normalizeItems(items: DefaultCostBreakdownItem[]): DefaultCostBreakdownItem[] {
+  private async itemsFromLatestEstimate(
+    projectId: string,
+  ): Promise<DefaultCostBreakdownItem[]> {
+    const estimate = await this.prisma.estimate.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: 'desc' },
+      select: { linesJson: true },
+    });
+    if (!estimate) {
+      return [];
+    }
+    const lines = (estimate.linesJson as EstimateLine[] | null) ?? [];
+    if (lines.length === 0) {
+      return [];
+    }
+    return this.normalizeItems(this.itemsFromEstimateLines(lines));
+  }
+
+  private itemsFromEstimateLines(
+    estimateLines: EstimateLine[],
+  ): DefaultCostBreakdownItem[] {
+    return estimateLines.map((line) => ({
+      trade: line.trade,
+      description: line.description || undefined,
+    }));
+  }
+
+  private normalizeItems(
+    items: DefaultCostBreakdownItem[],
+  ): DefaultCostBreakdownItem[] {
     const seen = new Set<string>();
     const result: DefaultCostBreakdownItem[] = [];
 
@@ -254,10 +289,7 @@ Rules:
     projectType: string,
   ): DefaultCostBreakdownItem[] {
     if (estimateLines.length > 0) {
-      return estimateLines.map((line) => ({
-        trade: line.trade,
-        description: line.description || undefined,
-      }));
+      return this.itemsFromEstimateLines(estimateLines);
     }
 
     if (brief?.packages?.length) {

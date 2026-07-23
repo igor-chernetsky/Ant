@@ -417,6 +417,10 @@ export const enExtended = {
     propertyOwnership: "Property ownership / site rights",
     propertyOwnershipHint: "Title deed, lease, developer consent, etc.",
     worksStartDate: "Works start date",
+    worksFinishDate: "Works finish date",
+    contractPeriodDays: "Contract period",
+    contractPeriodDaysValue: "{days} calendar days",
+    contractPeriodDaysPlaceholder: "Set start and finish dates",
     contractPeriodMonths: "Contract period (months)",
     advancePaymentPercent: "Advance payment (%)",
     fixedAdvanceThb: "Fixed advance (THB)",
@@ -773,6 +777,8 @@ export const enExtended = {
     loading: "Loading bids…",
     signInPrompt: "Sign in to review bids for your project.",
     compareTitle: "Compare bids",
+    refresh: "Refresh",
+    refreshing: "Refreshing…",
     backToProject: "Back to project",
     projects: "Projects",
     bids: "Bids",
@@ -879,6 +885,8 @@ export const enExtended = {
   commercialProposal: {
     termsTitle: "Commercial proposal terms",
     readOnlyHint: "Signed contract terms are read-only. Download the final document below.",
+    reviewHint:
+      "Review the contractor's commercial proposal terms. To propose changes, send a counter-offer below — direct edits are not allowed.",
     editableHint: "Adjust site details and propose payment, schedule, and special conditions. Contractor proposal fields are read-only.",
     contractorEditableHint: "Update your company details, scope subject, and shared commercial terms. Client site and ownership fields are read-only.",
     saveTerms: "Save terms",

@@ -52,6 +52,9 @@ export interface BidContractTerms {
   advancePaymentPercent?: number;
   advancePaymentAmount?: number;
   worksStartDate?: string;
+  /** Planned works completion date (ISO date). */
+  worksFinishDate?: string;
+  /** Legacy / derived period in months (kept for older bids & payment terms). */
   contractPeriodMonths?: number;
   retentionPercent?: number;
   retentionLimitPercent?: number;
@@ -923,6 +926,23 @@ export function formatContractorParticipationLabel(
 
 export function formatTenderStatus(status: TenderStatus): string {
   return status.replaceAll('_', ' ');
+}
+
+/**
+ * Bids that include a commercial proposal amount and remain useful for
+ * side-by-side comparison after award (selected / rejected).
+ */
+export function isComparableProposalBid(
+  bid: Pick<Bid, 'status' | 'amount'>,
+): boolean {
+  if (bid.amount == null || !Number.isFinite(Number(bid.amount))) {
+    return false;
+  }
+  return (
+    bid.status === 'submitted' ||
+    bid.status === 'selected' ||
+    bid.status === 'rejected'
+  );
 }
 
 /** Structured Q&A answers are collected only while the tender is still in draft. */

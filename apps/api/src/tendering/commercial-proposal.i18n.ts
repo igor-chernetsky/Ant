@@ -28,6 +28,7 @@ export interface CommercialProposalCopy {
   annex2Drawings: string;
   clause5: string;
   worksCommencementDate: string;
+  worksCompletionDate: string;
   worksCompletedWithin: (period: string) => string;
   delayDamages: string;
   clause6: string;
@@ -117,6 +118,7 @@ const EN: CommercialProposalCopy = {
   annex2Drawings: 'Annex #2 — Drawings and Specifications',
   clause5: 'Clause 5 — Contract Period',
   worksCommencementDate: 'Works Commencement Date:',
+  worksCompletionDate: 'Works Completion Date:',
   worksCompletedWithin: (period) =>
     `The whole scope of the Works shall be completed within ${period}.`,
   delayDamages: 'Delay damages:',
@@ -234,6 +236,7 @@ const RU: CommercialProposalCopy = {
   annex2Drawings: 'Приложение №2 — Чертежи и спецификации',
   clause5: 'Пункт 5 — Срок выполнения работ',
   worksCommencementDate: 'Дата начала работ:',
+  worksCompletionDate: 'Дата окончания работ:',
   worksCompletedWithin: (period) =>
     `Весь объём Работ должен быть выполнен в течение ${period}.`,
   delayDamages: 'Неустойка за просрочку:',
@@ -350,6 +353,7 @@ const TH: CommercialProposalCopy = {
   annex2Drawings: 'ภาคผนวก #2 — แบบและสเปก',
   clause5: 'ข้อ 5 — ระยะเวลางาน',
   worksCommencementDate: 'วันเริ่มงาน:',
+  worksCompletionDate: 'วันสิ้นสุดงาน:',
   worksCompletedWithin: (period) =>
     `ขอบเขตงานทั้งหมดต้องแล้วเสร็จภายใน ${period}`,
   delayDamages: 'ค่าปรับความล่าช้า:',

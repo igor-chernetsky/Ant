@@ -417,6 +417,10 @@ export const thExtended = {
     propertyOwnership: "กรรมสิทธิ์ทรัพย์สิน / สิทธิ์ใช้ไซต์",
     propertyOwnershipHint: "โฉนด สัญญาเช่า ความยินยอมจากผู้พัฒนา ฯลฯ",
     worksStartDate: "วันเริ่มงาน",
+    worksFinishDate: "วันสิ้นสุดงาน",
+    contractPeriodDays: "ระยะสัญญา",
+    contractPeriodDaysValue: "{days} วันตามปฏิทิน",
+    contractPeriodDaysPlaceholder: "กำหนดวันเริ่มและวันสิ้นสุด",
     contractPeriodMonths: "ระยะสัญญา (เดือน)",
     advancePaymentPercent: "เงินมัดจำ (%)",
     fixedAdvanceThb: "มัดจำคงที่ (บาท)",
@@ -773,6 +777,8 @@ export const thExtended = {
     loading: "กำลังโหลดข้อเสนอ…",
     signInPrompt: "เข้าสู่ระบบเพื่อตรวจสอบข้อเสนอของโครงการ",
     compareTitle: "เปรียบเทียบข้อเสนอ",
+    refresh: "รีเฟรช",
+    refreshing: "กำลังรีเฟรช…",
     backToProject: "กลับไปโครงการ",
     projects: "โครงการ",
     bids: "ข้อเสนอ",
@@ -879,6 +885,8 @@ export const thExtended = {
   commercialProposal: {
     termsTitle: "เงื่อนไขข้อเสนอเชิงพาณิชย์",
     readOnlyHint: "เงื่อนไขที่ลงนามแล้วเป็นแบบอ่านอย่างเดียว ดาวน์โหลดเอกสารฉบับสุดท้ายด้านล่าง",
+    reviewHint:
+      "ตรวจทานเงื่อนไขข้อเสนอของผู้รับเหมา หากต้องการเปลี่ยนแปลง ให้ส่งข้อเสนอตอบกลับด้านล่าง — แก้ไขโดยตรงไม่ได้",
     editableHint: "ปรับรายละเอียดไซต์และเสนอการชำระเงิน กำหนดการ และเงื่อนไขพิเศษ ฟิลด์ข้อเสนอของผู้รับเหมาเป็นแบบอ่านอย่างเดียว",
     contractorEditableHint: "อัปเดตข้อมูลบริษัท ขอบเขตงาน และเงื่อนไขเชิงพาณิชย์ร่วม ฟิลด์ไซต์และกรรมสิทธิ์ของลูกค้าเป็นแบบอ่านอย่างเดียว",
     saveTerms: "บันทึกเงื่อนไข",

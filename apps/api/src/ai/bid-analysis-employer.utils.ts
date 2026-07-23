@@ -85,6 +85,7 @@ export function serializeBidForEmployerAnalysis(bid: BidAnalysisBidInput) {
           ),
           contractPeriodMonths: contract.contractPeriodMonths ?? null,
           worksStartDate: contract.worksStartDate ?? null,
+          worksFinishDate: contract.worksFinishDate ?? null,
           specialConditions: contract.specialConditions ?? null,
         }
       : null,

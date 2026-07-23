@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   localizedContractTermsOptionValue,
@@ -35,6 +35,7 @@ export function ContractTermsTextOptionField({
 }: ContractTermsTextOptionFieldProps) {
   const { t } = useTranslation();
   const selectId = useId();
+  const inputId = useId();
   const matchedOptionId = useMemo(
     () => matchContractTermsOptionId(value, options),
     [value, options],
@@ -43,33 +44,25 @@ export function ContractTermsTextOptionField({
     () => localizedContractTermsOptionValue(value, options),
     [value, options],
   );
-  const [customSelected, setCustomSelected] = useState(false);
+  // Lets the user pick "Custom" while the text still matches a template,
+  // so they can edit without the select snapping back.
+  const [forceCustom, setForceCustom] = useState(false);
 
-  useEffect(() => {
-    if (
-      matchedOptionId !== CONTRACT_TERMS_CUSTOM_OPTION_ID &&
-      matchedOptionId !== ''
-    ) {
-      setCustomSelected(false);
-    }
-  }, [matchedOptionId]);
-
-  const selectValue = customSelected
-    ? CONTRACT_TERMS_CUSTOM_OPTION_ID
-    : matchedOptionId;
-
-  const showCustomInput =
-    customSelected || matchedOptionId === CONTRACT_TERMS_CUSTOM_OPTION_ID;
+  const hasTemplates = options.length > 0;
+  const selectValue =
+    forceCustom || matchedOptionId === CONTRACT_TERMS_CUSTOM_OPTION_ID
+      ? CONTRACT_TERMS_CUSTOM_OPTION_ID
+      : matchedOptionId;
 
   const handleSelectChange = (nextId: string) => {
     if (nextId === '') {
-      setCustomSelected(false);
+      setForceCustom(false);
       onChange('');
       return;
     }
 
     if (nextId === CONTRACT_TERMS_CUSTOM_OPTION_ID) {
-      setCustomSelected(true);
+      setForceCustom(true);
       return;
     }
 
@@ -78,11 +71,19 @@ export function ContractTermsTextOptionField({
       return;
     }
 
-    setCustomSelected(false);
+    setForceCustom(false);
     onChange(option.value);
   };
 
-  const hasTemplates = options.length > 0;
+  const handleTextChange = (next: string) => {
+    if (
+      matchContractTermsOptionId(next, options) ===
+      CONTRACT_TERMS_CUSTOM_OPTION_ID
+    ) {
+      setForceCustom(false);
+    }
+    onChange(next);
+  };
 
   if (disabled) {
     return (
@@ -116,10 +117,10 @@ export function ContractTermsTextOptionField({
 
   return (
     <div className="contract-terms-text-option">
-      <label htmlFor={selectId}>
-        {label}
+      <div className="contract-terms-text-option-label">
+        <label htmlFor={hasTemplates ? selectId : inputId}>{label}</label>
         {hint}
-      </label>
+      </div>
 
       {hasTemplates && (
         <select
@@ -141,24 +142,24 @@ export function ContractTermsTextOptionField({
         </select>
       )}
 
-      {(!hasTemplates || showCustomInput) && (
-        multiline ? (
-          <textarea
-            rows={rows}
-            disabled={disabled}
-            value={showCustomInput ? value : displayValue}
-            placeholder={customPlaceholder}
-            onChange={(event) => onChange(event.target.value)}
-          />
-        ) : (
-          <input
-            type="text"
-            disabled={disabled}
-            value={showCustomInput ? value : displayValue}
-            placeholder={customPlaceholder}
-            onChange={(event) => onChange(event.target.value)}
-          />
-        )
+      {multiline ? (
+        <textarea
+          id={inputId}
+          rows={rows}
+          disabled={disabled}
+          value={displayValue}
+          placeholder={customPlaceholder}
+          onChange={(event) => handleTextChange(event.target.value)}
+        />
+      ) : (
+        <input
+          id={inputId}
+          type="text"
+          disabled={disabled}
+          value={displayValue}
+          placeholder={customPlaceholder}
+          onChange={(event) => handleTextChange(event.target.value)}
+        />
       )}
     </div>
   );

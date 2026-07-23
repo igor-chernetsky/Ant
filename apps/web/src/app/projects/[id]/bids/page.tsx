@@ -17,6 +17,7 @@ import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { fetchProject, type Project } from '@/lib/projects';
 import {
   fetchProjectTender,
+  isComparableProposalBid,
   selectProjectBid,
   type Bid,
   type Tender,
@@ -32,37 +33,50 @@ export default function ProjectBidsPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [tender, setTender] = useState<Tender | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
-  const loadData = useCallback(async () => {
-    if (!projectId || !sessionReady) return;
+  const loadData = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!projectId || !sessionReady) return;
 
-    setLoading(true);
-    setError(null);
+      const silent = options?.silent === true;
+      if (silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
 
-    if (!me) {
-      setProject(null);
-      setTender(null);
-      setLoading(false);
-      return;
-    }
+      if (!me) {
+        setProject(null);
+        setTender(null);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
 
-    try {
-      const projectData = await fetchProject(projectId);
-      setProject(projectData);
-      const tenderData = await fetchProjectTender(projectId);
-      setTender(tenderData);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('bidsPage.loadFailed'));
-      setProject(null);
-      setTender(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId, sessionReady, me, t]);
+      try {
+        const projectData = await fetchProject(projectId);
+        setProject(projectData);
+        const tenderData = await fetchProjectTender(projectId);
+        setTender(tenderData);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : t('bidsPage.loadFailed'));
+        if (!silent) {
+          setProject(null);
+          setTender(null);
+        }
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [projectId, sessionReady, me, t],
+  );
 
   useEffect(() => {
     void loadData();
@@ -119,6 +133,11 @@ export default function ProjectBidsPage() {
       return 0;
     });
   }, [tender]);
+
+  const comparableBids = useMemo(
+    () => (tender ? tender.bids.filter(isComparableProposalBid) : []),
+    [tender],
+  );
 
   return (
     <PageShell>
@@ -177,9 +196,24 @@ export default function ProjectBidsPage() {
               </p>
               <div className="project-bids-title-row">
                 <h1 className="project-bids-title">{t('bidsPage.compareTitle')}</h1>
-                <Link href={projectHref} className="secondary project-bids-back">
-                  {t('bidsPage.backToProject')}
-                </Link>
+                <div className="project-bids-title-actions">
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy || refreshing || loading}
+                    onClick={() => void loadData({ silent: true })}
+                  >
+                    {refreshing
+                      ? t('bidsPage.refreshing')
+                      : t('bidsPage.refresh')}
+                  </button>
+                  <Link
+                    href={projectHref}
+                    className="secondary project-bids-back"
+                  >
+                    {t('bidsPage.backToProject')}
+                  </Link>
+                </div>
               </div>
               {tender && (
                 <dl className="meta-grid tender-meta project-bids-meta">
@@ -191,10 +225,15 @@ export default function ProjectBidsPage() {
                     <dt>{t('tenderCard.applications')}</dt>
                     <dd>{tender.applicationCount ?? tender.bids.length}</dd>
                   </div>
-                  {tender.submittedBidCount > 0 && (
+                  {(tender.submittedBidCount > 0 ||
+                    comparableBids.length > 0) && (
                     <div>
                       <dt>{t('tenderCard.proposals')}</dt>
-                      <dd>{tender.submittedBidCount}</dd>
+                      <dd>
+                        {tender.submittedBidCount > 0
+                          ? tender.submittedBidCount
+                          : comparableBids.length}
+                      </dd>
                     </div>
                   )}
                   {tender.closesAt && (
@@ -216,14 +255,18 @@ export default function ProjectBidsPage() {
               </section>
             ) : (
               <>
-                {tender.submittedBidCount >= 2 && (
+                {comparableBids.length >= 2 && (
                   <>
                     <BidAnalysisPanel
                       projectId={projectId}
-                      submittedBidCount={tender.submittedBidCount}
+                      submittedBidCount={
+                        tender.submittedBidCount > 0
+                          ? tender.submittedBidCount
+                          : comparableBids.length
+                      }
                     />
                     <BidsCompareTable
-                      bids={tender.bids.filter((b) => b.status === 'submitted')}
+                      bids={comparableBids}
                       ballparkMid={ballparkMid}
                       defaultCostBreakdown={tender.defaultCostBreakdown}
                     />

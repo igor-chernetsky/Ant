@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   BidContractTermsFields,
@@ -67,6 +67,22 @@ export function ClientCommercialProposalPanel({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // Stabilize against parent re-renders that pass new object identities with
+  // the same content — those were resetting unsaved KP edits mid-typing.
+  const bidTermsKey = useMemo(
+    () =>
+      JSON.stringify({
+        id: bid.id,
+        durationDays: bid.durationDays,
+        contractTerms: bid.terms?.contractTerms ?? null,
+      }),
+    [bid.id, bid.durationDays, bid.terms?.contractTerms],
+  );
+  const projectTermsKey = useMemo(
+    () => JSON.stringify(projectContractTerms ?? null),
+    [projectContractTerms],
+  );
+
   useEffect(() => {
     setContractTerms(
       buildContractTermsState(
@@ -76,7 +92,8 @@ export function ClientCommercialProposalPanel({
         projectContractTerms,
       ),
     );
-  }, [bid, projectTitle, projectDistrict, projectContractTerms]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by stable signatures
+  }, [bidTermsKey, projectTermsKey, projectTitle, projectDistrict]);
 
   const handleSave = async () => {
     setBusy(true);
@@ -103,7 +120,7 @@ export function ClientCommercialProposalPanel({
   };
 
   const hintKey = readOnly
-    ? 'commercialProposal.readOnlyHint'
+    ? 'commercialProposal.reviewHint'
     : audience === 'contractor'
       ? 'commercialProposal.contractorEditableHint'
       : 'commercialProposal.editableHint';
