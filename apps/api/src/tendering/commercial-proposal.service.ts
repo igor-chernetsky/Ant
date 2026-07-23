@@ -21,6 +21,7 @@ import { ContractorProfilesService } from './contractor-profiles.service';
 import {
   buildCommercialProposalData,
   englishContractClosingHtml,
+  ensureEditedEnglishBodyHasBoq,
   renderCommercialProposalHtml,
   renderMultilingualCommercialProposalHtml,
   wrapEnglishContractBodyForPdf,
@@ -328,7 +329,11 @@ export class CommercialProposalService {
 
     const title = bid.tender.project.title;
     const data = await this.buildProposalDataForLocale(bid, 'en');
-    const body = `${stripContractSignaturesBlock(rawBody)}\n${englishContractClosingHtml(data)}`;
+    const editedBody = ensureEditedEnglishBodyHasBoq(
+      stripContractSignaturesBlock(rawBody),
+      data,
+    );
+    const body = `${editedBody}\n${englishContractClosingHtml(data)}`;
     const html = wrapEnglishContractBodyForPdf(body, title);
     const pdf = await this.htmlToPdf.render(html);
     const slug = slugifyProjectTitle(title, bidId.slice(0, 8));

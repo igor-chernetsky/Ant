@@ -105,13 +105,20 @@ function buildBoqTable(
   locale: SupportedLocale,
 ): string {
   if (!lineItems?.length) return '';
+  // TipTap table cells require block content (`<p>…</p>`). Bare text in `<td>`
+  // is dropped when the English body is loaded/saved in the contract editor.
+  // Prefer `<tbody>` + header row (no `<thead>`) for TipTap compatibility.
+  const cell = (text: string, tag: 'td' | 'th' = 'td', className?: string) => {
+    const classAttr = className ? ` class="${className}"` : '';
+    return `<${tag}${classAttr}><p>${escapeHtml(text)}</p></${tag}>`;
+  };
   const rows = lineItems
     .map(
       (item) => `
       <tr>
-        <td>${escapeHtml(item.trade)}</td>
-        <td>${escapeHtml(item.description ?? copy.dash)}</td>
-        <td class="num">${escapeHtml(formatThb(Number(item.amount), locale))}</td>
+        ${cell(item.trade)}
+        ${cell(item.description ?? copy.dash)}
+        ${cell(formatThb(Number(item.amount), locale), 'td', 'num')}
       </tr>`,
     )
     .join('');
@@ -121,18 +128,16 @@ function buildBoqTable(
   );
   return `
     <table class="boq">
-      <thead>
-        <tr>
-          <th>${escapeHtml(copy.boqTrade)}</th>
-          <th>${escapeHtml(copy.boqDescription)}</th>
-          <th>${escapeHtml(copy.boqAmount)}</th>
-        </tr>
-      </thead>
       <tbody>
+        <tr>
+          ${cell(copy.boqTrade, 'th')}
+          ${cell(copy.boqDescription, 'th')}
+          ${cell(copy.boqAmount, 'th')}
+        </tr>
         ${rows}
         <tr class="subtotal">
-          <td colspan="2">${escapeHtml(copy.boqSubtotal)}</td>
-          <td class="num">${escapeHtml(formatThb(subtotal, locale))}</td>
+          <td colspan="2"><p>${escapeHtml(copy.boqSubtotal)}</p></td>
+          ${cell(formatThb(subtotal, locale), 'td', 'num')}
         </tr>
       </tbody>
     </table>`;
@@ -376,6 +381,31 @@ function commercialProposalStyles(): string {
     table.boq th { background: #f8fafc; text-align: left; }
     table.boq td.num, table.boq th:last-child { text-align: right; white-space: nowrap; }
     table.boq tr.subtotal td { font-weight: 700; background: #fafafa; }
+    table.boq p,
+    table.contract-editor-table p,
+    .locale-block table p {
+      margin: 0;
+    }
+    table.contract-editor-table,
+    .locale-block table:not(.boq) {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 1rem;
+      font-size: 11pt;
+    }
+    table.contract-editor-table th,
+    table.contract-editor-table td,
+    .locale-block table:not(.boq) th,
+    .locale-block table:not(.boq) td {
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.5rem;
+      vertical-align: top;
+    }
+    table.contract-editor-table th,
+    .locale-block table:not(.boq) th {
+      background: #f8fafc;
+      text-align: left;
+    }
     .pre { white-space: pre-wrap; }
     .locale-block {
       margin-bottom: 1.25rem;
@@ -569,6 +599,53 @@ function renderBoqSection(
   return `
   <h2>${escapeHtml(copy.annex1Boq)}</h2>
   ${data.boqTableHtml}`;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * TipTap may drop the BOQ table from englishBodyHtml (cells without `<p>`,
+ * or `<thead>`). When rendering PDF from the edited EN body, reinject the
+ * live BOQ section if the table is missing.
+ */
+export function ensureEditedEnglishBodyHasBoq(
+  bodyHtml: string,
+  data: CommercialProposalRenderData,
+): string {
+  if (!data.hasBoq || !data.boqTableHtml.trim()) {
+    return bodyHtml;
+  }
+
+  const copy = commercialProposalCopy('en');
+  const hasTable = /<table\b/i.test(bodyHtml);
+  if (hasTable) {
+    return bodyHtml;
+  }
+
+  const boqSection = renderBoqSection(data, copy);
+  let body = bodyHtml;
+
+  // Remove orphan Annex #1 heading left behind after TipTap dropped the table.
+  body = body.replace(
+    new RegExp(
+      `<h2\\b[^>]*>\\s*${escapeRegExp(copy.annex1Boq)}\\s*</h2>`,
+      'i',
+    ),
+    '',
+  );
+
+  const insertBefore = new RegExp(
+    `<h2\\b[^>]*>\\s*(?:${escapeRegExp(copy.annex2Drawings)}|${escapeRegExp(copy.clause5)})\\s*</h2>`,
+    'i',
+  );
+  const match = insertBefore.exec(body);
+  if (match) {
+    return `${body.slice(0, match.index)}\n${boqSection}\n${body.slice(match.index)}`;
+  }
+
+  return `${body}\n${boqSection}`;
 }
 
 function renderAnnex2Section(
@@ -794,7 +871,11 @@ function renderStackedMultilingualWithEditedEnglish(
   const primary = ordered[0] ?? DEFAULT_LOCALE;
   const primaryData = dataByLocale[primary];
   const primaryCopy = commercialProposalCopy(primary);
-  const editedBody = stripContractSignaturesBlock(editedEnglishBodyHtml);
+  const enData = dataByLocale.en;
+  const editedBody = ensureEditedEnglishBodyHasBoq(
+    stripContractSignaturesBlock(editedEnglishBodyHtml),
+    enData,
+  );
 
   const documents = ordered
     .map((locale) => {
