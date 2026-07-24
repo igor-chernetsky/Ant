@@ -182,16 +182,23 @@ export async function getPublicDocumentDownloadUrl(
     params.set('variant', 'thumb');
   }
   const query = params.toString();
-  const response = await fetch(
-    `/api/public/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download-url${
-      query ? `?${query}` : ''
-    }`,
-    { cache: 'no-store' },
-  );
+  const path = `/api/public/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download-url${
+    query ? `?${query}` : ''
+  }`;
+
+  // Originals require an authenticated BFF session; thumbs stay public.
+  const response =
+    options?.variant === 'thumb'
+      ? await fetch(path, { cache: 'no-store' })
+      : await fetchWithAuth(path, { cache: 'no-store' });
+
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;
     } | null;
+    if (response.status === 401) {
+      throw new Error('AUTH_REQUIRED');
+    }
     throw new Error(body?.message ?? 'Failed to get download link');
   }
   return response.json() as Promise<{ downloadUrl: string; originalName: string }>;

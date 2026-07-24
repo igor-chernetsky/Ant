@@ -36,6 +36,7 @@ import {
 } from './commercial-proposal.i18n';
 import {
   extractBodyInnerHtml,
+  sanitizeContractBodyHtml,
   stripContractSignaturesBlock,
 } from './contract-html.sanitize';
 
@@ -327,10 +328,17 @@ export class CommercialProposalService {
       return null;
     }
 
+    let sanitizedBody: string;
+    try {
+      sanitizedBody = sanitizeContractBodyHtml(rawBody);
+    } catch {
+      return null;
+    }
+
     const title = bid.tender.project.title;
     const data = await this.buildProposalDataForLocale(bid, 'en');
     const editedBody = ensureEditedEnglishBodyHasBoq(
-      stripContractSignaturesBlock(rawBody),
+      stripContractSignaturesBlock(sanitizedBody),
       data,
     );
     const body = `${editedBody}\n${englishContractClosingHtml(data)}`;
@@ -639,7 +647,15 @@ export class CommercialProposalService {
           select: { englishBodyHtml: true },
         })
       : null;
-    const editedEnglishBodyHtml = contract?.englishBodyHtml?.trim() || null;
+    const rawEditedEnglish = contract?.englishBodyHtml?.trim() || null;
+    let editedEnglishBodyHtml: string | null = null;
+    if (rawEditedEnglish) {
+      try {
+        editedEnglishBodyHtml = sanitizeContractBodyHtml(rawEditedEnglish);
+      } catch {
+        editedEnglishBodyHtml = null;
+      }
+    }
 
     const primary = ordered[0];
     const html = renderMultilingualCommercialProposalHtml(

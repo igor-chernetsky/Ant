@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
@@ -23,6 +24,7 @@ import { ImageThumbnailService } from '../storage/image-thumbnail.service';
 import { StorageService } from '../storage/storage.service';
 import {
   ALLOWED_CONTENT_TYPES,
+  assertCompletedUploadLimits,
   buildDocumentThumbnailKey,
   buildStorageKey,
   DocumentDownloadVariant,
@@ -210,7 +212,13 @@ export class DocumentsService {
       throw new BadRequestException('Document was deleted');
     }
 
-    const { sizeBytes } = await this.storage.verifyObject(doc.storageKey);
+    const { sizeBytes, contentType } = await this.storage.verifyObject(
+      doc.storageKey,
+    );
+    assertCompletedUploadLimits({
+      sizeBytes,
+      contentType: contentType ?? doc.contentType,
+    });
 
     const updated = await this.prisma.document.update({
       where: { id: documentId },
@@ -315,8 +323,16 @@ export class DocumentsService {
     projectId: string,
     documentId: string,
     variant: DocumentDownloadVariant = 'original',
+    options?: { authenticated?: boolean },
   ): Promise<DownloadUrlResponse> {
     await this.assertPublicProjectView(projectId);
+
+    // Thumbnails stay public for gallery previews; originals require sign-in.
+    if (variant !== 'thumb' && !options?.authenticated) {
+      throw new UnauthorizedException(
+        'Sign in to download project documents',
+      );
+    }
 
     const doc = await this.prisma.document.findFirst({
       where: {

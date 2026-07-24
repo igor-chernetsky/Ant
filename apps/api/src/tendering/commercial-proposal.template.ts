@@ -11,7 +11,10 @@ import {
 import type { SupportedLocale } from '../users/locale.types';
 import { DEFAULT_LOCALE } from '../users/locale.types';
 import { calendarDaysBetween } from './contract-terms-inference';
-import { stripContractSignaturesBlock } from './contract-html.sanitize';
+import {
+  sanitizeContractBodyHtml,
+  stripContractSignaturesBlock,
+} from './contract-html.sanitize';
 
 export function escapeHtml(value: string): string {
   return value
@@ -872,10 +875,17 @@ function renderStackedMultilingualWithEditedEnglish(
   const primaryData = dataByLocale[primary];
   const primaryCopy = commercialProposalCopy(primary);
   const enData = dataByLocale.en;
-  const editedBody = ensureEditedEnglishBodyHasBoq(
-    stripContractSignaturesBlock(editedEnglishBodyHtml),
-    enData,
-  );
+  let editedBody: string;
+  try {
+    editedBody = ensureEditedEnglishBodyHasBoq(
+      stripContractSignaturesBlock(
+        sanitizeContractBodyHtml(editedEnglishBodyHtml),
+      ),
+      enData,
+    );
+  } catch {
+    editedBody = renderCommercialProposalBodyContent(enData);
+  }
 
   const documents = ordered
     .map((locale) => {

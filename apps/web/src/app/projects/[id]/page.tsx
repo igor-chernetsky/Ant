@@ -34,6 +34,7 @@ import {
 } from '@/lib/documents';
 import { formatConfidence, formatThb } from '@/lib/estimate';
 import { isIntakeActive } from '@/lib/intake';
+import { isSessionExpiredError } from '@/lib/auth-client';
 import {
   fetchProject,
   formatDateTime,
@@ -248,6 +249,13 @@ export default function ProjectDetailPage() {
         : await getPublicDocumentDownloadUrl(projectId, doc.id);
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     } catch (err: unknown) {
+      if (
+        isSessionExpiredError(err) ||
+        (err instanceof Error && err.message === 'AUTH_REQUIRED')
+      ) {
+        setLoginOpen(true);
+        return;
+      }
       setError(err instanceof Error ? err.message : t('common.downloadFailed'));
     }
   };

@@ -1,4 +1,14 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { Request } from 'express';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
+import { JwtPayload } from '../auth/jwt-payload';
 import { DocumentsService } from './documents.service';
 import { parseDocumentDownloadVariant } from './documents.types';
 
@@ -12,15 +22,18 @@ export class PublicDocumentsController {
   }
 
   @Get(':documentId/download-url')
+  @UseGuards(OptionalJwtAuthGuard)
   downloadUrl(
     @Param('projectId') projectId: string,
     @Param('documentId') documentId: string,
     @Query('variant') variant?: string,
+    @Req() req?: Request & { user?: JwtPayload | null },
   ) {
     return this.documentsService.getPublicDownloadUrl(
       projectId,
       documentId,
       parseDocumentDownloadVariant(variant),
+      { authenticated: Boolean(req?.user) },
     );
   }
 }

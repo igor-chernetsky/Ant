@@ -11,6 +11,7 @@ import {
   persistAndApplyAuthCookies,
   type TokenExchangeResult,
 } from '@/lib/auth-tokens';
+import { createMemoryRateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,30 +20,40 @@ interface LoginBody {
   password?: string;
 }
 
+const loginRateLimiter = createMemoryRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+});
+
+const ACCOUNT_ISSUE_CODES = new Set([
+  'password_not_configured',
+  'account_not_ready',
+  'profile_incomplete',
+  'temporary_password',
+]);
+
+function clientIp(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0]?.trim() || 'unknown';
+  }
+  return request.headers.get('x-real-ip')?.trim() || 'unknown';
+}
+
 function authErrorPayload(
   result: { error: string; description?: string },
   diagnosis?: { code: string; detail: string } | null,
-): { message: string; code: string; detail?: string } {
-  if (diagnosis) {
+): { message: string; code: string } {
+  // Avoid account-enumeration: only surface email verification and infra errors.
+  if (diagnosis?.code === 'email_not_verified') {
     return {
       message:
-        diagnosis.code === 'password_not_configured'
-          ? 'Account exists but has no password. Set it in Keycloak or sign up again.'
-          : diagnosis.code === 'user_not_found'
-            ? 'Invalid username or password'
-            : diagnosis.code === 'user_disabled'
-              ? 'Account is disabled'
-              : diagnosis.code === 'account_not_ready'
-                ? 'Account setup is incomplete. Try again.'
-                : diagnosis.code === 'email_not_verified'
-                  ? 'Verify your email before signing in. Check your inbox for the confirmation link.'
-                  : 'Invalid username or password',
-      code: diagnosis.code,
-      detail: diagnosis.detail,
+        'Verify your email before signing in. Check your inbox for the confirmation link.',
+      code: 'email_not_verified',
     };
   }
 
-  if (isWrongPasswordError(result)) {
+  if (isWrongPasswordError(result) || diagnosis) {
     return {
       message: 'Invalid username or password',
       code: 'invalid_credentials',
@@ -53,7 +64,6 @@ function authErrorPayload(
     return {
       message: 'Authentication service is not configured',
       code: result.error,
-      detail: result.description,
     };
   }
 
@@ -61,23 +71,12 @@ function authErrorPayload(
     return {
       message: 'Authentication service misconfigured',
       code: result.error,
-      detail: result.description,
-    };
-  }
-
-  const description = (result.description ?? '').toLowerCase();
-  if (description.includes('not fully set up')) {
-    return {
-      message: 'Account setup is incomplete. Try again or contact support.',
-      code: 'account_not_ready',
-      detail: result.description,
     };
   }
 
   return {
-    message: 'Sign in failed',
-    code: result.error,
-    detail: result.description,
+    message: 'Invalid username or password',
+    code: 'invalid_credentials',
   };
 }
 
@@ -124,6 +123,46 @@ export async function POST(request: Request) {
     );
   }
 
+  const rateKey = `${clientIp(request)}:${username}`;
+  const limited = loginRateLimiter.check(rateKey);
+  if (!limited.ok) {
+    return NextResponse.json(
+      {
+        message: 'Too many sign-in attempts. Try again later.',
+        code: 'rate_limited',
+      },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(limited.retryAfterSec) },
+      },
+    );
+  }
+
+  const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer');
+  if (origin || referer) {
+    try {
+      const expectedHost = new URL(request.url).host.toLowerCase();
+      if (origin && new URL(origin).host.toLowerCase() !== expectedHost) {
+        return NextResponse.json(
+          { message: 'Invalid request origin', code: 'forbidden_origin' },
+          { status: 403 },
+        );
+      }
+      if (referer && new URL(referer).host.toLowerCase() !== expectedHost) {
+        return NextResponse.json(
+          { message: 'Invalid request referer', code: 'forbidden_origin' },
+          { status: 403 },
+        );
+      }
+    } catch {
+      return NextResponse.json(
+        { message: 'Invalid request origin', code: 'forbidden_origin' },
+        { status: 403 },
+      );
+    }
+  }
+
   let result = await attemptLogin(username, password);
 
   if (!result.ok && shouldAttemptKeycloakAuthRepair(result)) {
@@ -139,12 +178,7 @@ export async function POST(request: Request) {
       const payload = authErrorPayload(result, diagnosis);
       return NextResponse.json(payload, { status: 401 });
     }
-    if (
-      diagnosis?.code === 'password_not_configured' ||
-      diagnosis?.code === 'account_not_ready' ||
-      diagnosis?.code === 'profile_incomplete' ||
-      diagnosis?.code === 'temporary_password'
-    ) {
+    if (diagnosis?.code && ACCOUNT_ISSUE_CODES.has(diagnosis.code)) {
       const repaired = await repairKeycloakUserAuth(username, password);
       if (repaired) {
         result = await attemptLogin(username, password);

@@ -150,23 +150,28 @@ export async function refreshKeycloakTokens(
 }
 
 /**
- * One in-flight Keycloak refresh per server instance.
+ * One in-flight Keycloak refresh per refresh-token value.
  * Keycloak rotates refresh tokens — parallel refreshes with the same token
  * cause invalid_grant on all but the first caller (common on Vercel).
+ * Flights are keyed by token so concurrent users never share a refresh.
  */
-let refreshFlight: Promise<TokenExchangeResult> | null = null;
+const refreshFlights = new Map<string, Promise<TokenExchangeResult>>();
 
 export function refreshKeycloakTokensSingleFlight(
   refreshToken: string,
 ): Promise<TokenExchangeResult> {
-  if (refreshFlight) {
-    return refreshFlight;
+  const existing = refreshFlights.get(refreshToken);
+  if (existing) {
+    return existing;
   }
 
-  refreshFlight = refreshKeycloakTokens(refreshToken).finally(() => {
-    refreshFlight = null;
+  const flight = refreshKeycloakTokens(refreshToken).finally(() => {
+    if (refreshFlights.get(refreshToken) === flight) {
+      refreshFlights.delete(refreshToken);
+    }
   });
-  return refreshFlight;
+  refreshFlights.set(refreshToken, flight);
+  return flight;
 }
 
 /** Persist auth cookies via next/headers (reliable in Route Handlers). */

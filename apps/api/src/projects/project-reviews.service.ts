@@ -21,6 +21,7 @@ import {
   REVIEW_RATING_KEYS,
   type ReviewRatingCategory,
 } from './project-review.constants';
+import { assertCompletedUploadLimits } from '../documents/documents.types';
 import {
   CompleteProjectDto,
   ContractorReviewItem,
@@ -225,7 +226,15 @@ export class ProjectReviewsService {
       throw new BadRequestException('File storage is not configured');
     }
 
-    const { sizeBytes } = await this.storage.verifyObject(attachment.storageKey);
+    const { sizeBytes, contentType } = await this.storage.verifyObject(
+      attachment.storageKey,
+    );
+    assertCompletedUploadLimits({
+      sizeBytes,
+      contentType: contentType ?? attachment.contentType,
+      maxBytes: MAX_REVIEW_ATTACHMENT_BYTES,
+      allowedContentTypes: ALLOWED_REVIEW_ATTACHMENT_TYPES,
+    });
 
     const updated = await this.prisma.projectReviewAttachment.update({
       where: { id: attachmentId },

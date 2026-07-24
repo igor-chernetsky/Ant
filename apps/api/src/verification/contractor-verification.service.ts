@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 import {
   ALLOWED_CONTENT_TYPES,
+  assertCompletedUploadLimits,
   MAX_UPLOAD_BYTES,
 } from '../documents/documents.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -151,7 +152,13 @@ export class ContractorVerificationService {
       return this.toDocResponse(doc);
     }
 
-    const { sizeBytes } = await this.storage.verifyObject(doc.storageKey);
+    const { sizeBytes, contentType } = await this.storage.verifyObject(
+      doc.storageKey,
+    );
+    assertCompletedUploadLimits({
+      sizeBytes,
+      contentType: contentType ?? doc.contentType,
+    });
     const updated = await this.prisma.contractorVerificationDocument.update({
       where: { id: documentId },
       data: {

@@ -22,6 +22,7 @@ import {
   PresignPortfolioItemDto,
   UpdatePortfolioItemDto,
 } from './portfolio.types';
+import { assertCompletedUploadLimits } from '../documents/documents.types';
 
 @Injectable()
 export class ContractorPortfolioService {
@@ -240,7 +241,15 @@ export class ContractorPortfolioService {
       return response;
     }
 
-    const { sizeBytes } = await this.storage.verifyObject(item.storageKey);
+    const { sizeBytes, contentType } = await this.storage.verifyObject(
+      item.storageKey,
+    );
+    assertCompletedUploadLimits({
+      sizeBytes,
+      contentType: contentType ?? item.contentType,
+      maxBytes: MAX_PORTFOLIO_UPLOAD_BYTES,
+      allowedContentTypes: ALLOWED_PORTFOLIO_CONTENT_TYPES,
+    });
     const updated = await this.prisma.contractorPortfolioItem.update({
       where: { id: itemId },
       data: {

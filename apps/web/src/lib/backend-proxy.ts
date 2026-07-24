@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers as nextHeaders } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { getBackendApiUrl } from '@/lib/auth-server';
 import {
@@ -85,10 +85,84 @@ async function attachRefreshedCookies(
   return response;
 }
 
+function hostFromUrl(value: string): string | null {
+  try {
+    return new URL(value).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Cookie-session CSRF mitigation: browser mutations must come from this app.
+ * Missing Origin/Referer is allowed (non-browser / same-site navigations).
+ */
+async function assertSameOriginMutation(
+  method?: string,
+): Promise<NextResponse | null> {
+  const normalized = (method ?? 'GET').toUpperCase();
+  if (
+    normalized === 'GET' ||
+    normalized === 'HEAD' ||
+    normalized === 'OPTIONS'
+  ) {
+    return null;
+  }
+
+  let headerStore: Headers;
+  try {
+    headerStore = await nextHeaders();
+  } catch {
+    return null;
+  }
+
+  const origin = headerStore.get('origin');
+  const referer = headerStore.get('referer');
+  if (!origin && !referer) {
+    return null;
+  }
+
+  const host =
+    headerStore.get('x-forwarded-host')?.split(',')[0]?.trim() ||
+    headerStore.get('host')?.trim() ||
+    '';
+  if (!host) {
+    return null;
+  }
+  const expectedHost = host.toLowerCase();
+
+  if (origin) {
+    const originHost = hostFromUrl(origin);
+    if (!originHost || originHost !== expectedHost) {
+      return NextResponse.json(
+        { message: 'Invalid request origin' },
+        { status: 403 },
+      );
+    }
+  }
+
+  if (referer) {
+    const refererHost = hostFromUrl(referer);
+    if (!refererHost || refererHost !== expectedHost) {
+      return NextResponse.json(
+        { message: 'Invalid request referer' },
+        { status: 403 },
+      );
+    }
+  }
+
+  return null;
+}
+
 export async function proxyBackend(
   path: string,
   init?: RequestInit,
 ): Promise<{ response: Response | NextResponse; refreshed?: KeycloakTokenResponse }> {
+  const csrfBlock = await assertSameOriginMutation(init?.method);
+  if (csrfBlock) {
+    return { response: csrfBlock };
+  }
+
   const auth = await getValidAccessToken();
   if (!auth.ok) {
     return {

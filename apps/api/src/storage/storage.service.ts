@@ -139,14 +139,22 @@ export class StorageService {
     };
   }
 
-  async verifyObject(storageKey: string): Promise<{ sizeBytes: number }> {
+  async verifyObject(
+    storageKey: string,
+  ): Promise<{ sizeBytes: number; contentType: string | null }> {
     const { internal, bucket } = this.requireClient();
 
     const head = await internal.send(
       new HeadObjectCommand({ Bucket: bucket, Key: storageKey }),
     );
 
-    return { sizeBytes: head.ContentLength ?? 0 };
+    const contentType =
+      head.ContentType?.split(';')[0]?.trim().toLowerCase() || null;
+
+    return {
+      sizeBytes: head.ContentLength ?? 0,
+      contentType,
+    };
   }
 
   async deleteObject(storageKey: string): Promise<void> {

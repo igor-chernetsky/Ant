@@ -1585,18 +1585,13 @@ export class TendersService {
       return merged;
     }
 
+    // Never accept client-only fields from the contractor payload.
     const clientOnlyKeys: (keyof BidContractTerms)[] = [
       'siteAddress',
       'propertyOwnership',
       'employerName',
       'employerAddress',
       'employerRegistrationNo',
-    ];
-    const contractorOnlyKeys: (keyof BidContractTerms)[] = [
-      'subjectOfContract',
-      'contractorAddress',
-      'contractorRegistrationNo',
-      'contractorRepresentative',
     ];
 
     for (const key of clientOnlyKeys) {
@@ -1606,16 +1601,8 @@ export class TendersService {
         (merged as Record<string, BidContractTerms[keyof BidContractTerms]>)[
           key
         ] = preserved;
-      }
-    }
-
-    for (const key of contractorOnlyKeys) {
-      const preserved =
-        existingTerms?.contractTerms?.[key] ?? projectTerms?.[key];
-      if (preserved !== undefined) {
-        (merged as Record<string, BidContractTerms[keyof BidContractTerms]>)[
-          key
-        ] = preserved;
+      } else {
+        delete (merged as Record<string, unknown>)[key];
       }
     }
 
@@ -1675,7 +1662,7 @@ export class TendersService {
 
     const terms = this.buildBidTerms({
       ...dto,
-      contractTerms: this.mergeContractTerms(
+      contractTerms: this.mergeContractTermsForContractor(
         (existing.termsJson as BidTermsV1 | null) ?? null,
         dto.contractTerms,
         projectTerms,
@@ -2019,7 +2006,14 @@ export class TendersService {
           b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
       ) ?? null;
 
-    return { tender: this.mapTender(tender), myBid: myBid ? this.mapBid(myBid) : null };
+    const mapped = this.mapTender(tender);
+    // Keep aggregate counts; never expose competitor bid amounts/terms.
+    mapped.bids = myBid ? [this.mapBid(myBid)] : [];
+
+    return {
+      tender: mapped,
+      myBid: myBid ? this.mapBid(myBid) : null,
+    };
   }
 
   private projectPublishPackageUpdate(

@@ -34,6 +34,74 @@ const ALLOWED_ATTRS = new Set([
 
 const MAX_CONTRACT_BODY_HTML_LENGTH = 500_000;
 
+const DANGEROUS_TAGS_RE =
+  /<\s*(script|style|iframe|object|embed|link|meta|base|form|input|button|textarea|select|svg|math|template|foreignobject)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi;
+const DANGEROUS_SELF_CLOSING_RE =
+  /<\s*(script|style|iframe|object|embed|link|meta|base|form|input|button|textarea|select|svg|math|template|foreignobject)[^>]*\/?\s*>/gi;
+
+function stripDangerousFragments(html: string): string {
+  return html
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<!\[CDATA\[[\s\S]*?\]\]>/gi, '')
+    .replace(/<\?[\s\S]*?\?>/g, '')
+    .replace(/<!DOCTYPE[\s\S]*?>/gi, '')
+    .replace(DANGEROUS_TAGS_RE, '')
+    .replace(DANGEROUS_SELF_CLOSING_RE, '')
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(
+      /\s(href|src|xlink:href|action|formaction|poster|data)\s*=\s*("\s*(?:javascript|vbscript|data):[^"]*"|'\s*(?:javascript|vbscript|data):[^']*'|(?:javascript|vbscript|data):[^\s>]+)/gi,
+      '',
+    )
+    .replace(/&\{[\s\S]*?\}/g, '');
+}
+
+function sanitizeOnce(raw: string): string {
+  let html = stripDangerousFragments(raw);
+
+  html = html.replace(
+    /<\/?([a-zA-Z0-9:-]+)([^>]*)>/g,
+    (match, tagName: string, attrs: string) => {
+      const tag = tagName.toLowerCase();
+      const isClose = match.startsWith('</');
+      if (!ALLOWED_TAGS.has(tag)) {
+        return '';
+      }
+      if (isClose) {
+        return `</${tag}>`;
+      }
+      const selfClosing = /\/>$/.test(match) || tag === 'br' || tag === 'hr';
+      const keptAttrs: string[] = [];
+      const attrRe =
+        /([a-zA-Z_:][-a-zA-Z0-9_:]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/g;
+      let attrMatch: RegExpExecArray | null;
+      while ((attrMatch = attrRe.exec(attrs)) != null) {
+        const name = attrMatch[1].toLowerCase();
+        if (!ALLOWED_ATTRS.has(name)) {
+          continue;
+        }
+        const value = attrMatch[3] ?? attrMatch[4] ?? attrMatch[5] ?? '';
+        if (
+          /javascript:|vbscript:|data:text\/html|data:image\/svg|\bexpression\s*\(/i.test(
+            value,
+          )
+        ) {
+          continue;
+        }
+        if (name === 'class' && /[<>'"`=]/.test(value)) {
+          continue;
+        }
+        keptAttrs.push(`${name}="${value.replace(/"/g, '&quot;')}"`);
+      }
+      const attrStr = keptAttrs.length ? ` ${keptAttrs.join(' ')}` : '';
+      return selfClosing && (tag === 'br' || tag === 'hr')
+        ? `<${tag}${attrStr} />`
+        : `<${tag}${attrStr}>`;
+    },
+  );
+
+  return html.trim();
+}
+
 /** Strip scripts and disallowed tags/attrs from contract editor HTML. */
 export function sanitizeContractBodyHtml(raw: string): string {
   const trimmed = raw.trim();
@@ -44,43 +112,10 @@ export function sanitizeContractBodyHtml(raw: string): string {
     throw new Error('Document content is too large');
   }
 
-  let html = trimmed
-    .replace(/<\s*(script|style|iframe|object|embed|link|meta)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
-    .replace(/<\s*(script|style|iframe|object|embed|link|meta)[^>]*\/?\s*>/gi, '')
-    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/\s(href|src|xlink:href)\s*=\s*("\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]+)/gi, '');
-
-  html = html.replace(/<\/?([a-zA-Z0-9:-]+)([^>]*)>/g, (match, tagName: string, attrs: string) => {
-    const tag = tagName.toLowerCase();
-    const isClose = match.startsWith('</');
-    if (!ALLOWED_TAGS.has(tag)) {
-      return '';
-    }
-    if (isClose) {
-      return `</${tag}>`;
-    }
-    const selfClosing = /\/>$/.test(match) || tag === 'br' || tag === 'hr';
-    const keptAttrs: string[] = [];
-    const attrRe = /([a-zA-Z_:][-a-zA-Z0-9_:]*)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/g;
-    let attrMatch: RegExpExecArray | null;
-    while ((attrMatch = attrRe.exec(attrs)) != null) {
-      const name = attrMatch[1].toLowerCase();
-      if (!ALLOWED_ATTRS.has(name)) {
-        continue;
-      }
-      const value = attrMatch[3] ?? attrMatch[4] ?? attrMatch[5] ?? '';
-      if (/javascript:|data:text\/html/i.test(value)) {
-        continue;
-      }
-      keptAttrs.push(`${name}="${value.replace(/"/g, '&quot;')}"`);
-    }
-    const attrStr = keptAttrs.length ? ` ${keptAttrs.join(' ')}` : '';
-    return selfClosing && (tag === 'br' || tag === 'hr')
-      ? `<${tag}${attrStr} />`
-      : `<${tag}${attrStr}>`;
-  });
-
-  return html.trim();
+  // Two passes catch nested/obfuscated markup left after the first allowlist pass.
+  let html = sanitizeOnce(trimmed);
+  html = sanitizeOnce(html);
+  return html;
 }
 
 export function extractBodyInnerHtml(fullHtml: string): string {

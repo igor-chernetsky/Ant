@@ -15,6 +15,7 @@ import { DocumentAnalysisService } from '../ai/document-analysis.service';
 import { OpenAiClarificationService } from '../ai/openai-clarification.service';
 import {
   ALLOWED_CONTENT_TYPES,
+  assertCompletedUploadLimits,
   MAX_UPLOAD_BYTES,
 } from '../documents/documents.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -516,7 +517,13 @@ export class TenderClarificationsService {
       throw new BadRequestException('Attachment was deleted');
     }
 
-    const { sizeBytes } = await this.storage.verifyObject(attachment.storageKey);
+    const { sizeBytes, contentType } = await this.storage.verifyObject(
+      attachment.storageKey,
+    );
+    assertCompletedUploadLimits({
+      sizeBytes,
+      contentType: contentType ?? attachment.contentType,
+    });
 
     const updated = await this.prisma.clarificationAnswerAttachment.update({
       where: { id: attachmentId },

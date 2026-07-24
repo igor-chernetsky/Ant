@@ -1,4 +1,5 @@
 import { DocumentCategory } from '@prisma/client';
+import { BadRequestException } from '@nestjs/common';
 
 export interface PresignUploadDto {
   fileName: string;
@@ -50,6 +51,30 @@ export const ALLOWED_CONTENT_TYPES = new Set([
 ]);
 
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+
+/** Reject completed uploads that exceed size or use a disallowed MIME. */
+export function assertCompletedUploadLimits(input: {
+  sizeBytes: number;
+  contentType?: string | null;
+  maxBytes?: number;
+  allowedContentTypes?: Set<string>;
+}): void {
+  const maxBytes = input.maxBytes ?? MAX_UPLOAD_BYTES;
+  const allowed = input.allowedContentTypes ?? ALLOWED_CONTENT_TYPES;
+  if (
+    !Number.isFinite(input.sizeBytes) ||
+    input.sizeBytes < 1 ||
+    input.sizeBytes > maxBytes
+  ) {
+    throw new BadRequestException(
+      `Uploaded file size must be between 1 byte and ${maxBytes} bytes`,
+    );
+  }
+  const contentType = input.contentType?.trim().toLowerCase();
+  if (contentType && !allowed.has(contentType)) {
+    throw new BadRequestException('Uploaded file content type is not allowed');
+  }
+}
 
 export function sanitizeFileName(name: string): string {
   const base = name.replace(/[/\\]/g, '_').trim();

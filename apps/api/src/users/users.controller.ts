@@ -1,7 +1,19 @@
-import { Body, Controller, Get, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
+import { createMemoryRateLimiter } from '../common/rate-limit';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
   MarkInAppNotificationsReadDto,
@@ -9,6 +21,11 @@ import {
 } from '../notifications/notification.types';
 import { UpdateLocaleDto } from './locale.types';
 import { UsersService } from './users.service';
+
+const notificationsPollLimiter = createMemoryRateLimiter({
+  windowMs: 60_000,
+  max: 60,
+});
 
 @Controller('v1')
 export class UsersController {
@@ -48,6 +65,16 @@ export class UsersController {
     @Query('limit') limitRaw?: string,
   ) {
     const user = await this.usersService.findOrCreateFromJwt(req.user);
+    const limited = notificationsPollLimiter.check(user.id);
+    if (!limited.ok) {
+      throw new HttpException(
+        {
+          message: 'Too many notification polls. Try again shortly.',
+          code: 'rate_limited',
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
     const limit = limitRaw ? Number(limitRaw) : undefined;
     return this.notifications.listInAppNotifications(user.id, {
       limit: Number.isFinite(limit) ? limit : undefined,

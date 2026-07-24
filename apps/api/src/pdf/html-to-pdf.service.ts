@@ -16,6 +16,8 @@ export class HtmlToPdfService implements OnModuleDestroy {
       const browser = await this.getBrowser();
       const page = await browser.newPage();
       try {
+        // Defense in depth: contract HTML must never execute scripts in PDF render.
+        await page.setJavaScriptEnabled(false);
         await page.setContent(html, { waitUntil: 'load' });
         const pdf = await page.pdf({
           format: 'A4',
