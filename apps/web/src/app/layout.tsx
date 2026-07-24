@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { InAppNotificationsProvider } from '@/components/InAppNotificationsProvider';
 import { LocaleProvider } from '@/components/LocaleProvider';
+import { NotificationToasts } from '@/components/NotificationToasts';
 import { SessionProvider } from '@/components/SessionProvider';
 import './globals.css';
 
@@ -21,7 +23,12 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <SessionProvider>
-          <LocaleProvider>{children}</LocaleProvider>
+          <LocaleProvider>
+            <InAppNotificationsProvider>
+              {children}
+              <NotificationToasts />
+            </InAppNotificationsProvider>
+          </LocaleProvider>
         </SessionProvider>
       </body>
     </html>

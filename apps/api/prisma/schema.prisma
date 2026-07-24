@@ -150,6 +150,7 @@ model User {
   contractorReviewsSubmitted ContractorProjectReview[] @relation("ReviewClient")
   projectReviewAttachments ProjectReviewAttachment[]
   notificationEmailLogs   NotificationEmailLog[]
+  inAppNotifications      InAppNotification[]
 
   @@map("users")
 }
@@ -199,6 +200,34 @@ model NotificationEmailLog {
 
   @@index([userId, kind, sentAt])
   @@map("notification_email_logs")
+}
+
+enum InAppNotificationKind {
+  client_bid_submitted
+  client_bid_enrolled
+  client_tender_deadline_reached
+  client_contractor_declined_proposal
+  contractor_counter_offer
+  contractor_bid_selected
+  contract_terms_updated
+  contract_party_signed
+  contract_fully_signed
+}
+
+model InAppNotification {
+  id        String                @id @default(uuid())
+  userId    String                @map("user_id")
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      InAppNotificationKind
+  href      String?
+  projectId String?               @map("project_id")
+  payload   Json?
+  readAt    DateTime?             @map("read_at")
+  createdAt DateTime              @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, readAt])
+  @@map("in_app_notifications")
 }
 
 model TagGroup {

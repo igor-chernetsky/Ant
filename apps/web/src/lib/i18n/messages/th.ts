@@ -30,6 +30,33 @@ export const th: Messages = {
     lang_th: 'ไทย',
     lang_ru: 'Русский',
   },
+  notifications: {
+    title: 'การแจ้งเตือน',
+    ariaLabel: 'การแจ้งเตือน',
+    empty: 'ยังไม่มีการแจ้งเตือน',
+    markAllRead: 'อ่านทั้งหมด',
+    open: 'เปิด',
+    kinds: {
+      clientBidSubmittedTitle: 'ได้รับข้อเสนอเชิงพาณิชย์',
+      clientBidSubmittedBody:
+        '{company} ส่งข้อเสนอสำหรับ {project} ({amount} THB)',
+      clientBidEnrolledTitle: 'ใบสมัครเข้าร่วมใหม่',
+      clientBidEnrolledBody:
+        '{company} สมัครเป็นผู้เข้าแข่ง #{n} ใน {project}',
+      clientTenderDeadlineTitle: 'ครบกำหนดรับใบสมัคร',
+      clientTenderDeadlineBody:
+        'ครบกำหนดรับใบสมัครสำหรับ {project} แล้ว',
+      clientDeclinedProposalTitle: 'ผู้รับเหมาปฏิเสธการเสนอ',
+      clientDeclinedProposalBody:
+        '{company} ปฏิเสธการส่งข้อเสนอสำหรับ {project}',
+      contractorCounterOfferTitle: 'ได้รับข้อเสนอตอบกลับ',
+      contractorBidSelectedTitle: 'คุณถูกเลือก',
+      contractTermsUpdatedTitle: 'อัปเดตเงื่อนไขสัญญาแล้ว',
+      contractPartySignedTitle: 'มีการลงนามในสัญญา',
+      contractFullySignedTitle: 'ลงนามสัญญาครบแล้ว',
+      genericProjectBody: 'เกี่ยวข้องกับ {project}',
+    },
+  },
   footer: {
     copyright: '© {year} Ant. สงวนลิขสิทธิ์',
     legalNav: 'ข้อมูลทางกฎหมาย',

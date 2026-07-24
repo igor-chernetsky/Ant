@@ -30,6 +30,33 @@ export const ru: Messages = {
     lang_th: 'ไทย',
     lang_ru: 'Русский',
   },
+  notifications: {
+    title: 'Уведомления',
+    ariaLabel: 'Уведомления',
+    empty: 'Пока нет уведомлений.',
+    markAllRead: 'Прочитать все',
+    open: 'Открыть',
+    kinds: {
+      clientBidSubmittedTitle: 'Получено коммерческое предложение',
+      clientBidSubmittedBody:
+        '{company} отправил(а) КП по проекту {project} ({amount} THB).',
+      clientBidEnrolledTitle: 'Новая заявка на тендер',
+      clientBidEnrolledBody:
+        '{company} записался претендентом №{n} на {project}.',
+      clientTenderDeadlineTitle: 'Срок приёма заявок истёк',
+      clientTenderDeadlineBody:
+        'Срок приёма заявок по проекту {project} закончился.',
+      clientDeclinedProposalTitle: 'Подрядчик отказался от КП',
+      clientDeclinedProposalBody:
+        '{company} отказался подавать КП по проекту {project}.',
+      contractorCounterOfferTitle: 'Получено встречное предложение',
+      contractorBidSelectedTitle: 'Вас выбрали',
+      contractTermsUpdatedTitle: 'Условия договора обновлены',
+      contractPartySignedTitle: 'Добавлена подпись к договору',
+      contractFullySignedTitle: 'Договор полностью подписан',
+      genericProjectBody: 'Связано с проектом {project}.',
+    },
+  },
   footer: {
     copyright: '© {year} Ant. Все права защищены.',
     legalNav: 'Правовая информация',

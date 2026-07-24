@@ -29,6 +29,33 @@ export const en = {
     lang_th: 'Thai',
     lang_ru: 'Russian',
   },
+  notifications: {
+    title: 'Notifications',
+    ariaLabel: 'Notifications',
+    empty: 'No notifications yet.',
+    markAllRead: 'Mark all read',
+    open: 'Open',
+    kinds: {
+      clientBidSubmittedTitle: 'Commercial proposal received',
+      clientBidSubmittedBody:
+        '{company} submitted a proposal on {project} ({amount} THB).',
+      clientBidEnrolledTitle: 'New tender application',
+      clientBidEnrolledBody:
+        '{company} enrolled as contender #{n} on {project}.',
+      clientTenderDeadlineTitle: 'Application deadline reached',
+      clientTenderDeadlineBody:
+        'The application deadline for {project} has passed.',
+      clientDeclinedProposalTitle: 'Contractor declined to propose',
+      clientDeclinedProposalBody:
+        '{company} declined to submit a proposal on {project}.',
+      contractorCounterOfferTitle: 'Counter-offer received',
+      contractorBidSelectedTitle: 'You were selected',
+      contractTermsUpdatedTitle: 'Contract terms updated',
+      contractPartySignedTitle: 'Contract signature added',
+      contractFullySignedTitle: 'Contract fully signed',
+      genericProjectBody: 'Related to {project}.',
+    },
+  },
   footer: {
     copyright: '© {year} Ant. All rights reserved.',
     legalNav: 'Legal',

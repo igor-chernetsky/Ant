@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { HeaderNotifications } from '@/components/HeaderNotifications';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from '@/components/LocaleProvider';
 import { headerUserLabel, type MeResponse } from '@/lib/session';
@@ -39,6 +40,7 @@ export function SiteHeader({
           <LanguageSwitcher />
           {me ? (
             <>
+              <HeaderNotifications />
               {me.roles?.includes('admin') && (
                 <Link href="/admin/contractors" className="text-link header-link">
                   {t('header.admin')}

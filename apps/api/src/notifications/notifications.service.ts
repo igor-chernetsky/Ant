@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  InAppNotificationKind,
   NotificationEmailKind,
+  Prisma,
   TenderStatus,
   User,
   UserNotificationPreferences,
@@ -24,6 +26,9 @@ import {
   MATCHING_PROJECT_EMAILS_DAILY_CAP,
   NotificationPreferencesDto,
   UpdateNotificationPreferencesDto,
+  type InAppNotificationDto,
+  type InAppNotificationsListDto,
+  type MarkInAppNotificationsReadDto,
 } from './notification.types';
 
 function escapeHtml(value: string): string {
@@ -60,6 +65,104 @@ export class NotificationsService {
 
   private bidsUrl(projectId: string): string {
     return `${this.appUrl()}/projects/${projectId}/bids`;
+  }
+
+  private bidsPath(projectId: string): string {
+    return `/projects/${projectId}/bids`;
+  }
+
+  private projectPath(projectId: string): string {
+    return `/projects/${projectId}`;
+  }
+
+  private mapInAppNotification(row: {
+    id: string;
+    kind: InAppNotificationKind;
+    href: string | null;
+    projectId: string | null;
+    payload: Prisma.JsonValue | null;
+    readAt: Date | null;
+    createdAt: Date;
+  }): InAppNotificationDto {
+    const payload =
+      row.payload && typeof row.payload === 'object' && !Array.isArray(row.payload)
+        ? (row.payload as Record<string, string | number | null>)
+        : null;
+    return {
+      id: row.id,
+      kind: row.kind,
+      href: row.href,
+      projectId: row.projectId,
+      payload,
+      readAt: row.readAt?.toISOString() ?? null,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  private async createInAppNotification(params: {
+    userId: string;
+    kind: InAppNotificationKind;
+    href?: string;
+    projectId?: string;
+    payload?: Record<string, string | number | null>;
+  }): Promise<void> {
+    try {
+      await this.prisma.inAppNotification.create({
+        data: {
+          userId: params.userId,
+          kind: params.kind,
+          href: params.href,
+          projectId: params.projectId,
+          payload: params.payload
+            ? (params.payload as Prisma.InputJsonValue)
+            : undefined,
+        },
+      });
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to create in-app notification ${params.kind}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  async listInAppNotifications(
+    userId: string,
+    options?: { limit?: number },
+  ): Promise<InAppNotificationsListDto> {
+    const take = Math.min(Math.max(options?.limit ?? 30, 1), 50);
+    const [notifications, unreadCount] = await Promise.all([
+      this.prisma.inAppNotification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take,
+      }),
+      this.prisma.inAppNotification.count({
+        where: { userId, readAt: null },
+      }),
+    ]);
+
+    return {
+      notifications: notifications.map((row) => this.mapInAppNotification(row)),
+      unreadCount,
+    };
+  }
+
+  async markInAppNotificationsRead(
+    userId: string,
+    body: MarkInAppNotificationsReadDto = {},
+  ): Promise<InAppNotificationsListDto> {
+    const ids = body.ids?.filter(Boolean) ?? [];
+    await this.prisma.inAppNotification.updateMany({
+      where: {
+        userId,
+        readAt: null,
+        ...(ids.length > 0 ? { id: { in: ids } } : {}),
+      },
+      data: { readAt: new Date() },
+    });
+    return this.listInAppNotifications(userId);
   }
 
   private wrapEmail(
@@ -298,6 +401,17 @@ export class NotificationsService {
     companyName: string;
     contenderNumber: number;
   }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.clientId,
+      kind: InAppNotificationKind.client_bid_enrolled,
+      href: this.bidsPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        companyName: params.companyName,
+        contenderNumber: params.contenderNumber,
+      },
+    });
     await this.sendToUser({
       userId: params.clientId,
       prefFlag: 'emailClientBidActivity',
@@ -319,6 +433,17 @@ export class NotificationsService {
     companyName: string;
     amount: string;
   }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.clientId,
+      kind: InAppNotificationKind.client_bid_submitted,
+      href: this.bidsPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        companyName: params.companyName,
+        amount: params.amount,
+      },
+    });
     await this.sendToUser({
       userId: params.clientId,
       prefFlag: 'emailClientBidActivity',
@@ -347,6 +472,17 @@ export class NotificationsService {
         ? ` ${params.submittedBidCount} commercial proposal${params.submittedBidCount === 1 ? '' : 's'} received.`
         : '';
 
+    await this.createInAppNotification({
+      userId: params.clientId,
+      kind: InAppNotificationKind.client_tender_deadline_reached,
+      href: this.bidsPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        applicationCount: params.applicationCount,
+        submittedBidCount: params.submittedBidCount,
+      },
+    });
     await this.sendToUser({
       userId: params.clientId,
       prefFlag: 'emailClientBidActivity',
@@ -647,6 +783,17 @@ export class NotificationsService {
       params.reasonCode,
       params.reasonNote,
     );
+    await this.createInAppNotification({
+      userId: params.clientId,
+      kind: InAppNotificationKind.client_contractor_declined_proposal,
+      href: this.bidsPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        companyName: params.companyName,
+        reason: reasonLabel,
+      },
+    });
     await this.sendToUser({
       userId: params.clientId,
       prefFlag: 'emailClientBidActivity',
