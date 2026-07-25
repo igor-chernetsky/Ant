@@ -125,6 +125,9 @@ export function SiteHeader({
           </Link>
 
           <nav className="header-nav" aria-label={t('header.primaryNav')}>
+            <Link href="/" className="header-nav-link">
+              {t('header.projects')}
+            </Link>
             <Link href="/materials" className="header-nav-link">
               {t('header.materials')}
             </Link>
