@@ -1384,22 +1384,6 @@ export class TendersService {
       });
     });
 
-    const tenderRow = await this.prisma.tender.findUnique({
-      where: { id: tenderId },
-      include: { project: { select: { id: true, title: true, clientId: true } } },
-    });
-    if (tenderRow && updated.contenderNumber != null) {
-      this.notifications.dispatch(
-        this.notifications.notifyClientBidEnrolled({
-          clientId: tenderRow.project.clientId,
-          projectId: tenderRow.project.id,
-          projectTitle: tenderRow.project.title,
-          companyName: updated.contractor.companyName ?? 'Contractor',
-          contenderNumber: updated.contenderNumber,
-        }),
-      );
-    }
-
     return updated;
   }
 

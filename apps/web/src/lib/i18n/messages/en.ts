@@ -46,6 +46,11 @@ export const en = {
       clientBidEnrolledTitle: 'New tender application',
       clientBidEnrolledBody:
         '{company} enrolled as contender #{n} on {project}.',
+      clientClarificationQuestionsTitle: 'Clarification questions received',
+      clientClarificationQuestionsBody:
+        '{company} submitted {count} clarification question(s) on {project}.',
+      clientBidMessageTitle: 'New message on your project',
+      clientBidMessageBody: '{project}: {preview}',
       clientTenderDeadlineTitle: 'Application deadline reached',
       clientTenderDeadlineBody:
         'The application deadline for {project} has passed.',

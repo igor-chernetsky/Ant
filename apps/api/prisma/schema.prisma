@@ -183,6 +183,7 @@ model UserNotificationPreferences {
 enum NotificationEmailKind {
   client_bid_enrolled
   client_bid_submitted
+  client_clarification_questions
   client_tender_deadline_reached
   contractor_counter_offer
   contractor_bid_message
@@ -217,6 +218,8 @@ model NotificationEmailLog {
 enum InAppNotificationKind {
   client_bid_submitted
   client_bid_enrolled
+  client_clarification_questions
+  client_bid_message
   client_tender_deadline_reached
   client_contractor_declined_proposal
   contractor_counter_offer

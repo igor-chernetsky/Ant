@@ -401,28 +401,45 @@ export class NotificationsService {
     companyName: string;
     contenderNumber: number;
   }): Promise<void> {
+    // Participation is surfaced to the client only when a commercial proposal
+    // is submitted (see notifyClientBidSubmitted). Enrollment alone is silent.
+    void params;
+  }
+
+  async notifyClientClarificationQuestions(params: {
+    clientId: string;
+    projectId: string;
+    projectTitle: string;
+    companyName: string;
+    questionCount: number;
+  }): Promise<void> {
+    const countLabel =
+      params.questionCount === 1
+        ? '1 clarification question'
+        : `${params.questionCount} clarification questions`;
+
     await this.createInAppNotification({
       userId: params.clientId,
-      kind: InAppNotificationKind.client_bid_enrolled,
-      href: this.bidsPath(params.projectId),
+      kind: InAppNotificationKind.client_clarification_questions,
+      href: this.projectPath(params.projectId),
       projectId: params.projectId,
       payload: {
         projectTitle: params.projectTitle,
         companyName: params.companyName,
-        contenderNumber: params.contenderNumber,
+        questionCount: params.questionCount,
       },
     });
     await this.sendToUser({
       userId: params.clientId,
       prefFlag: 'emailClientBidActivity',
-      kind: NotificationEmailKind.client_bid_enrolled,
+      kind: NotificationEmailKind.client_clarification_questions,
       projectId: params.projectId,
-      subject: `New contender on ${params.projectTitle}`,
-      title: 'New tender application',
-      bodyHtml: `<p><strong>${escapeHtml(params.companyName)}</strong> enrolled as contender <strong>#${params.contenderNumber}</strong> on your project <strong>${escapeHtml(params.projectTitle)}</strong>.</p>`,
-      ctaHref: this.bidsUrl(params.projectId),
-      ctaLabel: 'View applications',
-      textBody: `${params.companyName} enrolled as contender #${params.contenderNumber} on ${params.projectTitle}.`,
+      subject: `Clarification questions on ${params.projectTitle}`,
+      title: 'New clarification questions',
+      bodyHtml: `<p><strong>${escapeHtml(params.companyName)}</strong> submitted <strong>${escapeHtml(countLabel)}</strong> on your project <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Review and answer them before opening the tender for commercial proposals.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'Open project',
+      textBody: `${params.companyName} submitted ${countLabel} on ${params.projectTitle}.`,
     });
   }
 
@@ -560,6 +577,19 @@ export class NotificationsService {
         ? `${localizedPreview.slice(0, 197)}…`
         : localizedPreview;
 
+    if (params.recipientRole === 'client') {
+      await this.createInAppNotification({
+        userId: params.recipientUserId,
+        kind: InAppNotificationKind.client_bid_message,
+        href: this.projectPath(params.projectId),
+        projectId: params.projectId,
+        payload: {
+          projectTitle,
+          preview,
+        },
+      });
+    }
+
     await this.sendToUser({
       userId: params.recipientUserId,
       prefFlag,
@@ -571,7 +601,7 @@ export class NotificationsService {
       bodyHtml: `<p>${copy.bodyLead(escapeHtml(projectTitle))}</p><p style="background:#f8fafc;padding:12px;border-radius:8px;">${escapeHtml(preview)}</p>`,
       ctaHref:
         params.recipientRole === 'client'
-          ? this.bidsUrl(params.projectId)
+          ? this.projectUrl(params.projectId)
           : this.projectUrl(params.projectId),
       ctaLabel:
         params.recipientRole === 'client'

@@ -47,6 +47,11 @@ export const th: Messages = {
       clientBidEnrolledTitle: 'ใบสมัครเข้าร่วมใหม่',
       clientBidEnrolledBody:
         '{company} สมัครเป็นผู้เข้าแข่ง #{n} ใน {project}',
+      clientClarificationQuestionsTitle: 'ได้รับคำถามชี้แจง',
+      clientClarificationQuestionsBody:
+        '{company} ส่งคำถามชี้แจง ({count}) สำหรับ {project}',
+      clientBidMessageTitle: 'ข้อความใหม่ในโครงการของคุณ',
+      clientBidMessageBody: '{project}: {preview}',
       clientTenderDeadlineTitle: 'ครบกำหนดรับใบสมัคร',
       clientTenderDeadlineBody:
         'ครบกำหนดรับใบสมัครสำหรับ {project} แล้ว',

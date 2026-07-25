@@ -22,6 +22,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { ProjectScopeSyncService } from '../projects/project-scope-sync.service';
 import { StorageService } from '../storage/storage.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import type { SupportedLocale } from '../users/locale.types';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
@@ -118,6 +119,7 @@ export class TenderClarificationsService {
     private readonly scopeSync: ProjectScopeSyncService,
     private readonly documents: DocumentsService,
     private readonly documentAnalysis: DocumentAnalysisService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private mapAttachment(row: {
@@ -333,6 +335,16 @@ export class TenderClarificationsService {
     });
 
     await this.mergeQuestionsIntoTender(bid.tenderId, bid.id, questions);
+
+    this.notifications.dispatch(
+      this.notifications.notifyClientClarificationQuestions({
+        clientId: project.clientId,
+        projectId: project.id,
+        projectTitle: project.title,
+        companyName: bid.contractor.companyName?.trim() || 'Contractor',
+        questionCount: questions.length,
+      }),
+    );
 
     return {
       questions,
@@ -1139,6 +1151,7 @@ export class TenderClarificationsService {
     const bid = await this.prisma.bid.findUnique({
       where: { id: bidId },
       include: {
+        contractor: true,
         tender: { include: { project: true } },
       },
     });

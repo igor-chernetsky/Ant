@@ -47,6 +47,11 @@ export const ru: Messages = {
       clientBidEnrolledTitle: 'Новая заявка на тендер',
       clientBidEnrolledBody:
         '{company} записался претендентом №{n} на {project}.',
+      clientClarificationQuestionsTitle: 'Получены уточняющие вопросы',
+      clientClarificationQuestionsBody:
+        '{company} отправил(а) уточняющие вопросы ({count}) по проекту {project}.',
+      clientBidMessageTitle: 'Новое сообщение по проекту',
+      clientBidMessageBody: '{project}: {preview}',
       clientTenderDeadlineTitle: 'Срок приёма заявок истёк',
       clientTenderDeadlineBody:
         'Срок приёма заявок по проекту {project} закончился.',

@@ -3,6 +3,8 @@ import { fetchWithAuth } from '@/lib/auth-client';
 export type InAppNotificationKind =
   | 'client_bid_submitted'
   | 'client_bid_enrolled'
+  | 'client_clarification_questions'
+  | 'client_bid_message'
   | 'client_tender_deadline_reached'
   | 'client_contractor_declined_proposal'
   | 'contractor_counter_offer'
