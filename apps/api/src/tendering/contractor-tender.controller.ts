@@ -16,6 +16,7 @@ import {
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
+import { hasRole } from '../auth/roles.decorator';
 import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import { BidMessagesService } from './bid-messages.service';
@@ -65,7 +66,15 @@ export class ContractorTenderController {
   ) {
     const user = await this.resolveUser(req);
     const locale = resolveLocaleFromRequest(req, user.preferredLocale);
-    return this.projectsService.getPublicByIdForParticipant(user.id, projectId, locale);
+    return this.projectsService.getPublicByIdForParticipant(
+      user.id,
+      projectId,
+      locale,
+      {
+        isAdmin: hasRole(req.user, 'admin'),
+        isContractorRole: hasRole(req.user, 'contractor'),
+      },
+    );
   }
 
   @Get('profile')

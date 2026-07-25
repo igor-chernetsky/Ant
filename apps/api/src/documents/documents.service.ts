@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  forwardRef,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
@@ -14,11 +16,11 @@ import {
   Prisma,
 } from '@prisma/client';
 import { DocumentAnalysisService } from '../ai/document-analysis.service';
-import { isPubliclyViewable } from '../projects/projects.constants';
 import {
   computeReadinessScore,
   ProjectBriefV1,
 } from '../projects/project-brief';
+import { ProjectsService } from '../projects/projects.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ImageThumbnailService } from '../storage/image-thumbnail.service';
 import { StorageService } from '../storage/storage.service';
@@ -52,6 +54,8 @@ export class DocumentsService {
     private readonly storage: StorageService,
     private readonly documentAnalysis: DocumentAnalysisService,
     private readonly thumbnails: ImageThumbnailService,
+    @Inject(forwardRef(() => ProjectsService))
+    private readonly projects: ProjectsService,
   ) {}
 
   private toResponse(doc: Document): DocumentResponse {
@@ -82,14 +86,12 @@ export class DocumentsService {
     return project;
   }
 
-  private async assertPublicProjectView(projectId: string) {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
-    if (!project || !isPubliclyViewable(project.status) || project.isHidden) {
-      throw new NotFoundException('Project not found');
-    }
-    return project;
+  private async assertPublicProjectView(
+    projectId: string,
+    userId: string | null = null,
+    options?: { isAdmin?: boolean; isContractorRole?: boolean },
+  ) {
+    return this.projects.assertCanOpenProject(projectId, userId, options);
   }
 
   private validateUploadInput(dto: PresignUploadDto) {
@@ -133,8 +135,12 @@ export class DocumentsService {
     return docs.map((doc) => this.toResponse(doc));
   }
 
-  async listForPublicProject(projectId: string): Promise<DocumentResponse[]> {
-    await this.assertPublicProjectView(projectId);
+  async listForPublicProject(
+    projectId: string,
+    userId: string | null = null,
+    options?: { isAdmin?: boolean; isContractorRole?: boolean },
+  ): Promise<DocumentResponse[]> {
+    await this.assertPublicProjectView(projectId, userId, options);
 
     const docs = await this.prisma.document.findMany({
       where: {
@@ -323,11 +329,20 @@ export class DocumentsService {
     projectId: string,
     documentId: string,
     variant: DocumentDownloadVariant = 'original',
-    options?: { authenticated?: boolean },
+    options?: {
+      authenticated?: boolean;
+      userId?: string | null;
+      isAdmin?: boolean;
+      isContractorRole?: boolean;
+    },
   ): Promise<DownloadUrlResponse> {
-    await this.assertPublicProjectView(projectId);
+    await this.assertPublicProjectView(projectId, options?.userId ?? null, {
+      isAdmin: options?.isAdmin,
+      isContractorRole: options?.isContractorRole,
+    });
 
-    // Thumbnails stay public for gallery previews; originals require sign-in.
+    // Thumbnails stay public for gallery previews once open ACL passed;
+    // originals still require sign-in.
     if (variant !== 'thumb' && !options?.authenticated) {
       throw new UnauthorizedException(
         'Sign in to download project documents',

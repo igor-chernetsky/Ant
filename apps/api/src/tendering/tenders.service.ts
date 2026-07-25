@@ -788,6 +788,22 @@ export class TendersService {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
+
+    if (project) {
+      const freezeIds = updated.bids
+        .filter(
+          (b) =>
+            b.status === BidStatus.selected ||
+            b.status === BidStatus.rejected ||
+            b.status === BidStatus.submitted,
+        )
+        .map((b) => b.id);
+      await this.freezeProjectIdentityOnBids(freezeIds, {
+        title: project.title,
+        description: project.description,
+      });
+    }
+
     const selectedBid = updated.bids.find((b) => b.id === bidId);
     const rejectedBids = updated.bids.filter(
       (b) => b.id !== bidId && b.status === BidStatus.rejected,
@@ -1475,6 +1491,59 @@ export class TendersService {
     };
   }
 
+  /** Freeze project card identity into KP terms (set once, never overwrite). */
+  private withFrozenProjectIdentity(
+    terms: BidTermsV1,
+    project: { title: string; description: string | null },
+    existing?: BidTermsV1 | null,
+  ): BidTermsV1 {
+    const frozenTitle =
+      existing?.frozenProjectTitle?.trim() ||
+      terms.frozenProjectTitle?.trim() ||
+      project.title.trim();
+    const hasExistingDescriptionFreeze =
+      existing != null &&
+      Object.prototype.hasOwnProperty.call(existing, 'frozenProjectDescription');
+    const hasTermsDescriptionFreeze = Object.prototype.hasOwnProperty.call(
+      terms,
+      'frozenProjectDescription',
+    );
+
+    return {
+      ...terms,
+      frozenProjectTitle: frozenTitle,
+      frozenProjectDescription: hasExistingDescriptionFreeze
+        ? existing!.frozenProjectDescription ?? null
+        : hasTermsDescriptionFreeze
+          ? terms.frozenProjectDescription ?? null
+          : project.description,
+    };
+  }
+
+  private async freezeProjectIdentityOnBids(
+    bidIds: string[],
+    project: { title: string; description: string | null },
+  ): Promise<void> {
+    if (bidIds.length === 0) {
+      return;
+    }
+    const bids = await this.prisma.bid.findMany({
+      where: { id: { in: bidIds } },
+      select: { id: true, termsJson: true },
+    });
+    for (const bid of bids) {
+      const existing = (bid.termsJson as BidTermsV1 | null) ?? {};
+      if (existing.frozenProjectTitle?.trim()) {
+        continue;
+      }
+      const next = this.withFrozenProjectIdentity(existing, project, existing);
+      await this.prisma.bid.update({
+        where: { id: bid.id },
+        data: { termsJson: next as unknown as Prisma.InputJsonValue },
+      });
+    }
+  }
+
   private normalizeAndValidateContractTerms(
     raw?: SubmitBidDto['contractTerms'],
   ) {
@@ -1634,9 +1703,10 @@ export class TendersService {
     const project = await this.prisma.project.findUnique({
       where: { id: tender.projectId },
     });
-    const projectTerms = project
-      ? this.resolveProjectContractTerms(project)
-      : undefined;
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    const projectTerms = this.resolveProjectContractTerms(project);
 
     if (tender.status !== TenderStatus.open) {
       throw new BadRequestException(
@@ -1660,14 +1730,22 @@ export class TendersService {
       );
     }
 
-    const terms = this.buildBidTerms({
-      ...dto,
-      contractTerms: this.mergeContractTermsForContractor(
-        (existing.termsJson as BidTermsV1 | null) ?? null,
-        dto.contractTerms,
-        projectTerms,
-      ),
-    });
+    const existingTerms = (existing.termsJson as BidTermsV1 | null) ?? null;
+    const terms = this.withFrozenProjectIdentity(
+      this.buildBidTerms({
+        ...dto,
+        contractTerms: this.mergeContractTermsForContractor(
+          existingTerms,
+          dto.contractTerms,
+          projectTerms,
+        ),
+      }),
+      {
+        title: project.title,
+        description: project.description,
+      },
+      existingTerms,
+    );
     assertBreakdownMatchesTotal(dto.amount, terms.lineItems);
 
     const bid = await this.prisma.$transaction(async (tx) => {

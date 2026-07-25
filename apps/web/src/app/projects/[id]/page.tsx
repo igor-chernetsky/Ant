@@ -176,7 +176,13 @@ export default function ProjectDetailPage() {
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'NOT_FOUND') {
-        setError(t('projectDetail.projectNotFound'));
+        if (!profile) {
+          setError(t('projectDetail.accessDeniedContractor'));
+        } else if (isContractorUser(profile)) {
+          setError(t('projectDetail.accessDeniedParties'));
+        } else {
+          setError(t('projectDetail.accessDenied'));
+        }
       } else {
         setError(
           err instanceof Error ? err.message : t('projectDetail.loadFailed'),
@@ -397,6 +403,8 @@ export default function ProjectDetailPage() {
                   ? t('projectDetail.tagsRefreshHint')
                   : null
               }
+              canEditCard={isOwner}
+              onCardUpdated={setProject}
             />
 
             {isOwner && <ProjectStageRail status={project.status} />}
@@ -632,6 +640,15 @@ export default function ProjectDetailPage() {
         {pageReady && !project && error && (
           <section className="card error">
             <p>{error}</p>
+            {authState === 'guest' && (
+              <button
+                type="button"
+                className="primary"
+                onClick={() => setLoginOpen(true)}
+              >
+                {t('header.signIn')}
+              </button>
+            )}
             <Link href="/" className="text-link">
               {t('bidsPage.backToProjects')}
             </Link>

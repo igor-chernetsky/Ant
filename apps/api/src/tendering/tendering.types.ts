@@ -48,6 +48,12 @@ export interface BidTermsV1 {
   lineItems?: BidLineItem[];
   /** Commercial proposal document fields for PDF/HTML generation */
   contractTerms?: BidContractTerms;
+  /**
+   * Project title/description frozen when the KP is submitted.
+   * Later card edits must not rewrite agreed commercial proposals.
+   */
+  frozenProjectTitle?: string;
+  frozenProjectDescription?: string | null;
 }
 
 export const MAX_BID_NOTES_LENGTH = 2000;

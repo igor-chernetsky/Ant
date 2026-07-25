@@ -871,6 +871,7 @@ pre {
 .project-tile {
   display: flex;
   flex-direction: column;
+  text-align: left;
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
@@ -878,11 +879,29 @@ pre {
   overflow: hidden;
   text-decoration: none;
   color: inherit;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
   box-shadow: var(--shadow-glass);
   transition:
     box-shadow 0.2s ease,
     transform 0.2s ease,
     border-color 0.2s ease;
+}
+
+.project-tile-locked {
+  cursor: default;
+  opacity: 0.92;
+}
+
+.project-tile-locked:hover {
+  transform: none;
+}
+
+.project-tile-access-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.35;
 }
 
 .project-tile-owned {
@@ -2024,6 +2043,70 @@ pre {
   font-size: clamp(1.55rem, 2.5vw, 2rem);
   line-height: 1.2;
   letter-spacing: -0.02em;
+}
+
+.project-hero-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.65rem;
+}
+
+.project-hero-title-row h1 {
+  flex: 1 1 12rem;
+  margin-bottom: 0;
+}
+
+.project-hero-edit-trigger {
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+}
+
+.project-hero-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  max-width: 42rem;
+  margin-bottom: 0.75rem;
+}
+
+.project-hero-edit-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.project-hero-edit-label input,
+.project-hero-edit-label textarea {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.72);
+  color: inherit;
+  resize: vertical;
+}
+
+.project-hero-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.project-hero-edit-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.project-hero-edit-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
 }
 
 .project-hero-lead {

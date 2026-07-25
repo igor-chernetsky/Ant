@@ -20,6 +20,10 @@ export const CLIENT_WORKSPACE_STATUSES: ProjectStatus[] = [
 
 export const DISCOVERY_FILTER_HIDDEN = 'hidden';
 
+/**
+ * Statuses that appear on public cards / discovery.
+ * Opening a card uses canOpenProjectDetail, not this list alone.
+ */
 export const PUBLIC_VIEW_STATUSES: ProjectStatus[] = [
   ...DISCOVERY_STATUSES,
   ProjectStatus.completed,
@@ -35,3 +39,10 @@ export function isPubliclyDiscoverable(project: {
 }): boolean {
   return isPubliclyViewable(project.status) && !project.isHidden;
 }
+
+export {
+  CONTRACTOR_OPEN_STATUSES,
+  RESTRICTED_OPEN_STATUSES,
+  canOpenProjectDetail,
+  type ProjectOpenViewer,
+} from './project-open-access';

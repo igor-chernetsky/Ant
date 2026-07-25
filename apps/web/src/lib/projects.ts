@@ -213,6 +213,39 @@ export async function createProject(
   return response.json() as Promise<Project>;
 }
 
+export interface UpdateProjectCardInput {
+  title?: string;
+  description?: string | null;
+}
+
+export async function updateProjectCard(
+  id: string,
+  input: UpdateProjectCardInput,
+): Promise<Project> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+  );
+
+  if (response.status === 403) {
+    throw new Error('FORBIDDEN');
+  }
+  if (response.status === 404) {
+    throw new Error('NOT_FOUND');
+  }
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to update project');
+  }
+  return response.json() as Promise<Project>;
+}
+
 export async function fetchProject(id: string): Promise<Project> {
   const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(id)}`,

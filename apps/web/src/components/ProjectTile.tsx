@@ -1,10 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
+import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import {
+  canOpenProjectDetail,
+  getProjectOpenBlockReason,
+} from '@/lib/project-open-access';
 import type { ProjectType } from '@/lib/projects';
 import type { PublicProjectCard } from '@/lib/public-projects';
+import { isContractorUser } from '@/lib/session';
 import type { ContractorApplicationItem } from '@/lib/tendering';
 
 interface ProjectTileProps {
@@ -18,9 +27,25 @@ export function ProjectTile({
   isOwned = false,
   contractorParticipation = null,
 }: ProjectTileProps) {
+  const router = useRouter();
   const { t } = useTranslation();
+  const { me, refreshSession } = useSession();
   const { formatProjectStatus, formatProjectType, formatParticipationLabel } =
     useAppFormatters();
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [accessHint, setAccessHint] = useState<string | null>(null);
+
+  const isAwardedContractor =
+    contractorParticipation?.bidStatus === 'selected' ||
+    Boolean(contractorParticipation?.isActiveProject);
+
+  const openContext = {
+    me,
+    isOwned,
+    isAwardedContractor,
+  };
+  const canOpen = canOpenProjectDetail(project.status, openContext);
+  const blockReason = getProjectOpenBlockReason(project.status, openContext);
 
   const excerpt =
     project.description && project.description.length > 160
@@ -31,13 +56,12 @@ export function ProjectTile({
     ? formatParticipationLabel(contractorParticipation)
     : null;
 
-  return (
-    <Link
-      href={`/projects/${project.id}`}
-      className={`project-tile${isOwned ? ' project-tile-owned' : ''}${
-        contractorParticipation && !isOwned ? ' project-tile-participating' : ''
-      }`}
-    >
+  const className = `project-tile${isOwned ? ' project-tile-owned' : ''}${
+    contractorParticipation && !isOwned ? ' project-tile-participating' : ''
+  }${!canOpen ? ' project-tile-locked' : ''}`;
+
+  const body = (
+    <>
       <div className="project-tile-media">
         {project.coverImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -67,7 +91,9 @@ export function ProjectTile({
           </span>
         )}
         {isOwned && (
-          <span className="project-tile-owned-badge">{t('projectTile.myProject')}</span>
+          <span className="project-tile-owned-badge">
+            {t('projectTile.myProject')}
+          </span>
         )}
         {participationLabel && !isOwned && (
           <span className="project-tile-contractor-badge">
@@ -94,7 +120,69 @@ export function ProjectTile({
             ))}
           </div>
         )}
+        {accessHint && (
+          <p className="project-tile-access-hint muted" role="status">
+            {accessHint}
+          </p>
+        )}
       </div>
-    </Link>
+    </>
+  );
+
+  const handleLockedClick = () => {
+    if (blockReason === 'login_contractor') {
+      setAccessHint(t('projectTile.signInContractorHint'));
+      setLoginOpen(true);
+      return;
+    }
+    if (blockReason === 'contractor_only') {
+      setAccessHint(t('projectTile.contractorOnlyHint'));
+      return;
+    }
+    setAccessHint(t('projectTile.partiesOnlyHint'));
+  };
+
+  return (
+    <>
+      {canOpen ? (
+        <Link href={`/projects/${project.id}`} className={className}>
+          {body}
+        </Link>
+      ) : (
+        <button
+          type="button"
+          className={className}
+          onClick={handleLockedClick}
+          aria-label={t('projectTile.lockedAria', { title: project.title })}
+        >
+          {body}
+        </button>
+      )}
+
+      <LoginModal
+        isOpen={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        onSuccess={async () => {
+          setLoginOpen(false);
+          setAccessHint(null);
+          const nextMe = await refreshSession();
+          if (
+            canOpenProjectDetail(project.status, {
+              me: nextMe,
+              isOwned,
+              isAwardedContractor,
+            })
+          ) {
+            router.push(`/projects/${project.id}`);
+            return;
+          }
+          if (nextMe && !isContractorUser(nextMe)) {
+            setAccessHint(t('projectTile.contractorOnlyHint'));
+          } else {
+            setAccessHint(t('projectTile.partiesOnlyHint'));
+          }
+        }}
+      />
+    </>
   );
 }

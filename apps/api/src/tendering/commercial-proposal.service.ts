@@ -335,8 +335,8 @@ export class CommercialProposalService {
       return null;
     }
 
-    const title = bid.tender.project.title;
     const data = await this.buildProposalDataForLocale(bid, 'en');
+    const title = data.projectTitle || bid.tender.project.title;
     const editedBody = ensureEditedEnglishBodyHasBoq(
       stripContractSignaturesBlock(sanitizedBody),
       data,
@@ -501,6 +501,15 @@ export class CommercialProposalService {
     const project = bid.tender.project;
     const copy = commercialProposalCopy(targetLocale);
 
+    const frozenTitle = terms?.frozenProjectTitle?.trim() || null;
+    const hasFrozenDescription =
+      terms != null &&
+      Object.prototype.hasOwnProperty.call(terms, 'frozenProjectDescription');
+    const sourceTitle = frozenTitle || project.title;
+    const sourceDescription = hasFrozenDescription
+      ? terms!.frozenProjectDescription ?? null
+      : project.description;
+
     const projectTerms =
       normalizeContractTerms(
         project.tenderContractTermsJson as BidContractTerms | undefined,
@@ -526,8 +535,8 @@ export class CommercialProposalService {
         project.id,
         bid.id,
         {
-          title: project.title,
-          description: project.description,
+          title: sourceTitle,
+          description: sourceDescription,
           district: project.district,
           scopeSummary: mergedTerms?.scopeSummary ?? project.scopeSummary,
           clarificationSummary: project.clarificationSummary,
@@ -578,9 +587,9 @@ export class CommercialProposalService {
     });
 
     return buildCommercialProposalData({
-      projectTitle: localized.title || project.title,
+      projectTitle: localized.title || sourceTitle,
       projectDistrict: localized.district ?? project.district,
-      projectDescription: localized.description,
+      projectDescription: localized.description ?? sourceDescription,
       clarificationSummary: localized.clarificationSummary,
       bidAmount: Number(bid.amount),
       durationDays: bid.durationDays,

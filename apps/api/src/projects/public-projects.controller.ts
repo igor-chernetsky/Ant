@@ -2,6 +2,7 @@ import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
+import { hasRole } from '../auth/roles.decorator';
 import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import { TagsService } from '../tags/tags.service';
@@ -62,7 +63,10 @@ export class PublicProjectsController {
       : null;
     const locale = resolveLocaleFromRequest(req, user?.preferredLocale);
     const userId = user?.id ?? null;
-    return this.projectsService.getPublicById(id, userId, locale);
+    return this.projectsService.getPublicById(id, userId, locale, {
+      isAdmin: Boolean(req.user && hasRole(req.user, 'admin')),
+      isContractorRole: Boolean(req.user && hasRole(req.user, 'contractor')),
+    });
   }
 
   @Get('tags')

@@ -14,13 +14,20 @@ import {
 
 } from '@nestjs/common';
 
-import { DocumentStatus, Prisma, Project, ProjectStatus, ProjectTag, ProjectType, Tag } from '@prisma/client';
+import { BidStatus, DocumentStatus, Prisma, Project, ProjectStatus, ProjectTag, ProjectType, Tag } from '@prisma/client';
 import { IntakeService } from '../intake/intake.service';
 import { EstimatesService } from '../estimation/estimates.service';
 import { LocationsService } from '../locations/locations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { isPubliclyDiscoverable, isPubliclyViewable, CLIENT_WORKSPACE_STATUSES, DISCOVERY_FILTER_HIDDEN, DISCOVERY_STATUSES } from './projects.constants';
+import {
+  isPubliclyDiscoverable,
+  isPubliclyViewable,
+  canOpenProjectDetail,
+  CLIENT_WORKSPACE_STATUSES,
+  DISCOVERY_FILTER_HIDDEN,
+  DISCOVERY_STATUSES,
+} from './projects.constants';
 import { shouldHideProjectFromPublicDiscovery } from '../tendering/tender-deadline';
 import {
   buildOwnershipFilter,
@@ -35,6 +42,8 @@ import {
 
   computeReadinessScore,
 
+  type ProjectBriefV1,
+
 } from './project-brief';
 
 import {
@@ -48,6 +57,8 @@ import {
   PublicProjectCard,
 
   CompleteProjectDto,
+
+  UpdateProjectDto,
 
 } from './projects.types';
 
@@ -605,7 +616,15 @@ export class ProjectsService {
     return new Set(bids.map((bid) => bid.tender.projectId));
   }
 
-  private async userHasActiveTenderParticipation(
+  private async userIsContractor(userId: string): Promise<boolean> {
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    return Boolean(profile);
+  }
+
+  private async userIsAwardedContractor(
     userId: string,
     projectId: string,
   ): Promise<boolean> {
@@ -617,28 +636,43 @@ export class ProjectsService {
       return false;
     }
 
-    const bid = await this.prisma.bid.findFirst({
+    const selectedBid = await this.prisma.bid.findFirst({
       where: {
         contractorId: profile.id,
-        status: { not: 'withdrawn' },
+        status: BidStatus.selected,
         tender: { projectId },
       },
       select: { id: true },
     });
+    if (selectedBid) {
+      return true;
+    }
 
-    return Boolean(bid);
+    // Fallback: tender points at this contractor's bid even if status lag.
+    const awarded = await this.prisma.tender.findFirst({
+      where: {
+        projectId,
+        awardedBidId: { not: null },
+        awardedBid: { contractorId: profile.id },
+      },
+      select: { id: true },
+    });
+    return Boolean(awarded);
   }
 
-  async getPublicById(
+  /**
+   * Enforce open-card ACL. Cards may be listed publicly; detail requires
+   * contractor (Accepting bids) or owner/awarded contractor/admin (later stages).
+   */
+  async assertCanOpenProject(
     projectId: string,
-    userId: string | null = null,
-    viewerLocale?: SupportedLocale,
-  ): Promise<ProjectResponse> {
+    userId: string | null,
+    options?: { isAdmin?: boolean; isContractorRole?: boolean },
+  ): Promise<Project> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
-        ...this.includeTags(),
-        tender: { select: { status: true, closesAt: true } },
+        tender: { select: { status: true, closesAt: true, awardedBidId: true } },
       },
     });
 
@@ -646,74 +680,101 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
+    const isAdmin = Boolean(options?.isAdmin);
     const isOwner = Boolean(userId && project.clientId === userId);
-    const isOwnerWorkspace =
-      isOwner && CLIENT_WORKSPACE_STATUSES.includes(project.status);
 
-    if (!isPubliclyViewable(project.status) && !isOwnerWorkspace) {
-      throw new NotFoundException('Project not found');
+    if (isAdmin) {
+      return project;
     }
 
-    if (!isPubliclyDiscoverable(project) && !isOwnerWorkspace) {
-      const participantProjectIds = userId
-        ? await this.loadParticipantProjectIds(userId)
-        : new Set<string>();
+    if (isOwner) {
       if (
-        !userId ||
-        (project.clientId !== userId &&
-          !participantProjectIds.has(project.id))
+        !isPubliclyViewable(project.status) &&
+        !CLIENT_WORKSPACE_STATUSES.includes(project.status)
       ) {
         throw new NotFoundException('Project not found');
       }
+      return project;
     }
 
+    if (!isPubliclyViewable(project.status)) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const isContractor =
+      Boolean(options?.isContractorRole) ||
+      (userId ? await this.userIsContractor(userId) : false);
+    const isAwardedContractor = userId
+      ? await this.userIsAwardedContractor(userId, projectId)
+      : false;
+
     if (
+      !canOpenProjectDetail(project.status, {
+        isOwner: false,
+        isAdmin: false,
+        isContractor,
+        isAwardedContractor,
+      })
+    ) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // Hidden projects stay off the public list but may still open for allowed roles.
+    if (
+      project.isHidden &&
+      !isAwardedContractor &&
+      !(isContractor && project.status === ProjectStatus.in_tender)
+    ) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // Past applications deadline: keep listing hide for guests; contractors
+    // may still open Accepting bids cards; restricted stages use award ACL above.
+    if (
+      project.status === ProjectStatus.in_tender &&
       project.tender &&
       shouldHideProjectFromPublicDiscovery({
         tenderStatus: project.tender.status,
         closesAt: project.tender.closesAt,
-      })
+      }) &&
+      !isContractor
     ) {
-      const participantProjectIds = userId
-        ? await this.loadParticipantProjectIds(userId)
-        : new Set<string>();
-      if (
-        !this.canViewExpiredDiscoverProject(
-          project,
-          userId,
-          participantProjectIds,
-        )
-      ) {
-        throw new NotFoundException('Project not found');
-      }
+      throw new NotFoundException('Project not found');
     }
 
-    return this.buildPublicProjectResponse(project, viewerLocale);
+    return project;
+  }
+
+  async getPublicById(
+    projectId: string,
+    userId: string | null = null,
+    viewerLocale?: SupportedLocale,
+    options?: { isAdmin?: boolean; isContractorRole?: boolean },
+  ): Promise<ProjectResponse> {
+    const project = await this.assertCanOpenProject(projectId, userId, options);
+
+    const withTags = await this.prisma.project.findUnique({
+      where: { id: project.id },
+      include: this.includeTags(),
+    });
+    if (!withTags) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return this.buildPublicProjectResponse(withTags, viewerLocale);
   }
 
   async getPublicByIdForParticipant(
     userId: string,
     projectId: string,
     viewerLocale?: SupportedLocale,
+    options?: { isAdmin?: boolean; isContractorRole?: boolean },
   ): Promise<ProjectResponse> {
-    const hasParticipation = await this.userHasActiveTenderParticipation(
-      userId,
-      projectId,
-    );
-    if (!hasParticipation) {
-      throw new NotFoundException('Project not found');
-    }
-
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      include: this.includeTags(),
+    // Same open ACL as public detail (contractor for in_tender, awarded later).
+    return this.getPublicById(projectId, userId, viewerLocale, {
+      isAdmin: options?.isAdmin,
+      isContractorRole: options?.isContractorRole ?? true,
     });
-
-    if (!project || !isPubliclyViewable(project.status)) {
-      throw new NotFoundException('Project not found');
-    }
-
-    return this.buildPublicProjectResponse(project, viewerLocale);
   }
 
   private async buildPublicProjectResponse(
@@ -964,6 +1025,86 @@ export class ProjectsService {
     );
 
     return this.applyViewerLocale(response, project, viewerLocale);
+  }
+
+  /**
+   * Owner may correct card title/description at any status.
+   * Does not rewrite frozen KP snapshots on submitted bids.
+   */
+  async updateCardForClient(
+    clientId: string,
+    projectId: string,
+    dto: UpdateProjectDto,
+    viewerLocale?: SupportedLocale,
+  ): Promise<ProjectResponse> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: this.includeTags(),
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.clientId !== clientId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    if (dto.title === undefined && dto.description === undefined) {
+      throw new BadRequestException('Nothing to update');
+    }
+
+    const nextTitle =
+      dto.title !== undefined ? dto.title.trim() : project.title;
+    if (nextTitle.length < 3) {
+      throw new BadRequestException('Title must be at least 3 characters');
+    }
+    if (nextTitle.length > 200) {
+      throw new BadRequestException('Title must be at most 200 characters');
+    }
+
+    let nextDescription = project.description;
+    if (dto.description !== undefined) {
+      if (dto.description === null) {
+        nextDescription = null;
+      } else {
+        const trimmed = dto.description.trim();
+        nextDescription = trimmed.length > 0 ? trimmed : null;
+      }
+    }
+    if (nextDescription && nextDescription.length > 20_000) {
+      throw new BadRequestException(
+        'Description must be at most 20000 characters',
+      );
+    }
+
+    const brief = (project.briefJson as ProjectBriefV1 | null) ?? buildInitialBrief({
+      description: nextDescription ?? undefined,
+      propertyType: project.propertyType,
+      originalNarrative: nextDescription ?? undefined,
+    });
+
+    const readinessScore = computeReadinessScore({
+      title: nextTitle,
+      description: nextDescription,
+      projectType: project.projectType,
+      propertyType: project.propertyType,
+      district: project.district,
+      tagCount: project.tags.length,
+      brief,
+    });
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        title: nextTitle,
+        description: nextDescription,
+        readinessScore,
+      },
+    });
+
+    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
+
+    return this.getForClient(clientId, projectId, viewerLocale);
   }
 
   async deleteForClient(clientId: string, projectId: string): Promise<void> {

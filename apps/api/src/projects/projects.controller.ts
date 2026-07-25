@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -17,6 +18,7 @@ import {
   CompleteProjectDto,
   CreateProjectDto,
   PresignProjectReviewAttachmentDto,
+  UpdateProjectDto,
 } from './projects.types';
 import { ProjectsService } from './projects.service';
 import { ProjectReviewsService } from './project-reviews.service';
@@ -58,6 +60,17 @@ export class ProjectsController {
     const user = await this.resolveClient(req);
     const locale = resolveLocaleFromRequest(req, user.preferredLocale);
     return this.projectsService.getForClient(user.id, id, locale);
+  }
+
+  @Patch(':id')
+  async updateOne(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('id') id: string,
+    @Body() body: UpdateProjectDto,
+  ) {
+    const user = await this.resolveClient(req);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.projectsService.updateCardForClient(user.id, id, body, locale);
   }
 
   @Delete(':id')
