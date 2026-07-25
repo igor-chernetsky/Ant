@@ -38,6 +38,9 @@ export function SiteHeader({
         </div>
         <div className="header-actions">
           <LanguageSwitcher />
+          <Link href="/materials" className="text-link header-link">
+            {t('header.materials')}
+          </Link>
           {me ? (
             <>
               <HeaderNotifications />

@@ -22,6 +22,7 @@ export const th: Messages = {
     admin: 'ผู้ดูแล',
     contractor: 'ผู้รับเหมา',
     account: 'บัญชี',
+    materials: 'วัสดุ',
     signIn: 'เข้าสู่ระบบ',
     signOut: 'ออกจากระบบ',
     signedIn: 'เข้าสู่ระบบแล้ว',
@@ -64,6 +65,7 @@ export const th: Messages = {
     termsOfService: 'เงื่อนไขการใช้บริการ',
     clientAgreement: 'ข้อตกลงลูกค้า',
     contractorAgreement: 'ข้อตกลงผู้รับเหมา',
+    materials: 'แพลตฟอร์มวัสดุ',
   },
   auth: {
     welcomeBack: 'ยินดีต้อนรับกลับ',

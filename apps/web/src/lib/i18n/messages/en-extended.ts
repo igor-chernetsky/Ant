@@ -1023,4 +1023,44 @@ export const enExtended = {
     timeline_change: "Timeline change",
     other: "Other",
   },
+  materials: {
+    breadcrumb: "Materials",
+    title: "Thai materials marketplaces",
+    lead: "Browse trusted Thai retailers and platforms for construction materials. Filter by category, then open a store in a new tab.",
+    filtersAria: "Filter by material type",
+    filterAll: "All types",
+    gridAria: "Materials marketplaces",
+    empty: "No platforms match this material type.",
+    external: "External",
+    visit: "Open store",
+    categories: {
+      structural: "Structural",
+      finishes: "Finishes & tiles",
+      plumbing: "Plumbing",
+      electrical: "Electrical",
+      kitchen_bath: "Kitchen & bath",
+      tools: "Tools & hardware",
+      roofing: "Roofing",
+      paint: "Paint & chemicals",
+      timber: "Timber & doors",
+    },
+    blurbs: {
+      thaiwatsadu:
+        "One-stop construction and home materials from Central Retail — steel, cement, tools, and finishes.",
+      homepro:
+        "Home improvement leader for finishes, plumbing, kitchen & bath, and DIY tools.",
+      boonthavorn:
+        "Tiles, sanitary ware, and bathroom/kitchen finishes with nationwide delivery.",
+      scgHome:
+        "SCG building materials, roofing, and home solutions with installation services.",
+      globalHouse:
+        "Warehouse-format stores for structural materials, timber, roofing, and hardware.",
+      dohome:
+        "Construction materials, tools, electrical goods, and finishes with online ordering.",
+      megaHome:
+        "Large-format building materials and home improvement for contractors and homeowners.",
+      rakmao:
+        "Request quotes from local building-material stores — useful for comparing project prices.",
+    },
+  },
 } as const;

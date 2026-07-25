@@ -14,6 +14,9 @@ export function SiteFooter() {
           {t('footer.copyright', { year })}
         </p>
         <nav className="site-footer-nav" aria-label={t('footer.legalNav')}>
+          <Link href="/materials" className="text-link">
+            {t('footer.materials')}
+          </Link>
           <Link href="/privacy" className="text-link">
             {t('footer.privacyPolicy')}
           </Link>

@@ -22,6 +22,7 @@ export const ru: Messages = {
     admin: 'Админ',
     contractor: 'Подрядчик',
     account: 'Аккаунт',
+    materials: 'Материалы',
     signIn: 'Войти',
     signOut: 'Выйти',
     signedIn: 'Вы вошли',
@@ -64,6 +65,7 @@ export const ru: Messages = {
     termsOfService: 'Условия использования',
     clientAgreement: 'Клиентское соглашение',
     contractorAgreement: 'Соглашение подрядчика',
+    materials: 'Площадки стройматериалов',
   },
   auth: {
     welcomeBack: 'С возвращением',

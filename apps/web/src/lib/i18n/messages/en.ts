@@ -21,6 +21,7 @@ export const en = {
     admin: 'Admin',
     contractor: 'Contractor',
     account: 'Account',
+    materials: 'Materials',
     signIn: 'Sign in',
     signOut: 'Sign out',
     signedIn: 'Signed in',
@@ -63,6 +64,7 @@ export const en = {
     termsOfService: 'Terms of Service',
     clientAgreement: 'Client Agreement',
     contractorAgreement: 'Contractor Agreement',
+    materials: 'Materials marketplaces',
   },
   auth: {
     welcomeBack: 'Welcome back',
