@@ -59,9 +59,17 @@ export class UsersService {
   async isContractor(userId: string): Promise<boolean> {
     const profile = await this.prisma.contractorProfile.findUnique({
       where: { userId },
-      select: { id: true },
+      select: { id: true, kind: true },
     });
-    return Boolean(profile);
+    return Boolean(profile && profile.kind === 'contractor');
+  }
+
+  async isDesigner(userId: string): Promise<boolean> {
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { userId },
+      select: { id: true, kind: true },
+    });
+    return Boolean(profile && profile.kind === 'designer');
   }
 
   async buildMeResponse(
@@ -75,16 +83,18 @@ export class UsersService {
     companyName: string | null;
     roles: string[];
     isContractor: boolean;
+    isDesigner: boolean;
     preferredLocale: SupportedLocale;
   }> {
     const roles = payload.realm_access?.roles ?? [];
     const profile = await this.prisma.contractorProfile.findUnique({
       where: { userId: user.id },
-      select: { companyName: true },
+      select: { companyName: true, kind: true },
     });
-    const hasContractorProfile = Boolean(profile);
     const isContractor =
-      roles.includes('contractor') || hasContractorProfile;
+      roles.includes('contractor') || profile?.kind === 'contractor';
+    const isDesigner =
+      roles.includes('designer') || profile?.kind === 'designer';
 
     const preferredLocale = isSupportedLocale(user.preferredLocale)
       ? user.preferredLocale
@@ -98,6 +108,7 @@ export class UsersService {
       companyName: profile?.companyName ?? null,
       roles,
       isContractor,
+      isDesigner,
       preferredLocale,
     };
   }

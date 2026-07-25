@@ -16,6 +16,7 @@ export const CLIENT_WORKSPACE_STATUSES: ProjectStatus[] = [
   ProjectStatus.intake,
   ProjectStatus.ready_for_estimate,
   ProjectStatus.estimated,
+  ProjectStatus.pending,
 ];
 
 export const DISCOVERY_FILTER_HIDDEN = 'hidden';

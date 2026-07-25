@@ -1,5 +1,6 @@
 import {
   isContractorUser,
+  isDesignerUser,
   type MeResponse,
 } from '@/lib/session';
 
@@ -13,9 +14,20 @@ const RESTRICTED_OPEN_STATUSES = new Set([
 export type ProjectOpenContext = {
   me: MeResponse | null;
   isOwned?: boolean;
-  /** True when the signed-in contractor won this tender. */
+  /** True when the signed-in supply-side user won this tender. */
   isAwardedContractor?: boolean;
+  projectType?: string;
 };
+
+function supplySideMayOpenInTender(
+  projectType: string | undefined,
+  me: MeResponse | null,
+): boolean {
+  if (projectType === 'design') {
+    return isDesignerUser(me);
+  }
+  return isContractorUser(me);
+}
 
 /**
  * Client-side mirror of API open-card ACL.
@@ -25,7 +37,8 @@ export function canOpenProjectDetail(
   status: string,
   context: ProjectOpenContext,
 ): boolean {
-  const { me, isOwned = false, isAwardedContractor = false } = context;
+  const { me, isOwned = false, isAwardedContractor = false, projectType } =
+    context;
 
   if (isOwned) {
     return true;
@@ -35,7 +48,7 @@ export function canOpenProjectDetail(
   }
 
   if (CONTRACTOR_OPEN_STATUSES.has(status)) {
-    return isContractorUser(me);
+    return supplySideMayOpenInTender(projectType, me);
   }
 
   if (RESTRICTED_OPEN_STATUSES.has(status)) {
@@ -47,7 +60,9 @@ export function canOpenProjectDetail(
 
 export type ProjectOpenBlockReason =
   | 'login_contractor'
+  | 'login_designer'
   | 'contractor_only'
+  | 'designer_only'
   | 'parties_only'
   | null;
 
@@ -60,6 +75,9 @@ export function getProjectOpenBlockReason(
   }
 
   if (CONTRACTOR_OPEN_STATUSES.has(status)) {
+    if (context.projectType === 'design') {
+      return context.me ? 'designer_only' : 'login_designer';
+    }
     return context.me ? 'contractor_only' : 'login_contractor';
   }
 

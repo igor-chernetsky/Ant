@@ -34,6 +34,7 @@ interface ContractorProjectPanelProps {
   projectDescription?: string | null;
   projectBrief?: ProjectBriefV1 | null;
   clarificationSummary?: string | null;
+  projectType?: string;
 }
 
 function hasActiveContractorParticipation(
@@ -69,6 +70,7 @@ export function ContractorProjectPanel({
   projectDescription,
   projectBrief = null,
   clarificationSummary = null,
+  projectType,
 }: ContractorProjectPanelProps) {
   const { t } = useTranslation();
   const {
@@ -599,6 +601,7 @@ export function ContractorProjectPanel({
               defaultCostBreakdown={participation.defaultCostBreakdown ?? []}
               projectScopeSummary={participation.projectScopeSummary}
               projectContractTerms={participation.projectContractTerms}
+              isDesign={projectType === 'design'}
               onSubmit={handleSubmitBid}
               onWithdraw={
                 canDeclineProposal

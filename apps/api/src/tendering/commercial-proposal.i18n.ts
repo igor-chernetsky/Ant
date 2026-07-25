@@ -1,6 +1,14 @@
 import type { SupportedLocale } from '../users/locale.types';
 import { DEFAULT_LOCALE, isSupportedLocale } from '../users/locale.types';
 
+export type CommercialProposalVariant = 'construction' | 'design';
+
+export interface CommercialProposalCopyOptions {
+  /** When true (or variant === 'design'), use design-contract wording. */
+  isDesign?: boolean;
+  variant?: CommercialProposalVariant;
+}
+
 export interface CommercialProposalCopy {
   documentTitle: (projectTitle: string) => string;
   contractHeading: string;
@@ -61,6 +69,8 @@ export interface CommercialProposalCopy {
   registrationNo: (value: string) => string;
   representedBy: (value: string) => string;
   scopeFallback: string;
+  /** Default Clause 1 subject when not set on contract terms. */
+  defaultSubjectOfContract: (projectTitle: string) => string;
   dash: string;
   noAdvancePayment: string;
   advancePercentOf: (pct: number, amount: string) => string;
@@ -164,6 +174,7 @@ const EN: CommercialProposalCopy = {
   representedBy: (value) => `Represented by ${value}`,
   scopeFallback:
     'As shown and described in the Contract Documents, Drawings and Specifications (Annex #2).',
+  defaultSubjectOfContract: (projectTitle) => projectTitle,
   dash: '—',
   noAdvancePayment: 'No advance payment.',
   advancePercentOf: (pct, amount) =>
@@ -203,6 +214,57 @@ const EN: CommercialProposalCopy = {
   boqSubtotal: 'Subtotal',
   employerFallback: 'Employer',
   contractorFallback: 'Contractor',
+};
+
+const DESIGN_EN: CommercialProposalCopy = {
+  ...EN,
+  contractHeading: 'DESIGN CONTRACT',
+  contractorLabel: 'Designer',
+  forContractor: 'For the Designer',
+  contractorFallback: 'Designer',
+  constructionWorks: '“Design documentation sections”',
+  projectMeans:
+    'means the preparation and electronic delivery of the agreed design documentation sections in DWG and PDF formats, as described in this Contract and Annex #2.',
+  clause2: 'Clause 2 — Scope of Design Services',
+  clarifications: 'Designer Clarifications',
+  worksCommencementDate: 'Design Commencement Date:',
+  worksCompletionDate: 'Design Delivery Date:',
+  worksCompletedWithin: (period) =>
+    `The design documentation sections shall be delivered electronically (DWG and PDF) within ${period}. Upon delivery, the Employer shall provide review comments within one (1) week.`,
+  scopeFallback:
+    'As described in this Contract and the design brief / reference documents (Annex #2).',
+  defaultSubjectOfContract: (projectTitle) =>
+    `Design documentation for ${projectTitle}`,
+  paymentAdvanceTiming:
+    'The Advance Payment (if any) shall be paid by the Employer no later than two (2) weeks before the Design Commencement Date, unless the Parties agree otherwise when preparing this Commercial Proposal.',
+  paymentShortPeriodFinal:
+    'The Final Payment shall be due within two (2) weeks after the Employer’s acceptance of the delivered design documentation sections. The Employer shall provide review comments within one (1) week of electronic delivery.',
+  paymentMonthlyProgress:
+    'Progress payments shall be based on acceptance of delivered design documentation sections. Following each electronic delivery (DWG and PDF), the Employer shall provide review comments within one (1) week; payment for accepted sections shall be due within two (2) weeks of acceptance.',
+  retentionShallBe: (pct, limit) =>
+    `Retention shall be ${pct}% of the value of accepted design documentation, subject to a limit of ${limit}% of the Accepted Contract Amount.`,
+  periodMonthsFromStart: (months) =>
+    `${months} month${months === 1 ? '' : 's'} from the Design Commencement Date`,
+  periodDaysFromStart: (days) =>
+    `${days} days from the Design Commencement Date`,
+  defaultPropertyOwnership:
+    'The Employer holds lawful title to the Site and right to commission the design documentation.',
+  defaultRetentionRelease:
+    'Any retention is released upon acceptance of the final design documentation sections, after correction of documented defects (if any). No Taking-Over Certificate or Practical Completion applies.',
+  defaultWarranty: (months) =>
+    `Documentation defect notification period: ${months} months from acceptance of the relevant design documentation sections. The Designer shall correct documentation defects at no additional cost.`,
+  forceMajeureDefinition:
+    'Neither Party shall be held liable or responsible to the other Party, nor be deemed to have defaulted or breached this Agreement, for any failure or delay in preparing or delivering design documentation (or performing any other term of this Agreement) when and to the extent such failure or delay is caused by or results from acts beyond the impacted Party’s reasonable control (“Force Majeure Event”), including, without limitation:',
+  forceMajeureEvents: [
+    'Acts of God, natural disasters (such as earthquakes, floods, hurricanes, or tsunamis), or extreme weather events.',
+    'Epidemics or pandemics.',
+    'War (declared or undeclared), armed conflict, acts of terrorism, riots, or civil unrest.',
+    'Government actions, embargoes, blockades, or changes in laws or regulations.',
+    'Labor disputes, strikes, or lockouts.',
+    'Interruption or failure of utilities, telecommunication networks, or systems required for electronic delivery of design documentation.',
+  ],
+  annex2EmptyNote:
+    'No project documents are recorded on the platform yet. Annex #2 to be supplemented with the design brief and reference documents before design work commences.',
 };
 
 const RU: CommercialProposalCopy = {
@@ -282,6 +344,7 @@ const RU: CommercialProposalCopy = {
   representedBy: (value) => `В лице ${value}`,
   scopeFallback:
     'Как показано и описано в договорных документах, чертежах и спецификациях (Приложение №2).',
+  defaultSubjectOfContract: (projectTitle) => projectTitle,
   dash: '—',
   noAdvancePayment: 'Авансовый платёж не предусмотрен.',
   advancePercentOf: (pct, amount) =>
@@ -320,6 +383,57 @@ const RU: CommercialProposalCopy = {
   boqSubtotal: 'Итого',
   employerFallback: 'Заказчик',
   contractorFallback: 'Подрядчик',
+};
+
+const DESIGN_RU: CommercialProposalCopy = {
+  ...RU,
+  contractHeading: 'ДОГОВОР НА ПРОЕКТИРОВАНИЕ',
+  contractorLabel: 'Проектировщик',
+  forContractor: 'От Проектировщика',
+  contractorFallback: 'Проектировщик',
+  constructionWorks: '«Разработка раздела(ов) проектной документации»',
+  projectMeans:
+    'означает подготовку и электронную передачу согласованных разделов проектной документации в форматах DWG и PDF, как описано в настоящем Договоре и Приложении №2.',
+  clause2: 'Пункт 2 — Объём проектных услуг',
+  clarifications: 'Разъяснения проектировщика',
+  worksCommencementDate: 'Дата начала проектирования:',
+  worksCompletionDate: 'Дата передачи проектной документации:',
+  worksCompletedWithin: (period) =>
+    `Разделы проектной документации должны быть переданы в электронном виде (DWG и PDF) в течение ${period}. После передачи Заказчик предоставляет замечания в течение одной (1) недели.`,
+  scopeFallback:
+    'Как описано в настоящем Договоре и в задании на проектирование / исходных документах (Приложение №2).',
+  defaultSubjectOfContract: (projectTitle) =>
+    `Проектная документация для ${projectTitle}`,
+  paymentAdvanceTiming:
+    'Авансовый платёж (при наличии) выплачивается Заказчиком не позднее чем за две (2) недели до Даты начала проектирования, если иное не согласовано Сторонами при составлении настоящего Коммерческого предложения.',
+  paymentShortPeriodFinal:
+    'Окончательный платёж подлежит уплате в течение двух (2) недель после приёмки Заказчиком переданных разделов проектной документации. Заказчик предоставляет замечания в течение одной (1) недели с момента электронной передачи.',
+  paymentMonthlyProgress:
+    'Промежуточные платежи производятся по факту приёмки переданных разделов проектной документации. После каждой электронной передачи (DWG и PDF) Заказчик предоставляет замечания в течение одной (1) недели; оплата принятых разделов подлежит уплате в течение двух (2) недель с момента приёмки.',
+  retentionShallBe: (pct, limit) =>
+    `Удержание составляет ${pct}% стоимости принятой проектной документации, но не более ${limit}% от Принятой суммы договора.`,
+  periodMonthsFromStart: (months) =>
+    `${months} мес. с Даты начала проектирования`,
+  periodDaysFromStart: (days) =>
+    `${days} дн. с Даты начала проектирования`,
+  defaultPropertyOwnership:
+    'Заказчик обладает законным правом на участок и правом поручать разработку проектной документации.',
+  defaultRetentionRelease:
+    'Удержание (при наличии) выплачивается при приёмке окончательных разделов проектной документации после устранения зафиксированных дефектов документации (при наличии). Сертификат Taking-Over и Practical Completion не применяются.',
+  defaultWarranty: (months) =>
+    `Период уведомления о дефектах документации: ${months} мес. с момента приёмки соответствующих разделов проектной документации. Проектировщик устраняет дефекты документации без дополнительной оплаты.`,
+  forceMajeureDefinition:
+    'Ни одна из Сторон не несёт ответственности перед другой Стороной и не считается допустившей нарушение настоящего Договора за неисполнение или просрочку подготовки либо передачи проектной документации (или исполнения любого иного обязательства по настоящему Договору), если и в той мере, в какой такое неисполнение или просрочка вызваны обстоятельствами вне разумного контроля пострадавшей Стороны («Событие форс-мажора»), включая, без ограничения:',
+  forceMajeureEvents: [
+    'Стихийные бедствия и иные обстоятельства непреодолимой силы (в том числе землетрясения, наводнения, ураганы, цунами) либо экстремальные погодные явления.',
+    'Эпидемии или пандемии.',
+    'Война (объявленная или необъявленная), вооружённый конфликт, акты терроризма, беспорядки или гражданские волнения.',
+    'Действия органов власти, эмбарго, блокады либо изменения законодательства или нормативных актов.',
+    'Трудовые споры, забастовки или локауты.',
+    'Перебои или отказ коммунальных сетей, сетей связи либо систем, необходимых для электронной передачи проектной документации.',
+  ],
+  annex2EmptyNote:
+    'Документы проекта на платформе пока не загружены. Приложение №2 подлежит дополнению заданием на проектирование и исходными документами до начала проектирования.',
 };
 
 const TH: CommercialProposalCopy = {
@@ -399,6 +513,7 @@ const TH: CommercialProposalCopy = {
   representedBy: (value) => `โดยผู้แทน ${value}`,
   scopeFallback:
     'ตามที่แสดงและอธิบายในเอกสารสัญญา แบบ และสเปก (ภาคผนวก #2)',
+  defaultSubjectOfContract: (projectTitle) => projectTitle,
   dash: '—',
   noAdvancePayment: 'ไม่มีเงินล่วงหน้า',
   advancePercentOf: (pct, amount) =>
@@ -439,19 +554,91 @@ const TH: CommercialProposalCopy = {
   contractorFallback: 'ผู้รับจ้าง',
 };
 
+const DESIGN_TH: CommercialProposalCopy = {
+  ...TH,
+  contractHeading: 'สัญญาจ้างออกแบบ',
+  contractorLabel: 'ผู้ออกแบบ',
+  forContractor: 'ฝ่ายผู้ออกแบบ',
+  contractorFallback: 'ผู้ออกแบบ',
+  constructionWorks: '“ส่วนงานเอกสารออกแบบ”',
+  projectMeans:
+    'หมายถึงการจัดทำและส่งมอบส่วนงานเอกสารออกแบบที่ตกลงกันทางอิเล็กทรอนิกส์ในรูปแบบ DWG และ PDF ตามที่ระบุในสัญญานี้และภาคผนวก #2',
+  clause2: 'ข้อ 2 — ขอบเขตบริการออกแบบ',
+  clarifications: 'คำชี้แจงของผู้ออกแบบ',
+  worksCommencementDate: 'วันเริ่มงานออกแบบ:',
+  worksCompletionDate: 'วันส่งมอบเอกสารออกแบบ:',
+  worksCompletedWithin: (period) =>
+    `ส่วนงานเอกสารออกแบบต้องส่งมอบทางอิเล็กทรอนิกส์ (DWG และ PDF) ภายใน ${period} หลังส่งมอบ ผู้ว่าจ้างต้องให้ความเห็นภายในหนึ่ง (1) สัปดาห์`,
+  scopeFallback:
+    'ตามที่อธิบายในสัญญานี้และในใบสรุปงานออกแบบ / เอกสารอ้างอิง (ภาคผนวก #2)',
+  defaultSubjectOfContract: (projectTitle) =>
+    `เอกสารออกแบบสำหรับ ${projectTitle}`,
+  paymentAdvanceTiming:
+    'เงินล่วงหน้า (ถ้ามี) ต้องชำระโดยผู้ว่าจ้างไม่ช้ากว่าสอง (2) สัปดาห์ก่อนวันเริ่มงานออกแบบ เว้นแต่คู่สัญญาจะตกลงเป็นอย่างอื่นเมื่อจัดทำข้อเสนอเชิงพาณิชย์นี้',
+  paymentShortPeriodFinal:
+    'การชำระเงินงวดสุดท้ายครบกำหนดภายในสอง (2) สัปดาห์หลังผู้ว่าจ้างตรวจรับส่วนงานเอกสารออกแบบที่ส่งมอบ ผู้ว่าจ้างต้องให้ความเห็นภายในหนึ่ง (1) สัปดาห์นับจากการส่งมอบทางอิเล็กทรอนิกส์',
+  paymentMonthlyProgress:
+    'การชำระเงินตามงวดอิงการตรวจรับส่วนงานเอกสารออกแบบที่ส่งมอบ หลังการส่งมอบทางอิเล็กทรอนิกส์แต่ละครั้ง (DWG และ PDF) ผู้ว่าจ้างต้องให้ความเห็นภายในหนึ่ง (1) สัปดาห์ และการชำระเงินสำหรับส่วนงานที่รับแล้วครบกำหนดภายในสอง (2) สัปดาห์นับจากการตรวจรับ',
+  retentionShallBe: (pct, limit) =>
+    `กันเงิน ${pct}% ของมูลค่าเอกสารออกแบบที่ตรวจรับแล้ว โดยไม่เกิน ${limit}% ของมูลค่าสัญญาที่รับแล้ว`,
+  periodMonthsFromStart: (months) =>
+    `${months} เดือนนับจากวันเริ่มงานออกแบบ`,
+  periodDaysFromStart: (days) =>
+    `${days} วันนับจากวันเริ่มงานออกแบบ`,
+  defaultPropertyOwnership:
+    'ผู้ว่าจ้างมีกรรมสิทธิ์หรือสิทธิโดยชอบในที่ดินและสิทธิมอบหมายงานออกแบบ',
+  defaultRetentionRelease:
+    'เงินกัน (ถ้ามี) คืนเมื่อตรวจรับส่วนงานเอกสารออกแบบฉบับสุดท้ายหลังแก้ไขข้อบกพร่องของเอกสาร (ถ้ามี) ไม่ใช้ Taking-Over Certificate หรือ Practical Completion',
+  defaultWarranty: (months) =>
+    `ระยะแจ้งข้อบกพร่องของเอกสาร: ${months} เดือนนับจากการตรวจรับส่วนงานเอกสารออกแบบที่เกี่ยวข้อง ผู้ออกแบบต้องแก้ไขข้อบกพร่องของเอกสารโดยไม่มีค่าใช้จ่ายเพิ่ม`,
+  forceMajeureDefinition:
+    'คู่สัญญาฝ่ายใดฝ่ายหนึ่งไม่ต้องรับผิดชอบต่ออีกฝ่าย และไม่ถือว่าผิดนัดหรือผิดสัญญานี้ สำหรับความล้มเหลวหรือความล่าช้าในการจัดทำหรือส่งมอบเอกสารออกแบบ (หรือการปฏิบัติตามข้อกำหนดอื่นใดของสัญญานี้) เมื่อและเท่าที่ความล้มเหลวหรือความล่าช้าดังกล่าวเกิดจากหรือเป็นผลจากเหตุการณ์ที่อยู่นอกเหนือการควบคุมโดยสมควรของคู่สัญญาที่ได้รับผลกระทบ (“เหตุสุดวิสัย”) รวมถึงแต่ไม่จำกัดเพียง:',
+  forceMajeureEvents: [
+    'ภัยพิบัติทางธรรมชาติหรือเหตุสุดวิสัย (เช่น แผ่นดินไหว น้ำท่วม พายุเฮอริเคน หรือสึนามิ) หรือสภาพอากาศสุดขั้ว',
+    'โรคระบาดหรือการระบาดใหญ่',
+    'สงคราม (ประกาศหรือไม่ประกาศ) ความขัดแย้งด้วยอาวุธ การก่อการร้าย การจลาจล หรือความไม่สงบเรียบร้อยของประชาชน',
+    'การกระทำของรัฐบาล การห้ามส่งออก/นำเข้า การปิดล้อม หรือการเปลี่ยนแปลงกฎหมายหรือกฎระเบียบ',
+    'ข้อพิพาทแรงงาน การนัดหยุดงาน หรือการปิดงาน',
+    'การหยุดชะงักหรือความล้มเหลวของสาธารณูปโภค เครือข่ายโทรคมนาคม หรือระบบที่จำเป็นสำหรับการส่งมอบเอกสารออกแบบทางอิเล็กทรอนิกส์',
+  ],
+  annex2EmptyNote:
+    'ยังไม่มีเอกสารโครงการบนแพลตฟอร์ม ภาคผนวก #2 จะต้องเติมใบสรุปงานออกแบบและเอกสารอ้างอิงก่อนเริ่มงานออกแบบ',
+};
+
 const COPY: Record<SupportedLocale, CommercialProposalCopy> = {
   en: EN,
   ru: RU,
   th: TH,
 };
 
+const DESIGN_COPY: Record<SupportedLocale, CommercialProposalCopy> = {
+  en: DESIGN_EN,
+  ru: DESIGN_RU,
+  th: DESIGN_TH,
+};
+
+export function resolveCommercialProposalVariant(
+  options?: CommercialProposalCopyOptions | boolean | null,
+): CommercialProposalVariant {
+  if (typeof options === 'boolean') {
+    return options ? 'design' : 'construction';
+  }
+  if (options?.variant === 'design' || options?.isDesign) {
+    return 'design';
+  }
+  return 'construction';
+}
+
 export function commercialProposalCopy(
   locale?: string | null,
+  options?: CommercialProposalCopyOptions | boolean | null,
 ): CommercialProposalCopy {
+  const variant = resolveCommercialProposalVariant(options);
+  const table = variant === 'design' ? DESIGN_COPY : COPY;
   if (locale && isSupportedLocale(locale)) {
-    return COPY[locale];
+    return table[locale];
   }
-  return COPY[DEFAULT_LOCALE];
+  return table[DEFAULT_LOCALE];
 }
 
 export function parseCommercialProposalLocales(

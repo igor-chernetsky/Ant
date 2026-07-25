@@ -21,6 +21,7 @@ export const ru: Messages = {
   header: {
     admin: 'Админ',
     contractor: 'Подрядчик',
+    designer: 'Проектировщик',
     account: 'Аккаунт',
     materials: 'Материалы',
     projects: 'Проекты',
@@ -134,10 +135,14 @@ export const ru: Messages = {
     role: 'Роль',
     roleClient: 'Заказчик',
     roleContractor: 'Подрядчик',
+    roleDesigner: 'Проектировщик',
     roleAdmin: 'Админ',
     contractorHint:
       'Обновить профиль подрядчика и специализации можно в',
     contractorPortal: 'кабинете подрядчика',
+    designerHint:
+      'Обновить профиль проектировщика и специализации можно в',
+    designerPortal: 'кабинете проектировщика',
     emailNotifications: 'Email-уведомления',
     emailNotificationsHint:
       'Выберите, какие письма отправлять на {email}. Всё можно отключить в любой момент.',

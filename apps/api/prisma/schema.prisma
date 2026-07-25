@@ -12,10 +12,22 @@ enum ProjectStatus {
   intake
   ready_for_estimate
   estimated
+  pending
   in_tender
   awarded
   active
   completed
+}
+
+enum ProjectLinkKind {
+  none
+  design_active
+  construction_pending
+}
+
+enum SupplyProfileKind {
+  contractor
+  designer
 }
 
 enum ContractStatus {
@@ -277,6 +289,13 @@ model Project {
   scopeSummary         String?  @map("scope_summary") @db.Text
   sourceLocale         String   @default("en") @map("source_locale")
   tenderContractTermsJson Json? @map("tender_contract_terms_json")
+  linkedProjectId      String?          @unique @map("linked_project_id")
+  linkedProject        Project?         @relation("ProjectLink", fields: [linkedProjectId], references: [id], onDelete: SetNull)
+  linkedFrom           Project?         @relation("ProjectLink")
+  linkKind             ProjectLinkKind  @default(none) @map("link_kind")
+  statusBeforePending  ProjectStatus?   @map("status_before_pending")
+  designFeePercent     Float?           @map("design_fee_percent")
+  baseConstructionTotalsJson Json?      @map("base_construction_totals_json")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
   tags           ProjectTag[]
@@ -293,6 +312,7 @@ model Project {
   @@index([clientId, isHidden])
   @@index([projectType])
   @@index([locationRegionSlug])
+  @@index([linkKind])
   @@map("projects")
 }
 
@@ -383,6 +403,7 @@ model ContractorProfile {
   id                      String                       @id @default(uuid())
   userId                  String                       @unique @map("user_id")
   user                    User                         @relation("ContractorProfileUser", fields: [userId], references: [id], onDelete: Cascade)
+  kind                    SupplyProfileKind            @default(contractor)
   companyName             String?                      @map("company_name")
   regionCode              String                       @default("TH") @map("region_code")
   serviceLocationsJson    Json                         @default("[{\"regionSlug\":\"bangkok\"}]") @map("service_locations_json")
@@ -403,6 +424,7 @@ model ContractorProfile {
 
   @@index([regionCode])
   @@index([verificationStatus])
+  @@index([kind])
   @@map("contractor_profiles")
 }
 

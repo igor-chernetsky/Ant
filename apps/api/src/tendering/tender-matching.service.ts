@@ -29,6 +29,7 @@ export class TenderMatchingService {
       where: {
         regionCode: project.regionCode,
         userId: { not: excludeUserId },
+        kind: project.projectType === 'design' ? 'designer' : 'contractor',
         OR: [
           { projectTypes: { isEmpty: true } },
           { projectTypes: { has: project.projectType } },
@@ -99,6 +100,7 @@ export class TenderMatchingService {
       where: {
         regionCode: project.regionCode,
         userId: { not: excludeUserId },
+        kind: project.projectType === 'design' ? 'designer' : 'contractor',
         OR: [
           { projectTypes: { isEmpty: true } },
           { projectTypes: { has: project.projectType } },

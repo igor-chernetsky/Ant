@@ -46,7 +46,7 @@ import {
 } from '@/lib/projects';
 import { ProjectLifecyclePanel } from '@/components/ProjectLifecyclePanel';
 import { useSession } from '@/components/SessionProvider';
-import { isContractorUser } from '@/lib/session';
+import { isContractorUser, isDesignerUser } from '@/lib/session';
 import {
   fetchPublicProject,
   fetchContractorParticipantProject,
@@ -119,7 +119,10 @@ export default function ProjectDetailPage() {
     setAuthState(profile ? 'authenticated' : 'guest');
 
     const loadParticipantView = async (): Promise<boolean> => {
-      if (!profile || !isContractorUser(profile)) {
+      if (
+        !profile ||
+        (!isContractorUser(profile) && !isDesignerUser(profile))
+      ) {
         return false;
       }
       try {
@@ -178,7 +181,7 @@ export default function ProjectDetailPage() {
       if (err instanceof Error && err.message === 'NOT_FOUND') {
         if (!profile) {
           setError(t('projectDetail.accessDeniedContractor'));
-        } else if (isContractorUser(profile)) {
+        } else if (isContractorUser(profile) || isDesignerUser(profile)) {
           setError(t('projectDetail.accessDeniedParties'));
         } else {
           setError(t('projectDetail.accessDenied'));
@@ -497,7 +500,11 @@ export default function ProjectDetailPage() {
 
             {isOwner && estimate && (
               <section className="card estimate-card">
-                <h2 className="section-title">{t('estimateSection.title')}</h2>
+                <h2 className="section-title">
+                  {project.projectType === 'design'
+                    ? t('estimateSection.designTitle')
+                    : t('estimateSection.title')}
+                </h2>
                 <p className="estimate-range">
                   {formatThb(estimate.totals.minAmount)} –{' '}
                   {formatThb(estimate.totals.maxAmount)}
@@ -544,7 +551,9 @@ export default function ProjectDetailPage() {
               />
             )}
 
-            {!isOwner && isContractorUser(me) && (
+            {!isOwner &&
+              ((project.projectType === 'design' && isDesignerUser(me)) ||
+                (project.projectType !== 'design' && isContractorUser(me))) && (
               <ContractorProjectPanel
                 projectId={projectId}
                 projectTitle={project.title}
@@ -552,6 +561,7 @@ export default function ProjectDetailPage() {
                 projectDescription={project.description}
                 projectBrief={project.brief ?? null}
                 clarificationSummary={project.clarificationSummary}
+                projectType={project.projectType}
               />
             )}
 

@@ -21,6 +21,7 @@ export const th: Messages = {
   header: {
     admin: 'ผู้ดูแล',
     contractor: 'ผู้รับเหมา',
+    designer: 'ผู้ออกแบบ',
     account: 'บัญชี',
     materials: 'วัสดุ',
     projects: 'โครงการ',
@@ -130,9 +131,12 @@ export const th: Messages = {
     role: 'บทบาท',
     roleClient: 'ลูกค้า',
     roleContractor: 'ผู้รับเหมา',
+    roleDesigner: 'ผู้ออกแบบ',
     roleAdmin: 'ผู้ดูแล',
     contractorHint: 'อัปเดตโปรไฟล์ผู้รับเหมาและความเชี่ยวชาญได้ที่',
     contractorPortal: 'พอร์ทัลผู้รับเหมา',
+    designerHint: 'อัปเดตโปรไฟล์ผู้ออกแบบและความเชี่ยวชาญได้ที่',
+    designerPortal: 'พอร์ทัลผู้ออกแบบ',
     emailNotifications: 'การแจ้งเตือนทางอีเมล',
     emailNotificationsHint:
       'เลือกการอัปเดตที่เราส่งไปยัง {email} คุณสามารถปิดทั้งหมดได้ตลอดเวลา',

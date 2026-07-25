@@ -49,6 +49,7 @@ interface BidProposalFormProps {
   projectContractTerms?: BidContractTerms;
   /** Who fills commercial proposal fields — `none` hides contract terms. */
   contractTermsAudience?: ContractTermsAudience | 'none';
+  isDesign?: boolean;
   /** Label for the notes / comment field. */
   notesLabel?: string;
   /** `adjust` — edit a breakdown copied from the contractor proposal. */
@@ -163,6 +164,7 @@ export function BidProposalForm({
   projectScopeSummary = null,
   projectContractTerms,
   contractTermsAudience = 'contractor',
+  isDesign = false,
   notesLabel,
   breakdownMode = 'create',
   scopeLabel,
@@ -419,6 +421,7 @@ export function BidProposalForm({
             disabled={busy}
             hideSubjectOfContract
             showSectionHeader={false}
+            isDesign={isDesign}
           />
         )}
       </div>

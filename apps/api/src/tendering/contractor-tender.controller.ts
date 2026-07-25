@@ -73,6 +73,7 @@ export class ContractorTenderController {
       {
         isAdmin: hasRole(req.user, 'admin'),
         isContractorRole: hasRole(req.user, 'contractor'),
+        isDesignerRole: hasRole(req.user, 'designer'),
       },
     );
   }
@@ -90,7 +91,12 @@ export class ContractorTenderController {
     @Body() body: UpsertContractorProfileDto,
   ) {
     const user = await this.resolveUser(req);
-    return this.contractorProfiles.upsertForUser(user.id, body);
+    const kind = hasRole(req.user, 'designer') && !hasRole(req.user, 'contractor')
+      ? 'designer'
+      : body.kind === 'designer'
+        ? 'designer'
+        : 'contractor';
+    return this.contractorProfiles.upsertForUser(user.id, { ...body, kind });
   }
 
   @Get('applications')

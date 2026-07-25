@@ -20,6 +20,7 @@ export const en = {
   header: {
     admin: 'Admin',
     contractor: 'Contractor',
+    designer: 'Designer',
     account: 'Account',
     materials: 'Materials',
     projects: 'Projects',
@@ -129,9 +130,12 @@ export const en = {
     role: 'Role',
     roleClient: 'Client',
     roleContractor: 'Contractor',
+    roleDesigner: 'Designer',
     roleAdmin: 'Admin',
     contractorHint: 'Update contractor profile and specialties on the',
     contractorPortal: 'Contractor portal',
+    designerHint: 'Update designer profile and specialties on the',
+    designerPortal: 'Designer portal',
     emailNotifications: 'Email notifications',
     emailNotificationsHint:
       'Choose which updates we send to {email}. You can turn everything off at any time.',

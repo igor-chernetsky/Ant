@@ -118,6 +118,7 @@ export interface Tender {
 export interface ContractorProfile {
   id: string;
   userId: string;
+  kind?: 'contractor' | 'designer';
   companyName: string | null;
   regionCode: string;
   serviceLocations: Array<{ regionSlug: string; areaSlug?: string }>;
@@ -575,6 +576,7 @@ export async function upsertContractorProfile(input: {
   regionCode?: string;
   serviceLocations?: Array<{ regionSlug: string; areaSlug?: string }>;
   tagSlugs?: string[];
+  kind?: 'contractor' | 'designer';
 }): Promise<ContractorProfile> {
   const response = await fetchWithAuth('/api/contractor/profile', {
     method: 'PUT',

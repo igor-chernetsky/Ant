@@ -1,8 +1,8 @@
-import { ProjectStatus } from '@prisma/client';
+import { ProjectStatus, ProjectType } from '@prisma/client';
 
 /**
- * Statuses any registered contractor may open (Accepting bids).
- * Listing remains public; opening requires a contractor account.
+ * Statuses any registered supply-side user may open (Accepting bids),
+ * subject to designer vs contractor matching project type.
  */
 export const CONTRACTOR_OPEN_STATUSES: ProjectStatus[] = [
   ProjectStatus.in_tender,
@@ -22,8 +22,19 @@ export type ProjectOpenViewer = {
   isOwner?: boolean;
   isAdmin?: boolean;
   isContractor?: boolean;
+  isDesigner?: boolean;
   isAwardedContractor?: boolean;
 };
+
+function supplySideMayOpenInTender(
+  projectType: ProjectType | undefined,
+  viewer: ProjectOpenViewer,
+): boolean {
+  if (projectType === ProjectType.design) {
+    return Boolean(viewer.isDesigner);
+  }
+  return Boolean(viewer.isContractor);
+}
 
 /**
  * Whether a viewer may open the project detail (not merely see the card).
@@ -32,13 +43,14 @@ export type ProjectOpenViewer = {
 export function canOpenProjectDetail(
   status: ProjectStatus,
   viewer: ProjectOpenViewer,
+  projectType?: ProjectType,
 ): boolean {
   if (viewer.isAdmin || viewer.isOwner) {
     return true;
   }
 
   if (CONTRACTOR_OPEN_STATUSES.includes(status)) {
-    return Boolean(viewer.isContractor);
+    return supplySideMayOpenInTender(projectType, viewer);
   }
 
   if (RESTRICTED_OPEN_STATUSES.includes(status)) {

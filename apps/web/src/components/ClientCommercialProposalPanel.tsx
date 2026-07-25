@@ -24,6 +24,7 @@ interface ClientCommercialProposalPanelProps {
   projectContractTerms?: BidContractTerms;
   audience?: ContractTermsAudience;
   readOnly?: boolean;
+  isDesign?: boolean;
   onBidUpdated?: (bid: Bid) => void;
 }
 
@@ -52,6 +53,7 @@ export function ClientCommercialProposalPanel({
   projectContractTerms,
   audience = 'client',
   readOnly = false,
+  isDesign = false,
   onBidUpdated,
 }: ClientCommercialProposalPanelProps) {
   const { t } = useTranslation();
@@ -137,6 +139,7 @@ export function ClientCommercialProposalPanel({
         projectTitle={projectTitle}
         projectDistrict={projectDistrict}
         disabled={busy || readOnly}
+        isDesign={isDesign}
       />
 
       {!readOnly && (

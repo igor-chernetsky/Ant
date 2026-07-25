@@ -10,6 +10,7 @@ import { useSession } from '@/components/SessionProvider';
 import {
   accountProfileName,
   isContractorUser,
+  isDesignerUser,
 } from '@/lib/session';
 import {
   fetchNotificationPreferences,
@@ -77,6 +78,8 @@ export default function AccountPage() {
 
   const isContractor =
     me?.isContractor || me?.roles?.includes('contractor') || false;
+  const isDesigner =
+    me?.isDesigner || me?.roles?.includes('designer') || false;
 
   return (
     <PageShell>
@@ -145,9 +148,11 @@ export default function AccountPage() {
                 <div>
                   <dt>{t('account.role')}</dt>
                   <dd>
-                    {isContractor
-                      ? t('account.roleContractor')
-                      : t('account.roleClient')}
+                    {isDesigner
+                      ? t('account.roleDesigner')
+                      : isContractor
+                        ? t('account.roleContractor')
+                        : t('account.roleClient')}
                     {me.roles?.includes('admin')
                       ? ` · ${t('account.roleAdmin')}`
                       : ''}
@@ -159,6 +164,15 @@ export default function AccountPage() {
                   {t('account.contractorHint')}{' '}
                   <Link href="/contractor" className="text-link">
                     {t('account.contractorPortal')}
+                  </Link>
+                  .
+                </p>
+              )}
+              {isDesigner && (
+                <p className="muted account-profile-hint">
+                  {t('account.designerHint')}{' '}
+                  <Link href="/designer" className="text-link">
+                    {t('account.designerPortal')}
                   </Link>
                   .
                 </p>
@@ -222,7 +236,7 @@ export default function AccountPage() {
                   </label>
                 </li>
 
-                {isContractor && (
+                {(isContractor || isDesigner) ? (
                   <>
                     <li className="account-notification-item">
                       <label className="account-notification-toggle">
@@ -274,7 +288,7 @@ export default function AccountPage() {
                       </label>
                     </li>
                   </>
-                )}
+                ) : null}
               </ul>
             </section>
           </>

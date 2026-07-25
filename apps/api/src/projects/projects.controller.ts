@@ -73,6 +73,26 @@ export class ProjectsController {
     return this.projectsService.updateCardForClient(user.id, id, body, locale);
   }
 
+  @Post(':id/convert-to-design')
+  async convertToDesign(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('id') id: string,
+  ) {
+    const user = await this.resolveClient(req);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.projectsService.convertToDesign(user.id, id, locale);
+  }
+
+  @Post(':id/resume-pending')
+  async resumePending(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('id') id: string,
+  ) {
+    const user = await this.resolveClient(req);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.projectsService.resumePending(user.id, id, locale);
+  }
+
   @Delete(':id')
   async deleteOne(
     @Req() req: Request & { user: JwtPayload },

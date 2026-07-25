@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ContractorProfile, ContractorVerificationStatus, Prisma } from '@prisma/client';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ContractorProfile,
+  ContractorVerificationStatus,
+  Prisma,
+  ProjectType,
+  SupplyProfileKind,
+} from '@prisma/client';
 import { LocationsService } from '../locations/locations.service';
 import type { ServiceLocation } from '../locations/locations.catalog';
 import { PrismaService } from '../prisma/prisma.service';
+import { requiredSupplyKindForProjectType } from '../projects/design-permits.utils';
 import {
   ContractorProfileResponse,
   UpsertContractorProfileDto,
@@ -22,6 +29,7 @@ export class ContractorProfilesService {
     return {
       id: profile.id,
       userId: profile.userId,
+      kind: profile.kind,
       companyName: profile.companyName,
       regionCode: profile.regionCode,
       serviceLocations,
@@ -74,15 +82,30 @@ export class ContractorProfilesService {
     });
     if (!profile) {
       throw new NotFoundException(
-        'Contractor profile not found. Register as a contractor first.',
+        'Supply profile not found. Register as a contractor or designer first.',
       );
     }
     return profile;
   }
 
+  assertKindForProject(
+    profile: ContractorProfile,
+    projectType: ProjectType,
+  ): void {
+    const required = requiredSupplyKindForProjectType(projectType);
+    if (profile.kind !== required) {
+      throw new ForbiddenException(
+        required === SupplyProfileKind.designer
+          ? 'Only designers may participate in Design & Permits tenders'
+          : 'Only contractors may participate in construction tenders',
+      );
+    }
+  }
+
   async upsertForUser(
     userId: string,
     dto: UpsertContractorProfileDto,
+    options?: { kind?: SupplyProfileKind },
   ): Promise<ContractorProfileResponse> {
     const projectTypes = dto.projectTypes?.length
       ? [...new Set(dto.projectTypes)]
@@ -96,11 +119,17 @@ export class ContractorProfilesService {
     );
 
     const companyName = dto.companyName?.trim() || null;
+    const kind =
+      options?.kind ??
+      (dto.kind === 'designer'
+        ? SupplyProfileKind.designer
+        : SupplyProfileKind.contractor);
 
     const profile = await this.prisma.contractorProfile.upsert({
       where: { userId },
       create: {
         userId,
+        kind,
         companyName,
         regionCode: primaryRegion.countryCode,
         serviceLocationsJson:
@@ -110,6 +139,7 @@ export class ContractorProfilesService {
         verificationStatus: ContractorVerificationStatus.pending,
       },
       update: {
+        kind,
         companyName,
         regionCode: primaryRegion.countryCode,
         serviceLocationsJson:

@@ -40,6 +40,7 @@ interface BidContractTermsFieldsProps {
   disabled?: boolean;
   hideSubjectOfContract?: boolean;
   showSectionHeader?: boolean;
+  isDesign?: boolean;
 }
 
 export function BidContractTermsFields({
@@ -51,6 +52,7 @@ export function BidContractTermsFields({
   disabled = false,
   hideSubjectOfContract = false,
   showSectionHeader = true,
+  isDesign = false,
 }: BidContractTermsFieldsProps) {
   const { t } = useTranslation();
   const warrantyMonths = value.defectNotificationMonths ?? 24;
@@ -117,7 +119,9 @@ export function BidContractTermsFields({
           <p className="muted bid-contract-terms-hint">
             {audience === 'client'
               ? t('contractTerms.clientHint')
-              : t('contractTerms.contractorHint')}
+              : isDesign
+                ? t('contractTerms.designerHint')
+                : t('contractTerms.contractorHint')}
           </p>
         </div>
       )}
@@ -388,7 +392,9 @@ export function BidContractTermsFields({
           {t('contractTerms.contractorLegalDetails')}
         </p>
         <label>
-          {t('contractTerms.contractorAddress')}
+          {isDesign
+            ? t('contractTerms.designerAddress')
+            : t('contractTerms.contractorAddress')}
           <input
             type="text"
             disabled={fieldDisabled('contractorAddress')}
@@ -397,7 +403,9 @@ export function BidContractTermsFields({
           />
         </label>
         <label>
-          {t('contractTerms.contractorRegistrationNo')}
+          {isDesign
+            ? t('contractTerms.designerRegistrationNo')
+            : t('contractTerms.contractorRegistrationNo')}
           <input
             type="text"
             disabled={fieldDisabled('contractorRegistrationNo')}
@@ -408,7 +416,9 @@ export function BidContractTermsFields({
           />
         </label>
         <label>
-          {t('contractTerms.contractorRepresentative')}
+          {isDesign
+            ? t('contractTerms.designerRepresentative')
+            : t('contractTerms.contractorRepresentative')}
           <input
             type="text"
             disabled={fieldDisabled('contractorRepresentative')}

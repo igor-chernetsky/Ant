@@ -13,7 +13,7 @@ import {
 } from '@/lib/project-open-access';
 import type { ProjectType } from '@/lib/projects';
 import type { PublicProjectCard } from '@/lib/public-projects';
-import { isContractorUser } from '@/lib/session';
+import { isContractorUser, isDesignerUser } from '@/lib/session';
 import type { ContractorApplicationItem } from '@/lib/tendering';
 
 interface ProjectTileProps {
@@ -43,6 +43,7 @@ export function ProjectTile({
     me,
     isOwned,
     isAwardedContractor,
+    projectType: project.projectType,
   };
   const canOpen = canOpenProjectDetail(project.status, openContext);
   const blockReason = getProjectOpenBlockReason(project.status, openContext);
@@ -130,9 +131,18 @@ export function ProjectTile({
   );
 
   const handleLockedClick = () => {
+    if (blockReason === 'login_designer') {
+      setAccessHint(t('projectTile.signInDesignerHint'));
+      setLoginOpen(true);
+      return;
+    }
     if (blockReason === 'login_contractor') {
       setAccessHint(t('projectTile.signInContractorHint'));
       setLoginOpen(true);
+      return;
+    }
+    if (blockReason === 'designer_only') {
+      setAccessHint(t('projectTile.designerOnlyHint'));
       return;
     }
     if (blockReason === 'contractor_only') {
@@ -171,12 +181,19 @@ export function ProjectTile({
               me: nextMe,
               isOwned,
               isAwardedContractor,
+              projectType: project.projectType,
             })
           ) {
             router.push(`/projects/${project.id}`);
             return;
           }
-          if (nextMe && !isContractorUser(nextMe)) {
+          if (
+            nextMe &&
+            project.projectType === 'design' &&
+            !isDesignerUser(nextMe)
+          ) {
+            setAccessHint(t('projectTile.designerOnlyHint'));
+          } else if (nextMe && !isContractorUser(nextMe)) {
             setAccessHint(t('projectTile.contractorOnlyHint'));
           } else {
             setAccessHint(t('projectTile.partiesOnlyHint'));

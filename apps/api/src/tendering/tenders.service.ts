@@ -1211,8 +1211,13 @@ export class TendersService {
     const project = await this.prisma.project.findUnique({
       where: { id: tender.projectId },
     });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    this.contractorProfiles.assertKindForProject(profile, project.projectType);
+
     const structuredClarification =
-      project?.clarificationMode === ClarificationMode.structured_qa;
+      project.clarificationMode === ClarificationMode.structured_qa;
 
     const clarificationAllowed =
       tender.status === TenderStatus.open ||
@@ -1421,7 +1426,11 @@ export class TendersService {
     const project = await this.prisma.project.findUnique({
       where: { id: tender.projectId },
     });
-    if (project?.clarificationMode === ClarificationMode.structured_qa) {
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    this.contractorProfiles.assertKindForProject(profile, project.projectType);
+    if (project.clarificationMode === ClarificationMode.structured_qa) {
       const submitted = await this.clarifications.hasSubmittedQuestions(bid.id);
       if (!submitted) {
         throw new BadRequestException(
@@ -1706,6 +1715,7 @@ export class TendersService {
     if (!project) {
       throw new NotFoundException('Project not found');
     }
+    this.contractorProfiles.assertKindForProject(profile, project.projectType);
     const projectTerms = this.resolveProjectContractTerms(project);
 
     if (tender.status !== TenderStatus.open) {

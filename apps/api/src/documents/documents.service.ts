@@ -89,7 +89,11 @@ export class DocumentsService {
   private async assertPublicProjectView(
     projectId: string,
     userId: string | null = null,
-    options?: { isAdmin?: boolean; isContractorRole?: boolean },
+    options?: {
+      isAdmin?: boolean;
+      isContractorRole?: boolean;
+      isDesignerRole?: boolean;
+    },
   ) {
     return this.projects.assertCanOpenProject(projectId, userId, options);
   }
@@ -138,7 +142,11 @@ export class DocumentsService {
   async listForPublicProject(
     projectId: string,
     userId: string | null = null,
-    options?: { isAdmin?: boolean; isContractorRole?: boolean },
+    options?: {
+      isAdmin?: boolean;
+      isContractorRole?: boolean;
+      isDesignerRole?: boolean;
+    },
   ): Promise<DocumentResponse[]> {
     await this.assertPublicProjectView(projectId, userId, options);
 
@@ -334,11 +342,13 @@ export class DocumentsService {
       userId?: string | null;
       isAdmin?: boolean;
       isContractorRole?: boolean;
+      isDesignerRole?: boolean;
     },
   ): Promise<DownloadUrlResponse> {
     await this.assertPublicProjectView(projectId, options?.userId ?? null, {
       isAdmin: options?.isAdmin,
       isContractorRole: options?.isContractorRole,
+      isDesignerRole: options?.isDesignerRole,
     });
 
     // Thumbnails stay public for gallery previews once open ACL passed;

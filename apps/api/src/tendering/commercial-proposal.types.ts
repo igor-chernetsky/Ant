@@ -43,6 +43,8 @@ export interface CommercialProposalRenderData {
   documentTitle: string;
   contractHeading: string;
   locale: string;
+  /** Design & Permits projects use designer/design-documentation wording. */
+  isDesign: boolean;
   projectTitle: string;
   siteAddress: string;
   documentDate: string;

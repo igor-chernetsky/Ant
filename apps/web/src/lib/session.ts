@@ -6,6 +6,7 @@ export interface MeResponse {
   companyName?: string | null;
   roles: string[];
   isContractor?: boolean;
+  isDesigner?: boolean;
   preferredLocale?: string;
 }
 
@@ -18,9 +19,17 @@ export function isContractorUser(me: MeResponse | null): boolean {
   return Boolean(me?.isContractor || me?.roles?.includes('contractor'));
 }
 
-/** Profile name shown in account and header — company name for contractors. */
+export function isDesignerUser(me: MeResponse | null): boolean {
+  return Boolean(me?.isDesigner || me?.roles?.includes('designer'));
+}
+
+export function isSupplySideUser(me: MeResponse | null): boolean {
+  return isContractorUser(me) || isDesignerUser(me);
+}
+
+/** Profile name shown in account and header — company name for supply side. */
 export function accountProfileName(me: MeResponse): string | null {
-  if (isContractorUser(me)) {
+  if (isContractorUser(me) || isDesignerUser(me)) {
     const company = me.companyName?.trim();
     if (company) return company;
   }
@@ -29,7 +38,9 @@ export function accountProfileName(me: MeResponse): string | null {
 }
 
 export function accountProfileLabel(me: MeResponse): string {
-  return isContractorUser(me) ? 'Company name' : 'Name';
+  return isContractorUser(me) || isDesignerUser(me)
+    ? 'Company name'
+    : 'Name';
 }
 
 /** Label in the site header — same full name as on the account page. */

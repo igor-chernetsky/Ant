@@ -111,6 +111,8 @@ export const ruExtended = {
     lockedAria: "Проект {title} — ограниченный доступ",
     signInContractorHint: "Войдите как подрядчик, чтобы открыть этот проект.",
     contractorOnlyHint: "Проекты на этапе приёма заявок могут открывать только зарегистрированные подрядчики.",
+    designerOnlyHint: "Проекты Design & Permits на этапе приёма заявок могут открывать только зарегистрированные проектировщики.",
+    signInDesignerHint: "Войдите как проектировщик, чтобы открыть этот проект.",
     partiesOnlyHint: "Этот проект могут открыть только заказчик и выбранный подрядчик.",
   },
   createProject: {
@@ -141,6 +143,7 @@ export const ruExtended = {
     hidden: "Скрыт",
     readyPercent: "Готовность {n}%",
     ballparkMidpoint: "Средняя оценка",
+    designBallparkMidpoint: "Средняя оценка проектирования",
     scopeTags: "Теги объёма",
     scopeTagsAria: "Теги объёма проекта",
     tagSelectedDuringIntake: "Выбрано при создании",
@@ -166,6 +169,7 @@ export const ruExtended = {
     intake: "Сбор данных",
     ready_for_estimate: "Готов к оценке",
     estimated: "Оценён",
+    pending: "Ожидание",
     in_tender: "Приём заявок",
     awarded: "Подрядчик выбран",
     active: "Активный",
@@ -239,6 +243,19 @@ export const ruExtended = {
     enrolled: "Зарегистрирован",
     proposalSubmitted: "Предложение подано",
     notSelected: "Не выбран",
+  },
+  designer: {
+    portalTitle: "Кабинет проектировщика",
+    portalLead:
+      "Зарегистрируйтесь как проектировщик, участвуйте в тендерах Design & Permits и подавайте предложения по проектной документации.",
+    signInPrompt: "Войдите, чтобы просматривать проекты Design & Permits и подавать заявки.",
+    registerTitle: "Регистрация проектировщика",
+    registerHint:
+      "Укажите специализации проектирования. Их можно изменить в любой момент.",
+    createProfile: "Создать профиль проектировщика",
+    yourProfile: "Ваш профиль",
+    profileHint:
+      "Обновите данные компании, районы работы и специализации проектирования.",
   },
   contractor: {
     portalTitle: "Кабинет подрядчика",
@@ -419,6 +436,7 @@ export const ruExtended = {
     sectionTitle: "Коммерческое предложение",
     clientHint: "Значения по умолчанию для коммерческого предложения. Подрядчики увидят эти поля при подготовке ставок.",
     contractorHint: "Предложите изменения условий оплаты и графика. Поля предложения подрядчика показаны для справки.",
+    designerHint: "Предложите изменения условий оплаты и графика. Поля предложения проектировщика показаны для справки.",
     subjectOfContract: "Предмет договора",
     subjectHint: "Определение объёма — какие работы включены",
     subjectPlaceholder: "Строительные работы по чертежам и спецификациям",
@@ -453,9 +471,13 @@ export const ruExtended = {
     employerAddress: "Адрес заказчика",
     employerRegistrationNo: "Рег. номер заказчика",
     contractorLegalDetails: "Юридические данные подрядчика (необязательно)",
+    designerLegalDetails: "Юридические данные проектировщика (необязательно)",
     contractorAddress: "Адрес подрядчика",
+    designerAddress: "Адрес проектировщика",
     contractorRegistrationNo: "Рег. номер подрядчика",
+    designerRegistrationNo: "Рег. номер проектировщика",
     contractorRepresentative: "Представитель подрядчика",
+    designerRepresentative: "Представитель проектировщика",
     textOptionSelect: "Выберите шаблон…",
     textOptionCustom: "Свой текст",
     subjectOptions: {
@@ -730,8 +752,23 @@ export const ruExtended = {
   },
   estimateSection: {
     title: "Ориентировочная смета",
+    designTitle: "DESIGN Ориентировочная смета",
     midpoint: "Средняя точка",
     confidence: "Уверенность",
+  },
+  designPermits: {
+    trackLabel: "DESIGN & PERMITS",
+    convertButton: "Перевести в DESIGN & PERMITS",
+    convertHint:
+      "Этот объект строительства или модернизации можно перевести в тендер Design & Permits.",
+    convertTooltip:
+      "Создаёт карточку Design & Permits и сохраняет снимок строительной карточки в статусе Pending.",
+    convertFailed: "Не удалось перевести в Design & Permits",
+    resumeButton: "Возобновить строительную карточку",
+    resumeFailed: "Не удалось возобновить строительную карточку",
+    linkedConstruction: "Связанная стройка (Pending)",
+    linkedDesign: "Связанная карточка Design & Permits",
+    designerLabel: "Проектировщик",
   },
   tenderCard: {
     title: "Тендер и ставки",

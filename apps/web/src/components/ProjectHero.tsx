@@ -6,7 +6,9 @@ import { useTranslation } from '@/components/LocaleProvider';
 import { ProjectLocationMap } from '@/components/ProjectLocationMap';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
+  convertProjectToDesign,
   formatDateTime,
+  resumePendingProject,
   updateProjectCard,
   type Project,
   type ProjectTag,
@@ -21,6 +23,14 @@ interface ProjectHeroProps {
   canEditCard?: boolean;
   onCardUpdated?: (project: Project) => void;
 }
+
+const DESIGN_HINT_TYPES = new Set([
+  'new_build',
+  'extension',
+  'commercial_fitout',
+  'modernization_reconstruction',
+  'repair',
+]);
 
 export function ProjectHero({
   project,
@@ -38,7 +48,16 @@ export function ProjectHero({
   const [title, setTitle] = useState(project.title);
   const [description, setDescription] = useState(project.description ?? '');
   const [saving, setSaving] = useState(false);
+  const [converting, setConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isDesignTrack = project.projectType === 'design';
+  const showDesignHint =
+    canEditCard &&
+    !isDesignTrack &&
+    DESIGN_HINT_TYPES.has(project.projectType);
+  const canConvert = Boolean(canEditCard && project.canConvertToDesign);
+  const canResume = Boolean(canEditCard && project.status === 'pending');
 
   useEffect(() => {
     if (!editing) {
@@ -88,6 +107,40 @@ export function ProjectHero({
     setEditing(false);
   };
 
+  const handleConvert = async () => {
+    setConverting(true);
+    setError(null);
+    try {
+      const updated = await convertProjectToDesign(project.id);
+      onCardUpdated?.(updated);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('designPermits.convertFailed'),
+      );
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const handleResume = async () => {
+    setConverting(true);
+    setError(null);
+    try {
+      const updated = await resumePendingProject(project.id);
+      onCardUpdated?.(updated);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('designPermits.resumeFailed'),
+      );
+    } finally {
+      setConverting(false);
+    }
+  };
+
   return (
     <section className="project-hero" aria-labelledby="project-hero-title">
       <div className="project-hero-body">
@@ -97,6 +150,12 @@ export function ProjectHero({
               {t('projectHero.projectsBreadcrumb')}
             </Link>
           </p>
+
+          {isDesignTrack && (
+            <p className="project-hero-track-label">
+              {t('designPermits.trackLabel')}
+            </p>
+          )}
 
           {editing ? (
             <form className="project-hero-edit" onSubmit={handleSave}>
@@ -167,6 +226,59 @@ export function ProjectHero({
             </>
           )}
 
+          {(canConvert || canResume || showDesignHint || project.linkedProjectId) && (
+            <div className="project-hero-design-actions">
+              {showDesignHint && (
+                <p
+                  className="muted project-hero-design-hint"
+                  title={t('designPermits.convertTooltip')}
+                >
+                  {t('designPermits.convertHint')}
+                </p>
+              )}
+              {canConvert && (
+                <button
+                  type="button"
+                  className="ghost"
+                  onClick={() => void handleConvert()}
+                  disabled={converting || saving}
+                  title={t('designPermits.convertTooltip')}
+                >
+                  {converting
+                    ? t('common.saving')
+                    : t('designPermits.convertButton')}
+                </button>
+              )}
+              {canResume && (
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => void handleResume()}
+                  disabled={converting || saving}
+                >
+                  {converting
+                    ? t('common.saving')
+                    : t('designPermits.resumeButton')}
+                </button>
+              )}
+              {project.linkedProjectId && (
+                <Link
+                  href={`/projects/${project.linkedProjectId}`}
+                  className="project-hero-linked"
+                >
+                  {project.linkKind === 'design_active'
+                    ? t('designPermits.linkedConstruction')
+                    : t('designPermits.linkedDesign')}
+                </Link>
+              )}
+              {error && !editing && (
+                <p className="project-hero-edit-error" role="alert">
+                  {error}
+                </p>
+              )}
+            </div>
+          )}
+
           {chips.length > 0 && (
             <ul
               className="project-hero-chips"
@@ -196,7 +308,10 @@ export function ProjectHero({
             {typeof estimateMidAmountThb === 'number' &&
               estimateMidAmountThb > 0 && (
                 <p className="project-hero-meta">
-                  {t('projectHero.ballparkMidpoint')}&nbsp;
+                  {isDesignTrack
+                    ? t('projectHero.designBallparkMidpoint')
+                    : t('projectHero.ballparkMidpoint')}
+                  &nbsp;
                   <span className="project-hero-meta-value">
                     {new Intl.NumberFormat(locale, {
                       style: 'currency',

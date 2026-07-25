@@ -924,6 +924,8 @@ export class NotificationsService {
       where: {
         regionCode: project.regionCode,
         userId: { not: project.clientId },
+        kind:
+          project.projectType === 'design' ? 'designer' : 'contractor',
         OR: [
           { projectTypes: { isEmpty: true } },
           { projectTypes: { has: project.projectType } },

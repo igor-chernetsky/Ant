@@ -188,6 +188,17 @@ body {
   color: #1d4ed8;
 }
 
+.header-nav-link-active {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  font-weight: 650;
+}
+
+.header-nav-link-active:hover {
+  background: rgba(37, 99, 235, 0.16);
+  color: #1e40af;
+}
+
 .header-utilities {
   display: flex;
   align-items: center;
@@ -2165,6 +2176,34 @@ pre {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent);
+}
+
+.project-hero-track-label {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.project-hero-design-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.project-hero-design-hint {
+  margin: 0;
+  flex: 1 1 100%;
+  font-size: 0.9rem;
+}
+
+.project-hero-linked {
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .project-hero-back-link {

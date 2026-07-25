@@ -16,6 +16,17 @@ import {
   stripContractSignaturesBlock,
 } from './contract-html.sanitize';
 
+function copyFor(
+  locale: string | null | undefined,
+  isDesign = false,
+): CommercialProposalCopy {
+  return commercialProposalCopy(locale, { isDesign });
+}
+
+function copyForData(data: CommercialProposalRenderData): CommercialProposalCopy {
+  return copyFor(data.locale, data.isDesign);
+}
+
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -186,13 +197,18 @@ export function buildCommercialProposalData(input: {
   contractorCompanyName: string;
   submittedAt?: string | null;
   locale?: SupportedLocale;
+  /** When true, use design-contract i18n (Designer, design documentation, etc.). */
+  isDesign?: boolean;
+  projectType?: string | null;
   contractorSignatureDataUrl?: string | null;
   employerSignatureDataUrl?: string | null;
   contractorSignedAt?: string | null;
   employerSignedAt?: string | null;
 }): CommercialProposalRenderData {
   const locale = input.locale ?? DEFAULT_LOCALE;
-  const copy = commercialProposalCopy(locale);
+  const isDesign =
+    input.isDesign === true || input.projectType === 'design';
+  const copy = copyFor(locale, isDesign);
   const contract = input.terms?.contractTerms;
   const amount = input.bidAmount;
   const employerOrgName =
@@ -211,9 +227,11 @@ export function buildCommercialProposalData(input: {
     copy.siteToBeConfirmed;
   const subject =
     contract?.subjectOfContract?.trim() ||
-    input.terms?.scopeSummary?.trim() ||
-    input.projectDescription?.trim() ||
-    input.projectTitle;
+    (isDesign
+      ? copy.defaultSubjectOfContract(input.projectTitle)
+      : input.terms?.scopeSummary?.trim() ||
+        input.projectDescription?.trim() ||
+        input.projectTitle);
   const periodDaysFromDates = calendarDaysBetween(
     contract?.worksStartDate,
     contract?.worksFinishDate,
@@ -263,6 +281,7 @@ export function buildCommercialProposalData(input: {
     documentTitle: copy.documentTitle(input.projectTitle),
     contractHeading: copy.contractHeading,
     locale,
+    isDesign,
     projectTitle: input.projectTitle,
     siteAddress,
     documentDate: formatDisplayDate(
@@ -506,7 +525,7 @@ function commercialProposalStyles(): string {
 export function englishContractClosingHtml(
   data: CommercialProposalRenderData,
 ): string {
-  const copy = commercialProposalCopy(data.locale);
+  const copy = copyForData(data);
   return `
   ${renderSignaturesBlock(data, [data.locale as SupportedLocale])}
   <p class="footer-note">
@@ -621,7 +640,7 @@ export function ensureEditedEnglishBodyHasBoq(
     return bodyHtml;
   }
 
-  const copy = commercialProposalCopy('en');
+  const copy = copyFor('en', data.isDesign);
   const hasTable = /<table\b/i.test(bodyHtml);
   if (hasTable) {
     return bodyHtml;
@@ -719,9 +738,10 @@ function renderSpecialConditions(data: CommercialProposalRenderData, copy: Comme
 function joinMultilingualLabels(
   locales: SupportedLocale[],
   pick: (copy: CommercialProposalCopy) => string,
+  isDesign = false,
 ): string {
   return locales
-    .map((locale) => pick(commercialProposalCopy(locale)))
+    .map((locale) => pick(copyFor(locale, isDesign)))
     .join(' / ');
 }
 
@@ -731,33 +751,41 @@ function renderSignaturesBlock(
 ): string {
   const headingLocales =
     locales.length > 0 ? locales : [data.locale as SupportedLocale];
+  const isDesign = data.isDesign;
   const signaturesHeading = joinMultilingualLabels(
     headingLocales,
     (copy) => copy.signaturesHeading,
+    isDesign,
   );
   const signatureLabel = joinMultilingualLabels(
     headingLocales,
     (copy) => copy.signatureLabel,
+    isDesign,
   );
   const nameLabel = joinMultilingualLabels(
     headingLocales,
     (copy) => copy.nameLabel,
+    isDesign,
   );
   const titleLabel = joinMultilingualLabels(
     headingLocales,
     (copy) => copy.titleLabel,
+    isDesign,
   );
   const dateLabel = joinMultilingualLabels(
     headingLocales,
     (copy) => copy.dateLabel,
+    isDesign,
   );
   const forContractor = joinMultilingualLabels(
     headingLocales,
     (copy) => copy.forContractor,
+    isDesign,
   );
   const forEmployer = joinMultilingualLabels(
     headingLocales,
     (copy) => copy.forEmployer,
+    isDesign,
   );
 
   return `
@@ -828,7 +856,7 @@ function renderInterleavedSection(
   return locales
     .map((locale) => {
       const data = dataByLocale[locale];
-      const copy = commercialProposalCopy(locale);
+      const copy = copyForData(data);
       const html = renderSection(data, copy);
       if (!html.trim()) return '';
       return wrapLocaleBlock(html, locale, variant);
@@ -840,7 +868,7 @@ function renderInterleavedSection(
 export function renderCommercialProposalBodyContent(
   data: CommercialProposalRenderData,
 ): string {
-  const copy = commercialProposalCopy(data.locale);
+  const copy = copyForData(data);
   return `
   ${renderHeaderAndParties(data, copy)}
 
@@ -873,7 +901,7 @@ function renderStackedMultilingualWithEditedEnglish(
   const ordered = sortCommercialProposalLocales(locales);
   const primary = ordered[0] ?? DEFAULT_LOCALE;
   const primaryData = dataByLocale[primary];
-  const primaryCopy = commercialProposalCopy(primary);
+  const primaryCopy = copyForData(primaryData);
   const enData = dataByLocale.en;
   let editedBody: string;
   try {
@@ -935,13 +963,13 @@ export function renderMultilingualCommercialProposalHtml(
 
   const primary = ordered[0] ?? DEFAULT_LOCALE;
   const primaryData = dataByLocale[primary];
-  const primaryCopy = commercialProposalCopy(primary);
+  const primaryCopy = copyForData(primaryData);
   const documentTitle = primaryData.documentTitle;
 
   const headers = ordered
     .map((locale) =>
       wrapLocaleBlock(
-        renderHeaderAndParties(dataByLocale[locale], commercialProposalCopy(locale)),
+        renderHeaderAndParties(dataByLocale[locale], copyForData(dataByLocale[locale])),
         locale,
         'header',
       ),
@@ -987,7 +1015,7 @@ export function renderMultilingualCommercialProposalHtml(
 export function renderCommercialProposalHtml(
   data: CommercialProposalRenderData,
 ): string {
-  const copy = commercialProposalCopy(data.locale);
+  const copy = copyForData(data);
 
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(data.locale)}">

@@ -72,6 +72,7 @@ export interface DefaultCostBreakdownItem {
 export interface ContractorProfileResponse {
   id: string;
   userId: string;
+  kind: 'contractor' | 'designer';
   companyName: string | null;
   regionCode: string;
   serviceLocations: Array<{ regionSlug: string; areaSlug?: string }>;
@@ -90,6 +91,7 @@ export interface UpsertContractorProfileDto {
   serviceLocations?: Array<{ regionSlug: string; areaSlug?: string }>;
   projectTypes?: ProjectType[];
   tagSlugs?: string[];
+  kind?: 'contractor' | 'designer';
 }
 
 export interface BidMessageResponse {

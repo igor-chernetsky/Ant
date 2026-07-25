@@ -111,6 +111,8 @@ export const thExtended = {
     lockedAria: "โครงการ {title} — การเข้าถึงถูกจำกัด",
     signInContractorHint: "เข้าสู่ระบบในฐานะผู้รับเหมาเพื่อเปิดโครงการนี้",
     contractorOnlyHint: "เฉพาะผู้รับเหมาที่ลงทะเบียนแล้วเท่านั้นที่เปิดโครงการที่รับประมูลได้",
+    designerOnlyHint: "เฉพาะผู้ออกแบบที่ลงทะเบียนแล้วเท่านั้นที่เปิดโครงการ Design & Permits ที่รับประมูลได้",
+    signInDesignerHint: "เข้าสู่ระบบในฐานะผู้ออกแบบเพื่อเปิดโครงการนี้",
     partiesOnlyHint: "เฉพาะลูกค้าและผู้รับเหมาที่ได้รับเลือกเท่านั้นที่เปิดโครงการนี้ได้",
   },
   createProject: {
@@ -141,6 +143,7 @@ export const thExtended = {
     hidden: "ซ่อน",
     readyPercent: "พร้อม {n}%",
     ballparkMidpoint: "ประมาณการกลาง",
+    designBallparkMidpoint: "ประมาณการกลางงานออกแบบ",
     scopeTags: "แท็กขอบเขต",
     scopeTagsAria: "แท็กขอบเขตโครงการ",
     tagSelectedDuringIntake: "เลือกระหว่างรับข้อมูล",
@@ -166,6 +169,7 @@ export const thExtended = {
     intake: "รับข้อมูล",
     ready_for_estimate: "พร้อมประเมินราคา",
     estimated: "ประเมินราคาแล้ว",
+    pending: "รอดำเนินการ",
     in_tender: "เปิดรับประมูล",
     awarded: "เลือกผู้ชนะแล้ว",
     active: "กำลังดำเนินการ",
@@ -239,6 +243,17 @@ export const thExtended = {
     enrolled: "ลงทะเบียนแล้ว",
     proposalSubmitted: "ส่งข้อเสนอแล้ว",
     notSelected: "ไม่ได้รับเลือก",
+  },
+  designer: {
+    portalTitle: "พอร์ทัลผู้ออกแบบ",
+    portalLead:
+      "ลงทะเบียนเป็นผู้ออกแบบ ดูการประมูล Design & Permits และส่งข้อเสนอเอกสารออกแบบ",
+    signInPrompt: "เข้าสู่ระบบเพื่อดูโครงการ Design & Permits และส่งใบสมัคร",
+    registerTitle: "ลงทะเบียนผู้ออกแบบ",
+    registerHint: "ระบุความเชี่ยวชาญด้านการออกแบบ สามารถอัปเดตได้ทุกเมื่อ",
+    createProfile: "สร้างโปรไฟล์ผู้ออกแบบ",
+    yourProfile: "โปรไฟล์ของคุณ",
+    profileHint: "อัปเดตข้อมูลบริษัท พื้นที่ให้บริการ และความเชี่ยวชาญด้านการออกแบบ",
   },
   contractor: {
     portalTitle: "พอร์ทัลผู้รับเหมา",
@@ -418,6 +433,7 @@ export const thExtended = {
     sectionTitle: "เอกสารข้อเสนอเชิงพาณิชย์",
     clientHint: "ค่าเริ่มต้นสำหรับเอกสารข้อเสนอเชิงพาณิชย์ ผู้รับเหมาจะเห็นฟิลด์เหล่านี้เมื่อเตรียมข้อเสนอ",
     contractorHint: "เสนอการเปลี่ยนแปลงเงื่อนไขการชำระเงินและกำหนดเวลา ฟิลด์ข้อเสนอผู้รับเหมาแสดงเพื่ออ้างอิง",
+    designerHint: "เสนอการเปลี่ยนแปลงเงื่อนไขการชำระเงินและกำหนดเวลา ฟิลด์ข้อเสนอผู้ออกแบบแสดงเพื่ออ้างอิง",
     subjectOfContract: "หัวข้อสัญญา",
     subjectHint: "นิยามขอบเขต — งานที่รวมอยู่",
     subjectPlaceholder: "งานก่อสร้างตามแบบและข้อกำหนด",
@@ -452,9 +468,13 @@ export const thExtended = {
     employerAddress: "ที่อยู่นายจ้าง",
     employerRegistrationNo: "เลขทะเบียนนายจ้าง",
     contractorLegalDetails: "รายละเอียดทางกฎหมายของผู้รับเหมา (ไม่บังคับ)",
+    designerLegalDetails: "รายละเอียดทางกฎหมายของผู้ออกแบบ (ไม่บังคับ)",
     contractorAddress: "ที่อยู่ผู้รับเหมา",
+    designerAddress: "ที่อยู่ผู้ออกแบบ",
     contractorRegistrationNo: "เลขทะเบียนผู้รับเหมา",
+    designerRegistrationNo: "เลขทะเบียนผู้ออกแบบ",
     contractorRepresentative: "ตัวแทนผู้รับเหมา",
+    designerRepresentative: "ตัวแทนผู้ออกแบบ",
     textOptionSelect: "เลือกเทมเพลต…",
     textOptionCustom: "ข้อความกำหนดเอง",
     subjectOptions: {
@@ -729,8 +749,23 @@ export const thExtended = {
   },
   estimateSection: {
     title: "ประมาณการเบื้องต้น",
+    designTitle: "DESIGN ประมาณการเบื้องต้น",
     midpoint: "จุดกลาง",
     confidence: "ความมั่นใจ",
+  },
+  designPermits: {
+    trackLabel: "DESIGN & PERMITS",
+    convertButton: "แปลงเป็น DESIGN & PERMITS",
+    convertHint:
+      "โครงการก่อสร้างหรือปรับปรุงนี้สามารถแปลงเป็นการประมูล Design & Permits ได้",
+    convertTooltip:
+      "สร้างการ์ด Design & Permits และเก็บสแนปช็อตการ์ดก่อสร้างไว้ในสถานะ Pending",
+    convertFailed: "แปลงเป็น Design & Permits ไม่สำเร็จ",
+    resumeButton: "เปิดการ์ดก่อสร้างอีกครั้ง",
+    resumeFailed: "เปิดการ์ดก่อสร้างไม่สำเร็จ",
+    linkedConstruction: "การ์ดก่อสร้างที่เชื่อม (Pending)",
+    linkedDesign: "การ์ด Design & Permits ที่เชื่อม",
+    designerLabel: "ผู้ออกแบบ",
   },
   tenderCard: {
     title: "การประมูลและข้อเสนอ",

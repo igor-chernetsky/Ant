@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { HeaderNotifications } from '@/components/HeaderNotifications';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -12,6 +13,23 @@ interface SiteHeaderProps {
   me: MeResponse | null;
   onSignIn: () => void;
   onSignOut: () => void;
+}
+
+function isHeaderNavActive(pathname: string, href: string): boolean {
+  if (href === '/') {
+    return (
+      pathname === '/' ||
+      pathname === '/projects' ||
+      pathname.startsWith('/projects/')
+    );
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function headerNavClass(pathname: string, href: string): string {
+  return isHeaderNavActive(pathname, href)
+    ? 'header-nav-link header-nav-link-active'
+    : 'header-nav-link';
 }
 
 function HeaderAccountMenu({
@@ -103,9 +121,13 @@ export function SiteHeader({
   onSignOut,
 }: SiteHeaderProps) {
   const { t } = useTranslation();
+  const pathname = usePathname() || '/';
   const isAdmin = Boolean(me?.roles?.includes('admin'));
   const isContractor = Boolean(
     me?.isContractor || me?.roles?.includes('contractor'),
+  );
+  const isDesigner = Boolean(
+    me?.isDesigner || me?.roles?.includes('designer'),
   );
 
   return (
@@ -125,19 +147,60 @@ export function SiteHeader({
           </Link>
 
           <nav className="header-nav" aria-label={t('header.primaryNav')}>
-            <Link href="/" className="header-nav-link">
+            <Link
+              href="/"
+              className={headerNavClass(pathname, '/')}
+              aria-current={
+                isHeaderNavActive(pathname, '/') ? 'page' : undefined
+              }
+            >
               {t('header.projects')}
             </Link>
-            <Link href="/materials" className="header-nav-link">
+            <Link
+              href="/materials"
+              className={headerNavClass(pathname, '/materials')}
+              aria-current={
+                isHeaderNavActive(pathname, '/materials')
+                  ? 'page'
+                  : undefined
+              }
+            >
               {t('header.materials')}
             </Link>
             {isContractor && (
-              <Link href="/contractor" className="header-nav-link">
+              <Link
+                href="/contractor"
+                className={headerNavClass(pathname, '/contractor')}
+                aria-current={
+                  isHeaderNavActive(pathname, '/contractor')
+                    ? 'page'
+                    : undefined
+                }
+              >
                 {t('header.contractor')}
               </Link>
             )}
+            {isDesigner && (
+              <Link
+                href="/designer"
+                className={headerNavClass(pathname, '/designer')}
+                aria-current={
+                  isHeaderNavActive(pathname, '/designer')
+                    ? 'page'
+                    : undefined
+                }
+              >
+                {t('header.designer')}
+              </Link>
+            )}
             {isAdmin && (
-              <Link href="/admin/contractors" className="header-nav-link">
+              <Link
+                href="/admin/contractors"
+                className={headerNavClass(pathname, '/admin')}
+                aria-current={
+                  isHeaderNavActive(pathname, '/admin') ? 'page' : undefined
+                }
+              >
                 {t('header.admin')}
               </Link>
             )}

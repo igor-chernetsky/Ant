@@ -33,6 +33,7 @@ export class PublicDocumentsController {
     return this.documentsService.listForPublicProject(projectId, user?.id ?? null, {
       isAdmin: Boolean(req.user && hasRole(req.user, 'admin')),
       isContractorRole: Boolean(req.user && hasRole(req.user, 'contractor')),
+      isDesignerRole: Boolean(req.user && hasRole(req.user, 'designer')),
     });
   }
 
@@ -58,6 +59,7 @@ export class PublicDocumentsController {
         isContractorRole: Boolean(
           req?.user && hasRole(req.user, 'contractor'),
         ),
+        isDesignerRole: Boolean(req?.user && hasRole(req.user, 'designer')),
       },
     );
   }

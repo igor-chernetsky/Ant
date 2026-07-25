@@ -318,6 +318,7 @@ export function PublishTenderPackageModal({
                 projectDistrict={project.district}
                 disabled={busy}
                 hideSubjectOfContract
+                isDesign={project.projectType === 'design'}
               />
               </>
               )}

@@ -66,6 +66,7 @@ export class PublicProjectsController {
     return this.projectsService.getPublicById(id, userId, locale, {
       isAdmin: Boolean(req.user && hasRole(req.user, 'admin')),
       isContractorRole: Boolean(req.user && hasRole(req.user, 'contractor')),
+      isDesignerRole: Boolean(req.user && hasRole(req.user, 'designer')),
     });
   }
 

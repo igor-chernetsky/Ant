@@ -3,13 +3,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, ProjectStatus } from '@prisma/client';
+import { Prisma, ProjectStatus, ProjectType, PropertyType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeSourceLocale } from '../localization/locale.utils';
 import { ProjectBriefV1 } from '../projects/project-brief';
+import { buildDesignFeeEstimate } from '../projects/design-fee-estimate';
 import { BallparkEstimateService } from './ballpark-estimate.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
-import { EstimateLine, EstimateResponse } from './estimates.types';
+import { EstimateLine, EstimateResponse, EstimateTotals } from './estimates.types';
 
 @Injectable()
 export class EstimatesService {
@@ -95,33 +96,70 @@ export class EstimatesService {
       ? (previousEstimate.linesJson as unknown as EstimateLine[])
       : [];
 
+    // Always generate the construction-style ballpark first (same algorithm).
     const result = await this.ballpark.generate({
       title: project.title,
       description: project.description,
-      projectType: project.projectType,
+      projectType:
+        project.projectType === ProjectType.design
+          ? ProjectType.new_build
+          : project.projectType,
       propertyType: project.propertyType,
       district: project.district,
       regionCode: project.regionCode,
       tagSlugs,
       brief,
       locale: normalizeSourceLocale(project.sourceLocale),
-      previousLines,
+      previousLines:
+        project.projectType === ProjectType.design ? [] : previousLines,
       clarificationQa,
       clarificationSummary: project.clarificationSummary,
       scopeSummary: project.scopeSummary,
     });
 
+    let lines = result.lines;
+    let totals = result.totals;
+    let disclaimer = result.disclaimer;
+    let designFeePercent: number | null = null;
+    let baseConstructionTotals: EstimateTotals | null = null;
+
+    if (project.projectType === ProjectType.design) {
+      const design = buildDesignFeeEstimate({
+        lines: result.lines,
+        totals: result.totals,
+        propertyType: project.propertyType,
+        tagSlugs,
+        disclaimer: result.disclaimer,
+      });
+      lines = design.lines;
+      totals = design.totals;
+      disclaimer = design.disclaimer;
+      designFeePercent = design.percent;
+      baseConstructionTotals = design.baseTotals;
+    }
+
     const record = await this.prisma.estimate.create({
       data: {
         projectId,
         type: 'ballpark',
-        currency: result.totals.currency,
-        totalsJson: result.totals as unknown as Prisma.InputJsonValue,
-        linesJson: result.lines as unknown as Prisma.InputJsonValue,
+        currency: totals.currency,
+        totalsJson: totals as unknown as Prisma.InputJsonValue,
+        linesJson: lines as unknown as Prisma.InputJsonValue,
         confidence: result.confidence,
-        disclaimer: result.disclaimer,
+        disclaimer,
       },
     });
+
+    if (designFeePercent != null && baseConstructionTotals) {
+      await this.prisma.project.update({
+        where: { id: projectId },
+        data: {
+          designFeePercent,
+          baseConstructionTotalsJson:
+            baseConstructionTotals as unknown as Prisma.InputJsonValue,
+        },
+      });
+    }
 
     // Do not pull in-tender / later projects back to "estimated".
     if (
@@ -139,6 +177,55 @@ export class EstimatesService {
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
     return this.toResponse(record);
+  }
+
+  /**
+   * Convert an existing construction estimate into a design-fee estimate
+   * on the same project (used by convert-to-design).
+   */
+  async applyDesignFeeFromExisting(
+    projectId: string,
+    propertyType: PropertyType | null,
+    tagSlugs: string[],
+  ): Promise<{
+    estimate: EstimateResponse;
+    percent: number;
+    baseTotals: EstimateTotals;
+  }> {
+    const previous = await this.prisma.estimate.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!previous) {
+      throw new NotFoundException('No estimate to convert');
+    }
+
+    const baseLines = previous.linesJson as unknown as EstimateLine[];
+    const baseTotals = previous.totalsJson as unknown as EstimateTotals;
+    const design = buildDesignFeeEstimate({
+      lines: baseLines,
+      totals: baseTotals,
+      propertyType,
+      tagSlugs,
+    });
+
+    const record = await this.prisma.estimate.create({
+      data: {
+        projectId,
+        type: 'ballpark',
+        currency: design.totals.currency,
+        totalsJson: design.totals as unknown as Prisma.InputJsonValue,
+        linesJson: design.lines as unknown as Prisma.InputJsonValue,
+        confidence: previous.confidence,
+        disclaimer: design.disclaimer,
+      },
+    });
+
+    return {
+      estimate: this.toResponse(record),
+      percent: design.percent,
+      baseTotals: design.baseTotals,
+    };
   }
 
   private async assertProjectOwner(projectId: string, clientId: string) {

@@ -499,7 +499,8 @@ export class CommercialProposalService {
   ): Promise<CommercialProposalRenderData> {
     const terms = (bid.termsJson as BidTermsV1 | null) ?? null;
     const project = bid.tender.project;
-    const copy = commercialProposalCopy(targetLocale);
+    const isDesign = project.projectType === 'design';
+    const copy = commercialProposalCopy(targetLocale, { isDesign });
 
     const frozenTitle = terms?.frozenProjectTitle?.trim() || null;
     const hasFrozenDescription =
@@ -609,6 +610,8 @@ export class CommercialProposalService {
         bid.contractor.companyName ?? copy.contractorFallback,
       submittedAt: bid.submittedAt?.toISOString() ?? null,
       locale: targetLocale,
+      projectType: project.projectType,
+      isDesign,
       contractorSignatureDataUrl: contract?.contractorSignatureDataUrl,
       employerSignatureDataUrl: contract?.clientSignatureDataUrl,
       contractorSignedAt: contract?.contractorSignedAt?.toISOString() ?? null,

@@ -111,6 +111,8 @@ export const enExtended = {
     lockedAria: "Project {title} — limited access",
     signInContractorHint: "Sign in as a contractor to open this project.",
     contractorOnlyHint: "Only registered contractors can open projects that are accepting bids.",
+    designerOnlyHint: "Only registered designers can open Design & Permits projects that are accepting bids.",
+    signInDesignerHint: "Sign in as a designer to open this project.",
     partiesOnlyHint: "Only the client and the awarded contractor can open this project.",
   },
   createProject: {
@@ -141,6 +143,7 @@ export const enExtended = {
     hidden: "Hidden",
     readyPercent: "{n}% ready",
     ballparkMidpoint: "Ballpark midpoint",
+    designBallparkMidpoint: "Design ballpark midpoint",
     scopeTags: "Scope tags",
     scopeTagsAria: "Project scope tags",
     tagSelectedDuringIntake: "Selected during intake",
@@ -166,6 +169,7 @@ export const enExtended = {
     intake: "Intake",
     ready_for_estimate: "Ready for estimate",
     estimated: "Estimated",
+    pending: "Pending",
     in_tender: "Accepting bids",
     awarded: "Winner selected",
     active: "Active",
@@ -239,6 +243,19 @@ export const enExtended = {
     enrolled: "Enrolled",
     proposalSubmitted: "Proposal submitted",
     notSelected: "Not selected",
+  },
+  designer: {
+    portalTitle: "Designer portal",
+    portalLead:
+      "Register as a designer, browse Design & Permits tenders, and submit proposals for design documentation.",
+    signInPrompt: "Sign in to browse Design & Permits projects and submit applications.",
+    registerTitle: "Register as designer",
+    registerHint:
+      "Tell us which design specialties you cover. You can update them anytime.",
+    createProfile: "Create designer profile",
+    yourProfile: "Your profile",
+    profileHint:
+      "Update company details, service areas, and the design specialties you offer.",
   },
   contractor: {
     portalTitle: "Contractor portal",
@@ -418,6 +435,7 @@ export const enExtended = {
     sectionTitle: "Commercial proposal document",
     clientHint: "Default values for the commercial proposal document. Contractors will see these fields when preparing their bids.",
     contractorHint: "Propose changes to payment and schedule terms. Contractor proposal fields are shown for reference.",
+    designerHint: "Propose changes to payment and schedule terms. Designer proposal fields are shown for reference.",
     subjectOfContract: "Subject of contract",
     subjectHint: "Scope definition — what works are included",
     subjectPlaceholder: "Construction works as per drawings and specifications",
@@ -452,9 +470,13 @@ export const enExtended = {
     employerAddress: "Employer address",
     employerRegistrationNo: "Employer registration no.",
     contractorLegalDetails: "Contractor legal details (optional)",
+    designerLegalDetails: "Designer legal details (optional)",
     contractorAddress: "Contractor address",
+    designerAddress: "Designer address",
     contractorRegistrationNo: "Contractor registration no.",
+    designerRegistrationNo: "Designer registration no.",
     contractorRepresentative: "Contractor representative",
+    designerRepresentative: "Designer representative",
     textOptionSelect: "Choose a template…",
     textOptionCustom: "Custom text",
     subjectOptions: {
@@ -729,8 +751,23 @@ export const enExtended = {
   },
   estimateSection: {
     title: "Ballpark estimate",
+    designTitle: "DESIGN Ballpark estimate",
     midpoint: "Midpoint",
     confidence: "Confidence",
+  },
+  designPermits: {
+    trackLabel: "DESIGN & PERMITS",
+    convertButton: "Convert to DESIGN & PERMITS",
+    convertHint:
+      "This construction or modernization project can be converted into a Design & Permits tender.",
+    convertTooltip:
+      "Creates a Design & Permits card and keeps a Pending snapshot of the construction card.",
+    convertFailed: "Could not convert to Design & Permits",
+    resumeButton: "Resume construction card",
+    resumeFailed: "Could not resume the construction card",
+    linkedConstruction: "Linked construction card (Pending)",
+    linkedDesign: "Linked Design & Permits card",
+    designerLabel: "Designer",
   },
   tenderCard: {
     title: "Tender & bids",
