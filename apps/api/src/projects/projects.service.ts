@@ -69,6 +69,7 @@ import { ProjectLocalizationService } from '../localization/project-localization
 import { normalizeSourceLocale } from '../localization/locale.utils';
 import type { SupportedLocale } from '../users/locale.types';
 import { DocumentsService } from '../documents/documents.service';
+import { TenderInvitesService } from '../supply-directory/tender-invites.service';
 
 const DELETABLE_STATUSES: ProjectStatus[] = [
   ProjectStatus.draft,
@@ -109,6 +110,7 @@ export class ProjectsService {
     private readonly projectLocalization: ProjectLocalizationService,
     @Inject(forwardRef(() => DocumentsService))
     private readonly documents: DocumentsService,
+    private readonly tenderInvites: TenderInvitesService,
   ) {}
 
 
@@ -696,6 +698,7 @@ export class ProjectsService {
       isAdmin?: boolean;
       isContractorRole?: boolean;
       isDesignerRole?: boolean;
+      inviteToken?: string | null;
     },
   ): Promise<Project> {
     const project = await this.prisma.project.findUnique({
@@ -723,6 +726,14 @@ export class ProjectsService {
       ) {
         throw new NotFoundException('Project not found');
       }
+      return project;
+    }
+
+    const hasValidInvite = await this.tenderInvites.assertValidInviteToken(
+      projectId,
+      options?.inviteToken,
+    );
+    if (hasValidInvite && project.status === ProjectStatus.in_tender) {
       return project;
     }
 
@@ -794,6 +805,7 @@ export class ProjectsService {
       isAdmin?: boolean;
       isContractorRole?: boolean;
       isDesignerRole?: boolean;
+      inviteToken?: string | null;
     },
   ): Promise<ProjectResponse> {
     const project = await this.assertCanOpenProject(projectId, userId, options);
@@ -806,7 +818,23 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    return this.buildPublicProjectResponse(withTags, viewerLocale);
+    const response = await this.buildPublicProjectResponse(withTags, viewerLocale);
+    if (options?.inviteToken?.trim()) {
+      const valid = await this.tenderInvites.assertValidInviteToken(
+        projectId,
+        options.inviteToken,
+      );
+      if (valid && (!userId || project.clientId !== userId)) {
+        return {
+          ...response,
+          guestInviteAccess: {
+            canView: true,
+            canSubmitProposal: false,
+          },
+        };
+      }
+    }
+    return response;
   }
 
   async getPublicByIdForParticipant(

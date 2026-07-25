@@ -147,6 +147,12 @@ export default function AdminContractorsPage() {
 
       <main className="content-container main-content">
         <section className="page-hero">
+          <div className="admin-subnav">
+            <span aria-current="page">{t('admin.verificationTitle')}</span>
+            <Link href="/admin/directory" className="text-link">
+              {t('admin.directoryNav')}
+            </Link>
+          </div>
           <h1>{t('admin.verificationTitle')}</h1>
           <p className="page-hero-lead muted">{t('admin.verificationLead')}</p>
         </section>

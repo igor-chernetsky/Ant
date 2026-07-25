@@ -25,6 +25,7 @@ export class PublicDocumentsController {
   @UseGuards(OptionalJwtAuthGuard)
   async list(
     @Param('projectId') projectId: string,
+    @Query('invite') invite: string | undefined,
     @Req() req: Request & { user?: JwtPayload | null },
   ) {
     const user = req.user
@@ -34,6 +35,7 @@ export class PublicDocumentsController {
       isAdmin: Boolean(req.user && hasRole(req.user, 'admin')),
       isContractorRole: Boolean(req.user && hasRole(req.user, 'contractor')),
       isDesignerRole: Boolean(req.user && hasRole(req.user, 'designer')),
+      inviteToken: invite,
     });
   }
 
@@ -43,6 +45,7 @@ export class PublicDocumentsController {
     @Param('projectId') projectId: string,
     @Param('documentId') documentId: string,
     @Query('variant') variant?: string,
+    @Query('invite') invite?: string,
     @Req() req?: Request & { user?: JwtPayload | null },
   ) {
     const user = req?.user
@@ -60,6 +63,7 @@ export class PublicDocumentsController {
           req?.user && hasRole(req.user, 'contractor'),
         ),
         isDesignerRole: Boolean(req?.user && hasRole(req.user, 'designer')),
+        inviteToken: invite,
       },
     );
   }

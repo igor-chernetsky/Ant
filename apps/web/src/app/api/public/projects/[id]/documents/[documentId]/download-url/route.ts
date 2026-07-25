@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getBackendApiUrl } from '@/lib/auth-server';
-import { proxyBackendJson } from '@/lib/backend-proxy';
+import {
+  proxyBackendJson,
+  proxyOptionalBackendJson,
+} from '@/lib/backend-proxy';
 
 type RouteContext = {
   params: Promise<{ id: string; documentId: string }>;
@@ -8,11 +11,16 @@ type RouteContext = {
 
 export async function GET(request: Request, context: RouteContext) {
   const { id, documentId } = await context.params;
-  const variant = new URL(request.url).searchParams.get('variant');
-  const query = variant === 'thumb' ? '?variant=thumb' : '';
+  const url = new URL(request.url);
+  const variant = url.searchParams.get('variant');
+  const invite = url.searchParams.get('invite');
+  const params = new URLSearchParams();
+  if (variant === 'thumb') params.set('variant', 'thumb');
+  if (invite) params.set('invite', invite);
+  const query = params.toString() ? `?${params.toString()}` : '';
   const backendPath = `/v1/public/projects/${encodeURIComponent(id)}/documents/${encodeURIComponent(documentId)}/download-url${query}`;
 
-  // Thumbnails remain anonymously fetchable; originals go through auth proxy.
+  // Thumbnails remain anonymously fetchable; invite guests use optional proxy for originals.
   if (variant === 'thumb') {
     try {
       const backendResponse = await fetch(
@@ -33,6 +41,10 @@ export async function GET(request: Request, context: RouteContext) {
         { status: 502 },
       );
     }
+  }
+
+  if (invite) {
+    return proxyOptionalBackendJson(backendPath, { method: 'GET' });
   }
 
   return proxyBackendJson(backendPath);

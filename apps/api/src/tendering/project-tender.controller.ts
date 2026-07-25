@@ -4,6 +4,11 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
+import { TenderInvitesService } from '../supply-directory/tender-invites.service';
+import {
+  InviteDirectoryRecipientsDto,
+  InviteManualRecipientDto,
+} from '../supply-directory/supply-directory.types';
 import { BidMessagesService } from './bid-messages.service';
 import { BidAnalysisService } from './bid-analysis.service';
 import { BidOffersService } from './bid-offers.service';
@@ -25,6 +30,7 @@ export class ProjectTenderController {
     private readonly usersService: UsersService,
     private readonly commercialProposal: CommercialProposalService,
     private readonly clarifications: TenderClarificationsService,
+    private readonly tenderInvites: TenderInvitesService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
@@ -111,6 +117,26 @@ export class ProjectTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.tendersService.updateTenderDeadline(user.id, projectId, body);
+  }
+
+  @Post('invites')
+  async inviteFromDirectory(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: InviteDirectoryRecipientsDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.tenderInvites.inviteFromDirectory(user.id, projectId, body);
+  }
+
+  @Post('invites/manual')
+  async inviteManual(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: InviteManualRecipientDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.tenderInvites.inviteManual(user.id, projectId, body);
   }
 
   @Get('clarification-questions')

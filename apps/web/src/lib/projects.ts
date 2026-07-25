@@ -131,6 +131,10 @@ export interface Project {
   estimate: BallparkEstimate | null;
   createdAt: string;
   updatedAt: string;
+  guestInviteAccess?: {
+    canView: true;
+    canSubmitProposal: false;
+  };
 }
 
 export interface CreateProjectInput {

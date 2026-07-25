@@ -81,9 +81,14 @@ export async function fetchPublicProjects(
 
 import type { Project } from '@/lib/projects';
 
-export async function fetchPublicProject(id: string): Promise<Project> {
+export async function fetchPublicProject(
+  id: string,
+  options?: { inviteToken?: string | null },
+): Promise<Project> {
+  const invite = options?.inviteToken?.trim();
+  const qs = invite ? `?invite=${encodeURIComponent(invite)}` : '';
   const response = await fetch(
-    `/api/public/projects/${encodeURIComponent(id)}`,
+    `/api/public/projects/${encodeURIComponent(id)}${qs}`,
     {
       cache: 'no-store',
       headers: getClientLocaleHeaders(),

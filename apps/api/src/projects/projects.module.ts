@@ -8,6 +8,7 @@ import { LocationsModule } from '../locations/locations.module';
 import { TagsModule } from '../tags/tags.module';
 import { UsersModule } from '../users/users.module';
 import { DocumentsModule } from '../documents/documents.module';
+import { SupplyDirectoryModule } from '../supply-directory/supply-directory.module';
 
 import { ProjectsController } from './projects.controller';
 import { PublicProjectsController } from './public-projects.controller';
@@ -23,6 +24,7 @@ import { ProjectScopeSyncService } from './project-scope-sync.service';
     EstimationModule,
     LocalizationModule,
     AiModule,
+    SupplyDirectoryModule,
     forwardRef(() => IntakeModule),
     forwardRef(() => DocumentsModule),
   ],

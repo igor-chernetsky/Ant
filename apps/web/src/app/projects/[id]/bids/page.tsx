@@ -9,6 +9,7 @@ import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { BidsCompareTable } from '@/components/BidsCompareTable';
 import { ClientClarificationQuestionsPanel } from '@/components/ClientClarificationQuestionsPanel';
 import { LoginModal } from '@/components/LoginModal';
+import { InviteFromDirectoryModal } from '@/components/InviteFromDirectoryModal';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -37,6 +38,7 @@ export default function ProjectBidsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadData = useCallback(
@@ -320,7 +322,19 @@ export default function ProjectBidsPage() {
                       ))}
                     </ul>
                   ) : (
-                    <p className="muted">{t('bidsPage.noApplications')}</p>
+                    <div className="tender-actions-block">
+                      <p className="muted">{t('bidsPage.noApplications')}</p>
+                      <p className="muted tender-hint">
+                        {t('tenderCard.inviteFromDirectoryHint')}
+                      </p>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => setInviteModalOpen(true)}
+                      >
+                        {t('tenderCard.inviteFromDirectory')}
+                      </button>
+                    </div>
                   )}
                 </section>
               </>
@@ -328,6 +342,14 @@ export default function ProjectBidsPage() {
           </>
         )}
       </main>
+
+      {inviteModalOpen && projectId && (
+        <InviteFromDirectoryModal
+          projectId={projectId}
+          projectType={project?.projectType}
+          onClose={() => setInviteModalOpen(false)}
+        />
+      )}
 
       <LoginModal
         isOpen={loginOpen}

@@ -8,6 +8,7 @@ import { UsersModule } from '../users/users.module';
 import { StorageModule } from '../storage/storage.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { DocumentsModule } from '../documents/documents.module';
+import { SupplyDirectoryModule } from '../supply-directory/supply-directory.module';
 import { BidAnalysisService } from './bid-analysis.service';
 
 import { BidOffersService } from './bid-offers.service';
@@ -39,6 +40,7 @@ import { PublicContractorsController } from './public-contractors.controller';
     StorageModule,
     ProjectsModule,
     DocumentsModule,
+    SupplyDirectoryModule,
   ],
   controllers: [
     ProjectTenderController,

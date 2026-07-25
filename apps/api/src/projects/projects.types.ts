@@ -60,6 +60,11 @@ export interface ProjectResponse {
   estimate: EstimateResponse | null;
   createdAt: string;
   updatedAt: string;
+  /** Present when opened via a valid tender invite token (read-only guest view). */
+  guestInviteAccess?: {
+    canView: true;
+    canSubmitProposal: false;
+  };
 }
 
 export interface TagCatalogItem {

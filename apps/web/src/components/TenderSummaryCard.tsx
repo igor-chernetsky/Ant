@@ -16,6 +16,7 @@ import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { ContractorCoverageNotice } from '@/components/ContractorCoverageNotice';
 import { PublishTenderPackageModal } from '@/components/PublishTenderPackageModal';
+import { InviteFromDirectoryModal } from '@/components/InviteFromDirectoryModal';
 import {
   applicationsDeadlineFromTender,
   applicationsDeadlineToPayload,
@@ -60,6 +61,7 @@ export function TenderSummaryCard({
   const [publishModalMode, setPublishModalMode] = useState<
     'create' | 'start' | null
   >(null);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const applicationLabel = (count: number) =>
@@ -370,6 +372,19 @@ export function TenderSummaryCard({
               <p className="muted tender-phase-hint">
                 {t('tenderCard.publishedWaiting')}
               </p>
+              <div className="tender-actions-block">
+                <p className="muted tender-hint">
+                  {t('tenderCard.inviteFromDirectoryHint')}
+                </p>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => setInviteModalOpen(true)}
+                >
+                  {t('tenderCard.inviteFromDirectory')}
+                </button>
+              </div>
               {canRevert && (
                 <div className="tender-actions-block">
                   <button
@@ -411,6 +426,13 @@ export function TenderSummaryCard({
           isOpen
           onClose={() => setPublishModalMode(null)}
           onPublished={handlePublishComplete}
+        />
+      )}
+      {inviteModalOpen && (
+        <InviteFromDirectoryModal
+          projectId={projectId}
+          projectType={project.projectType}
+          onClose={() => setInviteModalOpen(false)}
         />
       )}
       {confirmDialog}

@@ -7122,3 +7122,123 @@ select:disabled {
   font-size: 0.9rem;
 }
 
+
+.admin-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.admin-subnav [aria-current='page'] {
+  font-weight: 600;
+}
+
+.admin-directory-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-directory-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-directory-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-directory-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-directory-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-directory-form .checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.directory-kind-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.directory-invite-list {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.directory-invite-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.directory-invite-meta {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.directory-manual-invite {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.directory-manual-invite .form-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 0.75rem;
+}
+
+.invite-directory-modal {
+  max-width: 720px;
+}
+
+.guest-invite-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.guest-invite-notice p {
+  margin: 0;
+  flex: 1 1 16rem;
+}
+
+@media (max-width: 640px) {
+  .directory-manual-invite .form-row {
+    grid-template-columns: 1fr;
+  }
+}

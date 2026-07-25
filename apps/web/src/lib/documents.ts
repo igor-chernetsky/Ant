@@ -155,9 +155,12 @@ export async function getDocumentDownloadUrl(
 
 export async function fetchPublicProjectDocuments(
   projectId: string,
+  options?: { inviteToken?: string | null },
 ): Promise<ProjectDocument[]> {
+  const invite = options?.inviteToken?.trim();
+  const qs = invite ? `?invite=${encodeURIComponent(invite)}` : '';
   const response = await fetch(
-    `/api/public/projects/${encodeURIComponent(projectId)}/documents`,
+    `/api/public/projects/${encodeURIComponent(projectId)}/documents${qs}`,
     { cache: 'no-store' },
   );
   if (response.status === 404) {
@@ -175,20 +178,27 @@ export async function fetchPublicProjectDocuments(
 export async function getPublicDocumentDownloadUrl(
   projectId: string,
   documentId: string,
-  options?: { variant?: 'original' | 'thumb' },
+  options?: {
+    variant?: 'original' | 'thumb';
+    inviteToken?: string | null;
+  },
 ): Promise<{ downloadUrl: string; originalName: string }> {
   const params = new URLSearchParams();
   if (options?.variant === 'thumb') {
     params.set('variant', 'thumb');
+  }
+  const invite = options?.inviteToken?.trim();
+  if (invite) {
+    params.set('invite', invite);
   }
   const query = params.toString();
   const path = `/api/public/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}/download-url${
     query ? `?${query}` : ''
   }`;
 
-  // Originals require an authenticated BFF session; thumbs stay public.
+  // Originals require an authenticated BFF session (or invite token); thumbs stay public.
   const response =
-    options?.variant === 'thumb'
+    options?.variant === 'thumb' || invite
       ? await fetch(path, { cache: 'no-store' })
       : await fetchWithAuth(path, { cache: 'no-store' });
 

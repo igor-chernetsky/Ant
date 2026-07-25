@@ -15,6 +15,7 @@ import { TagsModule } from './tags/tags.module';
 import { TenderingModule } from './tendering/tendering.module';
 import { UsersModule } from './users/users.module';
 import { VerificationModule } from './verification/verification.module';
+import { SupplyDirectoryModule } from './supply-directory/supply-directory.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { VerificationModule } from './verification/verification.module';
     AmendmentsModule,
     TenderingModule,
     VerificationModule,
+    SupplyDirectoryModule,
   ],
 })
 export class AppModule {}

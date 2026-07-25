@@ -57,6 +57,7 @@ export class PublicProjectsController {
   async getProject(
     @Req() req: Request & { user?: JwtPayload | null },
     @Param('id') id: string,
+    @Query('invite') invite?: string,
   ) {
     const user = req.user
       ? await this.usersService.findOrCreateFromJwt(req.user)
@@ -67,6 +68,7 @@ export class PublicProjectsController {
       isAdmin: Boolean(req.user && hasRole(req.user, 'admin')),
       isContractorRole: Boolean(req.user && hasRole(req.user, 'contractor')),
       isDesignerRole: Boolean(req.user && hasRole(req.user, 'designer')),
+      inviteToken: invite,
     });
   }
 

@@ -93,6 +93,7 @@ export class DocumentsService {
       isAdmin?: boolean;
       isContractorRole?: boolean;
       isDesignerRole?: boolean;
+      inviteToken?: string | null;
     },
   ) {
     return this.projects.assertCanOpenProject(projectId, userId, options);
@@ -146,6 +147,7 @@ export class DocumentsService {
       isAdmin?: boolean;
       isContractorRole?: boolean;
       isDesignerRole?: boolean;
+      inviteToken?: string | null;
     },
   ): Promise<DocumentResponse[]> {
     await this.assertPublicProjectView(projectId, userId, options);
@@ -343,17 +345,21 @@ export class DocumentsService {
       isAdmin?: boolean;
       isContractorRole?: boolean;
       isDesignerRole?: boolean;
+      inviteToken?: string | null;
     },
   ): Promise<DownloadUrlResponse> {
     await this.assertPublicProjectView(projectId, options?.userId ?? null, {
       isAdmin: options?.isAdmin,
       isContractorRole: options?.isContractorRole,
       isDesignerRole: options?.isDesignerRole,
+      inviteToken: options?.inviteToken,
     });
 
+    const inviteAllowsDownload = Boolean(options?.inviteToken?.trim());
+
     // Thumbnails stay public for gallery previews once open ACL passed;
-    // originals still require sign-in.
-    if (variant !== 'thumb' && !options?.authenticated) {
+    // originals require sign-in, or a valid tender invite token.
+    if (variant !== 'thumb' && !options?.authenticated && !inviteAllowsDownload) {
       throw new UnauthorizedException(
         'Sign in to download project documents',
       );

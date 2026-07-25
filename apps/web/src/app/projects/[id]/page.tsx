@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
@@ -75,11 +75,13 @@ function guessContentType(file: File): string | null {
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { t } = useTranslation();
   const { formatDocumentCategory } = useAppFormatters();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const projectId = params.id;
+  const inviteToken = searchParams.get('invite');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [authState, setAuthState] = useState<AuthState>('loading');
@@ -100,10 +102,12 @@ export default function ProjectDetailPage() {
       if (!projectId) return;
       const list = owner
         ? await fetchProjectDocuments(projectId)
-        : await fetchPublicProjectDocuments(projectId);
+        : await fetchPublicProjectDocuments(projectId, {
+            inviteToken,
+          });
       setDocuments(list.filter((d) => d.status === 'uploaded'));
     },
-    [projectId],
+    [projectId, inviteToken],
   );
 
   const loadProjectView = useCallback(async () => {
@@ -166,7 +170,7 @@ export default function ProjectDetailPage() {
       }
 
       try {
-        const data = await fetchPublicProject(projectId);
+        const data = await fetchPublicProject(projectId, { inviteToken });
         setProject(data);
         setIsOwner(false);
         await loadDocuments(false);
@@ -180,7 +184,11 @@ export default function ProjectDetailPage() {
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'NOT_FOUND') {
         if (!profile) {
-          setError(t('projectDetail.accessDeniedContractor'));
+          setError(
+            inviteToken
+              ? t('projectDetail.inviteAccessDenied')
+              : t('projectDetail.accessDeniedContractor'),
+          );
         } else if (isContractorUser(profile) || isDesignerUser(profile)) {
           setError(t('projectDetail.accessDeniedParties'));
         } else {
@@ -193,7 +201,7 @@ export default function ProjectDetailPage() {
       }
       setPageReady(true);
     }
-  }, [projectId, loadDocuments, me, sessionReady, t]);
+  }, [projectId, loadDocuments, me, sessionReady, t, inviteToken]);
 
   useEffect(() => {
     if (!sessionReady) return;
@@ -255,7 +263,9 @@ export default function ProjectDetailPage() {
     try {
       const { downloadUrl } = isOwner
         ? await getDocumentDownloadUrl(projectId, doc.id)
-        : await getPublicDocumentDownloadUrl(projectId, doc.id);
+        : await getPublicDocumentDownloadUrl(projectId, doc.id, {
+            inviteToken,
+          });
       window.open(downloadUrl, '_blank', 'noopener,noreferrer');
     } catch (err: unknown) {
       if (
@@ -411,6 +421,21 @@ export default function ProjectDetailPage() {
             />
 
             {isOwner && <ProjectStageRail status={project.status} />}
+
+            {project.guestInviteAccess && (
+              <section className="card guest-invite-notice">
+                <p>{t('projectDetail.guestInviteNotice')}</p>
+                {authState === 'guest' && (
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => setLoginOpen(true)}
+                  >
+                    {t('header.signIn')}
+                  </button>
+                )}
+              </section>
+            )}
 
             <section className="card">
               <h2 className="section-title">{t('documents.title')}</h2>
