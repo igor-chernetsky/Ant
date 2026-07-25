@@ -6354,10 +6354,22 @@ select:disabled {
   margin: 0 0 1.35rem;
 }
 
+.materials-tile-media {
+  background: #dbe4ef;
+}
+
 .materials-tile-media .project-tile-placeholder {
   font-size: 2rem;
   font-weight: 650;
   letter-spacing: -0.03em;
+}
+
+/* Logos / og images that are not full-bleed photos stay centered. */
+.materials-tile-image {
+  object-fit: contain;
+  object-position: center;
+  padding: 1.25rem;
+  background: #e8eef5;
 }
 
 .materials-tile-visit {

@@ -28,6 +28,11 @@ export interface MaterialsMarketplace {
   /** i18n key under materials.blurbs.* */
   blurbKey: string;
   categories: MaterialCategory[];
+  /**
+   * Optional known-good cover image when og:image is missing/broken.
+   * Prefer absolute https URLs.
+   */
+  imageUrl?: string;
 }
 
 /**
@@ -121,6 +126,7 @@ export const MATERIALS_MARKETPLACES: MaterialsMarketplace[] = [
     name: 'Mega Home',
     url: 'https://www.megahome.co.th/',
     blurbKey: 'megaHome',
+    imageUrl: 'https://static.homepro.co.th/logo/Logo_mh_line.png',
     categories: [
       'structural',
       'finishes',
@@ -135,6 +141,8 @@ export const MATERIALS_MARKETPLACES: MaterialsMarketplace[] = [
     name: 'Rakmao',
     url: 'https://www.rakmao.com/',
     blurbKey: 'rakmao',
+    imageUrl:
+      'https://storage.googleapis.com/asia.artifacts.cbm-dist-rakmao-rudy-prd.appspot.com/Rakmao-og/logo-rakmao.png',
     categories: ['structural', 'finishes', 'roofing', 'tools'],
   },
 ];

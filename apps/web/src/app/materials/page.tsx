@@ -12,6 +12,7 @@ import {
   MATERIAL_CATEGORIES,
   type MaterialCategory,
 } from '@/lib/materials-marketplaces';
+import { MaterialsMarketplaceCard } from '@/components/MaterialsMarketplaceCard';
 
 export default function MaterialsMarketplacesPage() {
   const { t } = useTranslation();
@@ -83,38 +84,7 @@ export default function MaterialsMarketplacesPage() {
             aria-label={t('materials.gridAria')}
           >
             {platforms.map((platform) => (
-              <a
-                key={platform.id}
-                href={platform.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="project-tile materials-tile"
-              >
-                <div className="project-tile-media materials-tile-media">
-                  <div className="project-tile-placeholder" aria-hidden>
-                    <span>{platform.name.slice(0, 1)}</span>
-                  </div>
-                  <span className="project-tile-status">
-                    {t('materials.external')}
-                  </span>
-                </div>
-                <div className="project-tile-body">
-                  <h2 className="project-tile-title">{platform.name}</h2>
-                  <p className="project-tile-description">
-                    {t(`materials.blurbs.${platform.blurbKey}`)}
-                  </p>
-                  <div className="project-tile-tags">
-                    {platform.categories.slice(0, 4).map((tag) => (
-                      <span key={tag} className="tag-pill">
-                        {t(`materials.categories.${tag}`)}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="materials-tile-visit muted">
-                    {t('materials.visit')} →
-                  </p>
-                </div>
-              </a>
+              <MaterialsMarketplaceCard key={platform.id} platform={platform} />
             ))}
           </section>
         )}
