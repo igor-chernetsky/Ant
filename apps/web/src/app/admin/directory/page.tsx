@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -150,12 +149,6 @@ export default function AdminDirectoryPage() {
       />
       <main className="content-container main-content">
         <section className="page-hero">
-          <div className="admin-subnav">
-            <Link href="/admin/contractors" className="text-link">
-              {t('admin.verificationTitle')}
-            </Link>
-            <span aria-current="page">{t('admin.directoryNav')}</span>
-          </div>
           <h1>{t('admin.directoryTitle')}</h1>
           <p className="page-hero-lead muted">{t('admin.directoryLead')}</p>
         </section>
@@ -186,12 +179,21 @@ export default function AdminDirectoryPage() {
             {error && <p className="error">{error}</p>}
 
             <section className="card">
-              <div className="admin-filter-row">
+              <div
+                className="admin-filter-bar"
+                role="group"
+                aria-label={t('admin.directoryKind')}
+              >
                 {KINDS.map((kind) => (
                   <button
                     key={kind || 'all'}
                     type="button"
-                    className={filter === kind ? 'primary' : 'secondary'}
+                    className={
+                      filter === kind
+                        ? 'admin-filter-chip admin-filter-chip-active'
+                        : 'admin-filter-chip'
+                    }
+                    aria-pressed={filter === kind}
                     onClick={() => setFilter(kind)}
                   >
                     {kindLabel(kind)}

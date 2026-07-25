@@ -20,6 +20,8 @@ export const th: Messages = {
   },
   header: {
     admin: 'ผู้ดูแล',
+    contractors: 'ผู้รับเหมา',
+    supplyRegistry: 'ทะเบียน',
     contractor: 'ผู้รับเหมา',
     designer: 'ผู้ออกแบบ',
     account: 'บัญชี',

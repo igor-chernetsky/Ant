@@ -19,6 +19,8 @@ export const en = {
   },
   header: {
     admin: 'Admin',
+    contractors: 'Contractors',
+    supplyRegistry: 'Supply registry',
     contractor: 'Contractor',
     designer: 'Designer',
     account: 'Account',

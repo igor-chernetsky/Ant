@@ -194,15 +194,30 @@ export function SiteHeader({
               </Link>
             )}
             {isAdmin && (
-              <Link
-                href="/admin/contractors"
-                className={headerNavClass(pathname, '/admin')}
-                aria-current={
-                  isHeaderNavActive(pathname, '/admin') ? 'page' : undefined
-                }
-              >
-                {t('header.admin')}
-              </Link>
+              <>
+                <Link
+                  href="/admin/contractors"
+                  className={headerNavClass(pathname, '/admin/contractors')}
+                  aria-current={
+                    isHeaderNavActive(pathname, '/admin/contractors')
+                      ? 'page'
+                      : undefined
+                  }
+                >
+                  {t('header.contractors')}
+                </Link>
+                <Link
+                  href="/admin/directory"
+                  className={headerNavClass(pathname, '/admin/directory')}
+                  aria-current={
+                    isHeaderNavActive(pathname, '/admin/directory')
+                      ? 'page'
+                      : undefined
+                  }
+                >
+                  {t('header.supplyRegistry')}
+                </Link>
+              </>
             )}
           </nav>
         </div>

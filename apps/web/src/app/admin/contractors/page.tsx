@@ -147,12 +147,6 @@ export default function AdminContractorsPage() {
 
       <main className="content-container main-content">
         <section className="page-hero">
-          <div className="admin-subnav">
-            <span aria-current="page">{t('admin.verificationTitle')}</span>
-            <Link href="/admin/directory" className="text-link">
-              {t('admin.directoryNav')}
-            </Link>
-          </div>
           <h1>{t('admin.verificationTitle')}</h1>
           <p className="page-hero-lead muted">{t('admin.verificationLead')}</p>
         </section>
@@ -184,16 +178,21 @@ export default function AdminContractorsPage() {
         {ready && me && isAdmin(me.roles) && (
           <>
             <section className="card">
-              <div className="tag-filter-list">
+              <div
+                className="admin-filter-bar"
+                role="group"
+                aria-label={t('admin.filterAll')}
+              >
                 {statusFilters.map((item) => (
                   <button
                     key={item.labelKey}
                     type="button"
                     className={
                       filter === item.value
-                        ? 'tag-filter-chip tag-filter-chip-active'
-                        : 'tag-filter-chip'
+                        ? 'admin-filter-chip admin-filter-chip-active'
+                        : 'admin-filter-chip'
                     }
+                    aria-pressed={filter === item.value}
                     onClick={() => setFilter(item.value)}
                   >
                     {t(item.labelKey)}

@@ -20,6 +20,8 @@ export const ru: Messages = {
   },
   header: {
     admin: 'Админ',
+    contractors: 'Подрядчики',
+    supplyRegistry: 'Реестр',
     contractor: 'Подрядчик',
     designer: 'Проектировщик',
     account: 'Аккаунт',
