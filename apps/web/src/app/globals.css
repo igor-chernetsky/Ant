@@ -1713,6 +1713,7 @@ pre {
   justify-content: center;
   padding: 1rem;
   z-index: 100;
+  overflow: hidden;
 }
 
 .modal {
@@ -6798,6 +6799,68 @@ select:disabled {
   max-width: 560px;
 }
 
+.publish-tender-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(920px, calc(100vw - 2rem));
+  max-width: min(920px, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  overflow: hidden;
+}
+
+.publish-tender-modal-chrome {
+  flex: 0 0 auto;
+  padding: 1.25rem 1.5rem 0;
+}
+
+.publish-tender-modal-subtitle {
+  margin: 0.45rem 0 0.85rem;
+}
+
+.publish-tender-modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.publish-tender-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 1.5rem 1rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.publish-tender-modal-footer {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.9rem 1.5rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--glass-bg-dense) 92%, #fff);
+}
+
+@media (max-width: 640px) {
+  .publish-tender-modal {
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+    max-height: calc(100vh - 1rem);
+  }
+
+  .publish-tender-modal-chrome,
+  .publish-tender-modal-body {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .publish-tender-modal-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
 .complete-project-intro {
   margin: 0 0 1rem;
   line-height: 1.5;
@@ -6903,11 +6966,6 @@ select:disabled {
 
 .bid-line-item-row--template {
   grid-template-columns: 1fr 1.2fr auto;
-}
-
-.publish-tender-modal .modal-form {
-  max-height: min(72vh, 720px);
-  overflow-y: auto;
 }
 
 .contractor-section-header {
