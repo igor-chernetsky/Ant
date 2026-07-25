@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { BidContractTermsFields } from '@/components/BidContractTermsFields';
 import { CostBreakdownTemplateEditor } from '@/components/CostBreakdownTemplateEditor';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -88,8 +89,13 @@ export function PublishTenderPackageModal({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [portalReady, setPortalReady] = useState(false);
 
   const isClarificationPublish = mode === 'create' && structuredQa;
+
+  useEffect(() => {
+    setPortalReady(true);
+  }, []);
 
   // Load preview once per open session. Do not depend on `project` / `t` /
   // `initialDeadline` object identity — parent re-renders were remounting the
@@ -150,7 +156,7 @@ export function PublishTenderPackageModal({
     };
   }, [isOpen]);
 
-  if (!isOpen) {
+  if (!isOpen || !portalReady) {
     return null;
   }
 
@@ -195,7 +201,7 @@ export function PublishTenderPackageModal({
         : t('tenderCard.publishForBids')
       : t('tenderCard.openTenderForBids');
 
-  return (
+  return createPortal(
     <div
       className="modal-backdrop"
       role="presentation"
@@ -368,6 +374,7 @@ export function PublishTenderPackageModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
