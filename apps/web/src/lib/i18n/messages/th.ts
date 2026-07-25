@@ -23,6 +23,7 @@ export const th: Messages = {
     contractor: 'ผู้รับเหมา',
     account: 'บัญชี',
     materials: 'วัสดุ',
+    primaryNav: 'เมนูหลัก',
     signIn: 'เข้าสู่ระบบ',
     signOut: 'ออกจากระบบ',
     signedIn: 'เข้าสู่ระบบแล้ว',

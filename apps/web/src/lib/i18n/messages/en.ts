@@ -22,6 +22,7 @@ export const en = {
     contractor: 'Contractor',
     account: 'Account',
     materials: 'Materials',
+    primaryNav: 'Primary',
     signIn: 'Sign in',
     signOut: 'Sign out',
     signedIn: 'Signed in',

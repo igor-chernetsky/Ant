@@ -23,6 +23,7 @@ export const ru: Messages = {
     contractor: 'Подрядчик',
     account: 'Аккаунт',
     materials: 'Материалы',
+    primaryNav: 'Основная навигация',
     signIn: 'Войти',
     signOut: 'Выйти',
     signedIn: 'Вы вошли',
