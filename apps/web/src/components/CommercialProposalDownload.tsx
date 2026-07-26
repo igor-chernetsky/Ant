@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { BusyLabel } from '@/components/AntSpinner';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   LOCALE_LABELS,
@@ -156,9 +157,14 @@ export function CommercialProposalDownload({
         type="button"
         className={className}
         disabled={busy || selectedLocales.length === 0}
+        aria-busy={busy}
         onClick={() => void handleDownload()}
       >
-        {busy ? t('commercialProposal.preparing') : downloadLabel}
+        <BusyLabel
+          busy={busy}
+          idle={downloadLabel}
+          busyText={t('commercialProposal.preparing')}
+        />
       </button>
 
       {error && (

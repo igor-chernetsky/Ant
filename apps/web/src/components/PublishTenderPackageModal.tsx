@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { AntSpinner, BusyLabel } from '@/components/AntSpinner';
 import { BidContractTermsFields } from '@/components/BidContractTermsFields';
 import { CostBreakdownTemplateEditor } from '@/components/CostBreakdownTemplateEditor';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -244,7 +245,13 @@ export function PublishTenderPackageModal({
         >
           <div className="publish-tender-modal-body modal-form">
             {loading ? (
-              <p className="muted">{t('tenderCard.preparingTemplate')}</p>
+              <p className="muted contract-signing-loading">
+                <AntSpinner
+                  size="md"
+                  label={t('tenderCard.preparingTemplate')}
+                />
+                <span>{t('tenderCard.preparingTemplate')}</span>
+              </p>
             ) : (
               <>
                 <TenderApplicationsDeadlineFields
@@ -356,12 +363,21 @@ export function PublishTenderPackageModal({
           </div>
 
           <div className="publish-tender-modal-footer row">
-            <button type="submit" className="primary" disabled={busy || loading}>
-              {submitting
-                ? t('tenderCard.publishing')
-                : mode === 'create'
-                  ? t('tenderCard.publishTender')
-                  : t('tenderCard.openTender')}
+            <button
+              type="submit"
+              className="primary"
+              disabled={busy || loading}
+              aria-busy={submitting}
+            >
+              <BusyLabel
+                busy={submitting}
+                idle={
+                  mode === 'create'
+                    ? t('tenderCard.publishTender')
+                    : t('tenderCard.openTender')
+                }
+                busyText={t('tenderCard.publishing')}
+              />
             </button>
             <button
               type="button"

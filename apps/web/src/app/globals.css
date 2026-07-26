@@ -4743,6 +4743,13 @@ select:disabled {
   gap: 0.85rem;
 }
 
+.contract-signing-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0;
+}
+
 .contract-signature-pad {
   display: grid;
   gap: 0.5rem;
@@ -7285,3 +7292,98 @@ select:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* —— Branded Ant spinner —— */
+.ant-spinner {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.ant-spinner--sm {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.ant-spinner--md {
+  width: 2rem;
+  height: 2rem;
+}
+
+.ant-spinner--lg {
+  width: 3rem;
+  height: 3rem;
+}
+
+.ant-spinner-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--accent);
+  border-right-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: ant-spinner-spin 0.85s linear infinite;
+}
+
+.ant-spinner--md .ant-spinner-orbit,
+.ant-spinner--lg .ant-spinner-orbit {
+  border-width: 2.5px;
+}
+
+.ant-spinner-mark {
+  display: grid;
+  place-items: center;
+  width: 72%;
+  height: 72%;
+  animation: ant-spinner-bob 1.1s ease-in-out infinite;
+}
+
+.ant-spinner-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.busy-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.busy-label-text {
+  line-height: 1.2;
+}
+
+@keyframes ant-spinner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ant-spinner-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ant-spinner-orbit,
+  .ant-spinner-mark {
+    animation: none;
+  }
+
+  .ant-spinner-orbit {
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    border-top-color: var(--accent);
+  }
+}
+

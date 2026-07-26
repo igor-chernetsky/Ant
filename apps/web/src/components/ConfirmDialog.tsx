@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { BusyLabel } from '@/components/AntSpinner';
 import { useTranslation } from '@/components/LocaleProvider';
 
 export interface ConfirmDialogProps {
@@ -86,9 +87,14 @@ export function ConfirmDialog({
             type="button"
             className={tone === 'danger' ? 'danger' : 'primary'}
             disabled={busy}
+            aria-busy={busy}
             onClick={onConfirm}
           >
-            {busy ? t('common.pleaseWait') : resolvedConfirmLabel}
+            <BusyLabel
+              busy={busy}
+              idle={resolvedConfirmLabel}
+              busyText={t('common.pleaseWait')}
+            />
           </button>
         </div>
       </div>

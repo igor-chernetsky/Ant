@@ -7,6 +7,7 @@ import {
   type ProjectContract,
 } from '@/lib/contracts';
 import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
+import { AntSpinner, BusyLabel } from '@/components/AntSpinner';
 import {
   ContractSignaturePad,
   type ContractSignaturePadHandle,
@@ -140,7 +141,12 @@ export function ContractSigningPanel({
   };
 
   if (loading) {
-    return <p className="muted">{t('contractPanel.loading')}</p>;
+    return (
+      <p className="muted contract-signing-loading">
+        <AntSpinner size="md" label={t('contractPanel.loading')} />
+        <span>{t('contractPanel.loading')}</span>
+      </p>
+    );
   }
 
   if (!contract) {
@@ -213,11 +219,14 @@ export function ContractSigningPanel({
               type="button"
               className="primary"
               disabled={busy}
+              aria-busy={busy}
               onClick={() => void handleSign()}
             >
-              {busy
-                ? t('contractPanel.signing')
-                : t('contractPanel.signContract')}
+              <BusyLabel
+                busy={busy}
+                idle={t('contractPanel.signContract')}
+                busyText={t('contractPanel.signing')}
+              />
             </button>
           )}
           {!contract.fullySigned && !asContractor && (
@@ -225,6 +234,7 @@ export function ContractSigningPanel({
               type="button"
               className="secondary"
               disabled={busy}
+              aria-busy={busy}
               onClick={() => void handleReleaseAward()}
             >
               {t('contractPanel.releaseContractor')}

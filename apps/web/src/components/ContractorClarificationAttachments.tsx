@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { BusyLabel } from '@/components/AntSpinner';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   fetchContractorClarificationAttachments,
@@ -114,11 +115,14 @@ export function ContractorClarificationAttachments({
                     type="button"
                     className="text-link clarification-answer-attachments-name"
                     disabled={downloadingId === file.id}
+                    aria-busy={downloadingId === file.id}
                     onClick={() => void handleDownload(question.id, file.id)}
                   >
-                    {downloadingId === file.id
-                      ? t('common.preparingDownload')
-                      : file.originalName}
+                    <BusyLabel
+                      busy={downloadingId === file.id}
+                      idle={file.originalName}
+                      busyText={t('common.preparingDownload')}
+                    />
                   </button>
                   <span className="muted clarification-answer-attachments-meta">
                     {formatFileSize(file.sizeBytes)}
