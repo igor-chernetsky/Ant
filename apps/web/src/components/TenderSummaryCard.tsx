@@ -15,6 +15,7 @@ import { useTranslation } from '@/components/LocaleProvider';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { ContractorCoverageNotice } from '@/components/ContractorCoverageNotice';
+import { HelpTip } from '@/components/help/HelpTip';
 import { PublishTenderPackageModal } from '@/components/PublishTenderPackageModal';
 import { InviteFromDirectoryModal } from '@/components/InviteFromDirectoryModal';
 import {
@@ -24,6 +25,7 @@ import {
   TenderApplicationsDeadlineFields,
   type ApplicationsDeadlineValue,
 } from '@/components/TenderApplicationsDeadlineFields';
+import { HELP_TIP_IDS } from '@/lib/help-tips';
 
 interface TenderSummaryCardProps {
   projectId: string;
@@ -369,6 +371,12 @@ export function TenderSummaryCard({
 
           {tender.bids.length === 0 && !collectingQuestions && (
             <>
+              <HelpTip
+                tipId={HELP_TIP_IDS.emptyTender}
+                title={t('help.tipEmptyTenderTitle')}
+                body={t('help.tipEmptyTenderBody')}
+                learnMoreHref="/help#client-tender"
+              />
               <p className="muted tender-phase-hint">
                 {t('tenderCard.publishedWaiting')}
               </p>

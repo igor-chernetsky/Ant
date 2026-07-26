@@ -6,6 +6,7 @@ import { ContractorApplicationTile } from '@/components/ContractorApplicationTil
 import { ContractorReviewsPanel } from '@/components/ContractorReviewsPanel';
 import { ContractorVerificationPanel } from '@/components/ContractorVerificationPanel';
 import { ContractorPortfolioPanel } from '@/components/ContractorPortfolioPanel';
+import { HelpTip } from '@/components/help/HelpTip';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
@@ -13,6 +14,7 @@ import { ServiceLocationEditor } from '@/components/ServiceLocationEditor';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TradeTagPicker } from '@/components/TradeTagPicker';
 import { useSession } from '@/components/SessionProvider';
+import { HELP_TIP_IDS } from '@/lib/help-tips';
 import {
   DEFAULT_SERVICE_LOCATION,
   fetchLocationCatalog,
@@ -199,6 +201,12 @@ export default function DesignerPage() {
 
         {ready && me && !profile && (
           <section className="card">
+            <HelpTip
+              tipId={HELP_TIP_IDS.designerRegister}
+              title={t('help.tipDesignerRegisterTitle')}
+              body={t('help.tipDesignerRegisterBody')}
+              learnMoreHref="/help#designer-profile"
+            />
             <h2 className="section-title">{t('designer.registerTitle')}</h2>
             <p className="muted doc-hint">{t('designer.registerHint')}</p>
             <div className="modal-form">

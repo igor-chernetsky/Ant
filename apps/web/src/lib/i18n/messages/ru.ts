@@ -27,6 +27,7 @@ export const ru: Messages = {
     account: 'Аккаунт',
     materials: 'Материалы',
     projects: 'Проекты',
+    help: 'Помощь',
     primaryNav: 'Основная навигация',
     signIn: 'Войти',
     signOut: 'Выйти',
@@ -76,6 +77,7 @@ export const ru: Messages = {
     clientAgreement: 'Клиентское соглашение',
     contractorAgreement: 'Соглашение подрядчика',
     materials: 'Площадки стройматериалов',
+    help: 'Помощь',
   },
   auth: {
     welcomeBack: 'С возвращением',

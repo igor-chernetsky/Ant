@@ -27,6 +27,7 @@ export const th: Messages = {
     account: 'บัญชี',
     materials: 'วัสดุ',
     projects: 'โครงการ',
+    help: 'ช่วยเหลือ',
     primaryNav: 'เมนูหลัก',
     signIn: 'เข้าสู่ระบบ',
     signOut: 'ออกจากระบบ',
@@ -76,6 +77,7 @@ export const th: Messages = {
     clientAgreement: 'ข้อตกลงลูกค้า',
     contractorAgreement: 'ข้อตกลงผู้รับเหมา',
     materials: 'แพลตฟอร์มวัสดุ',
+    help: 'ช่วยเหลือ',
   },
   auth: {
     welcomeBack: 'ยินดีต้อนรับกลับ',

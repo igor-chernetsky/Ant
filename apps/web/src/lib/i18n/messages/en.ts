@@ -26,6 +26,7 @@ export const en = {
     account: 'Account',
     materials: 'Materials',
     projects: 'Projects',
+    help: 'Help',
     primaryNav: 'Primary',
     signIn: 'Sign in',
     signOut: 'Sign out',
@@ -75,6 +76,7 @@ export const en = {
     clientAgreement: 'Client Agreement',
     contractorAgreement: 'Contractor Agreement',
     materials: 'Materials marketplaces',
+    help: 'Help',
   },
   auth: {
     welcomeBack: 'Welcome back',

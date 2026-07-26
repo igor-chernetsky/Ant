@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
+import { HelpTip } from '@/components/help/HelpTip';
 import { HomeHero } from '@/components/HomeHero';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
@@ -33,6 +34,7 @@ import {
   fetchLocationCatalog,
   type LocationCatalog,
 } from '@/lib/locations';
+import { HELP_TIP_IDS } from '@/lib/help-tips';
 
 export default function HomePage() {
   const router = useRouter();
@@ -294,6 +296,14 @@ export default function HomePage() {
 
         {!loading && !error && projects.length === 0 && (
           <section className="card empty-state">
+            {canAddProject && (
+              <HelpTip
+                tipId={HELP_TIP_IDS.homeEmpty}
+                title={t('help.tipHomeEmptyTitle')}
+                body={t('help.tipHomeEmptyBody')}
+                learnMoreHref="/help#client-first-project"
+              />
+            )}
             <p className="muted">
               {canAddProject
                 ? t('home.emptyNoMatchCanAdd')

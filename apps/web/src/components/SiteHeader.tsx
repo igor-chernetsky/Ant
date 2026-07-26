@@ -167,6 +167,15 @@ export function SiteHeader({
             >
               {t('header.materials')}
             </Link>
+            <Link
+              href="/help"
+              className={headerNavClass(pathname, '/help')}
+              aria-current={
+                isHeaderNavActive(pathname, '/help') ? 'page' : undefined
+              }
+            >
+              {t('header.help')}
+            </Link>
             {isContractor && (
               <Link
                 href="/contractor"
