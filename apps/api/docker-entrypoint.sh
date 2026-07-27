@@ -17,6 +17,9 @@ if [ "$#" -gt 0 ]; then
 fi
 
 echo "Running database migrations..."
+# One-time recovery: clarification migration failed on PG < 15 when ADD VALUE
+# and UPDATE ran in the same transaction. Re-apply is safe (IF NOT EXISTS + separate backfill).
+npx prisma migrate resolve --rolled-back "20260727180000_project_status_clarification" 2>/dev/null || true
 npx prisma migrate deploy
 
 echo "Starting API on port ${PORT:-3000}..."
