@@ -102,11 +102,6 @@ export function HomeProjectFilters({
     () => balancedSegmentGridStyle(statusButtonCount),
     [statusButtonCount],
   );
-  const projectTrackButtonCount = 1 + PROJECT_TRACKS.length;
-  const projectTrackGridStyle = useMemo(
-    () => balancedSegmentGridStyle(projectTrackButtonCount),
-    [projectTrackButtonCount],
-  );
 
   const areas = useMemo(
     () =>
@@ -292,10 +287,9 @@ export function HomeProjectFilters({
               {t('filters.projectTrackLabel')}
             </span>
             <div
-              className="project-filters-segmented project-filters-segmented--balanced"
+              className="project-filters-segmented project-filters-segmented--track"
               role="group"
               aria-label={t('filters.projectTrackAria')}
-              style={projectTrackGridStyle}
             >
               <button
                 type="button"

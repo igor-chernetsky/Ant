@@ -1069,15 +1069,21 @@ pre {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  width: fit-content;
+  max-width: 100%;
+  align-self: start;
 }
 
 .project-tile-icon-only {
-  max-width: 7.5rem;
+  width: 7.5rem;
+  max-width: 100%;
   opacity: 0.95;
 }
 
 .project-tile-icon-only .project-tile-media {
+  height: auto;
   aspect-ratio: 1;
+  width: 100%;
 }
 
 .project-tile-icon-only .project-tile-status {
@@ -1493,6 +1499,33 @@ pre {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.project-filters-segmented--track {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.project-filters-segmented--track .project-filters-segment {
+  flex: 1 1 auto;
+  min-height: 2.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+@media (min-width: 900px) {
+  .project-filters-segmented--track {
+    flex-wrap: nowrap;
+  }
+
+  .project-filters-segmented--track .project-filters-segment {
+    flex: 1 1 0;
+    white-space: nowrap;
+    padding-inline: 0.5rem;
+    font-size: 0.78rem;
+  }
 }
 
 .project-filters-segment {
