@@ -23,6 +23,7 @@ export interface PublicProjectCard {
   coverImageUrl: string | null;
   updatedAt: string;
   applicationsDeadlinePassed?: boolean;
+  canOpenDetail?: boolean;
 }
 
 import type { ProjectTrack } from '@/lib/service-filters';

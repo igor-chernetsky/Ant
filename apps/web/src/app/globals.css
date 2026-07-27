@@ -1065,6 +1065,32 @@ pre {
   transform: none;
 }
 
+.project-tile-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.project-tile-icon-only {
+  max-width: 7.5rem;
+  opacity: 0.95;
+}
+
+.project-tile-icon-only .project-tile-media {
+  aspect-ratio: 1;
+}
+
+.project-tile-icon-only .project-tile-status {
+  font-size: 0.62rem;
+  padding: 0.15rem 0.35rem;
+}
+
+.project-tile-icon-only .project-tile-placeholder span {
+  font-size: 0.72rem;
+  text-align: center;
+  padding: 0.35rem;
+}
+
 .project-tile-access-hint {
   margin: 0.5rem 0 0;
   font-size: 0.85rem;
@@ -1452,6 +1478,21 @@ pre {
   border-radius: 12px;
   border: 1px solid var(--border);
   background: #f8fafc;
+}
+
+.project-filters-segmented--balanced {
+  display: grid;
+  grid-auto-rows: 1fr;
+}
+
+.project-filters-segmented--balanced .project-filters-segment {
+  flex: unset;
+  white-space: normal;
+  text-align: center;
+  min-height: 2.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .project-filters-segment {

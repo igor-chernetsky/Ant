@@ -141,6 +141,29 @@ export default function ProjectBidsPage() {
     [tender],
   );
 
+  const bidsRevision = useMemo(() => {
+    if (!tender) {
+      return '';
+    }
+    const bidSnapshot = [...tender.bids]
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((bid) => {
+        const contract = bid.terms?.contractTerms;
+        return [
+          bid.id,
+          bid.status,
+          bid.amount,
+          bid.durationDays ?? '',
+          bid.terms?.scopeSummary ?? '',
+          bid.terms?.approach ?? '',
+          contract?.advancePaymentPercent ?? '',
+          contract?.defectNotificationMonths ?? '',
+        ].join(':');
+      })
+      .join('|');
+    return `${tender.updatedAt}|${bidSnapshot}`;
+  }, [tender]);
+
   return (
     <PageShell>
       <SiteHeader
@@ -266,6 +289,7 @@ export default function ProjectBidsPage() {
                           ? tender.submittedBidCount
                           : comparableBids.length
                       }
+                      bidsRevision={bidsRevision}
                     />
                     <BidsCompareTable
                       bids={comparableBids}

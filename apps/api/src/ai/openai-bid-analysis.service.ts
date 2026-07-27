@@ -5,7 +5,9 @@ import {
   BidAnalysisResult,
 } from './bid-analysis.types';
 import {
+  buildEmployerComparisonFacts,
   employerBidAnalysisPromptRules,
+  enforceEmployerBidAnalysis,
   serializeBidForEmployerAnalysis,
 } from './bid-analysis-employer.utils';
 
@@ -48,6 +50,7 @@ ${employerBidAnalysisPromptRules()}`;
 
     const user = JSON.stringify({
       audience: 'employer_client',
+      employerComparisonFacts: buildEmployerComparisonFacts(context),
       project: {
         title: context.projectTitle,
         description: context.projectDescription,
@@ -66,7 +69,7 @@ ${employerBidAnalysisPromptRules()}`;
         },
         body: JSON.stringify({
           model: this.model,
-          temperature: 0.35,
+          temperature: 0.15,
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: system },
@@ -125,18 +128,21 @@ ${employerBidAnalysisPromptRules()}`;
         ? context.bids.find((bid) => bid.id === recommendedBidId)
         : null;
 
-      return {
-        recommendedBidId,
-        recommendedCompanyName:
-          parsed.recommendedCompanyName?.trim() ||
-          recommendedBid?.companyName ||
-          null,
-        summary: parsed.summary?.trim() || 'No summary generated.',
-        reasoning: parsed.reasoning?.trim() || parsed.summary?.trim() || '',
-        comparisons,
-        confidence: Math.min(1, Math.max(0, parsed.confidence ?? 0.55)),
-        provider: 'openai',
-      };
+      return enforceEmployerBidAnalysis(
+        {
+          recommendedBidId,
+          recommendedCompanyName:
+            parsed.recommendedCompanyName?.trim() ||
+            recommendedBid?.companyName ||
+            null,
+          summary: parsed.summary?.trim() || 'No summary generated.',
+          reasoning: parsed.reasoning?.trim() || parsed.summary?.trim() || '',
+          comparisons,
+          confidence: Math.min(1, Math.max(0, parsed.confidence ?? 0.55)),
+          provider: 'openai',
+        },
+        context,
+      );
     } catch (err) {
       this.logger.warn(
         `OpenAI bid analysis failed: ${err instanceof Error ? err.message : String(err)}`,

@@ -1,4 +1,10 @@
-import { ProjectType, PropertyType, SupplyProfileKind } from '@prisma/client';
+import {
+  ProjectLinkKind,
+  ProjectStatus,
+  ProjectType,
+  PropertyType,
+  SupplyProfileKind,
+} from '@prisma/client';
 
 /** Project types that can be converted into Design & Permits. */
 export const CONVERTIBLE_TO_DESIGN_TYPES: ProjectType[] = [
@@ -78,4 +84,44 @@ export function requiredSupplyKindForProjectType(
 
 export function isConvertibleToDesign(projectType: ProjectType): boolean {
   return CONVERTIBLE_TO_DESIGN_TYPES.includes(projectType);
+}
+
+/** Default construction type when branching from a standalone design card. */
+export const DEFAULT_CONSTRUCTION_TYPE_FROM_DESIGN = ProjectType.new_build;
+
+const DESIGN_TO_CONSTRUCTION_BLOCKED_STATUSES: ProjectStatus[] = [
+  ProjectStatus.in_tender,
+  ProjectStatus.awarded,
+  ProjectStatus.active,
+  ProjectStatus.completed,
+  ProjectStatus.pending,
+];
+
+export function canResumeConstruction(
+  project: {
+    projectType: ProjectType;
+    status: ProjectStatus;
+    linkedProjectId: string | null;
+  },
+  linkedConstruction?: {
+    status: ProjectStatus;
+    linkKind: ProjectLinkKind;
+  } | null,
+): boolean {
+  if (project.projectType !== ProjectType.design) {
+    return false;
+  }
+  if (DESIGN_TO_CONSTRUCTION_BLOCKED_STATUSES.includes(project.status)) {
+    return false;
+  }
+  if (!project.linkedProjectId) {
+    return true;
+  }
+  if (!linkedConstruction) {
+    return false;
+  }
+  return (
+    linkedConstruction.status === ProjectStatus.pending &&
+    linkedConstruction.linkKind === ProjectLinkKind.construction_pending
+  );
 }

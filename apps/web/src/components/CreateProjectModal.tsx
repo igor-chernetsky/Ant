@@ -12,8 +12,14 @@ import {
 } from '@/lib/locations';
 import { ensureSessionFresh } from '@/lib/session';
 import {
+  PROJECT_TRACKS,
+  projectTrackI18nKey,
+  propertyTypeFilterI18nKey,
+  type ProjectTrack,
+} from '@/lib/service-filters';
+import {
   CLARIFICATION_MODE_OPTIONS,
-  PROJECT_TYPE_OPTIONS,
+  CONSTRUCTION_PROJECT_TYPE_OPTIONS,
   PROPERTY_TYPE_OPTIONS,
   createProject,
   type ClarificationMode,
@@ -28,6 +34,8 @@ interface CreateProjectModalProps {
   onSessionExpired?: () => void;
 }
 
+const DEFAULT_CONSTRUCTION_TYPE: ProjectType = 'renovation';
+
 export function CreateProjectModal({
   isOpen,
   onClose,
@@ -35,10 +43,13 @@ export function CreateProjectModal({
   onSessionExpired,
 }: CreateProjectModalProps) {
   const { t } = useTranslation();
-  const { formatProjectType, formatPropertyType } = useAppFormatters();
+  const { formatProjectType } = useAppFormatters();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [projectType, setProjectType] = useState<ProjectType>('renovation');
+  const [projectTrack, setProjectTrack] = useState<ProjectTrack>('construction');
+  const [projectType, setProjectType] = useState<ProjectType>(
+    DEFAULT_CONSTRUCTION_TYPE,
+  );
   const [propertyType, setPropertyType] = useState<PropertyType | ''>('');
   const [locationCatalog, setLocationCatalog] = useState<LocationCatalog | null>(
     null,
@@ -57,6 +68,17 @@ export function CreateProjectModal({
     if (!isOpen) {
       return;
     }
+
+    setTitle('');
+    setDescription('');
+    setProjectTrack('construction');
+    setProjectType(DEFAULT_CONSTRUCTION_TYPE);
+    setPropertyType('');
+    setLocationAreaSlug('');
+    setLocationNote('');
+    setClarificationMode('open_chat');
+    setError(null);
+
     void ensureSessionFresh();
     void fetchLocationCatalog()
       .then((catalog) => {
@@ -70,9 +92,26 @@ export function CreateProjectModal({
     return null;
   }
 
+  const handleTrackChange = (track: ProjectTrack) => {
+    setProjectTrack(track);
+    if (track === 'design') {
+      setProjectType('design');
+      return;
+    }
+    if (projectType === 'design') {
+      setProjectType(DEFAULT_CONSTRUCTION_TYPE);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
+
+    if (!propertyType) {
+      setError(t('createProject.propertyTypeRequired'));
+      return;
+    }
+
     setCreating(true);
     try {
       const sessionOk = await ensureSessionFresh();
@@ -82,11 +121,14 @@ export function CreateProjectModal({
         return;
       }
 
+      const resolvedProjectType: ProjectType =
+        projectTrack === 'design' ? 'design' : projectType;
+
       const project = await createProject({
         title,
         description: description.trim() || undefined,
-        projectType,
-        propertyType: propertyType || undefined,
+        projectType: resolvedProjectType,
+        propertyType,
         locationRegionSlug,
         locationAreaSlug: locationAreaSlug || undefined,
         locationNote: locationNote.trim() || undefined,
@@ -139,6 +181,72 @@ export function CreateProjectModal({
         <p className="muted modal-subtitle">{t('createProject.subtitle')}</p>
 
         <form onSubmit={handleSubmit} className="modal-form">
+          <div className="clarification-mode-field">
+            <span className="clarification-mode-label">
+              {t('filters.projectTrackLabel')}
+            </span>
+            <div
+              className="clarification-mode-switch"
+              role="radiogroup"
+              aria-label={t('filters.projectTrackAria')}
+            >
+              {PROJECT_TRACKS.map((track) => (
+                <button
+                  key={track}
+                  type="button"
+                  role="radio"
+                  aria-checked={projectTrack === track}
+                  className={`clarification-mode-switch-btn${
+                    projectTrack === track
+                      ? ' clarification-mode-switch-btn--active'
+                      : ''
+                  }`}
+                  onClick={() => handleTrackChange(track)}
+                >
+                  {t(projectTrackI18nKey(track))}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label>
+            {t('createProject.propertyTypeLabel')}
+            <select
+              value={propertyType}
+              onChange={(e) =>
+                setPropertyType(e.target.value as PropertyType | '')
+              }
+              required
+            >
+              <option value="" disabled>
+                {t('createProject.selectPropertyType')}
+              </option>
+              {PROPERTY_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(propertyTypeFilterI18nKey(option.value))}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {projectTrack === 'construction' && (
+            <label>
+              {t('createProject.projectTypeLabel')}
+              <select
+                value={projectType}
+                onChange={(e) =>
+                  setProjectType(e.target.value as ProjectType)
+                }
+              >
+                {CONSTRUCTION_PROJECT_TYPE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {formatProjectType(option.value)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
           <label>
             {t('createProject.titleLabel')}
             <input
@@ -159,39 +267,6 @@ export function CreateProjectModal({
               rows={4}
             />
           </label>
-          <div className="form-row">
-            <label>
-              {t('createProject.projectTypeLabel')}
-              <select
-                value={projectType}
-                onChange={(e) =>
-                  setProjectType(e.target.value as ProjectType)
-                }
-              >
-                {PROJECT_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {formatProjectType(option.value)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t('createProject.propertyTypeLabel')}
-              <select
-                value={propertyType}
-                onChange={(e) =>
-                  setPropertyType(e.target.value as PropertyType | '')
-                }
-              >
-                <option value="">{t('createProject.notSpecified')}</option>
-                {PROPERTY_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {formatPropertyType(option.value)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
           {locationCatalog ? (
             <ProjectLocationFields
               catalog={locationCatalog}
@@ -247,7 +322,9 @@ export function CreateProjectModal({
             <button
               type="submit"
               className="primary"
-              disabled={creating || title.trim().length < 3}
+              disabled={
+                creating || title.trim().length < 3 || propertyType === ''
+              }
             >
               {creating ? t('createProject.creating') : t('createProject.createButton')}
             </button>

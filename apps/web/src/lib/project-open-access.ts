@@ -19,14 +19,24 @@ export type ProjectOpenContext = {
   projectType?: string;
 };
 
+function hasRegisteredSupplyProfile(
+  me: MeResponse | null,
+  kind: 'contractor' | 'designer',
+): boolean {
+  if (!me?.companyName?.trim()) {
+    return false;
+  }
+  return kind === 'designer' ? isDesignerUser(me) : isContractorUser(me);
+}
+
 function supplySideMayOpenInTender(
   projectType: string | undefined,
   me: MeResponse | null,
 ): boolean {
   if (projectType === 'design') {
-    return isDesignerUser(me);
+    return hasRegisteredSupplyProfile(me, 'designer');
   }
-  return isContractorUser(me);
+  return hasRegisteredSupplyProfile(me, 'contractor');
 }
 
 /**

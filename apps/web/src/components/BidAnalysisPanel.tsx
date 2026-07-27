@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   fetchBidAnalysis,
@@ -11,12 +11,15 @@ import {
 interface BidAnalysisPanelProps {
   projectId: string;
   submittedBidCount: number;
+  /** Changes when bid amounts/terms update — triggers analysis state refresh. */
+  bidsRevision?: string;
   onAnalysisUpdated?: () => void;
 }
 
 export function BidAnalysisPanel({
   projectId,
   submittedBidCount,
+  bidsRevision = '',
   onAnalysisUpdated,
 }: BidAnalysisPanelProps) {
   const { t } = useTranslation();
@@ -24,24 +27,34 @@ export function BidAnalysisPanel({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnce = useRef(false);
 
-  const loadAnalysis = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchBidAnalysis(projectId);
-      setState(data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('bidAnalysis.loadFailed'));
-      setState(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId]);
+  const loadAnalysis = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const silent = options?.silent === true;
+      if (!silent) {
+        setLoading(true);
+      }
+      setError(null);
+      try {
+        const data = await fetchBidAnalysis(projectId);
+        setState(data);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : t('bidAnalysis.loadFailed'));
+        setState(null);
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [projectId, t],
+  );
 
   useEffect(() => {
-    void loadAnalysis();
-  }, [loadAnalysis]);
+    void loadAnalysis({ silent: hasLoadedOnce.current });
+    hasLoadedOnce.current = true;
+  }, [loadAnalysis, bidsRevision]);
 
   const handleAnalyze = async () => {
     setBusy(true);

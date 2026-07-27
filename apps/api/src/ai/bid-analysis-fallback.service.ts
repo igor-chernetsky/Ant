@@ -3,7 +3,7 @@ import {
   BidAnalysisContext,
   BidAnalysisResult,
 } from './bid-analysis.types';
-import { employerContractTermNotes } from './bid-analysis-employer.utils';
+import { employerContractTermNotes, enforceEmployerBidAnalysis } from './bid-analysis-employer.utils';
 
 @Injectable()
 export class BidAnalysisFallbackService {
@@ -72,14 +72,17 @@ export class BidAnalysisFallbackService {
       ? `With limited AI configuration, the fallback ranks bids primarily by total price from the employer's perspective. ${recommended.companyName ?? 'The lowest bidder'} at ${Number(recommended.amount).toLocaleString()} THB is the default pick, but validate scope, exclusions, timeline, and contract terms (lower advance and stronger delay damages favour you as employer).`
       : 'Add at least two contractor bids before running analysis.';
 
-    return {
-      recommendedBidId: recommended?.id ?? null,
-      recommendedCompanyName: recommended?.companyName ?? null,
-      summary,
-      reasoning,
-      comparisons,
-      confidence: 0.3,
-      provider: 'fallback',
-    };
+    return enforceEmployerBidAnalysis(
+      {
+        recommendedBidId: recommended?.id ?? null,
+        recommendedCompanyName: recommended?.companyName ?? null,
+        summary,
+        reasoning,
+        comparisons,
+        confidence: 0.3,
+        provider: 'fallback',
+      },
+      context,
+    );
   }
 }

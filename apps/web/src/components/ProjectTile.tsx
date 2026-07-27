@@ -45,8 +45,13 @@ export function ProjectTile({
     isAwardedContractor,
     projectType: project.projectType,
   };
-  const canOpen = canOpenProjectDetail(project.status, openContext);
+  const canOpen =
+    isOwned ||
+    project.canOpenDetail === true ||
+    (project.canOpenDetail !== false &&
+      canOpenProjectDetail(project.status, openContext));
   const blockReason = getProjectOpenBlockReason(project.status, openContext);
+  const showIconOnly = !isOwned && !canOpen;
 
   const excerpt =
     project.description && project.description.length > 160
@@ -59,7 +64,9 @@ export function ProjectTile({
 
   const className = `project-tile${isOwned ? ' project-tile-owned' : ''}${
     contractorParticipation && !isOwned ? ' project-tile-participating' : ''
-  }${!canOpen ? ' project-tile-locked' : ''}`;
+  }${showIconOnly ? ' project-tile-icon-only' : ''}${
+    !canOpen && !showIconOnly ? ' project-tile-locked' : ''
+  }`;
 
   const body = (
     <>
@@ -102,35 +109,41 @@ export function ProjectTile({
           </span>
         )}
       </div>
-      <div className="project-tile-body">
-        <h3 className="project-tile-title">{project.title}</h3>
-        <p className="project-tile-meta muted">
-          {formatProjectType(project.projectType as ProjectType)}
-          {project.district ? ` · ${project.district}` : ''}
-        </p>
-        {participationLabel && (
-          <p className="project-tile-participation muted">{participationLabel}</p>
-        )}
-        {excerpt && <p className="project-tile-description">{excerpt}</p>}
-        {project.tags.length > 0 && (
-          <div className="project-tile-tags">
-            {project.tags.slice(0, 4).map((tag) => (
-              <span key={tag.slug} className="tag-pill tag-pill-ai">
-                {tag.label}
-              </span>
-            ))}
-          </div>
-        )}
-        {accessHint && (
-          <p className="project-tile-access-hint muted" role="status">
-            {accessHint}
+      {!showIconOnly && (
+        <div className="project-tile-body">
+          <h3 className="project-tile-title">{project.title}</h3>
+          <p className="project-tile-meta muted">
+            {formatProjectType(project.projectType as ProjectType)}
+            {project.district ? ` · ${project.district}` : ''}
           </p>
-        )}
-      </div>
+          {participationLabel && (
+            <p className="project-tile-participation muted">{participationLabel}</p>
+          )}
+          {excerpt && <p className="project-tile-description">{excerpt}</p>}
+          {project.tags.length > 0 && (
+            <div className="project-tile-tags">
+              {project.tags.slice(0, 4).map((tag) => (
+                <span key={tag.slug} className="tag-pill tag-pill-ai">
+                  {tag.label}
+                </span>
+              ))}
+            </div>
+          )}
+          {accessHint && (
+            <p className="project-tile-access-hint muted" role="status">
+              {accessHint}
+            </p>
+          )}
+        </div>
+      )}
     </>
   );
 
   const handleLockedClick = () => {
+    if (showIconOnly) {
+      setAccessHint(t('projectTile.iconOnlyHint'));
+      return;
+    }
     if (blockReason === 'login_designer') {
       setAccessHint(t('projectTile.signInDesignerHint'));
       setLoginOpen(true);
@@ -159,14 +172,29 @@ export function ProjectTile({
           {body}
         </Link>
       ) : (
-        <button
-          type="button"
-          className={className}
-          onClick={handleLockedClick}
-          aria-label={t('projectTile.lockedAria', { title: project.title })}
-        >
-          {body}
-        </button>
+        <div className="project-tile-stack">
+          <button
+            type="button"
+            className={className}
+            onClick={() => void handleLockedClick()}
+            aria-label={
+              showIconOnly
+                ? t('projectTile.iconOnlyAria', {
+                    type: formatProjectType(project.projectType as ProjectType),
+                  })
+                : t('projectTile.lockedAria', {
+                    title: project.title || project.id,
+                  })
+            }
+          >
+            {body}
+          </button>
+          {showIconOnly && accessHint && (
+            <p className="project-tile-access-hint muted" role="status">
+              {accessHint}
+            </p>
+          )}
+        </div>
       )}
 
       <LoginModal

@@ -78,7 +78,10 @@ export class TenderInvitesService {
     if (invite.expiresAt && invite.expiresAt.getTime() < Date.now()) {
       return false;
     }
-    if (invite.tender.status !== TenderStatus.open) {
+    if (
+      invite.tender.status !== TenderStatus.open &&
+      invite.tender.status !== TenderStatus.draft
+    ) {
       return false;
     }
 
@@ -180,9 +183,12 @@ export class TenderInvitesService {
         'Invites are only available while the tender is open',
       );
     }
-    if (project.tender.status !== TenderStatus.open) {
+    if (
+      project.tender.status !== TenderStatus.open &&
+      project.tender.status !== TenderStatus.draft
+    ) {
       throw new BadRequestException(
-        'Invites are only available while the tender is accepting interest',
+        'Invites are only available during tender publication or clarification',
       );
     }
     return { project, tender: project.tender };

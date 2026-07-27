@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { FilterMultiSelect } from '@/components/FilterMultiSelect';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
@@ -30,6 +30,11 @@ const CLIENT_WORKSPACE_STATUS_VALUES = [
 const PRIMARY_STATUS_VALUES = ['in_tender', 'awarded', 'active'] as const;
 
 const SECONDARY_STATUS_VALUES = ['completed', 'hidden'] as const;
+
+function balancedSegmentGridStyle(itemCount: number): CSSProperties {
+  const columns = Math.max(2, Math.ceil(itemCount / 2));
+  return { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };
+}
 
 export interface HomeProjectFilterState {
   tags: string[];
@@ -90,6 +95,17 @@ export function HomeProjectFilters({
       }),
     ],
     [showClientWorkspaceFilters, showHiddenFilter, showCompletedFilter],
+  );
+
+  const statusButtonCount = 1 + statusValues.length;
+  const statusGridStyle = useMemo(
+    () => balancedSegmentGridStyle(statusButtonCount),
+    [statusButtonCount],
+  );
+  const projectTrackButtonCount = 1 + PROJECT_TRACKS.length;
+  const projectTrackGridStyle = useMemo(
+    () => balancedSegmentGridStyle(projectTrackButtonCount),
+    [projectTrackButtonCount],
   );
 
   const areas = useMemo(
@@ -276,9 +292,10 @@ export function HomeProjectFilters({
               {t('filters.projectTrackLabel')}
             </span>
             <div
-              className="project-filters-segmented"
+              className="project-filters-segmented project-filters-segmented--balanced"
               role="group"
               aria-label={t('filters.projectTrackAria')}
+              style={projectTrackGridStyle}
             >
               <button
                 type="button"
@@ -314,9 +331,10 @@ export function HomeProjectFilters({
           <div className="project-filters-status-section">
             <span className="project-filters-field-label">{t('filters.status')}</span>
             <div
-              className="project-filters-segmented"
+              className="project-filters-segmented project-filters-segmented--balanced"
               role="group"
               aria-label={t('filters.statusAria')}
+              style={statusGridStyle}
             >
               <button
                 type="button"

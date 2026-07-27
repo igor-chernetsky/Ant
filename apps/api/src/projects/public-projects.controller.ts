@@ -50,6 +50,7 @@ export class PublicProjectsController {
       projectTrack,
       propertyTypeSlugs,
       locale,
+      { isAdmin: Boolean(req.user && hasRole(req.user, 'admin')) },
     );
   }
 

@@ -571,4 +571,98 @@ export class DocumentsService {
       },
     });
   }
+
+  /**
+   * Duplicate uploaded documents from one project card to another (new S3 keys).
+   * When skipIfExists is true, skips files that already exist on the target
+   * (matched by original name and size).
+   */
+  async copyDocumentsToProject(input: {
+    sourceProjectId: string;
+    targetProjectId: string;
+    skipIfExists?: boolean;
+  }): Promise<void> {
+    const sourceDocs = await this.prisma.document.findMany({
+      where: {
+        projectId: input.sourceProjectId,
+        status: DocumentStatus.uploaded,
+      },
+    });
+    if (sourceDocs.length === 0) {
+      return;
+    }
+
+    let existingKeys = new Set<string>();
+    if (input.skipIfExists) {
+      const targetDocs = await this.prisma.document.findMany({
+        where: {
+          projectId: input.targetProjectId,
+          status: DocumentStatus.uploaded,
+        },
+        select: { originalName: true, sizeBytes: true },
+      });
+      existingKeys = new Set(
+        targetDocs.map((doc) => `${doc.originalName}:${doc.sizeBytes ?? 0}`),
+      );
+    }
+
+    if (!this.storage.isConfigured()) {
+      return;
+    }
+
+    for (const doc of sourceDocs) {
+      const dedupeKey = `${doc.originalName}:${doc.sizeBytes ?? 0}`;
+      if (input.skipIfExists && existingKeys.has(dedupeKey)) {
+        continue;
+      }
+
+      const documentId = randomUUID();
+      const storageKey = buildStorageKey(
+        input.targetProjectId,
+        documentId,
+        doc.originalName,
+      );
+
+      const body = await this.storage.getObjectBuffer(doc.storageKey);
+      await this.storage.putObject({
+        storageKey,
+        body,
+        contentType: doc.contentType,
+      });
+
+      let thumbnailStorageKey: string | null = null;
+      if (doc.thumbnailStorageKey) {
+        thumbnailStorageKey = buildDocumentThumbnailKey(
+          input.targetProjectId,
+          documentId,
+        );
+        const thumbBody = await this.storage.getObjectBuffer(
+          doc.thumbnailStorageKey,
+        );
+        await this.storage.putObject({
+          storageKey: thumbnailStorageKey,
+          body: thumbBody,
+          contentType: 'image/jpeg',
+        });
+      }
+
+      await this.prisma.document.create({
+        data: {
+          id: documentId,
+          projectId: input.targetProjectId,
+          uploaderId: doc.uploaderId,
+          originalName: doc.originalName,
+          contentType: doc.contentType,
+          sizeBytes: doc.sizeBytes,
+          storageKey,
+          thumbnailStorageKey,
+          category: doc.category,
+          status: DocumentStatus.uploaded,
+          uploadedAt: doc.uploadedAt ?? new Date(),
+        },
+      });
+
+      existingKeys.add(dedupeKey);
+    }
+  }
 }

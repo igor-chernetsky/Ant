@@ -9,9 +9,7 @@ export const PROPERTY_TYPE_FILTER_SLUGS = PROPERTY_TYPES;
 export type PropertyTypeFilterSlug = (typeof PROPERTY_TYPE_FILTER_SLUGS)[number];
 
 export function projectTrackI18nKey(track: ProjectTrack): string {
-  return track === 'design'
-    ? 'designPermits.trackLabel'
-    : 'filters.projectTrack.construction';
+  return `filters.projectTrack.${track}`;
 }
 
 export function propertyTypeFilterI18nKey(

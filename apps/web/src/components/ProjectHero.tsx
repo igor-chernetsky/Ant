@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { ProjectLocationMap } from '@/components/ProjectLocationMap';
@@ -9,6 +10,7 @@ import {
   convertProjectToDesign,
   formatDateTime,
   PROPERTY_TYPE_OPTIONS,
+  resumeConstructionFromDesign,
   resumePendingProject,
   updateProjectCard,
   type Project,
@@ -44,6 +46,7 @@ export function ProjectHero({
   onCardUpdated,
 }: ProjectHeroProps) {
   const { t, locale } = useTranslation();
+  const router = useRouter();
   const { formatProjectStatus, formatProjectType, formatPropertyType } =
     useAppFormatters();
   const [editing, setEditing] = useState(false);
@@ -63,6 +66,9 @@ export function ProjectHero({
     DESIGN_HINT_TYPES.has(project.projectType);
   const canConvert = Boolean(canEditCard && project.canConvertToDesign);
   const canResume = Boolean(canEditCard && project.status === 'pending');
+  const canResumeConstruction = Boolean(
+    canEditCard && project.canResumeConstruction,
+  );
 
   useEffect(() => {
     if (!editing) {
@@ -143,6 +149,23 @@ export function ProjectHero({
         err instanceof Error
           ? err.message
           : t('designPermits.resumeFailed'),
+      );
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  const handleResumeConstruction = async () => {
+    setConverting(true);
+    setError(null);
+    try {
+      const construction = await resumeConstructionFromDesign(project.id);
+      router.push(`/projects/${construction.id}`);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('designPermits.resumeConstructionFailed'),
       );
     } finally {
       setConverting(false);
@@ -251,7 +274,11 @@ export function ProjectHero({
             </>
           )}
 
-          {(canConvert || canResume || showDesignHint || project.linkedProjectId) && (
+          {(canConvert ||
+            canResume ||
+            canResumeConstruction ||
+            showDesignHint ||
+            project.linkedProjectId) && (
             <div className="project-hero-design-actions">
               {showDesignHint && (
                 <p
@@ -272,6 +299,19 @@ export function ProjectHero({
                   {converting
                     ? t('common.saving')
                     : t('designPermits.convertButton')}
+                </button>
+              )}
+              {canResumeConstruction && (
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => void handleResumeConstruction()}
+                  disabled={converting || saving}
+                  title={t('designPermits.resumeConstructionTooltip')}
+                >
+                  {converting
+                    ? t('common.saving')
+                    : t('designPermits.resumeConstructionButton')}
                 </button>
               )}
               {canResume && (

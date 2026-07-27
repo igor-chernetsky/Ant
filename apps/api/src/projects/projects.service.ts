@@ -35,7 +35,11 @@ import {
   normalizePropertyTypeFilterSlugs,
   type ProjectTrack,
 } from './discover-filters';
-import { isConvertibleToDesign } from './design-permits.utils';
+import {
+  canResumeConstruction,
+  DEFAULT_CONSTRUCTION_TYPE_FROM_DESIGN,
+  isConvertibleToDesign,
+} from './design-permits.utils';
 
 import {
 
@@ -93,6 +97,14 @@ type ProjectWithTags = Project & {
 
 };
 
+type DiscoverViewerContext = {
+  userId: string | null;
+  isAdmin: boolean;
+  isContractor: boolean;
+  isDesigner: boolean;
+  awardedProjectIds: Set<string>;
+};
+
 
 
 @Injectable()
@@ -136,6 +148,10 @@ export class ProjectsService {
   toResponse(
     project: ProjectWithTags,
     estimate: ProjectResponse['estimate'] = null,
+    linkedConstruction?: {
+      status: ProjectStatus;
+      linkKind: ProjectLinkKind;
+    } | null,
   ): ProjectResponse {
 
     return {
@@ -179,6 +195,10 @@ export class ProjectsService {
         ).includes(project.status) &&
         project.linkKind !== ProjectLinkKind.design_active &&
         project.linkKind !== ProjectLinkKind.construction_pending,
+      canResumeConstruction: canResumeConstruction(
+        project,
+        linkedConstruction,
+      ),
 
       brief: project.briefJson as ProjectResponse['brief'],
 
@@ -234,7 +254,34 @@ export class ProjectsService {
 
     });
 
-    return projects.map((project) => this.toResponse(project, null));
+    const linkedIds = projects
+      .filter(
+        (project) =>
+          project.projectType === ProjectType.design && project.linkedProjectId,
+      )
+      .map((project) => project.linkedProjectId as string);
+
+    const linkedRows =
+      linkedIds.length > 0
+        ? await this.prisma.project.findMany({
+            where: { id: { in: linkedIds } },
+            select: { id: true, status: true, linkKind: true },
+          })
+        : [];
+
+    const linkedById = new Map(
+      linkedRows.map((row) => [row.id, row] as const),
+    );
+
+    return projects.map((project) =>
+      this.toResponse(
+        project,
+        null,
+        project.linkedProjectId
+          ? (linkedById.get(project.linkedProjectId) ?? null)
+          : null,
+      ),
+    );
 
   }
 
@@ -265,6 +312,7 @@ export class ProjectsService {
     projectTrack: ProjectTrack | null = null,
     propertyTypeSlugs: string[] = [],
     viewerLocale?: SupportedLocale,
+    viewerOptions?: { isAdmin?: boolean },
   ): Promise<PublicProjectCard[]> {
     const includesHidden = statuses.includes(DISCOVERY_FILTER_HIDDEN);
     const includesCompleted = statuses.includes(ProjectStatus.completed);
@@ -291,6 +339,10 @@ export class ProjectsService {
     const participantProjectIds = userId
       ? await this.loadParticipantProjectIds(userId)
       : new Set<string>();
+    const viewer = await this.resolveDiscoverViewer(
+      userId,
+      viewerOptions?.isAdmin ?? false,
+    );
 
     const tagFilter: Prisma.ProjectWhereInput | undefined =
       tagSlugs.length > 0
@@ -413,7 +465,7 @@ export class ProjectsService {
       );
     });
 
-    return this.mapPublicProjectCards(visibleProjects, viewerLocale);
+    return this.mapPublicProjectCards(visibleProjects, viewerLocale, viewer);
   }
 
   private buildDiscoverWhere(
@@ -516,7 +568,114 @@ export class ProjectsService {
       include: this.includeTags(),
     });
 
-    return this.mapPublicProjectCards(projects, viewerLocale);
+    const viewer = await this.resolveDiscoverViewer(clientId, false);
+    return this.mapPublicProjectCards(projects, viewerLocale, viewer);
+  }
+
+  private async resolveDiscoverViewer(
+    userId: string | null,
+    isAdmin = false,
+  ): Promise<DiscoverViewerContext> {
+    if (!userId) {
+      return {
+        userId: null,
+        isAdmin,
+        isContractor: false,
+        isDesigner: false,
+        awardedProjectIds: new Set(),
+      };
+    }
+
+    const [isContractor, isDesigner, awardedProjectIds] = await Promise.all([
+      this.userIsContractor(userId),
+      this.userIsDesigner(userId),
+      this.loadAwardedProjectIds(userId),
+    ]);
+
+    return {
+      userId,
+      isAdmin,
+      isContractor,
+      isDesigner,
+      awardedProjectIds,
+    };
+  }
+
+  private async loadAwardedProjectIds(userId: string): Promise<Set<string>> {
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!profile) {
+      return new Set();
+    }
+
+    const [selectedBids, awardedTenders] = await Promise.all([
+      this.prisma.bid.findMany({
+        where: {
+          contractorId: profile.id,
+          status: BidStatus.selected,
+        },
+        select: { tender: { select: { projectId: true } } },
+      }),
+      this.prisma.tender.findMany({
+        where: { awardedBid: { contractorId: profile.id } },
+        select: { projectId: true },
+      }),
+    ]);
+
+    return new Set([
+      ...selectedBids.map((bid) => bid.tender.projectId),
+      ...awardedTenders.map((tender) => tender.projectId),
+    ]);
+  }
+
+  private canViewerOpenDiscoverCard(
+    project: Project & {
+      tender?: { status: string; closesAt: Date | null } | null;
+    },
+    viewer: DiscoverViewerContext,
+  ): boolean {
+    const isOwner = Boolean(
+      viewer.userId && project.clientId === viewer.userId,
+    );
+    const isAwardedContractor = viewer.awardedProjectIds.has(project.id);
+
+    if (
+      !canOpenProjectDetail(
+        project.status,
+        {
+          isOwner,
+          isAdmin: viewer.isAdmin,
+          isContractor: viewer.isContractor,
+          isDesigner: viewer.isDesigner,
+          isAwardedContractor,
+        },
+        project.projectType,
+      )
+    ) {
+      return false;
+    }
+
+    const isSupplySide =
+      (viewer.isContractor && project.projectType !== ProjectType.design) ||
+      (viewer.isDesigner && project.projectType === ProjectType.design);
+
+    if (
+      project.status === ProjectStatus.in_tender &&
+      project.tender &&
+      shouldHideProjectFromPublicDiscovery({
+        tenderStatus: project.tender.status,
+        closesAt: project.tender.closesAt,
+      }) &&
+      !isSupplySide &&
+      !isOwner &&
+      !viewer.isAdmin
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   private async mapPublicProjectCards(
@@ -526,6 +685,7 @@ export class ProjectsService {
       }
     >,
     viewerLocale?: SupportedLocale,
+    viewer?: DiscoverViewerContext,
   ): Promise<PublicProjectCard[]> {
     const projectIds = projects.map((p) => p.id);
     const coverByProject = await this.loadCoverUrls(projectIds);
@@ -547,28 +707,34 @@ export class ProjectsService {
           }
         }
 
+        const canOpenDetail = viewer
+          ? this.canViewerOpenDiscoverCard(project, viewer)
+          : false;
+        const tags = this.mapTags(project).map((t) => ({
+          slug: t.slug,
+          label: t.label,
+        }));
+
         return {
           id: project.id,
-          title,
-          description,
+          title: canOpenDetail ? title : '',
+          description: canOpenDetail ? description : null,
           projectType: project.projectType,
-          district: project.district,
+          district: canOpenDetail ? project.district : null,
           locationRegionSlug: project.locationRegionSlug,
           locationAreaSlug: project.locationAreaSlug,
-          locationNote: project.locationNote,
+          locationNote: canOpenDetail ? project.locationNote : null,
           regionCode: project.regionCode,
           status: project.status,
           isHidden: project.isHidden,
           readinessScore: project.readinessScore,
-          tags: this.mapTags(project).map((t) => ({
-            slug: t.slug,
-            label: t.label,
-          })),
+          tags: canOpenDetail ? tags : [],
           coverImageUrl: coverByProject.get(project.id) ?? null,
           updatedAt: project.updatedAt.toISOString(),
           applicationsDeadlinePassed:
             this.shouldShowApplicationDeadlineWarning(project) &&
             this.isApplicationsDeadlinePassedForProject(project),
+          canOpenDetail,
         };
       }),
     );
@@ -740,12 +906,8 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    const isContractor =
-      Boolean(options?.isContractorRole) ||
-      (userId ? await this.userIsContractor(userId) : false);
-    const isDesigner =
-      Boolean(options?.isDesignerRole) ||
-      (userId ? await this.userIsDesigner(userId) : false);
+    const isContractor = userId ? await this.userIsContractor(userId) : false;
+    const isDesigner = userId ? await this.userIsDesigner(userId) : false;
     const isAwardedContractor = userId
       ? await this.userIsAwardedContractor(userId, projectId)
       : false;
@@ -1092,9 +1254,24 @@ export class ProjectsService {
       orderBy: { createdAt: 'desc' },
     });
 
+    let linkedConstruction: {
+      status: ProjectStatus;
+      linkKind: ProjectLinkKind;
+    } | null = null;
+    if (
+      project.projectType === ProjectType.design &&
+      project.linkedProjectId
+    ) {
+      linkedConstruction = await this.prisma.project.findUnique({
+        where: { id: project.linkedProjectId },
+        select: { status: true, linkKind: true },
+      });
+    }
+
     const response = this.toResponse(
       project,
       estimate ? this.estimatesService.toResponse(estimate) : null,
+      linkedConstruction,
     );
 
     return this.applyViewerLocale(response, project, viewerLocale);
@@ -1372,8 +1549,6 @@ export class ProjectsService {
         });
       }
 
-      // Documents stay on the active design card; snapshot keeps brief/estimate/tags.
-
       for (const estimate of project.estimates) {
         await tx.estimate.create({
           data: {
@@ -1441,8 +1616,165 @@ export class ProjectsService {
       await this.estimatesService.generateAndStore(project.id);
     }
 
-    void snapshot;
+    await this.documents.copyDocumentsToProject({
+      sourceProjectId: project.id,
+      targetProjectId: snapshot.id,
+    });
+
     return this.getForClient(clientId, projectId, viewerLocale);
+  }
+
+  /**
+   * Open construction from a Design & Permits card: resume a linked Pending
+   * snapshot or create a new construction card when none exists yet.
+   */
+  async resumeConstructionFromDesign(
+    clientId: string,
+    designProjectId: string,
+    viewerLocale?: SupportedLocale,
+  ): Promise<ProjectResponse> {
+    const design = await this.prisma.project.findUnique({
+      where: { id: designProjectId },
+      include: {
+        tags: true,
+        estimates: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+    if (!design) {
+      throw new NotFoundException('Project not found');
+    }
+    if (design.clientId !== clientId) {
+      throw new ForbiddenException('Access denied');
+    }
+    if (design.projectType !== ProjectType.design) {
+      throw new BadRequestException(
+        'Only Design & Permits cards can open construction',
+      );
+    }
+
+    const linkedConstruction = design.linkedProjectId
+      ? await this.prisma.project.findUnique({
+          where: { id: design.linkedProjectId },
+        })
+      : null;
+
+    if (!canResumeConstruction(design, linkedConstruction)) {
+      throw new BadRequestException(
+        linkedConstruction
+          ? 'Construction card already exists for this design project'
+          : 'Cannot open construction for this design project',
+      );
+    }
+
+    if (!design.linkedProjectId) {
+      return this.createConstructionFromDesign(clientId, design, viewerLocale);
+    }
+
+    if (!linkedConstruction || linkedConstruction.clientId !== clientId) {
+      throw new NotFoundException('Linked construction card not found');
+    }
+
+    await this.documents.copyDocumentsToProject({
+      sourceProjectId: design.id,
+      targetProjectId: linkedConstruction.id,
+      skipIfExists: true,
+    });
+
+    return this.resumePending(clientId, linkedConstruction.id, viewerLocale);
+  }
+
+  private async createConstructionFromDesign(
+    clientId: string,
+    design: Project & {
+      tags: ProjectTag[];
+      estimates: Array<{
+        version: number;
+        type: string;
+        currency: string;
+        totalsJson: Prisma.JsonValue;
+        linesJson: Prisma.JsonValue;
+        confidence: number;
+        disclaimer: string;
+      }>;
+    },
+    viewerLocale?: SupportedLocale,
+  ): Promise<ProjectResponse> {
+    const brief = (design.briefJson ?? {}) as unknown as ProjectBriefV1;
+    const constructionBrief: ProjectBriefV1 = {
+      ...brief,
+      design: {
+        ...(brief.design ?? {}),
+        needsDesignTender: false,
+      },
+    };
+
+    const construction = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          clientId: design.clientId,
+          title: design.title,
+          description: design.description,
+          projectType: DEFAULT_CONSTRUCTION_TYPE_FROM_DESIGN,
+          propertyType: design.propertyType,
+          propertyOwnershipForm: design.propertyOwnershipForm,
+          district: design.district,
+          locationRegionSlug: design.locationRegionSlug,
+          locationAreaSlug: design.locationAreaSlug,
+          locationNote: design.locationNote,
+          regionCode: design.regionCode,
+          status: design.status,
+          isHidden: false,
+          readinessScore: design.readinessScore,
+          briefJson: constructionBrief as unknown as Prisma.InputJsonValue,
+          clarificationMode: design.clarificationMode,
+          clarificationSummary: design.clarificationSummary,
+          scopeSummary: design.scopeSummary,
+          sourceLocale: design.sourceLocale,
+          tenderContractTermsJson:
+            design.tenderContractTermsJson ?? Prisma.JsonNull,
+          linkKind: ProjectLinkKind.none,
+        },
+      });
+
+      if (design.tags.length) {
+        await tx.projectTag.createMany({
+          data: design.tags.map((tag) => ({
+            projectId: created.id,
+            tagId: tag.tagId,
+            source: tag.source,
+          })),
+        });
+      }
+
+      await tx.project.update({
+        where: { id: design.id },
+        data: {
+          linkKind: ProjectLinkKind.design_active,
+          linkedProjectId: created.id,
+        },
+      });
+
+      await tx.project.update({
+        where: { id: created.id },
+        data: { linkedProjectId: design.id },
+      });
+
+      return created;
+    });
+
+    await this.documents.copyDocumentsToProject({
+      sourceProjectId: design.id,
+      targetProjectId: construction.id,
+    });
+
+    if (
+      design.status === ProjectStatus.estimated ||
+      design.status === ProjectStatus.ready_for_estimate
+    ) {
+      await this.estimatesService.generateAndStore(construction.id);
+    }
+
+    return this.getForClient(clientId, construction.id, viewerLocale);
   }
 
   /**
