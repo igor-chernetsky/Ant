@@ -10,6 +10,7 @@ import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
   canOpenProjectDetail,
   getProjectOpenBlockReason,
+  type ProjectOpenBlockReason,
 } from '@/lib/project-open-access';
 import type { ProjectType } from '@/lib/projects';
 import type { PublicProjectCard } from '@/lib/public-projects';
@@ -20,6 +21,24 @@ interface ProjectTileProps {
   project: PublicProjectCard;
   isOwned?: boolean;
   contractorParticipation?: ContractorApplicationItem | null;
+}
+
+function LockIcon() {
+  return (
+    <svg
+      className="project-tile-lock-icon"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden
+      focusable="false"
+    >
+      <path
+        fill="currentColor"
+        d="M17 8h-1V6a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4V6Zm7 13H7v-9h10v9Zm-5-3a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
+      />
+    </svg>
+  );
 }
 
 export function ProjectTile({
@@ -33,7 +52,6 @@ export function ProjectTile({
   const { formatProjectStatus, formatProjectType, formatParticipationLabel } =
     useAppFormatters();
   const [loginOpen, setLoginOpen] = useState(false);
-  const [accessHint, setAccessHint] = useState<string | null>(null);
 
   const isAwardedContractor =
     contractorParticipation?.bidStatus === 'selected' ||
@@ -51,7 +69,8 @@ export function ProjectTile({
     (project.canOpenDetail !== false &&
       canOpenProjectDetail(project.status, openContext));
   const blockReason = getProjectOpenBlockReason(project.status, openContext);
-  const showIconOnly = !isOwned && !canOpen;
+
+  const lockedMessage = lockedMessageForReason(blockReason, t);
 
   const excerpt =
     project.description && project.description.length > 160
@@ -62,10 +81,13 @@ export function ProjectTile({
     ? formatParticipationLabel(contractorParticipation)
     : null;
 
+  const needsSignIn =
+    blockReason === 'login_designer' || blockReason === 'login_contractor';
+
   const className = `project-tile${isOwned ? ' project-tile-owned' : ''}${
     contractorParticipation && !isOwned ? ' project-tile-participating' : ''
-  }${showIconOnly ? ' project-tile-icon-only' : ''}${
-    !canOpen && !showIconOnly ? ' project-tile-locked' : ''
+  }${!canOpen ? ' project-tile-locked' : ''}${
+    needsSignIn ? ' project-tile-locked--signin' : ''
   }`;
 
   const body = (
@@ -89,6 +111,11 @@ export function ProjectTile({
             ? t('projectTile.hidden')
             : formatProjectStatus(project.status)}
         </span>
+        {!canOpen && (
+          <span className="project-tile-lock-badge" aria-hidden>
+            <LockIcon />
+          </span>
+        )}
         {isOwned && project.applicationsDeadlinePassed && (
           <span
             className="project-tile-expired-badge"
@@ -109,60 +136,42 @@ export function ProjectTile({
           </span>
         )}
       </div>
-      {!showIconOnly && (
-        <div className="project-tile-body">
-          <h3 className="project-tile-title">{project.title}</h3>
-          <p className="project-tile-meta muted">
-            {formatProjectType(project.projectType as ProjectType)}
-            {project.district ? ` · ${project.district}` : ''}
+      <div className="project-tile-body">
+        <h3 className="project-tile-title">{project.title}</h3>
+        <p className="project-tile-meta muted">
+          {formatProjectType(project.projectType as ProjectType)}
+          {project.district ? ` · ${project.district}` : ''}
+        </p>
+        {participationLabel && (
+          <p className="project-tile-participation muted">{participationLabel}</p>
+        )}
+        {excerpt && <p className="project-tile-description">{excerpt}</p>}
+        {project.tags.length > 0 && (
+          <div className="project-tile-tags">
+            {project.tags.slice(0, 4).map((tag) => (
+              <span key={tag.slug} className="tag-pill tag-pill-ai">
+                {tag.label}
+              </span>
+            ))}
+          </div>
+        )}
+        {!canOpen && lockedMessage && (
+          <p className="project-tile-access-hint" role="status">
+            <LockIcon />
+            <span>{lockedMessage}</span>
           </p>
-          {participationLabel && (
-            <p className="project-tile-participation muted">{participationLabel}</p>
-          )}
-          {excerpt && <p className="project-tile-description">{excerpt}</p>}
-          {project.tags.length > 0 && (
-            <div className="project-tile-tags">
-              {project.tags.slice(0, 4).map((tag) => (
-                <span key={tag.slug} className="tag-pill tag-pill-ai">
-                  {tag.label}
-                </span>
-              ))}
-            </div>
-          )}
-          {accessHint && (
-            <p className="project-tile-access-hint muted" role="status">
-              {accessHint}
-            </p>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 
   const handleLockedClick = () => {
-    if (showIconOnly) {
-      setAccessHint(t('projectTile.iconOnlyHint'));
-      return;
-    }
-    if (blockReason === 'login_designer') {
-      setAccessHint(t('projectTile.signInDesignerHint'));
+    if (
+      blockReason === 'login_designer' ||
+      blockReason === 'login_contractor'
+    ) {
       setLoginOpen(true);
-      return;
     }
-    if (blockReason === 'login_contractor') {
-      setAccessHint(t('projectTile.signInContractorHint'));
-      setLoginOpen(true);
-      return;
-    }
-    if (blockReason === 'designer_only') {
-      setAccessHint(t('projectTile.designerOnlyHint'));
-      return;
-    }
-    if (blockReason === 'contractor_only') {
-      setAccessHint(t('projectTile.contractorOnlyHint'));
-      return;
-    }
-    setAccessHint(t('projectTile.partiesOnlyHint'));
   };
 
   return (
@@ -172,29 +181,16 @@ export function ProjectTile({
           {body}
         </Link>
       ) : (
-        <div className="project-tile-stack">
-          <button
-            type="button"
-            className={className}
-            onClick={() => void handleLockedClick()}
-            aria-label={
-              showIconOnly
-                ? t('projectTile.iconOnlyAria', {
-                    type: formatProjectType(project.projectType as ProjectType),
-                  })
-                : t('projectTile.lockedAria', {
-                    title: project.title || project.id,
-                  })
-            }
-          >
-            {body}
-          </button>
-          {showIconOnly && accessHint && (
-            <p className="project-tile-access-hint muted" role="status">
-              {accessHint}
-            </p>
-          )}
-        </div>
+        <button
+          type="button"
+          className={className}
+          onClick={() => void handleLockedClick()}
+          aria-label={t('projectTile.lockedAria', {
+            title: project.title || project.id,
+          })}
+        >
+          {body}
+        </button>
       )}
 
       <LoginModal
@@ -202,7 +198,6 @@ export function ProjectTile({
         onClose={() => setLoginOpen(false)}
         onSuccess={async () => {
           setLoginOpen(false);
-          setAccessHint(null);
           const nextMe = await refreshSession();
           if (
             canOpenProjectDetail(project.status, {
@@ -213,21 +208,29 @@ export function ProjectTile({
             })
           ) {
             router.push(`/projects/${project.id}`);
-            return;
-          }
-          if (
-            nextMe &&
-            project.projectType === 'design' &&
-            !isDesignerUser(nextMe)
-          ) {
-            setAccessHint(t('projectTile.designerOnlyHint'));
-          } else if (nextMe && !isContractorUser(nextMe)) {
-            setAccessHint(t('projectTile.contractorOnlyHint'));
-          } else {
-            setAccessHint(t('projectTile.partiesOnlyHint'));
           }
         }}
       />
     </>
   );
+}
+
+function lockedMessageForReason(
+  reason: ProjectOpenBlockReason,
+  t: (key: string) => string,
+): string | null {
+  switch (reason) {
+    case 'login_designer':
+      return t('projectTile.signInDesignerHint');
+    case 'login_contractor':
+      return t('projectTile.signInContractorHint');
+    case 'designer_only':
+      return t('projectTile.designerOnlyHint');
+    case 'contractor_only':
+      return t('projectTile.contractorOnlyHint');
+    case 'parties_only':
+      return t('projectTile.partiesOnlyHint');
+    default:
+      return t('projectTile.lockedGenericHint');
+  }
 }

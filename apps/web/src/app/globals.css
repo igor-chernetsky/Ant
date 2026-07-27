@@ -1058,49 +1058,60 @@ pre {
 
 .project-tile-locked {
   cursor: default;
-  opacity: 0.92;
+  opacity: 0.62;
+  filter: grayscale(0.35);
+}
+
+.project-tile-locked--signin {
+  cursor: pointer;
 }
 
 .project-tile-locked:hover {
   transform: none;
+  opacity: 0.72;
+  border-color: var(--glass-border);
+  box-shadow: var(--shadow-glass);
 }
 
-.project-tile-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  width: fit-content;
-  max-width: 100%;
-  align-self: start;
+.project-tile-lock-badge {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
 }
 
-.project-tile-icon-only {
-  width: 7.5rem;
-  max-width: 100%;
-  opacity: 0.95;
-}
-
-.project-tile-icon-only .project-tile-media {
-  height: auto;
-  aspect-ratio: 1;
-  width: 100%;
-}
-
-.project-tile-icon-only .project-tile-status {
-  font-size: 0.62rem;
-  padding: 0.15rem 0.35rem;
-}
-
-.project-tile-icon-only .project-tile-placeholder span {
-  font-size: 0.72rem;
-  text-align: center;
-  padding: 0.35rem;
+.project-tile-lock-icon {
+  display: block;
+  flex-shrink: 0;
 }
 
 .project-tile-access-hint {
-  margin: 0.5rem 0 0;
-  font-size: 0.85rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--muted);
+  font-size: 0.82rem;
   line-height: 1.35;
+}
+
+.project-tile-access-hint .project-tile-lock-icon {
+  margin-top: 0.1rem;
+  width: 0.95rem;
+  height: 0.95rem;
+  opacity: 0.85;
 }
 
 .project-tile-owned {

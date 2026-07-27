@@ -718,18 +718,18 @@ export class ProjectsService {
 
         return {
           id: project.id,
-          title: canOpenDetail ? title : '',
-          description: canOpenDetail ? description : null,
+          title,
+          description,
           projectType: project.projectType,
-          district: canOpenDetail ? project.district : null,
+          district: project.district,
           locationRegionSlug: project.locationRegionSlug,
           locationAreaSlug: project.locationAreaSlug,
-          locationNote: canOpenDetail ? project.locationNote : null,
+          locationNote: project.locationNote,
           regionCode: project.regionCode,
           status: project.status,
           isHidden: project.isHidden,
           readinessScore: project.readinessScore,
-          tags: canOpenDetail ? tags : [],
+          tags,
           coverImageUrl: coverByProject.get(project.id) ?? null,
           updatedAt: project.updatedAt.toISOString(),
           applicationsDeadlinePassed:
