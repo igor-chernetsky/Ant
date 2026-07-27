@@ -34,7 +34,7 @@ interface TenderSummaryCardProps {
 }
 
 function canPublishProject(project: Project): boolean {
-  return ['estimated', 'in_tender'].includes(project.status);
+  return ['estimated', 'clarification', 'in_tender'].includes(project.status);
 }
 
 export function TenderSummaryCard({

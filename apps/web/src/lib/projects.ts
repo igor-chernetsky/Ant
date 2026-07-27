@@ -418,6 +418,7 @@ export function formatProjectStatus(status: string): string {
   const labels: Record<string, string> = {
     awarded: 'Winner selected',
     ready_for_estimate: 'Ready for estimate',
+    clarification: 'Clarification',
     in_tender: 'In tender',
   };
   return labels[status] ?? status.replaceAll('_', ' ');

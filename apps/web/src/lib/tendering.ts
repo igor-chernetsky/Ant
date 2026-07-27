@@ -957,6 +957,7 @@ export function isClarificationAnsweringPhase(
 export function isTenderEligibleProjectStatus(status: string): boolean {
   return [
     'estimated',
+    'clarification',
     'in_tender',
     'awarded',
   ].includes(status);

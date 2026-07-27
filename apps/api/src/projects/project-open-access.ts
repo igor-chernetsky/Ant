@@ -1,10 +1,11 @@
 import { ProjectStatus, ProjectType } from '@prisma/client';
 
 /**
- * Statuses any registered supply-side user may open (Accepting bids),
- * subject to designer vs contractor matching project type.
+ * Statuses any registered supply-side user may open (Clarification /
+ * Accepting bids), subject to designer vs contractor matching project type.
  */
 export const CONTRACTOR_OPEN_STATUSES: ProjectStatus[] = [
+  ProjectStatus.clarification,
   ProjectStatus.in_tender,
 ];
 

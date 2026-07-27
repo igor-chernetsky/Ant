@@ -13,7 +13,7 @@ const STAGES = [
   },
   {
     id: 'tender',
-    statuses: ['in_tender'],
+    statuses: ['clarification', 'in_tender'],
   },
   {
     id: 'award',

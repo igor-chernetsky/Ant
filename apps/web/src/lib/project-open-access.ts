@@ -4,7 +4,7 @@ import {
   type MeResponse,
 } from '@/lib/session';
 
-const CONTRACTOR_OPEN_STATUSES = new Set(['in_tender']);
+const CONTRACTOR_OPEN_STATUSES = new Set(['clarification', 'in_tender']);
 const RESTRICTED_OPEN_STATUSES = new Set([
   'awarded',
   'active',

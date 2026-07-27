@@ -158,6 +158,7 @@ export const enExtended = {
     ready_for_estimate: "Ready for estimate",
     estimated: "Estimated",
     pending: "Pending",
+    clarification: "Clarification",
     in_tender: "Accepting bids",
     awarded: "Winner selected",
     active: "Active",

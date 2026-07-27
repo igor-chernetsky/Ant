@@ -90,6 +90,7 @@ export function isConvertibleToDesign(projectType: ProjectType): boolean {
 export const DEFAULT_CONSTRUCTION_TYPE_FROM_DESIGN = ProjectType.new_build;
 
 const DESIGN_TO_CONSTRUCTION_BLOCKED_STATUSES: ProjectStatus[] = [
+  ProjectStatus.clarification,
   ProjectStatus.in_tender,
   ProjectStatus.awarded,
   ProjectStatus.active,

@@ -191,6 +191,7 @@ export class DocumentAnalysisService {
         freshProject.status === ProjectStatus.estimated ||
         freshProject.status === ProjectStatus.ready_for_estimate ||
         freshProject.status === ProjectStatus.intake ||
+        freshProject.status === ProjectStatus.clarification ||
         freshProject.status === ProjectStatus.in_tender);
 
     if (shouldRefreshEstimate) {

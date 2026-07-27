@@ -27,7 +27,12 @@ const CLIENT_WORKSPACE_STATUS_VALUES = [
   'estimated',
 ] as const;
 
-const PRIMARY_STATUS_VALUES = ['in_tender', 'awarded', 'active'] as const;
+const PRIMARY_STATUS_VALUES = [
+  'clarification',
+  'in_tender',
+  'awarded',
+  'active',
+] as const;
 
 const SECONDARY_STATUS_VALUES = ['completed', 'hidden'] as const;
 

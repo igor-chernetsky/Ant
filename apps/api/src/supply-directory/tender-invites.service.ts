@@ -178,7 +178,11 @@ export class TenderInvitesService {
     if (project.clientId !== clientId) {
       throw new ForbiddenException('Only the project owner can send invites');
     }
-    if (project.status !== ProjectStatus.in_tender || !project.tender) {
+    if (
+      (project.status !== ProjectStatus.in_tender &&
+        project.status !== ProjectStatus.clarification) ||
+      !project.tender
+    ) {
       throw new BadRequestException(
         'Invites are only available while the tender is open',
       );

@@ -662,7 +662,8 @@ export class ProjectsService {
       (viewer.isDesigner && project.projectType === ProjectType.design);
 
     if (
-      project.status === ProjectStatus.in_tender &&
+      (project.status === ProjectStatus.in_tender ||
+        project.status === ProjectStatus.clarification) &&
       project.tender &&
       shouldHideProjectFromPublicDiscovery({
         tenderStatus: project.tender.status,
@@ -898,7 +899,11 @@ export class ProjectsService {
       projectId,
       options?.inviteToken,
     );
-    if (hasValidInvite && project.status === ProjectStatus.in_tender) {
+    if (
+      hasValidInvite &&
+      (project.status === ProjectStatus.in_tender ||
+        project.status === ProjectStatus.clarification)
+    ) {
       return project;
     }
 
@@ -936,7 +941,11 @@ export class ProjectsService {
     if (
       project.isHidden &&
       !isAwardedContractor &&
-      !(isSupplySide && project.status === ProjectStatus.in_tender)
+      !(
+        isSupplySide &&
+        (project.status === ProjectStatus.in_tender ||
+          project.status === ProjectStatus.clarification)
+      )
     ) {
       throw new NotFoundException('Project not found');
     }
@@ -944,7 +953,8 @@ export class ProjectsService {
     // Past applications deadline: keep listing hide for guests; supply side
     // may still open Accepting bids cards; restricted stages use award ACL above.
     if (
-      project.status === ProjectStatus.in_tender &&
+      (project.status === ProjectStatus.in_tender ||
+        project.status === ProjectStatus.clarification) &&
       project.tender &&
       shouldHideProjectFromPublicDiscovery({
         tenderStatus: project.tender.status,
@@ -1490,6 +1500,7 @@ export class ProjectsService {
       );
     }
     if (
+      project.status === ProjectStatus.clarification ||
       project.status === ProjectStatus.in_tender ||
       project.status === ProjectStatus.awarded ||
       project.status === ProjectStatus.active ||

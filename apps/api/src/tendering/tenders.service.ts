@@ -277,7 +277,10 @@ export class TendersService {
     });
 
     if (!tender) {
-      if (project.status === ProjectStatus.in_tender) {
+      if (
+        project.status === ProjectStatus.in_tender ||
+        project.status === ProjectStatus.clarification
+      ) {
         return this.createTender(clientId, projectId);
       }
       return null;
@@ -470,7 +473,9 @@ export class TendersService {
       await tx.project.update({
         where: { id: projectId },
         data: {
-          status: ProjectStatus.in_tender,
+          status: structuredClarification
+            ? ProjectStatus.clarification
+            : ProjectStatus.in_tender,
           ...this.projectPublishPackageUpdate(dto),
         },
       });
@@ -672,7 +677,10 @@ export class TendersService {
   ): Promise<void> {
     const project = await this.assertProjectOwner(projectId, clientId);
 
-    if (project.status !== ProjectStatus.in_tender) {
+    if (
+      project.status !== ProjectStatus.in_tender &&
+      project.status !== ProjectStatus.clarification
+    ) {
       throw new BadRequestException('Project is not published for bids');
     }
 

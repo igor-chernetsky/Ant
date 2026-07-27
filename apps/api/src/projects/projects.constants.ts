@@ -5,6 +5,7 @@ import { ProjectStatus } from '@prisma/client';
  * Pre-tender stages stay client-only until the client publishes a tender.
  */
 export const DISCOVERY_STATUSES: ProjectStatus[] = [
+  ProjectStatus.clarification,
   ProjectStatus.in_tender,
   ProjectStatus.awarded,
   ProjectStatus.active,

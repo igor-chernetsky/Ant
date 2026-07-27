@@ -13,6 +13,7 @@ enum ProjectStatus {
   ready_for_estimate
   estimated
   pending
+  clarification
   in_tender
   awarded
   active

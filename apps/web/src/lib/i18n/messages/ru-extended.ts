@@ -158,6 +158,7 @@ export const ruExtended = {
     ready_for_estimate: "Готов к оценке",
     estimated: "Оценён",
     pending: "Ожидание",
+    clarification: "Уточнение",
     in_tender: "Приём заявок",
     awarded: "Подрядчик выбран",
     active: "Активный",

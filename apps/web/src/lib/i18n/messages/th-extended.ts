@@ -158,6 +158,7 @@ export const thExtended = {
     ready_for_estimate: "พร้อมประเมินราคา",
     estimated: "ประเมินราคาแล้ว",
     pending: "รอดำเนินการ",
+    clarification: "ชี้แจง",
     in_tender: "เปิดรับประมูล",
     awarded: "เลือกผู้ชนะแล้ว",
     active: "กำลังดำเนินการ",

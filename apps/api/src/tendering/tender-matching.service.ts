@@ -61,6 +61,7 @@ export class TenderMatchingService {
   assertProjectEligibleForTender(project: Project): void {
     const allowed: ProjectStatus[] = [
       ProjectStatus.estimated,
+      ProjectStatus.clarification,
       ProjectStatus.in_tender,
     ];
     if (!allowed.includes(project.status)) {
