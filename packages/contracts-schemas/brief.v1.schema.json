@@ -29,7 +29,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["apartment", "house", "commercial", "land", "other"]
+          "enum": ["residential", "commercial", "industrial_infrastructure", "public", "other"]
         },
         "areaSqm": { "type": "number", "minimum": 0 },
         "floors": { "type": "integer", "minimum": 0 },

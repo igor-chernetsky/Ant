@@ -24,7 +24,7 @@ export function formatProjectType(type: string, t?: TranslateFn): string {
 
 export function formatPropertyType(type: string | null, t?: TranslateFn): string {
   if (!type) return t?.('common.dash') ?? '—';
-  return formatProjectType(type, t);
+  return tOrFallback(t, `propertyType.${type}`, type.replaceAll('_', ' '));
 }
 
 export function formatTenderStatus(status: string, t?: TranslateFn): string {

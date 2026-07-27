@@ -1,4 +1,12 @@
 import { fetchWithAuth } from './auth-client';
+import {
+  PROPERTY_TYPES,
+  type PropertyType,
+  propertyTypeI18nKey,
+} from './property-types';
+
+export type { PropertyType };
+export { PROPERTY_TYPES, propertyTypeI18nKey };
 
 export type ProjectType =
   | 'renovation'
@@ -8,13 +16,6 @@ export type ProjectType =
   | 'repair'
   | 'modernization_reconstruction'
   | 'design'
-  | 'other';
-
-export type PropertyType =
-  | 'apartment'
-  | 'house'
-  | 'commercial'
-  | 'land'
   | 'other';
 
 export type TagSource = 'client' | 'ai';
@@ -184,13 +185,10 @@ export const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> 
 export const PROPERTY_TYPE_OPTIONS: Array<{
   value: PropertyType;
   label: string;
-}> = [
-  { value: 'apartment', label: 'Apartment' },
-  { value: 'house', label: 'House' },
-  { value: 'commercial', label: 'Commercial' },
-  { value: 'land', label: 'Land' },
-  { value: 'other', label: 'Other' },
-];
+}> = PROPERTY_TYPES.map((value) => ({
+  value,
+  label: value,
+}));
 
 export async function fetchProjects(): Promise<Project[]> {
   const response = await fetchWithAuth('/api/projects');
@@ -224,6 +222,7 @@ export async function createProject(
 export interface UpdateProjectCardInput {
   title?: string;
   description?: string | null;
+  propertyType?: PropertyType | null;
 }
 
 export async function updateProjectCard(
@@ -410,7 +409,7 @@ export function formatProjectType(type: ProjectType): string {
 
 export function formatPropertyType(type: PropertyType | null): string {
   if (!type) return '—';
-  return PROPERTY_TYPE_OPTIONS.find((o) => o.value === type)?.label ?? type;
+  return type.replaceAll('_', ' ');
 }
 
 export function formatDateTime(iso: string): string {

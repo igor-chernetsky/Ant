@@ -55,8 +55,8 @@ export default function HomePage() {
     statuses: [],
     regionSlug: '',
     areaSlug: '',
-    services: [],
-    propertyOwnership: [],
+    projectTrack: null,
+    propertyTypes: [],
   });
   const [contractorFilterInitialized, setContractorFilterInitialized] =
     useState(false);
@@ -75,8 +75,8 @@ export default function HomePage() {
         statuses: next.statuses,
         regionSlug: next.regionSlug || undefined,
         areaSlug: next.areaSlug || undefined,
-        services: next.services,
-        propertyOwnership: next.propertyOwnership,
+        projectTrack: next.projectTrack,
+        propertyTypes: next.propertyTypes,
       });
       setProjects(list);
     } catch (err: unknown) {
@@ -122,8 +122,8 @@ export default function HomePage() {
         statuses: [],
         regionSlug: '',
         areaSlug: '',
-        services: [],
-        propertyOwnership: [],
+        projectTrack: null,
+        propertyTypes: [],
       });
       return;
     }

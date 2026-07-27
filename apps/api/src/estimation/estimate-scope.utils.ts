@@ -110,16 +110,13 @@ export function buildEstimateScopeRules(
     );
   }
 
-  if (
-    propertyType === 'house' ||
-    (propertyType === 'apartment' && projectType !== 'commercial_fitout')
-  ) {
+  if (propertyType === 'residential') {
     lines.push(
-      'For house or apartment projects: do NOT include elevators, lifts, podium works, or commercial-scale building services unless intake answers or description explicitly require them.',
+      'For residential projects: do NOT include elevators, lifts, podium works, or commercial-scale building services unless intake answers or description explicitly require them.',
     );
   }
 
-  if (projectType === 'new_build' && propertyType === 'house') {
+  if (projectType === 'new_build' && propertyType === 'residential') {
     lines.push(
       'Typical single-family new build: structural, roofing, MEP (electrical, plumbing, hvac), windows-doors, finishing — not passenger elevators unless confirmed.',
     );
@@ -235,7 +232,7 @@ export function filterEstimateLines(input: {
     }
 
     if (
-      (input.propertyType === 'house' || input.propertyType === 'apartment') &&
+      input.propertyType === 'residential' &&
       isElevatorLine(line) &&
       input.projectType !== 'commercial_fitout'
     ) {

@@ -12,12 +12,12 @@ import {
   type LocationCatalog,
 } from '@/lib/locations';
 import {
-  PROPERTY_OWNERSHIP_FILTER_SLUGS,
-  SERVICE_FILTER_GROUPS,
-  ownershipFilterI18nKey,
-  serviceFilterI18nKey,
-  type PropertyOwnershipFilterSlug,
-  type ServiceFilterSlug,
+  PROPERTY_TYPE_FILTER_SLUGS,
+  PROJECT_TRACKS,
+  propertyTypeFilterI18nKey,
+  projectTrackI18nKey,
+  type ProjectTrack,
+  type PropertyTypeFilterSlug,
 } from '@/lib/service-filters';
 
 // Keep order aligned with the project lifecycle presented on the product UI.
@@ -36,8 +36,9 @@ export interface HomeProjectFilterState {
   statuses: string[];
   regionSlug: string;
   areaSlug: string;
-  services: ServiceFilterSlug[];
-  propertyOwnership: PropertyOwnershipFilterSlug[];
+  /** `null` = all tracks. */
+  projectTrack: ProjectTrack | null;
+  propertyTypes: PropertyTypeFilterSlug[];
 }
 
 interface HomeProjectFiltersProps {
@@ -58,8 +59,8 @@ function countActiveFilters(filters: HomeProjectFilterState): number {
   if (filters.areaSlug) count += 1;
   count += filters.statuses.length;
   count += filters.tags.length;
-  count += filters.services.length;
-  count += filters.propertyOwnership.length;
+  if (filters.projectTrack) count += 1;
+  count += filters.propertyTypes.length;
   return count;
 }
 
@@ -117,18 +118,11 @@ export function HomeProjectFilters({
     update({ statuses: next });
   };
 
-  const toggleService = (slug: ServiceFilterSlug) => {
-    const next = filters.services.includes(slug)
-      ? filters.services.filter((value) => value !== slug)
-      : [...filters.services, slug];
-    update({ services: next });
-  };
-
-  const toggleOwnership = (slug: PropertyOwnershipFilterSlug) => {
-    const next = filters.propertyOwnership.includes(slug)
-      ? filters.propertyOwnership.filter((value) => value !== slug)
-      : [...filters.propertyOwnership, slug];
-    update({ propertyOwnership: next });
+  const togglePropertyType = (slug: PropertyTypeFilterSlug) => {
+    const next = filters.propertyTypes.includes(slug)
+      ? filters.propertyTypes.filter((value) => value !== slug)
+      : [...filters.propertyTypes, slug];
+    update({ propertyTypes: next });
   };
 
   const clearAll = () => {
@@ -137,8 +131,8 @@ export function HomeProjectFilters({
       statuses: [],
       regionSlug: '',
       areaSlug: '',
-      services: [],
-      propertyOwnership: [],
+      projectTrack: null,
+      propertyTypes: [],
     });
   };
 
@@ -168,24 +162,21 @@ export function HomeProjectFilters({
     });
   }
 
-  for (const slug of filters.services) {
+  if (filters.projectTrack) {
     activePills.push({
-      key: `service-${slug}`,
-      label: t(serviceFilterI18nKey(slug)),
-      onRemove: () =>
-        update({
-          services: filters.services.filter((value) => value !== slug),
-        }),
+      key: `track-${filters.projectTrack}`,
+      label: t(projectTrackI18nKey(filters.projectTrack)),
+      onRemove: () => update({ projectTrack: null }),
     });
   }
 
-  for (const slug of filters.propertyOwnership) {
+  for (const slug of filters.propertyTypes) {
     activePills.push({
-      key: `ownership-${slug}`,
-      label: t(ownershipFilterI18nKey(slug)),
+      key: `property-type-${slug}`,
+      label: t(propertyTypeFilterI18nKey(slug)),
       onRemove: () =>
         update({
-          propertyOwnership: filters.propertyOwnership.filter(
+          propertyTypes: filters.propertyTypes.filter(
             (value) => value !== slug,
           ),
         }),
@@ -201,12 +192,6 @@ export function HomeProjectFilters({
         update({ tags: filters.tags.filter((value) => value !== slug) }),
     });
   }
-
-  const serviceGroupLabels = [
-    t('filters.serviceType'),
-    t('filters.newConstruction'),
-    t('filters.design'),
-  ] as const;
 
   return (
     <section className="project-filters" aria-label={t('filters.ariaLabel')}>
@@ -287,6 +272,46 @@ export function HomeProjectFilters({
           </div>
 
           <div className="project-filters-status-section">
+            <span className="project-filters-field-label">
+              {t('filters.projectTrackLabel')}
+            </span>
+            <div
+              className="project-filters-segmented"
+              role="group"
+              aria-label={t('filters.projectTrackAria')}
+            >
+              <button
+                type="button"
+                className={`project-filters-segment${
+                  filters.projectTrack === null
+                    ? ' project-filters-segment--active'
+                    : ''
+                }`}
+                aria-pressed={filters.projectTrack === null}
+                onClick={() => update({ projectTrack: null })}
+              >
+                {t('filters.all')}
+              </button>
+              {PROJECT_TRACKS.map((track) => {
+                const active = filters.projectTrack === track;
+                return (
+                  <button
+                    key={track}
+                    type="button"
+                    className={`project-filters-segment${
+                      active ? ' project-filters-segment--active' : ''
+                    }`}
+                    aria-pressed={active}
+                    onClick={() => update({ projectTrack: track })}
+                  >
+                    {t(projectTrackI18nKey(track))}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="project-filters-status-section">
             <span className="project-filters-field-label">{t('filters.status')}</span>
             <div
               className="project-filters-segmented"
@@ -325,32 +350,16 @@ export function HomeProjectFilters({
           </div>
 
           <div className="project-filters-extra-grid">
-            {SERVICE_FILTER_GROUPS.map((group, index) => (
-              <FilterMultiSelect
-                key={group.id}
-                label={serviceGroupLabels[index]}
-                emptyLabel={t('filters.any')}
-                options={group.slugs.map((slug) => ({
-                  value: slug,
-                  label: t(serviceFilterI18nKey(slug)),
-                }))}
-                selected={filters.services.filter((slug) =>
-                  (group.slugs as readonly string[]).includes(slug),
-                )}
-                onToggle={(value) => toggleService(value as ServiceFilterSlug)}
-              />
-            ))}
-
             <FilterMultiSelect
-              label={t('filters.propertyOwnership')}
+              label={t('createProject.propertyTypeLabel')}
               emptyLabel={t('filters.any')}
-              options={PROPERTY_OWNERSHIP_FILTER_SLUGS.map((slug) => ({
+              options={PROPERTY_TYPE_FILTER_SLUGS.map((slug) => ({
                 value: slug,
-                label: t(ownershipFilterI18nKey(slug)),
+                label: t(propertyTypeFilterI18nKey(slug)),
               }))}
-              selected={filters.propertyOwnership}
+              selected={filters.propertyTypes}
               onToggle={(value) =>
-                toggleOwnership(value as PropertyOwnershipFilterSlug)
+                togglePropertyType(value as PropertyTypeFilterSlug)
               }
             />
 

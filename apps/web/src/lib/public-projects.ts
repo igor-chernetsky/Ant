@@ -25,13 +25,15 @@ export interface PublicProjectCard {
   applicationsDeadlinePassed?: boolean;
 }
 
+import type { ProjectTrack } from '@/lib/service-filters';
+
 export interface PublicProjectListFilters {
   tags?: string[];
   statuses?: string[];
   regionSlug?: string;
   areaSlug?: string;
-  services?: string[];
-  propertyOwnership?: string[];
+  projectTrack?: ProjectTrack | null;
+  propertyTypes?: string[];
 }
 
 export async function fetchPublicProjects(
@@ -39,8 +41,8 @@ export async function fetchPublicProjects(
 ): Promise<PublicProjectCard[]> {
   const tagSlugs = filters.tags ?? [];
   const statuses = filters.statuses ?? [];
-  const services = filters.services ?? [];
-  const propertyOwnership = filters.propertyOwnership ?? [];
+  const projectTrack = filters.projectTrack ?? null;
+  const propertyTypes = filters.propertyTypes ?? [];
   const params = new URLSearchParams();
   for (const slug of tagSlugs) {
     params.append('tag', slug);
@@ -48,11 +50,11 @@ export async function fetchPublicProjects(
   for (const status of statuses) {
     params.append('status', status);
   }
-  for (const service of services) {
-    params.append('service', service);
+  if (projectTrack) {
+    params.append('track', projectTrack);
   }
-  for (const ownership of propertyOwnership) {
-    params.append('ownership', ownership);
+  for (const propertyType of propertyTypes) {
+    params.append('propertyType', propertyType);
   }
   if (filters.regionSlug?.trim()) {
     params.append('region', filters.regionSlug.trim());

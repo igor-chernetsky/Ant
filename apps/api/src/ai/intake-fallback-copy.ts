@@ -19,10 +19,14 @@ const PROPERTY_TYPE: Record<SupportedLocale, LocalizedQuestion> = {
     allowSkip: true,
     allowCustom: true,
     options: [
-      { id: 'apartment', label: 'Apartment' },
-      { id: 'house', label: 'House' },
+      { id: 'residential', label: 'Residential' },
       { id: 'commercial', label: 'Commercial' },
-      { id: 'land', label: 'Land' },
+      {
+        id: 'industrial_infrastructure',
+        label: 'Industrial & Infrastructure',
+      },
+      { id: 'public', label: 'Public' },
+      { id: 'other', label: 'Other' },
     ],
   },
   ru: {
@@ -33,10 +37,14 @@ const PROPERTY_TYPE: Record<SupportedLocale, LocalizedQuestion> = {
     allowSkip: true,
     allowCustom: true,
     options: [
-      { id: 'apartment', label: 'Квартира' },
-      { id: 'house', label: 'Дом' },
-      { id: 'commercial', label: 'Коммерческое помещение' },
-      { id: 'land', label: 'Участок' },
+      { id: 'residential', label: 'Жилое' },
+      { id: 'commercial', label: 'Коммерческое' },
+      {
+        id: 'industrial_infrastructure',
+        label: 'Промышленное и инфраструктура',
+      },
+      { id: 'public', label: 'Государственное / общественное' },
+      { id: 'other', label: 'Другое' },
     ],
   },
   th: {
@@ -47,10 +55,14 @@ const PROPERTY_TYPE: Record<SupportedLocale, LocalizedQuestion> = {
     allowSkip: true,
     allowCustom: true,
     options: [
-      { id: 'apartment', label: 'อพาร์ตเมนต์' },
-      { id: 'house', label: 'บ้าน' },
+      { id: 'residential', label: 'ที่อยู่อาศัย' },
       { id: 'commercial', label: 'เชิงพาณิชย์' },
-      { id: 'land', label: 'ที่ดิน' },
+      {
+        id: 'industrial_infrastructure',
+        label: 'อุตสาหกรรมและโครงสร้างพื้นฐาน',
+      },
+      { id: 'public', label: 'สาธารณะ' },
+      { id: 'other', label: 'อื่นๆ' },
     ],
   },
 };

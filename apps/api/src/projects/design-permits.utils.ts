@@ -49,11 +49,13 @@ export function resolveDesignFeeCategory(input: {
   }
 
   switch (input.propertyType) {
-    case PropertyType.apartment:
-    case PropertyType.house:
+    case PropertyType.residential:
       return 'residential';
     case PropertyType.commercial:
       return 'commercial';
+    case PropertyType.industrial_infrastructure:
+    case PropertyType.public:
+      return 'industrial_public';
     default:
       return 'other';
   }

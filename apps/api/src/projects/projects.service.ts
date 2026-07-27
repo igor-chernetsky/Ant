@@ -30,10 +30,10 @@ import {
 } from './projects.constants';
 import { shouldHideProjectFromPublicDiscovery } from '../tendering/tender-deadline';
 import {
-  buildOwnershipFilter,
-  buildServiceFilter,
-  normalizeOwnershipFilterSlugs,
-  normalizeServiceFilterSlugs,
+  buildProjectTrackFilter,
+  buildPropertyTypeFilter,
+  normalizePropertyTypeFilterSlugs,
+  type ProjectTrack,
 } from './discover-filters';
 import { isConvertibleToDesign } from './design-permits.utils';
 
@@ -242,8 +242,8 @@ export class ProjectsService {
     tagSlugs: string[] = [],
     statuses: string[] = [],
     location?: DiscoverLocationFilter,
-    serviceSlugs: string[] = [],
-    ownershipSlugs: string[] = [],
+    projectTrack: ProjectTrack | null = null,
+    propertyTypeSlugs: string[] = [],
     viewerLocale?: SupportedLocale,
   ): Promise<PublicProjectCard[]> {
     return this.listDiscover(
@@ -251,8 +251,8 @@ export class ProjectsService {
       tagSlugs,
       statuses,
       location,
-      serviceSlugs,
-      ownershipSlugs,
+      projectTrack,
+      propertyTypeSlugs,
       viewerLocale,
     );
   }
@@ -262,8 +262,8 @@ export class ProjectsService {
     tagSlugs: string[] = [],
     statuses: string[] = [],
     location?: DiscoverLocationFilter,
-    serviceSlugs: string[] = [],
-    ownershipSlugs: string[] = [],
+    projectTrack: ProjectTrack | null = null,
+    propertyTypeSlugs: string[] = [],
     viewerLocale?: SupportedLocale,
   ): Promise<PublicProjectCard[]> {
     const includesHidden = statuses.includes(DISCOVERY_FILTER_HIDDEN);
@@ -282,8 +282,8 @@ export class ProjectsService {
         userId,
         tagSlugs,
         location,
-        serviceSlugs,
-        ownershipSlugs,
+        projectTrack,
+        propertyTypeSlugs,
         viewerLocale,
       );
     }
@@ -365,17 +365,17 @@ export class ProjectsService {
       return [];
     }
 
-    const normalizedServices = normalizeServiceFilterSlugs(serviceSlugs);
-    const normalizedOwnership = normalizeOwnershipFilterSlugs(ownershipSlugs);
-    const serviceFilter = buildServiceFilter(normalizedServices);
-    const ownershipFilter = buildOwnershipFilter(normalizedOwnership);
+    const trackFilter = buildProjectTrackFilter(projectTrack);
+    const normalizedPropertyTypes =
+      normalizePropertyTypeFilterSlugs(propertyTypeSlugs);
+    const propertyTypeFilter = buildPropertyTypeFilter(normalizedPropertyTypes);
 
     const where = this.buildDiscoverWhere(
       orClauses,
+      trackFilter,
       tagFilter,
       location,
-      serviceFilter,
-      ownershipFilter,
+      propertyTypeFilter,
     );
 
     const projects = await this.prisma.project.findMany({
@@ -418,23 +418,23 @@ export class ProjectsService {
 
   private buildDiscoverWhere(
     orClauses: Prisma.ProjectWhereInput[],
+    projectTrackFilter: Prisma.ProjectWhereInput | undefined,
     tagFilter: Prisma.ProjectWhereInput | undefined,
     location?: DiscoverLocationFilter,
-    serviceFilter?: Prisma.ProjectWhereInput,
-    ownershipFilter?: Prisma.ProjectWhereInput,
+    propertyTypeFilter?: Prisma.ProjectWhereInput,
   ): Prisma.ProjectWhereInput {
     const andParts: Prisma.ProjectWhereInput[] = [{ OR: orClauses }];
+
+    if (projectTrackFilter) {
+      andParts.push(projectTrackFilter);
+    }
 
     if (tagFilter) {
       andParts.push(tagFilter);
     }
 
-    if (serviceFilter) {
-      andParts.push(serviceFilter);
-    }
-
-    if (ownershipFilter) {
-      andParts.push(ownershipFilter);
+    if (propertyTypeFilter) {
+      andParts.push(propertyTypeFilter);
     }
 
     const locationFilter = this.buildLocationFilter(location);
@@ -472,13 +472,17 @@ export class ProjectsService {
     clientId: string,
     tagSlugs: string[],
     location?: DiscoverLocationFilter,
-    serviceSlugs: string[] = [],
-    ownershipSlugs: string[] = [],
+    projectTrack: ProjectTrack | null = null,
+    propertyTypeSlugs: string[] = [],
     viewerLocale?: SupportedLocale,
   ): Promise<PublicProjectCard[]> {
     const andParts: Prisma.ProjectWhereInput[] = [
       { clientId, isHidden: true },
     ];
+    const trackFilter = buildProjectTrackFilter(projectTrack);
+    if (trackFilter) {
+      andParts.push(trackFilter);
+    }
 
     const locationFilter = this.buildLocationFilter(location);
     if (locationFilter) {
@@ -495,17 +499,12 @@ export class ProjectsService {
       });
     }
 
-    const normalizedServices = normalizeServiceFilterSlugs(serviceSlugs);
-    const normalizedOwnership = normalizeOwnershipFilterSlugs(ownershipSlugs);
-    const serviceFilter = buildServiceFilter(normalizedServices);
-    const ownershipFilter = buildOwnershipFilter(normalizedOwnership);
+    const normalizedPropertyTypes =
+      normalizePropertyTypeFilterSlugs(propertyTypeSlugs);
+    const propertyTypeFilter = buildPropertyTypeFilter(normalizedPropertyTypes);
 
-    if (serviceFilter) {
-      andParts.push(serviceFilter);
-    }
-
-    if (ownershipFilter) {
-      andParts.push(ownershipFilter);
+    if (propertyTypeFilter) {
+      andParts.push(propertyTypeFilter);
     }
 
     const where: Prisma.ProjectWhereInput =
@@ -1123,7 +1122,11 @@ export class ProjectsService {
       throw new ForbiddenException('Access denied');
     }
 
-    if (dto.title === undefined && dto.description === undefined) {
+    if (
+      dto.title === undefined &&
+      dto.description === undefined &&
+      dto.propertyType === undefined
+    ) {
       throw new BadRequestException('Nothing to update');
     }
 
@@ -1151,17 +1154,26 @@ export class ProjectsService {
       );
     }
 
+    const nextPropertyType =
+      dto.propertyType !== undefined ? dto.propertyType : project.propertyType;
+
     const brief = (project.briefJson as ProjectBriefV1 | null) ?? buildInitialBrief({
       description: nextDescription ?? undefined,
-      propertyType: project.propertyType,
+      propertyType: nextPropertyType,
       originalNarrative: nextDescription ?? undefined,
     });
+    if (dto.propertyType !== undefined) {
+      brief.property = {
+        ...(brief.property ?? {}),
+        type: nextPropertyType ?? undefined,
+      };
+    }
 
     const readinessScore = computeReadinessScore({
       title: nextTitle,
       description: nextDescription,
       projectType: project.projectType,
-      propertyType: project.propertyType,
+      propertyType: nextPropertyType,
       district: project.district,
       tagCount: project.tags.length,
       brief,
@@ -1172,6 +1184,8 @@ export class ProjectsService {
       data: {
         title: nextTitle,
         description: nextDescription,
+        propertyType: nextPropertyType,
+        briefJson: brief as unknown as Prisma.InputJsonValue,
         readinessScore,
         ...(project.status === ProjectStatus.pending
           ? {

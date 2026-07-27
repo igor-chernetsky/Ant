@@ -8,6 +8,7 @@ import { UsersService } from '../users/users.service';
 import { TagsService } from '../tags/tags.service';
 import { LocationsService } from '../locations/locations.service';
 import { ProjectsService } from './projects.service';
+import { normalizeProjectTrack } from './discover-filters';
 
 @Controller('v1/public')
 export class PublicProjectsController {
@@ -26,13 +27,13 @@ export class PublicProjectsController {
     @Query('status') statusQuery?: string | string[],
     @Query('region') regionQuery?: string,
     @Query('area') areaQuery?: string,
-    @Query('service') serviceQuery?: string | string[],
-    @Query('ownership') ownershipQuery?: string | string[],
+    @Query('track') trackQuery?: string,
+    @Query('propertyType') propertyTypeQuery?: string | string[],
   ) {
     const tagSlugs = normalizeTagQuery(tagQuery);
     const statuses = normalizeTagQuery(statusQuery);
-    const serviceSlugs = normalizeTagQuery(serviceQuery);
-    const ownershipSlugs = normalizeTagQuery(ownershipQuery);
+    const projectTrack = normalizeProjectTrack(trackQuery);
+    const propertyTypeSlugs = normalizeTagQuery(propertyTypeQuery);
     const location = {
       regionSlug: regionQuery?.trim() || undefined,
       areaSlug: areaQuery?.trim() || undefined,
@@ -46,8 +47,8 @@ export class PublicProjectsController {
       tagSlugs,
       statuses,
       location.regionSlug || location.areaSlug ? location : undefined,
-      serviceSlugs,
-      ownershipSlugs,
+      projectTrack,
+      propertyTypeSlugs,
       locale,
     );
   }

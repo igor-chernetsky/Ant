@@ -53,10 +53,10 @@ enum ProjectType {
 }
 
 enum PropertyType {
-  apartment
-  house
+  residential
   commercial
-  land
+  industrial_infrastructure
+  public
   other
 }
 

@@ -8,10 +8,12 @@ import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
   convertProjectToDesign,
   formatDateTime,
+  PROPERTY_TYPE_OPTIONS,
   resumePendingProject,
   updateProjectCard,
   type Project,
   type ProjectTag,
+  type PropertyType,
 } from '@/lib/projects';
 
 interface ProjectHeroProps {
@@ -47,6 +49,9 @@ export function ProjectHero({
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(project.title);
   const [description, setDescription] = useState(project.description ?? '');
+  const [propertyType, setPropertyType] = useState<PropertyType | ''>(
+    project.propertyType ?? '',
+  );
   const [saving, setSaving] = useState(false);
   const [converting, setConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,9 +68,10 @@ export function ProjectHero({
     if (!editing) {
       setTitle(project.title);
       setDescription(project.description ?? '');
+      setPropertyType(project.propertyType ?? '');
       setError(null);
     }
-  }, [project.title, project.description, editing]);
+  }, [project.title, project.description, project.propertyType, editing]);
 
   const chips = [
     formatProjectType(project.projectType),
@@ -88,6 +94,7 @@ export function ProjectHero({
       const updated = await updateProjectCard(project.id, {
         title: nextTitle,
         description: description.trim() || null,
+        propertyType: propertyType || null,
       });
       onCardUpdated?.(updated);
       setEditing(false);
@@ -103,6 +110,7 @@ export function ProjectHero({
   const handleCancel = () => {
     setTitle(project.title);
     setDescription(project.description ?? '');
+    setPropertyType(project.propertyType ?? '');
     setError(null);
     setEditing(false);
   };
@@ -179,6 +187,23 @@ export function ProjectHero({
                   maxLength={20000}
                   disabled={saving}
                 />
+              </label>
+              <label className="project-hero-edit-label">
+                {t('createProject.propertyTypeLabel')}
+                <select
+                  value={propertyType}
+                  onChange={(e) =>
+                    setPropertyType(e.target.value as PropertyType | '')
+                  }
+                  disabled={saving}
+                >
+                  <option value="">{t('createProject.notSpecified')}</option>
+                  {PROPERTY_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {formatPropertyType(option.value)}
+                    </option>
+                  ))}
+                </select>
               </label>
               {error && (
                 <p className="project-hero-edit-error" role="alert">

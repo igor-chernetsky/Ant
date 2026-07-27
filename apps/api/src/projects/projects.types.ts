@@ -28,10 +28,11 @@ export interface CreateProjectDto {
   clarificationMode?: ClarificationMode;
 }
 
-/** Owner may update card title/description at any project status. */
+/** Owner may update card title/description/property type at any project status. */
 export interface UpdateProjectDto {
   title?: string;
   description?: string | null;
+  propertyType?: PropertyType | null;
 }
 
 export interface ProjectResponse {
