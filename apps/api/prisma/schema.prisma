@@ -728,3 +728,13 @@ model TenderInvite {
   @@index([recipientEmail])
   @@map("tender_invites")
 }
+
+/// Singleton platform config (id = "default").
+model PlatformSettings {
+  id                         String   @id @default("default")
+  contractSignedNotifyEmails String[] @default([]) @map("contract_signed_notify_emails")
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_settings")
+}

@@ -226,6 +226,17 @@ export function SiteHeader({
                 >
                   {t('header.supplyRegistry')}
                 </Link>
+                <Link
+                  href="/admin/settings"
+                  className={headerNavClass(pathname, '/admin/settings')}
+                  aria-current={
+                    isHeaderNavActive(pathname, '/admin/settings')
+                      ? 'page'
+                      : undefined
+                  }
+                >
+                  {t('header.settings')}
+                </Link>
               </>
             )}
           </nav>

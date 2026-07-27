@@ -386,6 +386,18 @@ export const enExtended = {
     directoryUpdateFailed: "Failed to update entry",
     directoryDeleteFailed: "Failed to delete entry",
     directoryConfirmDelete: "Delete this registry entry?",
+    settingsTitle: "Settings",
+    settingsLead: "Platform configuration for operations and notifications.",
+    settingsContractSignedEmails: "Contract signed notification emails",
+    settingsContractSignedEmailsHelp:
+      "These addresses receive an email when a contract is fully signed (platform fee invoice request).",
+    settingsEmailsEmpty: "No emails yet. Add at least one address.",
+    settingsAddEmail: "Add email",
+    settingsAdd: "Add",
+    settingsSave: "Save settings",
+    settingsLoadFailed: "Failed to load settings",
+    settingsSaveFailed: "Failed to save settings",
+    settingsInvalidEmail: "Enter a valid email address",
   },
   directory: {
     inviteTitle: "Invite from registry",

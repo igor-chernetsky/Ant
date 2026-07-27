@@ -387,6 +387,18 @@ export const ruExtended = {
     directoryUpdateFailed: "Не удалось обновить запись",
     directoryDeleteFailed: "Не удалось удалить запись",
     directoryConfirmDelete: "Удалить эту запись из реестра?",
+    settingsTitle: "Настройки",
+    settingsLead: "Конфигурация платформы для операций и уведомлений.",
+    settingsContractSignedEmails: "Email при подписании договора",
+    settingsContractSignedEmailsHelp:
+      "На эти адреса уходит письмо, когда договор полностью подписан (запрос на счёт за комиссию платформы).",
+    settingsEmailsEmpty: "Пока нет адресов. Добавьте хотя бы один.",
+    settingsAddEmail: "Добавить email",
+    settingsAdd: "Добавить",
+    settingsSave: "Сохранить настройки",
+    settingsLoadFailed: "Не удалось загрузить настройки",
+    settingsSaveFailed: "Не удалось сохранить настройки",
+    settingsInvalidEmail: "Укажите корректный email",
   },
   directory: {
     inviteTitle: "Пригласить из реестра",

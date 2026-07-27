@@ -22,6 +22,7 @@ export const th: Messages = {
     admin: 'ผู้ดูแล',
     contractors: 'ผู้รับเหมา',
     supplyRegistry: 'ทะเบียน',
+    settings: 'การตั้งค่า',
     contractor: 'ผู้รับเหมา',
     designer: 'ผู้ออกแบบ',
     account: 'บัญชี',

@@ -384,6 +384,18 @@ export const thExtended = {
     directoryUpdateFailed: "อัปเดตรายการไม่สำเร็จ",
     directoryDeleteFailed: "ลบรายการไม่สำเร็จ",
     directoryConfirmDelete: "ลบรายการนี้ออกจากทะเบียน?",
+    settingsTitle: "การตั้งค่า",
+    settingsLead: "การกำหนดค่าแพลตฟอร์มสำหรับการดำเนินงานและการแจ้งเตือน",
+    settingsContractSignedEmails: "อีเมลแจ้งเมื่อลงนามสัญญา",
+    settingsContractSignedEmailsHelp:
+      "ที่อยู่นี้จะได้รับอีเมลเมื่อสัญญาลงนามครบทั้งสองฝ่าย (คำขอออกใบแจ้งหนี้ค่าธรรมเนียมแพลตฟอร์ม)",
+    settingsEmailsEmpty: "ยังไม่มีอีเมล เพิ่มอย่างน้อยหนึ่งที่อยู่",
+    settingsAddEmail: "เพิ่มอีเมล",
+    settingsAdd: "เพิ่ม",
+    settingsSave: "บันทึกการตั้งค่า",
+    settingsLoadFailed: "โหลดการตั้งค่าไม่สำเร็จ",
+    settingsSaveFailed: "บันทึกการตั้งค่าไม่สำเร็จ",
+    settingsInvalidEmail: "กรุณากรอกอีเมลที่ถูกต้อง",
   },
   directory: {
     inviteTitle: "เชิญจากทะเบียน",

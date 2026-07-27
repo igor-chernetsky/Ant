@@ -14,6 +14,7 @@ import {
   ProjectStatus,
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { platformSuccessFeeAmount } from '../notifications/platform-fees';
 import { PrismaService } from '../prisma/prisma.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
@@ -31,9 +32,15 @@ import {
 type ContractParticipant = {
   project: Project & {
     tender: {
+      currency: string;
       awardedBid: {
         contractorId: string;
-        contractor: { userId: string };
+        amount: Prisma.Decimal | null;
+        contractor: {
+          userId: string;
+          companyName: string | null;
+          user: { email: string | null };
+        };
       } | null;
     } | null;
     contract: Contract | null;
@@ -100,7 +107,13 @@ export class ContractsService {
           include: {
             awardedBid: {
               include: {
-                contractor: { select: { userId: true } },
+                contractor: {
+                  select: {
+                    userId: true,
+                    companyName: true,
+                    user: { select: { email: true } },
+                  },
+                },
               },
             },
           },
@@ -353,8 +366,8 @@ export class ContractsService {
     const response = this.toResponse(updated, refreshedProject, participant);
 
     if (updated.status === ContractStatus.fully_signed) {
-      const contractorUserId =
-        project.tender?.awardedBid?.contractor.userId ?? null;
+      const awardedBid = project.tender?.awardedBid ?? null;
+      const contractorUserId = awardedBid?.contractor.userId ?? null;
       if (contractorUserId) {
         this.notifications.dispatch(
           this.notifications.notifyContractFullySigned({
@@ -365,6 +378,27 @@ export class ContractsService {
           }),
         );
       }
+
+      const contractAmount =
+        awardedBid?.amount != null ? Number(awardedBid.amount) : null;
+      const feeAmount =
+        contractAmount != null && Number.isFinite(contractAmount)
+          ? platformSuccessFeeAmount(contractAmount)
+          : null;
+      this.notifications.dispatch(
+        this.notifications.notifyAdminPlatformFeeInvoice({
+          projectId,
+          projectTitle: project.title,
+          contractorCompanyName: awardedBid?.contractor.companyName ?? null,
+          contractorEmail: awardedBid?.contractor.user.email ?? null,
+          contractAmount:
+            contractAmount != null && Number.isFinite(contractAmount)
+              ? contractAmount
+              : null,
+          currency: project.tender?.currency ?? 'THB',
+          feeAmount,
+        }),
+      );
     } else {
       const contractorUserId =
         project.tender?.awardedBid?.contractor.userId ?? null;

@@ -38,7 +38,7 @@ export class MailService {
   }
 
   async send(params: {
-    to: string;
+    to: string | string[];
     subject: string;
     html: string;
     text: string;
@@ -52,11 +52,12 @@ export class MailService {
     const from = this.config.get<string>('SMTP_FROM')!.trim();
     const fromName =
       this.config.get<string>('SMTP_FROM_NAME')?.trim() || 'Ant Construction';
+    const to = Array.isArray(params.to) ? params.to.join(', ') : params.to;
 
     try {
       await transport.sendMail({
         from: `"${fromName}" <${from}>`,
-        to: params.to,
+        to,
         subject: params.subject,
         html: params.html,
         text: params.text,

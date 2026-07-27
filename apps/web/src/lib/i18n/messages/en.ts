@@ -21,6 +21,7 @@ export const en = {
     admin: 'Admin',
     contractors: 'Contractors',
     supplyRegistry: 'Supply registry',
+    settings: 'Settings',
     contractor: 'Contractor',
     designer: 'Designer',
     account: 'Account',

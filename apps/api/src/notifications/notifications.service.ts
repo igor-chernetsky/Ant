@@ -30,6 +30,7 @@ import {
   type InAppNotificationsListDto,
   type MarkInAppNotificationsReadDto,
 } from './notification.types';
+import { PlatformSettingsService } from './platform-settings.service';
 
 function escapeHtml(value: string): string {
   return value
@@ -49,6 +50,7 @@ export class NotificationsService {
     private readonly locations: LocationsService,
     private readonly config: ConfigService,
     private readonly projectLocalization: ProjectLocalizationService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   private appUrl(): string {
@@ -690,6 +692,88 @@ export class NotificationsService {
         ...payload,
       }),
     ]);
+  }
+
+  /**
+   * Ops email: ask admin to invoice the contractor for the full 2% platform fee.
+   * Recipients come from admin Settings (contract-signed notify list).
+   */
+  async notifyAdminPlatformFeeInvoice(params: {
+    projectId: string;
+    projectTitle: string;
+    contractorCompanyName: string | null;
+    contractorEmail: string | null;
+    contractAmount: number | null;
+    currency: string;
+    feeAmount: number | null;
+  }): Promise<void> {
+    if (!this.mail.isConfigured()) {
+      return;
+    }
+
+    const recipients =
+      await this.platformSettings.resolveContractSignedNotifyEmails();
+    if (recipients.length === 0) {
+      this.logger.warn(
+        'No contract-signed notify emails configured — skipping invoice request email',
+      );
+      return;
+    }
+
+    const company =
+      params.contractorCompanyName?.trim() || 'Contractor (name not set)';
+    const currency = (params.currency || 'THB').toUpperCase();
+    const amountLabel =
+      params.contractAmount != null
+        ? `${params.contractAmount.toLocaleString('en-US')} ${currency}`
+        : 'not available';
+    const feeLabel =
+      params.feeAmount != null
+        ? `${params.feeAmount.toLocaleString('en-US')} ${currency}`
+        : `2% of contract amount`;
+    const contractorEmailLabel = params.contractorEmail?.trim() || 'not available';
+    const projectHref = this.projectUrl(params.projectId);
+
+    const title = 'Invoice contractor — platform fee 2%';
+    const bodyHtml = [
+      `<p>The contract for <strong>${escapeHtml(params.projectTitle)}</strong> is fully signed by both parties.</p>`,
+      `<p>Please issue an invoice to the contractor for the <strong>full platform success fee (2%)</strong>:</p>`,
+      `<ul>`,
+      `<li><strong>Contractor:</strong> ${escapeHtml(company)}</li>`,
+      `<li><strong>Contractor email:</strong> ${escapeHtml(contractorEmailLabel)}</li>`,
+      `<li><strong>Contract amount:</strong> ${escapeHtml(amountLabel)}</li>`,
+      `<li><strong>Platform fee (2%):</strong> ${escapeHtml(feeLabel)}</li>`,
+      `</ul>`,
+      `<p>Open the project to review details and prepare the invoice.</p>`,
+    ].join('');
+
+    const html = this.wrapEmail(
+      title,
+      bodyHtml,
+      projectHref,
+      'Open project',
+    );
+    const textBody = [
+      `Contract fully signed: ${params.projectTitle}`,
+      `Contractor: ${company}`,
+      `Contractor email: ${contractorEmailLabel}`,
+      `Contract amount: ${amountLabel}`,
+      `Platform fee (2%): ${feeLabel}`,
+      `Project: ${projectHref}`,
+    ].join('\n');
+
+    const sent = await this.mail.send({
+      to: recipients,
+      subject: `Platform fee invoice — ${params.projectTitle}`,
+      html,
+      text: `${title}\n\n${textBody}`,
+    });
+
+    if (!sent) {
+      this.logger.warn(
+        `Failed to send platform fee invoice email for project ${params.projectId}`,
+      );
+    }
   }
 
   async notifyContractDocumentUpdated(params: {

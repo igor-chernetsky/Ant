@@ -22,6 +22,7 @@ export const ru: Messages = {
     admin: 'Админ',
     contractors: 'Подрядчики',
     supplyRegistry: 'Реестр',
+    settings: 'Настройки',
     contractor: 'Подрядчик',
     designer: 'Проектировщик',
     account: 'Аккаунт',
