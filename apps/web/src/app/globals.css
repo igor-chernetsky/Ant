@@ -43,7 +43,7 @@
   --shadow-glass:
     var(--glass-highlight),
     0 8px 32px rgba(15, 40, 80, 0.08);
-  --content-max: 1200px;
+  --content-max: 1400px;
   font-family:
     system-ui,
     -apple-system,
@@ -1031,7 +1031,7 @@ pre {
 
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1.25rem;
 }
 

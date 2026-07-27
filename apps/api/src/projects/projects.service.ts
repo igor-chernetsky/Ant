@@ -1224,37 +1224,21 @@ export class ProjectsService {
 
 
   async getForClient(
-
     clientId: string,
-
     projectId: string,
-
     viewerLocale?: SupportedLocale,
-
   ): Promise<ProjectResponse> {
-
     const project = await this.prisma.project.findUnique({
-
       where: { id: projectId },
-
       include: this.includeTags(),
-
     });
 
-
-
     if (!project) {
-
       throw new NotFoundException('Project not found');
-
     }
 
-
-
     if (project.clientId !== clientId) {
-
       throw new ForbiddenException('Access denied');
-
     }
 
 

@@ -1,4 +1,5 @@
 import {
+  isAdminUser,
   isContractorUser,
   isDesignerUser,
   type MeResponse,
@@ -53,7 +54,7 @@ export function canOpenProjectDetail(
   if (isOwned) {
     return true;
   }
-  if (me?.roles?.includes('admin')) {
+  if (isAdminUser(me)) {
     return true;
   }
 

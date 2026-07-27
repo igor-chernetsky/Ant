@@ -63,11 +63,11 @@ export function ProjectTile({
     isAwardedContractor,
     projectType: project.projectType,
   };
+  // Prefer client ACL so admin/owner stay unlocked even if the list was
+  // fetched anonymously (canOpenDetail: false) before login.
   const canOpen =
-    isOwned ||
-    project.canOpenDetail === true ||
-    (project.canOpenDetail !== false &&
-      canOpenProjectDetail(project.status, openContext));
+    canOpenProjectDetail(project.status, openContext) ||
+    project.canOpenDetail === true;
   const blockReason = getProjectOpenBlockReason(project.status, openContext);
 
   const lockedMessage = lockedMessageForReason(blockReason, t);

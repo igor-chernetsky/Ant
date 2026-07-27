@@ -23,6 +23,10 @@ export function isDesignerUser(me: MeResponse | null): boolean {
   return Boolean(me?.isDesigner || me?.roles?.includes('designer'));
 }
 
+export function isAdminUser(me: MeResponse | null): boolean {
+  return Boolean(me?.roles?.includes('admin'));
+}
+
 export function isSupplySideUser(me: MeResponse | null): boolean {
   return isContractorUser(me) || isDesignerUser(me);
 }

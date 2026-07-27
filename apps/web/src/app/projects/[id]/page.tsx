@@ -46,7 +46,7 @@ import {
 } from '@/lib/projects';
 import { ProjectLifecyclePanel } from '@/components/ProjectLifecyclePanel';
 import { useSession } from '@/components/SessionProvider';
-import { isContractorUser, isDesignerUser } from '@/lib/session';
+import { isContractorUser, isDesignerUser, isAdminUser } from '@/lib/session';
 import {
   fetchPublicProject,
   fetchContractorParticipantProject,
@@ -161,6 +161,24 @@ export default function ProjectDetailPage() {
             err.message !== 'NOT_FOUND'
           ) {
             throw err;
+          }
+        }
+      }
+
+      // Admins open any publicly discoverable / ACL-allowed project via public API.
+      if (profile && isAdminUser(profile)) {
+        try {
+          const data = await fetchPublicProject(projectId, { inviteToken });
+          setProject(data);
+          setIsOwner(false);
+          await loadDocuments(false);
+          setPageReady(true);
+          return;
+        } catch (adminErr: unknown) {
+          if (
+            !(adminErr instanceof Error && adminErr.message === 'NOT_FOUND')
+          ) {
+            throw adminErr;
           }
         }
       }

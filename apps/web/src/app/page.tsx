@@ -110,7 +110,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!sessionReady) return;
     void loadProjects(filters);
-  }, [sessionReady, filters, loadProjects, locale]);
+  }, [sessionReady, filters, loadProjects, locale, me?.id, me?.roles]);
 
   useEffect(() => {
     if (!sessionReady) return;
