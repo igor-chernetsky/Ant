@@ -1,6 +1,6 @@
 'use client';
 
-import { MouseEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { fetchPublicPortfolio, type PortfolioItem } from '@/lib/portfolio';
 
@@ -35,31 +35,6 @@ export function ContractorPortfolioGallery({
     };
   }, [contractorId]);
 
-  const handleOpenImage = async (
-    event: MouseEvent<HTMLAnchorElement>,
-    itemId: string,
-  ) => {
-    event.preventDefault();
-
-    const popup = window.open('', '_blank', 'noopener,noreferrer');
-    try {
-      const freshItems = await fetchPublicPortfolio(contractorId);
-      const freshItem = freshItems.find((entry) => entry.id === itemId);
-      const nextUrl = freshItem?.imageUrl;
-      if (!nextUrl) {
-        popup?.close();
-        return;
-      }
-      if (popup) {
-        popup.location.href = nextUrl;
-      } else {
-        window.open(nextUrl, '_blank', 'noopener,noreferrer');
-      }
-    } catch {
-      popup?.close();
-    }
-  };
-
   if (loading || items.length === 0) {
     return null;
   }
@@ -74,11 +49,10 @@ export function ContractorPortfolioGallery({
         {items.map((item) => (
           <li key={item.id} className="contractor-portfolio-preview-item">
             <a
-              href={item.imageUrl}
+              href={`/api/public/contractors/${encodeURIComponent(contractorId)}/portfolio/${encodeURIComponent(item.id)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="contractor-portfolio-thumb-link"
-              onClick={(event) => void handleOpenImage(event, item.id)}
             >
               {item.thumbnailUrl || item.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element

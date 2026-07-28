@@ -137,6 +137,35 @@ export class ContractorPortfolioService {
     return this.attachImageUrls(base, items);
   }
 
+  async getPublicImageDownloadUrl(
+    contractorId: string,
+    itemId: string,
+  ): Promise<{ downloadUrl: string; expiresInSeconds: number }> {
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { id: contractorId },
+    });
+    if (
+      !profile ||
+      profile.verificationStatus !== ContractorVerificationStatus.verified
+    ) {
+      throw new NotFoundException('Contractor not found');
+    }
+
+    const item = await this.prisma.contractorPortfolioItem.findFirst({
+      where: {
+        id: itemId,
+        contractorId,
+        status: DocumentStatus.uploaded,
+      },
+      select: { storageKey: true },
+    });
+    if (!item) {
+      throw new NotFoundException('Portfolio item not found');
+    }
+
+    return this.storage.createPresignedDownload(item.storageKey);
+  }
+
   async presignUpload(userId: string, dto: PresignPortfolioItemDto) {
     const profile = await this.contractorProfiles.requireByUserId(userId);
 

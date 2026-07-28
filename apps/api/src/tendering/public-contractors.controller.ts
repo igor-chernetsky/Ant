@@ -9,4 +9,12 @@ export class PublicContractorsController {
   listPortfolio(@Param('contractorId') contractorId: string) {
     return this.portfolio.listPublic(contractorId);
   }
+
+  @Get(':contractorId/portfolio/:itemId/download-url')
+  getPortfolioImageDownloadUrl(
+    @Param('contractorId') contractorId: string,
+    @Param('itemId') itemId: string,
+  ) {
+    return this.portfolio.getPublicImageDownloadUrl(contractorId, itemId);
+  }
 }
