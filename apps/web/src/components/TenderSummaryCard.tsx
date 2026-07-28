@@ -108,15 +108,28 @@ export function TenderSummaryCard({
     }
   }, [projectId, t]);
 
+  const refreshProject = useCallback(async () => {
+    const { fetchProject } = await import('@/lib/projects');
+    const updated = await fetchProject(projectId);
+    onUpdated(updated);
+  }, [projectId, onUpdated]);
+
   useEffect(() => {
     void loadTender();
   }, [loadTender]);
 
-  const refreshProject = async () => {
-    const { fetchProject } = await import('@/lib/projects');
-    const updated = await fetchProject(projectId);
-    onUpdated(updated);
-  };
+  // If the client awarded on the bids page and returns with a stale
+  // project.status (bfcache / soft nav), sync so the contract panel mounts.
+  useEffect(() => {
+    if (!tender) return;
+    if (
+      tender.status === 'awarded' &&
+      project.status !== 'awarded' &&
+      project.status !== 'active'
+    ) {
+      void refreshProject();
+    }
+  }, [tender, project.status, refreshProject]);
 
   const handleCreate = async () => {
     setPublishModalMode('create');

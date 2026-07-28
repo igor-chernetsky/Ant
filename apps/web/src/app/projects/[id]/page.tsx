@@ -228,7 +228,16 @@ export default function ProjectDetailPage() {
       setAuthState('guest');
       setPageReady(true);
     });
-  }, [sessionReady, loadProjectView]);
+
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      void loadProjectView().catch(() => {
+        // Keep existing error/UI state if a bfcache restore refresh fails.
+      });
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, [sessionReady, loadProjectView, t]);
 
   const handleLogout = async () => {
     await signOut();

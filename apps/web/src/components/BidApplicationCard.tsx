@@ -7,6 +7,7 @@ import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
 import { BidChat } from '@/components/BidChat';
 import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
 import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
+import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { ContractorPortfolioGallery } from '@/components/ContractorPortfolioGallery';
@@ -227,6 +228,13 @@ export function BidApplicationCard({
                 }}
                 onAwardReleased={() => onContractSigned?.()}
               />
+              {contract && (
+                <ContractDocumentEditor
+                  projectId={projectId}
+                  contract={contract}
+                  onSaved={setContract}
+                />
+              )}
             </div>
           )}
 

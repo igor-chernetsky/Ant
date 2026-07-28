@@ -115,7 +115,9 @@ export function ClientContractPanel({
             onAwardReleased={() => {
               void loadTender();
               void loadContract();
-              onProjectUpdated?.(project);
+              if (onProjectUpdated) {
+                void fetchProject(projectId).then(onProjectUpdated);
+              }
             }}
           />
 
