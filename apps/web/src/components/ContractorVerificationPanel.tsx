@@ -218,7 +218,7 @@ export function ContractorVerificationPanel({
             ref={fileInputRef}
             type="file"
             className="sr-only"
-            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.ppt,.pptx"
             onChange={handleFileChange}
             disabled={busy}
           />

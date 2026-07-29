@@ -10,7 +10,7 @@ import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
 import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
-import { ContractorPortfolioGallery } from '@/components/ContractorPortfolioGallery';
+import { ClientContractorProfilePanel } from '@/components/ClientContractorProfilePanel';
 import {
   formatBidWithdrawalReason,
 } from '@/components/DeclineProposalDialog';
@@ -193,10 +193,11 @@ export function BidApplicationCard({
           )}
 
           {!isDeclined && (
-          <ContractorPortfolioGallery
-            contractorId={bid.contractorId}
-            companyName={bid.companyName}
-          />
+            <ClientContractorProfilePanel
+              projectId={projectId}
+              bidId={bid.id}
+              companyName={bid.companyName}
+            />
           )}
 
           {!isDeclined && clientCounterOffer &&

@@ -17,6 +17,7 @@ import { PresignClarificationAttachmentDto } from './clarification-attachments.t
 import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
+import { ContractorProfilesService } from './contractor-profiles.service';
 import { parseCommercialProposalLocales } from './commercial-proposal.i18n';
 
 @Controller('v1/projects/:projectId/tender')
@@ -31,6 +32,7 @@ export class ProjectTenderController {
     private readonly commercialProposal: CommercialProposalService,
     private readonly clarifications: TenderClarificationsService,
     private readonly tenderInvites: TenderInvitesService,
+    private readonly contractorProfiles: ContractorProfilesService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
@@ -245,6 +247,36 @@ export class ProjectTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.bidAnalysis.getAnalysis(user.id, projectId);
+  }
+
+  @Get('bids/:bidId/contractor-profile')
+  async getBidContractorProfile(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('bidId') bidId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contractorProfiles.getProfileForBidClient(
+      user.id,
+      projectId,
+      bidId,
+    );
+  }
+
+  @Get('bids/:bidId/contractor-documents/:documentId/download-url')
+  async getBidContractorDocumentDownload(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('bidId') bidId: string,
+    @Param('documentId') documentId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contractorProfiles.getDocumentDownloadForBidClient(
+      user.id,
+      projectId,
+      bidId,
+      documentId,
+    );
   }
 
   @Post('bids/analysis')

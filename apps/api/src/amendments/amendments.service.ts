@@ -125,6 +125,11 @@ export class AmendmentsService {
     return this.processAmendmentRows(clientId, project, [amendment]);
   }
 
+  /**
+   * Apply pending amendments one-by-one in chronological order.
+   * Each step sees the updated description/brief from the previous step so
+   * later instructions (remove X, then add X) win without batch contradictions.
+   */
   private async processAmendmentRows(
     clientId: string,
     project: {
@@ -140,118 +145,123 @@ export class AmendmentsService {
     },
     rows: ProjectAmendment[],
   ): Promise<ProcessAmendmentsResult> {
-    const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
+    const sorted = [...rows].sort(
+      (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+    );
     const tags = await this.prisma.tag.findMany({ select: { slug: true } });
     const availableTagSlugs = tags.map((t) => t.slug);
 
-    const context = {
-      title: project.title,
-      description: project.description,
-      projectType: project.projectType,
-      propertyType: project.propertyType,
-      district: project.district,
-      brief,
-      amendments: rows.map((row) => ({
-        body: row.body,
-        changeType: row.changeType,
-        createdAt: row.createdAt.toISOString(),
-      })),
-      availableTagSlugs,
-      locale: project.sourceLocale ?? undefined,
-    };
+    let description = project.description;
+    let brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
+    const previousStatus = project.status;
 
-    let result: AmendmentAiResult | null = null;
-    if (this.openAi.isConfigured()) {
-      result = await this.openAi.processAmendments(context);
-    }
-    if (!result) {
-      result = this.fallback.processAmendments(context);
-    }
-
-    const updateBody = rows.map((row) => row.body).join('\n');
-    const updatedDescription = preserveMergedDescription({
-      previousDescription: project.description,
-      previousSummary: brief.summary,
-      candidate: result.updatedDescription,
-      updateBody,
-    });
-    const updatedSummary = preserveMergedSummary({
-      previousSummary: brief.summary,
-      previousDescription: project.description,
-      candidate: result.updatedSummary,
-      preservedDescription: updatedDescription,
-    });
-
-    const previousTags = await this.prisma.projectTag.findMany({
+    const previousTagRows = await this.prisma.projectTag.findMany({
       where: { projectId: project.id },
       include: { tag: true },
     });
-    const tagSlugs = reconcileAiTagSlugs({
-      suggested: result.tagSlugs,
-      previous: previousTags.map((row) => row.tag.slug),
-      narrative: [
-        updatedDescription,
-        updatedSummary,
+    let currentTagSlugs = previousTagRows.map((row) => row.tag.slug);
+
+    for (const row of sorted) {
+      const context = {
+        title: project.title,
+        description,
+        projectType: project.projectType,
+        propertyType: project.propertyType,
+        district: project.district,
+        brief,
+        amendments: [
+          {
+            body: row.body,
+            changeType: row.changeType,
+            createdAt: row.createdAt.toISOString(),
+          },
+        ],
+        availableTagSlugs,
+        locale: project.sourceLocale ?? undefined,
+      };
+
+      let result: AmendmentAiResult | null = null;
+      if (this.openAi.isConfigured()) {
+        result = await this.openAi.processAmendments(context);
+      }
+      if (!result) {
+        result = this.fallback.processAmendments(context);
+      }
+
+      const updateBody = row.body;
+      const updatedDescription = preserveMergedDescription({
+        previousDescription: description,
+        previousSummary: brief.summary,
+        candidate: result.updatedDescription,
         updateBody,
-      ].join(' '),
-      preserveTrades: (brief.packages ?? []).map((pkg) => pkg.trade),
-      allowed: availableTagSlugs,
-    });
-    await this.replaceAiTags(project.id, tagSlugs);
+      });
+      const updatedSummary = preserveMergedSummary({
+        previousSummary: brief.summary,
+        previousDescription: description,
+        candidate: result.updatedSummary,
+        preservedDescription: updatedDescription,
+      });
 
-    const updatedBrief = this.mergeBrief(project.briefJson, {
-      summary: updatedSummary,
-      constraints: result.briefPatches?.constraints ?? brief.constraints,
-      property: result.briefPatches?.property
-        ? { ...brief.property, ...result.briefPatches.property }
-        : brief.property,
-      timeline: result.briefPatches?.timeline
-        ? { ...brief.timeline, ...result.briefPatches.timeline }
-        : brief.timeline,
-      materials: result.briefPatches?.materials
-        ? { ...brief.materials, ...result.briefPatches.materials }
-        : brief.materials,
-      ai: {
-        ...brief.ai,
-        improvedDescription: updatedDescription,
-        confidence: result.confidence,
-      },
-    });
+      const tagSlugs = reconcileAiTagSlugs({
+        suggested: result.tagSlugs,
+        previous: currentTagSlugs,
+        narrative: [updatedDescription, updatedSummary, updateBody].join(' '),
+        preserveTrades: (brief.packages ?? []).map((pkg) => pkg.trade),
+        allowed: availableTagSlugs,
+      });
+      await this.replaceAiTags(project.id, tagSlugs);
+      currentTagSlugs = tagSlugs;
 
-    const projectWithTags = await this.prisma.project.findUnique({
-      where: { id: project.id },
-      include: { tags: true },
-    });
+      brief = this.mergeBrief(brief, {
+        summary: updatedSummary,
+        constraints: result.briefPatches?.constraints ?? brief.constraints,
+        property: result.briefPatches?.property
+          ? { ...brief.property, ...result.briefPatches.property }
+          : brief.property,
+        timeline: result.briefPatches?.timeline
+          ? { ...brief.timeline, ...result.briefPatches.timeline }
+          : brief.timeline,
+        materials: result.briefPatches?.materials
+          ? { ...brief.materials, ...result.briefPatches.materials }
+          : brief.materials,
+        ai: {
+          ...brief.ai,
+          improvedDescription: updatedDescription,
+          confidence: result.confidence,
+        },
+      });
+      description = updatedDescription;
 
-    const readinessScore = computeReadinessScore({
-      title: project.title,
-      description: updatedDescription,
-      projectType: project.projectType as ProjectType,
-      propertyType: project.propertyType as PropertyType | null,
-      district: project.district,
-      tagCount: projectWithTags?.tags.length ?? 0,
-      brief: updatedBrief,
-    });
+      const tagCount = await this.prisma.projectTag.count({
+        where: { projectId: project.id },
+      });
+      const readinessScore = computeReadinessScore({
+        title: project.title,
+        description,
+        projectType: project.projectType as ProjectType,
+        propertyType: project.propertyType as PropertyType | null,
+        district: project.district,
+        tagCount,
+        brief,
+      });
 
-    const previousStatus = project.status;
+      await this.prisma.project.update({
+        where: { id: project.id },
+        data: {
+          description,
+          briefJson: brief as unknown as Prisma.InputJsonValue,
+          readinessScore,
+        },
+      });
 
-    await this.prisma.project.update({
-      where: { id: project.id },
-      data: {
-        description: updatedDescription,
-        briefJson: updatedBrief as unknown as Prisma.InputJsonValue,
-        readinessScore,
-      },
-    });
-
-    const now = new Date();
-    await this.prisma.projectAmendment.updateMany({
-      where: { id: { in: rows.map((r) => r.id) } },
-      data: {
-        processedAt: now,
-        aiResultJson: result as unknown as Prisma.InputJsonValue,
-      },
-    });
+      await this.prisma.projectAmendment.update({
+        where: { id: row.id },
+        data: {
+          processedAt: new Date(),
+          aiResultJson: result as unknown as Prisma.InputJsonValue,
+        },
+      });
+    }
 
     if (previousStatus === ProjectStatus.estimated) {
       await this.estimatesService.generateAndStore(project.id);
@@ -260,7 +270,7 @@ export class AmendmentsService {
     }
 
     const updatedRows = await this.prisma.projectAmendment.findMany({
-      where: { id: { in: rows.map((r) => r.id) } },
+      where: { id: { in: sorted.map((r) => r.id) } },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -271,7 +281,7 @@ export class AmendmentsService {
 
     return {
       project: projectResponse,
-      processedCount: rows.length,
+      processedCount: sorted.length,
       amendments: updatedRows.map((row) => this.toResponse(row)),
     };
   }
@@ -295,11 +305,6 @@ export class AmendmentsService {
         'Project scope is locked while tendering is active',
       );
     }
-  }
-
-  private filterTagSlugs(slugs: string[], allowed: string[]): string[] {
-    const allowedSet = new Set(allowed);
-    return [...new Set(slugs.filter((s) => allowedSet.has(s)))];
   }
 
   private async replaceAiTags(projectId: string, slugs: string[]) {

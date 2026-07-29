@@ -603,7 +603,7 @@ export const enExtended = {
   },
   verification: {
     title: "Verification",
-    hint: "Upload company documents (license, registration, insurance). An admin must approve your profile before you can participate in tenders.",
+    hint: "Upload company documents for admin registration (license, registration, insurance, portfolio packs). PDF, images, Word, and PowerPoint (.ppt/.pptx) are accepted. An admin must approve your profile before you can participate in tenders.",
     statusLabel: "Status:",
     verifiedMessage: "Your contractor account is verified. You can still add documents below for your records.",
     awaitingReviewMessage: "Your documents are under review. You will be notified after an admin decision.",
@@ -620,9 +620,26 @@ export const enExtended = {
     requestApprovalConfirmMissing: "Still missing: {categories}.",
     requestApprovalConfirmLabel: "Send for review",
     loadDocumentsFailed: "Failed to load documents",
+    bannerNoProfileTitle: "Complete your profile to join tenders",
+    bannerNoProfileBody:
+      "Create your company profile, add service areas and trades, then upload documents and request admin approval. Until you are verified, you cannot fully enroll and bid on tenders.",
+    bannerPendingTitle: "Verification required before bidding",
+    bannerPendingBody:
+      "Upload your company documents and tap Request approval so an admin can register you. Without verification it is not obvious why you cannot yet respond to tenders — finish this step first.",
+    bannerRejectedTitle: "Update documents and request approval again",
+    bannerRejectedBody:
+      "Your previous verification was rejected. Review the admin feedback, upload corrected documents, and request approval again to participate in tenders.",
+    bannerAwaitingTitle: "Waiting for admin verification",
+    bannerAwaitingBody:
+      "Your documents are with an admin. You can browse projects, but tender enrollment and bidding unlock after approval. You will be notified when the decision is ready.",
+    bannerCreateProfile: "Create profile",
+    bannerCompleteVerification: "Complete verification",
+    bannerOpenPortal: "Open portal",
   },
   portfolio: {
     title: "Portfolio",
+    clientFacingHint:
+      "Photos shown to clients on your bids. Images only (JPEG, PNG, WebP) — PDF and PowerPoint are not allowed here. Attach PDF/PPT portfolio packs under Verification documents for admin review.",
     refreshing: "Refreshing…",
     uploadImage: "Upload image",
     photoAlt: "Portfolio photo",
@@ -637,6 +654,19 @@ export const enExtended = {
     deleteFailed: "Failed to delete photo",
     saveCaptionFailed: "Failed to save caption",
     gallerySummary: "Portfolio ({count})",
+  },
+  bidContractorProfile: {
+    summary: "Full profile ({photos} photos · {docs} documents)",
+    loading: "Loading contractor profile…",
+    loadFailed: "Failed to load contractor profile",
+    downloadFailed: "Failed to download document",
+    verification: "Verification",
+    specialties: "Specialties",
+    portfolioHeading: "Portfolio",
+    documentsHeading: "Profile documents",
+    noPortfolio: "No portfolio photos yet.",
+    noDocuments: "No profile documents attached.",
+    download: "Download",
   },
   reviews: {
     title: "Client reviews",

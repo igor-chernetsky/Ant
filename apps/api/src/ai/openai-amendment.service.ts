@@ -32,21 +32,25 @@ export class OpenAiAmendmentService {
         ? localeLanguageName(context.locale)
         : localeLanguageName(DEFAULT_LOCALE);
 
-    const system = `You are a construction marketplace assistant. The client added amendments to their project before tendering starts.
-Merge the amendments into the existing project understanding. Return JSON only with keys:
+    const system = `You are a construction marketplace assistant. The client added ONE chronological amendment to their project before tendering starts.
+Apply this single amendment on top of the CURRENT project understanding (description + brief, which already includes earlier intake answers and previously applied amendments). Return JSON only with keys:
 updatedDescription, updatedSummary, tagSlugs, confidence, briefPatches.
 briefPatches may include: constraints (string), property (object), timeline (object), materials (object).
-Rules:
-- Keep factual content from the original brief; integrate amendments clearly.
-- CRITICAL: updatedDescription must preserve the FULL prior project narrative and ADD amendment facts. Never replace the whole description with only the amendment text.
+Priority / conflict rules (CRITICAL):
+- The amendment in the payload is the latest instruction. It OVERRIDES conflicting statements in the current description/summary.
+- Apply instructions in sequence: if an earlier state said "include X" and this amendment says "remove X", remove X. If this amendment says "add X" (even after a prior remove), include X as required scope.
+- Do NOT try to reconcile contradictory older and newer wording into a hybrid. Prefer the latest amendment's intent.
+- Meta notes like "will be added to the estimate later" are not a substitute for stating the system as required scope when the amendment asks to add it.
+Content rules:
+- Keep factual content from the current brief that the amendment does not cancel.
+- CRITICAL: updatedDescription must preserve the FULL prior project narrative except where this amendment removes or replaces facts. Never replace the whole description with only the amendment text.
 - CRITICAL: updatedSummary must stay a project-level brief, not a single micro-task sentence.
-- updatedDescription: full narrative for contractors (2-6 sentences, or longer if prior text was longer). Explicitly name cost-driving MEP upgrades (chlorine-free / UV / salt treatment, specialty or underwater lighting, utility connections, automatic fire suppression / sprinklers, and other newly requested systems) — do not bury them as optional notes or as "will be added to the estimate later".
+- updatedDescription: full narrative for contractors (2-6 sentences, or longer if prior text was longer). Explicitly name cost-driving MEP upgrades and newly requested systems (fire suppression, specialty lighting, utility connections, etc.) as required scope when the amendment asks for them.
 - updatedSummary: shorter headline summary (1-3 sentences) that still covers the main works.
-- tagSlugs: subset of allowed tags only. When amendments request automatic fire extinguishing / sprinklers, include "fire-suppression".
+- tagSlugs: subset of allowed tags only. When this amendment requests automatic fire extinguishing / sprinklers, include "fire-suppression". When it removes a system, drop related tags if no longer in scope.
 - confidence: 0-1.
 - Write updatedDescription and updatedSummary in ${language}.
 - Keep ${language} throughout — do not translate existing content into another language.
-- When amendments add equipment quality (treatment systems, special fixtures) or new systems (fire suppression, specialty MEP), state them as required scope, not soft preferences.
 ${TAG_NO_HALLUCINATION_RULES}`;
 
     const user = JSON.stringify({
@@ -58,8 +62,9 @@ ${TAG_NO_HALLUCINATION_RULES}`;
         district: context.district,
       },
       brief: context.brief,
-      amendments: context.amendments,
+      amendment: context.amendments[0] ?? null,
       allowedTagSlugs: context.availableTagSlugs,
+      processingMode: 'sequential_single_amendment',
     });
 
     try {

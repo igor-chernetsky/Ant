@@ -1,7 +1,13 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  BidStatus,
   ContractorProfile,
   ContractorVerificationStatus,
+  DocumentStatus,
   Prisma,
   ProjectType,
   SupplyProfileKind,
@@ -10,16 +16,50 @@ import { LocationsService } from '../locations/locations.service';
 import type { ServiceLocation } from '../locations/locations.catalog';
 import { PrismaService } from '../prisma/prisma.service';
 import { requiredSupplyKindForProjectType } from '../projects/design-permits.utils';
+import { StorageService } from '../storage/storage.service';
 import {
   ContractorProfileResponse,
   UpsertContractorProfileDto,
 } from './tendering.types';
+
+export interface ClientContractorProfileDocument {
+  id: string;
+  originalName: string;
+  contentType: string;
+  sizeBytes: number | null;
+  category: string;
+  uploadedAt: string | null;
+}
+
+export interface ClientContractorPortfolioItem {
+  id: string;
+  title: string;
+  description: string | null;
+  originalName: string;
+  contentType: string;
+  imageUrl: string | null;
+  thumbnailUrl: string | null;
+  sortOrder: number;
+}
+
+export interface ClientContractorProfileView {
+  contractorId: string;
+  companyName: string | null;
+  kind: string;
+  regionCode: string;
+  serviceLocations: ServiceLocation[];
+  tagSlugs: string[];
+  verificationStatus: string;
+  portfolio: ClientContractorPortfolioItem[];
+  documents: ClientContractorProfileDocument[];
+}
 
 @Injectable()
 export class ContractorProfilesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly locations: LocationsService,
+    private readonly storage: StorageService,
   ) {}
 
   toResponse(profile: ContractorProfile): ContractorProfileResponse {
@@ -166,5 +206,174 @@ export class ContractorProfilesService {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   assertVerified(profile: ContractorProfile): void {
     // no-op — participation in tenders is allowed without verification
+  }
+
+  /**
+   * Project owner viewing a bidder's full profile (portfolio photos +
+   * verification/profile documents) while reviewing commercial proposals.
+   */
+  async getProfileForBidClient(
+    clientUserId: string,
+    projectId: string,
+    bidId: string,
+  ): Promise<ClientContractorProfileView> {
+    const { contractorId, profile } = await this.assertClientMayViewBidProfile(
+      clientUserId,
+      projectId,
+      bidId,
+    );
+
+    const [portfolioRows, documents] = await Promise.all([
+      this.prisma.contractorPortfolioItem.findMany({
+        where: {
+          contractorId,
+          status: DocumentStatus.uploaded,
+        },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      }),
+      this.prisma.contractorVerificationDocument.findMany({
+        where: {
+          contractorId,
+          status: DocumentStatus.uploaded,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    const portfolio: ClientContractorPortfolioItem[] = await Promise.all(
+      portfolioRows.map(async (item) => {
+        let imageUrl: string | null = null;
+        let thumbnailUrl: string | null = null;
+        if (this.storage.isConfigured()) {
+          try {
+            const full = await this.storage.createPresignedDownload(
+              item.storageKey,
+            );
+            imageUrl = full.downloadUrl;
+            if (item.thumbnailStorageKey) {
+              const thumb = await this.storage.createPresignedDownload(
+                item.thumbnailStorageKey,
+              );
+              thumbnailUrl = thumb.downloadUrl;
+            }
+          } catch {
+            // Leave URLs null when signing fails.
+          }
+        }
+        return {
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          originalName: item.originalName,
+          contentType: item.contentType,
+          imageUrl,
+          thumbnailUrl,
+          sortOrder: item.sortOrder,
+        };
+      }),
+    );
+
+    return {
+      contractorId,
+      companyName: profile.companyName,
+      kind: profile.kind,
+      regionCode: profile.regionCode,
+      serviceLocations: this.parseServiceLocations(profile.serviceLocationsJson),
+      tagSlugs: profile.tagSlugs,
+      verificationStatus: profile.verificationStatus,
+      portfolio,
+      documents: documents.map((doc) => ({
+        id: doc.id,
+        originalName: doc.originalName,
+        contentType: doc.contentType,
+        sizeBytes: doc.sizeBytes,
+        category: doc.category,
+        uploadedAt: doc.uploadedAt?.toISOString() ?? null,
+      })),
+    };
+  }
+
+  async getDocumentDownloadForBidClient(
+    clientUserId: string,
+    projectId: string,
+    bidId: string,
+    documentId: string,
+  ): Promise<{
+    downloadUrl: string;
+    expiresInSeconds: number;
+    originalName: string;
+    contentType: string;
+  }> {
+    const { contractorId } = await this.assertClientMayViewBidProfile(
+      clientUserId,
+      projectId,
+      bidId,
+    );
+
+    const doc = await this.prisma.contractorVerificationDocument.findFirst({
+      where: {
+        id: documentId,
+        contractorId,
+        status: DocumentStatus.uploaded,
+      },
+    });
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+
+    const presigned = await this.storage.createPresignedDownload(doc.storageKey);
+    return {
+      downloadUrl: presigned.downloadUrl,
+      expiresInSeconds: presigned.expiresInSeconds,
+      originalName: doc.originalName,
+      contentType: doc.contentType,
+    };
+  }
+
+  private async assertClientMayViewBidProfile(
+    clientUserId: string,
+    projectId: string,
+    bidId: string,
+  ): Promise<{ contractorId: string; profile: ContractorProfile }> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, clientId: true },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.clientId !== clientUserId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    const bid = await this.prisma.bid.findFirst({
+      where: {
+        id: bidId,
+        tender: { projectId },
+        status: {
+          in: [
+            BidStatus.clarifying,
+            BidStatus.enrolled,
+            BidStatus.submitted,
+            BidStatus.selected,
+            BidStatus.rejected,
+            BidStatus.withdrawn,
+          ],
+        },
+      },
+      select: { contractorId: true },
+    });
+    if (!bid) {
+      throw new NotFoundException('Bid not found');
+    }
+
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { id: bid.contractorId },
+    });
+    if (!profile) {
+      throw new NotFoundException('Contractor profile not found');
+    }
+
+    return { contractorId: bid.contractorId, profile };
   }
 }

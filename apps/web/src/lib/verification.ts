@@ -149,21 +149,43 @@ export async function uploadVerificationDocument(
   if (file.size > MAX_VERIFICATION_UPLOAD_BYTES) {
     throw new Error('File exceeds 25 MB limit');
   }
+  const contentType = resolveVerificationContentType(file);
   const presigned = await presignVerificationDocument({
     fileName: file.name,
-    contentType: file.type || 'application/octet-stream',
+    contentType,
     sizeBytes: file.size,
     category,
   });
   const putResponse = await fetch(presigned.uploadUrl, {
     method: 'PUT',
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    headers: { 'Content-Type': contentType },
     body: file,
   });
   if (!putResponse.ok) {
     throw new Error('Upload to storage failed');
   }
   return completeVerificationDocument(presigned.documentId);
+}
+
+function resolveVerificationContentType(file: File): string {
+  const typed = file.type?.trim().toLowerCase();
+  if (typed && typed !== 'application/octet-stream') {
+    return typed;
+  }
+  const lower = file.name.toLowerCase();
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.doc')) return 'application/msword';
+  if (lower.endsWith('.docx')) {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+  if (lower.endsWith('.ppt')) return 'application/vnd.ms-powerpoint';
+  if (lower.endsWith('.pptx')) {
+    return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+  }
+  return typed || 'application/octet-stream';
 }
 
 export async function fetchAdminContractors(

@@ -3498,6 +3498,68 @@ pre {
   margin-top: 0.75rem;
 }
 
+.bid-contractor-profile-loading {
+  margin: 0.75rem 0 1rem;
+}
+
+.bid-contractor-profile-body {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bid-contractor-profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  font-size: 0.85rem;
+}
+
+.bid-contractor-profile-heading {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.bid-contractor-profile-docs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bid-contractor-profile-doc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.bid-contractor-profile-doc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.bid-contractor-profile-doc-info strong {
+  font-size: 0.88rem;
+  word-break: break-word;
+}
+
+.bid-contractor-profile-doc .secondary {
+  flex-shrink: 0;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+}
+
 .contractor-portfolio-preview-title {
   margin: 0.35rem 0 0;
   font-size: 0.82rem;
@@ -7618,6 +7680,75 @@ select:disabled {
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
   background: color-mix(in srgb, var(--accent-soft) 55%, var(--glass-bg));
+}
+
+.supply-verification-banner {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid color-mix(in srgb, #b45309 35%, var(--border));
+  background: color-mix(in srgb, #fef3c7 88%, #fff);
+  color: #78350f;
+}
+
+.supply-verification-banner--awaiting_review {
+  border-bottom-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 70%, #fff);
+  color: var(--text);
+}
+
+.supply-verification-banner--rejected {
+  border-bottom-color: color-mix(in srgb, #b91c1c 40%, var(--border));
+  background: color-mix(in srgb, #fee2e2 85%, #fff);
+  color: #7f1d1d;
+}
+
+.supply-verification-banner-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.supply-verification-banner-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: min(100%, 28rem);
+  flex: 1 1 18rem;
+}
+
+.supply-verification-banner-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.supply-verification-banner-text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  opacity: 0.92;
+}
+
+.supply-verification-banner-cta {
+  flex: 0 0 auto;
+  align-self: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.supply-verification-inline {
+  margin: 0.65rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #b45309 30%, var(--border));
+  background: color-mix(in srgb, #fef3c7 70%, #fff);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #78350f;
 }
 
 .help-tip-body {

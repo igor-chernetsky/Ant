@@ -11,7 +11,7 @@ import {
   DocumentStatus,
 } from '@prisma/client';
 import {
-  ALLOWED_CONTENT_TYPES,
+  VERIFICATION_ALLOWED_CONTENT_TYPES,
   assertCompletedUploadLimits,
   MAX_UPLOAD_BYTES,
 } from '../documents/documents.types';
@@ -92,7 +92,7 @@ export class ContractorVerificationService {
       throw new BadRequestException('fileName is required');
     }
     const contentType = dto.contentType?.trim().toLowerCase();
-    if (!contentType || !ALLOWED_CONTENT_TYPES.has(contentType)) {
+    if (!contentType || !VERIFICATION_ALLOWED_CONTENT_TYPES.has(contentType)) {
       throw new BadRequestException('Unsupported content type');
     }
     if (
@@ -158,6 +158,7 @@ export class ContractorVerificationService {
     assertCompletedUploadLimits({
       sizeBytes,
       contentType: contentType ?? doc.contentType,
+      allowedContentTypes: VERIFICATION_ALLOWED_CONTENT_TYPES,
     });
     const updated = await this.prisma.contractorVerificationDocument.update({
       where: { id: documentId },

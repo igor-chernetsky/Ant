@@ -521,6 +521,75 @@ export async function selectProjectBid(
   return response.json() as Promise<Tender>;
 }
 
+export interface BidContractorProfileDocument {
+  id: string;
+  originalName: string;
+  contentType: string;
+  sizeBytes: number | null;
+  category: string;
+  uploadedAt: string | null;
+}
+
+export interface BidContractorPortfolioItem {
+  id: string;
+  title: string;
+  description: string | null;
+  originalName: string;
+  contentType: string;
+  imageUrl: string | null;
+  thumbnailUrl: string | null;
+  sortOrder: number;
+}
+
+export interface BidContractorProfileView {
+  contractorId: string;
+  companyName: string | null;
+  kind: string;
+  regionCode: string;
+  serviceLocations: Array<{ regionSlug: string; areaSlug?: string }>;
+  tagSlugs: string[];
+  verificationStatus: string;
+  portfolio: BidContractorPortfolioItem[];
+  documents: BidContractorProfileDocument[];
+}
+
+export async function fetchBidContractorProfile(
+  projectId: string,
+  bidId: string,
+): Promise<BidContractorProfileView> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/contractor-profile`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load contractor profile');
+  }
+  return response.json() as Promise<BidContractorProfileView>;
+}
+
+export async function fetchBidContractorDocumentDownload(
+  projectId: string,
+  bidId: string,
+  documentId: string,
+): Promise<{
+  downloadUrl: string;
+  expiresInSeconds: number;
+  originalName: string;
+  contentType: string;
+}> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/contractor-documents/${encodeURIComponent(documentId)}`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to get document download URL');
+  }
+  return response.json() as Promise<{
+    downloadUrl: string;
+    expiresInSeconds: number;
+    originalName: string;
+    contentType: string;
+  }>;
+}
+
 export async function updateBidContractTerms(
   projectId: string,
   bidId: string,

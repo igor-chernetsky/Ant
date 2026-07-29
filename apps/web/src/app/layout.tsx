@@ -3,6 +3,7 @@ import { InAppNotificationsProvider } from '@/components/InAppNotificationsProvi
 import { LocaleProvider } from '@/components/LocaleProvider';
 import { NotificationToasts } from '@/components/NotificationToasts';
 import { SessionProvider } from '@/components/SessionProvider';
+import { SupplyVerificationBanner } from '@/components/SupplyVerificationBanner';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({
         <SessionProvider>
           <LocaleProvider>
             <InAppNotificationsProvider>
+              <SupplyVerificationBanner />
               {children}
               <NotificationToasts />
             </InAppNotificationsProvider>

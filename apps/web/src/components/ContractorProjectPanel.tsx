@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
 import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
@@ -15,6 +16,7 @@ import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
+import { isDesignerUser } from '@/lib/session';
 import {
   fetchBidCounterOffers,
   fetchContractorProjectParticipation,
@@ -80,6 +82,7 @@ export function ContractorProjectPanel({
   } = useAppFormatters();
   const { me } = useSession();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+  const portalHref = isDesignerUser(me) ? '/designer' : '/contractor';
   const [participation, setParticipation] =
     useState<ContractorProjectParticipation | null>(null);
   const [counterOffers, setCounterOffers] = useState<BidOffer[]>([]);
@@ -345,6 +348,19 @@ export function ContractorProjectPanel({
           </dd>
         </div>
       </dl>
+
+      {participation.verificationStatus !== 'verified' && (
+        <p className="supply-verification-inline muted">
+          {participation.verificationStatus === 'awaiting_review'
+            ? t('verification.bannerAwaitingBody')
+            : participation.verificationStatus === 'rejected'
+              ? t('verification.bannerRejectedBody')
+              : t('verification.bannerPendingBody')}{' '}
+          <Link href={portalHref} className="text-link">
+            {t('verification.bannerOpenPortal')}
+          </Link>
+        </p>
+      )}
 
       {participation.applicationsDeadlinePassed && (
         <p className="tender-deadline-passed-notice">

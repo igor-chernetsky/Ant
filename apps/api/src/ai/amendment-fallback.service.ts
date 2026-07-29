@@ -4,29 +4,35 @@ import { AmendmentAiResult, AmendmentContext } from './amendment.types';
 
 @Injectable()
 export class AmendmentFallbackService {
+  /**
+   * Apply a single amendment (caller runs chronologically). Later calls see
+   * the description already updated by earlier amendments.
+   */
   processAmendments(context: AmendmentContext): AmendmentAiResult {
-    const amendmentText = context.amendments
-      .map((a) => {
-        const type = a.changeType ? `[${a.changeType}] ` : '';
-        return `${type}${a.body}`;
-      })
-      .join('\n');
+    const amendment = context.amendments[0];
+    const type = amendment?.changeType ? `[${amendment.changeType}] ` : '';
+    const amendmentText = amendment
+      ? `${type}${amendment.body}`.trim()
+      : context.amendments
+          .map((a) => {
+            const t = a.changeType ? `[${a.changeType}] ` : '';
+            return `${t}${a.body}`;
+          })
+          .join('\n');
 
     const baseDescription =
       context.description?.trim() ||
       context.brief.summary?.trim() ||
       context.title;
 
-    const updatedDescription = `${baseDescription}\n\nClient updates:\n${amendmentText}`.trim();
+    const updatedDescription =
+      `${baseDescription}\n\nClient update:\n${amendmentText}`.trim();
     const updatedSummary =
-      context.brief.summary?.trim() ||
-      updatedDescription.slice(0, 400);
+      context.brief.summary?.trim() || updatedDescription.slice(0, 400);
 
-    const narrative = [
-      context.title,
-      updatedDescription,
-      amendmentText,
-    ].join(' ');
+    const narrative = [context.title, updatedDescription, amendmentText].join(
+      ' ',
+    );
 
     const allowed = new Set(context.availableTagSlugs);
     const tagSlugs = suggestTagSlugsFromText(narrative).filter((slug) =>

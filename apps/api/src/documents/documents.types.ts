@@ -46,8 +46,15 @@ export const ALLOWED_CONTENT_TYPES = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'text/plain',
   'application/zip',
+]);
+
+/** Broader allowlist for contractor verification uploads (admin registration). */
+export const VERIFICATION_ALLOWED_CONTENT_TYPES = new Set([
+  ...ALLOWED_CONTENT_TYPES,
 ]);
 
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;

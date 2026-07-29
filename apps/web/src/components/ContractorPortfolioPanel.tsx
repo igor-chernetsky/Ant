@@ -222,6 +222,7 @@ export function ContractorPortfolioPanel() {
   return (
     <section className="card contractor-portfolio-card">
       <h2 className="section-title contractor-portfolio-title">{t('portfolio.title')}</h2>
+      <p className="muted doc-hint">{t('portfolio.clientFacingHint')}</p>
 
       {refreshing && !loading && (
         <p className="muted contractor-portfolio-refresh-hint">{t('portfolio.refreshing')}</p>
