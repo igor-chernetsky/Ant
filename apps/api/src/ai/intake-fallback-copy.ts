@@ -154,6 +154,54 @@ const STOREY_COUNT: Record<SupportedLocale, LocalizedQuestion> = {
   },
 };
 
+const FOUNDATION_TYPE: Record<SupportedLocale, LocalizedQuestion> = {
+  en: {
+    id: 'foundation-type',
+    type: 'single',
+    prompt: 'What foundation type is planned for this building?',
+    required: true,
+    allowSkip: true,
+    allowCustom: true,
+    options: [
+      { id: 'slab', label: 'Slab / raft foundation' },
+      { id: 'strip', label: 'Strip / footing foundation' },
+      { id: 'piles', label: 'Piles / deep foundation' },
+      { id: 'already_exists', label: 'Foundation already exists' },
+      { id: 'undecided', label: 'Not decided yet' },
+    ],
+  },
+  ru: {
+    id: 'foundation-type',
+    type: 'single',
+    prompt: 'Какой тип фундамента планируется для этого здания?',
+    required: true,
+    allowSkip: true,
+    allowCustom: true,
+    options: [
+      { id: 'slab', label: 'Плитный / рафт' },
+      { id: 'strip', label: 'Ленточный / ростверк' },
+      { id: 'piles', label: 'Свайный / глубокий фундамент' },
+      { id: 'already_exists', label: 'Фундамент уже есть' },
+      { id: 'undecided', label: 'Пока не решено' },
+    ],
+  },
+  th: {
+    id: 'foundation-type',
+    type: 'single',
+    prompt: 'วางแผนฐานรากแบบใดสำหรับอาคารนี้?',
+    required: true,
+    allowSkip: true,
+    allowCustom: true,
+    options: [
+      { id: 'slab', label: 'ฐานรากแผ่น / ราฟต์' },
+      { id: 'strip', label: 'ฐานรากแถบ / ตีนช้าง' },
+      { id: 'piles', label: 'เสาเข็ม / ฐานรากลึก' },
+      { id: 'already_exists', label: 'มีฐานรากอยู่แล้ว' },
+      { id: 'undecided', label: 'ยังไม่ได้ตัดสินใจ' },
+    ],
+  },
+};
+
 const POOL_DEPTH: Record<SupportedLocale, LocalizedQuestion> = {
   en: {
     id: 'pool-depth',
@@ -414,6 +462,12 @@ export function getFallbackStoreyCountQuestion(
   locale?: string | null,
 ): IntakeQuestion {
   return { ...STOREY_COUNT[resolveLocale(locale)] };
+}
+
+export function getFallbackFoundationTypeQuestion(
+  locale?: string | null,
+): IntakeQuestion {
+  return { ...FOUNDATION_TYPE[resolveLocale(locale)] };
 }
 
 export function getFallbackPoolDepthQuestion(

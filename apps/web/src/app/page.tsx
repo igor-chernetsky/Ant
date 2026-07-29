@@ -57,7 +57,10 @@ export default function HomePage() {
     areaSlug: '',
     projectTrack: null,
     propertyTypes: [],
+    ownershipScope: 'all',
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [contractorTagSlugs, setContractorTagSlugs] = useState<string[]>([]);
   const [contractorFilterInitialized, setContractorFilterInitialized] =
     useState(false);
   const [loading, setLoading] = useState(true);
@@ -117,6 +120,7 @@ export default function HomePage() {
 
     if (!me) {
       setContractorFilterInitialized(false);
+      setContractorTagSlugs([]);
       setFilters({
         tags: [],
         statuses: [],
@@ -124,28 +128,27 @@ export default function HomePage() {
         areaSlug: '',
         projectTrack: null,
         propertyTypes: [],
+        ownershipScope: 'all',
       });
       return;
     }
 
-    if (!isContractorUser(me) || contractorFilterInitialized) {
+    if (!isContractorUser(me)) {
+      setContractorTagSlugs([]);
+      return;
+    }
+
+    if (contractorFilterInitialized) {
       return;
     }
 
     void (async () => {
       try {
         const profile = await fetchContractorProfile();
-        if (!profile) return;
-        setFilters((current) => ({
-          ...current,
-          tags: profile.tagSlugs?.length ? profile.tagSlugs : current.tags,
-          regionSlug:
-            profile.serviceLocations?.[0]?.regionSlug ?? current.regionSlug,
-          areaSlug:
-            profile.serviceLocations?.[0]?.areaSlug ?? current.areaSlug,
-        }));
+        // Default: All trades + All regions. Profile tags only power the "My trades" preset.
+        setContractorTagSlugs(profile?.tagSlugs ?? []);
       } catch {
-        // Keep empty filter when profile is unavailable.
+        setContractorTagSlugs([]);
       } finally {
         setContractorFilterInitialized(true);
       }
@@ -233,26 +236,59 @@ export default function HomePage() {
   }, [contractorApplications]);
 
   const sortedProjects = useMemo(() => {
-    if (
-      !me ||
-      (ownedProjectIds.size === 0 && contractorParticipationByProjectId.size === 0)
-    ) {
-      return projects;
-    }
-    const mine: PublicProjectCard[] = [];
-    const participating: PublicProjectCard[] = [];
-    const others: PublicProjectCard[] = [];
-    for (const project of projects) {
-      if (ownedProjectIds.has(project.id)) {
-        mine.push(project);
-      } else if (contractorParticipationByProjectId.has(project.id)) {
-        participating.push(project);
-      } else {
-        others.push(project);
-      }
-    }
-    return [...mine, ...participating, ...others];
-  }, [projects, me, ownedProjectIds, contractorParticipationByProjectId]);
+    const query = searchQuery.trim().toLowerCase();
+
+    const ownershipRank = (project: PublicProjectCard): number => {
+      if (me && ownedProjectIds.has(project.id)) return 0;
+      if (me && contractorParticipationByProjectId.has(project.id)) return 1;
+      return 2;
+    };
+
+    const matchRank = (project: PublicProjectCard): number | null => {
+      if (!query) return 0;
+      if (project.title.toLowerCase().includes(query)) return 0;
+      if ((project.description ?? '').toLowerCase().includes(query)) return 1;
+      return null;
+    };
+
+    const ranked = projects
+      .map((project) => {
+        if (
+          filters.ownershipScope === 'mine' &&
+          me &&
+          !ownedProjectIds.has(project.id)
+        ) {
+          return null;
+        }
+        const match = matchRank(project);
+        if (match == null) return null;
+        return { project, match, ownership: ownershipRank(project) };
+      })
+      .filter(
+        (
+          entry,
+        ): entry is {
+          project: PublicProjectCard;
+          match: number;
+          ownership: number;
+        } => entry != null,
+      );
+
+    ranked.sort((a, b) => {
+      if (a.match !== b.match) return a.match - b.match;
+      if (a.ownership !== b.ownership) return a.ownership - b.ownership;
+      return 0;
+    });
+
+    return ranked.map((entry) => entry.project);
+  }, [
+    projects,
+    searchQuery,
+    filters.ownershipScope,
+    me,
+    ownedProjectIds,
+    contractorParticipationByProjectId,
+  ]);
 
   return (
     <PageShell>
@@ -276,10 +312,15 @@ export default function HomePage() {
           locationCatalog={locationCatalog}
           filters={filters}
           onChange={setFilters}
-          resultCount={!loading && !error ? projects.length : undefined}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          resultCount={!loading && !error ? sortedProjects.length : undefined}
           showHiddenFilter={canAddProject}
           showCompletedFilter={Boolean(me)}
           showClientWorkspaceFilters={canAddProject}
+          contractorTagSlugs={
+            isContractorUser(me) ? contractorTagSlugs : undefined
+          }
         />
 
         {loading && (
@@ -294,7 +335,7 @@ export default function HomePage() {
           </section>
         )}
 
-        {!loading && !error && projects.length === 0 && (
+        {!loading && !error && sortedProjects.length === 0 && (
           <section className="card empty-state">
             {canAddProject && (
               <HelpTip

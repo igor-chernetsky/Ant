@@ -89,6 +89,15 @@ export interface CommercialProposalCopy {
   annex2EmptyNote: string;
   annex2ListIntro: string;
   annex2FilesNote: string;
+  annex3ContractorDocs: string;
+  annex3EmptyIntro: string;
+  annex3EmptyNote: string;
+  annex3ListIntro: string;
+  annex3FilesNote: string;
+  contractorDocBusinessLicense: string;
+  contractorDocRegistration: string;
+  contractorDocInsurance: string;
+  contractorDocOwnersId: string;
   boqTrade: string;
   boqDescription: string;
   boqAmount: string;
@@ -208,6 +217,19 @@ const EN: CommercialProposalCopy = {
     'The following project documents form Annex #2 (Drawings and Specifications):',
   annex2FilesNote:
     'Full files are available in the project workspace on the platform.',
+  annex3ContractorDocs: 'Annex #3 — Contractor Corporate Documents',
+  annex3EmptyIntro:
+    'The Contractor’s corporate documents listed below form part of this Contract.',
+  annex3EmptyNote:
+    'No Business license, Company registration, Owner’s ID, or Insurance documents are recorded for the Contractor on the platform yet.',
+  annex3ListIntro:
+    'The following Contractor corporate documents form Annex #3. Open each link in the Ant platform (or find the files in the contract package under contractor-documents/):',
+  annex3FilesNote:
+    'These documents are attached to every awarded contract package and remain available via the links above while the contract is active on the platform.',
+  contractorDocBusinessLicense: 'Business license',
+  contractorDocRegistration: 'Company registration',
+  contractorDocInsurance: 'Insurance',
+  contractorDocOwnersId: "Owner's ID",
   boqTrade: 'Trade / item',
   boqDescription: 'Description',
   boqAmount: 'Amount (THB)',
@@ -377,6 +399,19 @@ const RU: CommercialProposalCopy = {
     'Следующие документы проекта составляют Приложение №2 (Чертежи и спецификации):',
   annex2FilesNote:
     'Полные файлы доступны в рабочем пространстве проекта на платформе.',
+  annex3ContractorDocs: 'Приложение №3 — Корпоративные документы подрядчика',
+  annex3EmptyIntro:
+    'Корпоративные документы Подрядчика, перечисленные ниже, составляют часть настоящего Договора.',
+  annex3EmptyNote:
+    'Для Подрядчика на платформе пока не загружены Business license, Company registration, Owner’s ID или Insurance.',
+  annex3ListIntro:
+    'Следующие корпоративные документы Подрядчика составляют Приложение №3. Откройте каждую ссылку в Ant (или найдите файлы в пакете договора в папке contractor-documents/):',
+  annex3FilesNote:
+    'Эти документы прилагаются к каждому пакету договора после выбора подрядчика и доступны по ссылкам выше, пока договор активен на платформе.',
+  contractorDocBusinessLicense: 'Business license',
+  contractorDocRegistration: 'Company registration',
+  contractorDocInsurance: 'Insurance',
+  contractorDocOwnersId: "Owner's ID",
   boqTrade: 'Раздел / позиция',
   boqDescription: 'Описание',
   boqAmount: 'Сумма (THB)',
@@ -546,6 +581,19 @@ const TH: CommercialProposalCopy = {
     'เอกสารโครงการต่อไปนี้เป็นภาคผนวก #2 (แบบและสเปก):',
   annex2FilesNote:
     'ไฟล์ฉบับเต็มดูได้ในพื้นที่ทำงานของโครงการบนแพลตฟอร์ม',
+  annex3ContractorDocs: 'ภาคผนวก #3 — เอกสารนิติบุคคลของผู้รับจ้าง',
+  annex3EmptyIntro:
+    'เอกสารนิติบุคคลของผู้รับจ้างที่ระบุด้านล่างเป็นส่วนหนึ่งของสัญญานี้',
+  annex3EmptyNote:
+    'ยังไม่มีเอกสาร Business license, Company registration, Owner’s ID หรือ Insurance ของผู้รับจ้างบนแพลตฟอร์ม',
+  annex3ListIntro:
+    'เอกสารนิติบุคคลของผู้รับจ้างต่อไปนี้เป็นภาคผนวก #3 เปิดแต่ละลิงก์ใน Ant (หรือดูไฟล์ในแพ็กเกจสัญญาที่โฟลเดอร์ contractor-documents/):',
+  annex3FilesNote:
+    'เอกสารเหล่านี้แนบกับทุกแพ็กเกจสัญญาหลังคัดเลือกผู้รับจ้าง และเปิดได้ผ่านลิงก์ด้านบนขณะที่สัญญายังใช้งานบนแพลตฟอร์ม',
+  contractorDocBusinessLicense: 'Business license',
+  contractorDocRegistration: 'Company registration',
+  contractorDocInsurance: 'Insurance',
+  contractorDocOwnersId: "Owner's ID",
   boqTrade: 'หมวด / รายการ',
   boqDescription: 'รายละเอียด',
   boqAmount: 'จำนวนเงิน (THB)',

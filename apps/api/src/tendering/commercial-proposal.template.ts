@@ -161,6 +161,24 @@ function formatDocumentCategory(category: string): string {
   return category.replace(/_/g, ' ');
 }
 
+function contractorDocCategoryLabel(
+  category: string,
+  copy: CommercialProposalCopy,
+): string {
+  switch (category) {
+    case 'business_license':
+      return copy.contractorDocBusinessLicense;
+    case 'registration':
+      return copy.contractorDocRegistration;
+    case 'insurance':
+      return copy.contractorDocInsurance;
+    case 'owners_id':
+      return copy.contractorDocOwnersId;
+    default:
+      return formatDocumentCategory(category);
+  }
+}
+
 function buildAnnex2Html(
   documents: Array<{ originalName: string; category: string }>,
   copy: CommercialProposalCopy,
@@ -182,6 +200,33 @@ function buildAnnex2Html(
     <p class="clause muted">${escapeHtml(copy.annex2FilesNote)}</p>`;
 }
 
+function buildAnnex3Html(
+  documents: Array<{
+    originalName: string;
+    category: string;
+    downloadHref: string;
+  }>,
+  copy: CommercialProposalCopy,
+): string {
+  if (!documents.length) {
+    return `<p class="clause">${escapeHtml(copy.annex3EmptyIntro)}</p>
+    <p class="clause"><em>${escapeHtml(copy.annex3EmptyNote)}</em></p>`;
+  }
+
+  const items = documents
+    .map((doc) => {
+      const label = contractorDocCategoryLabel(doc.category, copy);
+      const href = escapeHtml(doc.downloadHref);
+      const name = escapeHtml(doc.originalName);
+      return `<li><strong>${escapeHtml(label)}</strong> — <a href="${href}" target="_blank" rel="noopener noreferrer">${name}</a></li>`;
+    })
+    .join('');
+
+  return `<p class="clause">${escapeHtml(copy.annex3ListIntro)}</p>
+    <ul>${items}</ul>
+    <p class="clause muted">${escapeHtml(copy.annex3FilesNote)}</p>`;
+}
+
 export function buildCommercialProposalData(input: {
   projectTitle: string;
   projectDistrict?: string | null;
@@ -191,6 +236,11 @@ export function buildCommercialProposalData(input: {
   durationDays?: number | null;
   terms: BidTermsV1 | null;
   projectDocuments?: Array<{ originalName: string; category: string }>;
+  contractorDocuments?: Array<{
+    originalName: string;
+    category: string;
+    downloadHref: string;
+  }>;
   employerName: string;
   employerEmail?: string | null;
   employerDisplayName?: string | null;
@@ -327,6 +377,8 @@ export function buildCommercialProposalData(input: {
     hasBoq: Boolean(lineItems?.length),
     annex2Html: buildAnnex2Html(input.projectDocuments ?? [], copy),
     hasAnnex2Documents: (input.projectDocuments?.length ?? 0) > 0,
+    annex3Html: buildAnnex3Html(input.contractorDocuments ?? [], copy),
+    hasAnnex3Documents: (input.contractorDocuments?.length ?? 0) > 0,
     clarificationSummary: input.clarificationSummary?.trim() ?? '',
     hasClarificationSummary: Boolean(input.clarificationSummary?.trim()),
     contractorOrgName,
@@ -659,7 +711,7 @@ export function ensureEditedEnglishBodyHasBoq(
   );
 
   const insertBefore = new RegExp(
-    `<h2\\b[^>]*>\\s*(?:${escapeRegExp(copy.annex2Drawings)}|${escapeRegExp(copy.clause5)})\\s*</h2>`,
+    `<h2\\b[^>]*>\\s*(?:${escapeRegExp(copy.annex2Drawings)}|${escapeRegExp(copy.annex3ContractorDocs)}|${escapeRegExp(copy.clause5)})\\s*</h2>`,
     'i',
   );
   const match = insertBefore.exec(body);
@@ -677,6 +729,15 @@ function renderAnnex2Section(
   return `
   <h2>${escapeHtml(copy.annex2Drawings)}</h2>
   ${data.annex2Html}`;
+}
+
+function renderAnnex3Section(
+  data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  return `
+  <h2>${escapeHtml(copy.annex3ContractorDocs)}</h2>
+  ${data.annex3Html}`;
 }
 
 function renderClause5(
@@ -881,6 +942,8 @@ export function renderCommercialProposalBodyContent(
   ${renderBoqSection(data, copy)}
 
   ${renderAnnex2Section(data, copy)}
+
+  ${renderAnnex3Section(data, copy)}
 
   ${renderClause5(data, copy)}
 

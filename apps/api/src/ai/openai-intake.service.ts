@@ -128,6 +128,7 @@ For MEP / utilities (new build, renovation, pool, or any project with electrical
 - Ask electrical package depth (wiring / board / fixtures / specialty lighting) — prefer question id "electrical-scope" (multi)
 For new_build / extension / commercial_fitout of buildings (not amenity-only pool jobs):
 - Ask about storey count when not already clear — use id "storey-count"
+- For new_build / extension only: ask foundation type when not already clear — use id "foundation-type" (options: slab, strip, piles, already_exists, undecided). Do not assume foundations are out of scope.
 - Ask approximate sanitary wet-point count when unknown — prefer question id "sanitary-points"
 - Ask special systems (elevator/lift, basement, smart home) when not already clear — use id "special-systems" (multi-select)
 - Include the "pool" option in special-systems ONLY when a pool is already mentioned in title, description, or uploadedDocuments — otherwise omit it entirely

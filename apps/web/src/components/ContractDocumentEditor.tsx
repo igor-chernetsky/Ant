@@ -145,7 +145,16 @@ export function ContractDocumentEditor({
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: {
+          openOnClick: true,
+          autolink: false,
+          HTMLAttributes: {
+            rel: 'noopener noreferrer',
+            target: '_blank',
+          },
+        },
+      }),
       Table.configure({
         resizable: false,
         HTMLAttributes: {

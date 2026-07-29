@@ -49,6 +49,8 @@ export interface HomeProjectFilterState {
   /** `null` = all tracks. */
   projectTrack: ProjectTrack | null;
   propertyTypes: PropertyTypeFilterSlug[];
+  /** Client home: all public projects vs only projects owned by the user. */
+  ownershipScope: 'all' | 'mine';
 }
 
 interface HomeProjectFiltersProps {
@@ -56,14 +58,24 @@ interface HomeProjectFiltersProps {
   locationCatalog: LocationCatalog | null;
   filters: HomeProjectFilterState;
   onChange: (next: HomeProjectFilterState) => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
   resultCount?: number;
   showHiddenFilter?: boolean;
   showCompletedFilter?: boolean;
   /** Show pre-tender statuses (intake / estimate) for the creating client. */
   showClientWorkspaceFilters?: boolean;
+  /**
+   * When set (including `[]`), shows All trades / My trades presets for contractors.
+   * Omit for guests and clients.
+   */
+  contractorTagSlugs?: string[];
 }
 
-function countActiveFilters(filters: HomeProjectFilterState): number {
+function countActiveFilters(
+  filters: HomeProjectFilterState,
+  searchQuery: string,
+): number {
   let count = 0;
   if (filters.regionSlug) count += 1;
   if (filters.areaSlug) count += 1;
@@ -71,6 +83,8 @@ function countActiveFilters(filters: HomeProjectFilterState): number {
   count += filters.tags.length;
   if (filters.projectTrack) count += 1;
   count += filters.propertyTypes.length;
+  if (filters.ownershipScope === 'mine') count += 1;
+  if (searchQuery.trim()) count += 1;
   return count;
 }
 
@@ -79,15 +93,42 @@ export function HomeProjectFilters({
   locationCatalog,
   filters,
   onChange,
+  searchQuery,
+  onSearchChange,
   resultCount,
   showHiddenFilter = false,
   showCompletedFilter = false,
   showClientWorkspaceFilters = false,
+  contractorTagSlugs,
 }: HomeProjectFiltersProps) {
   const { t } = useTranslation();
   const { formatProjectStatus } = useAppFormatters();
-  const activeCount = countActiveFilters(filters);
+  const activeCount = countActiveFilters(filters, searchQuery);
   const hasFilters = activeCount > 0;
+  const showContractorTradePresets = contractorTagSlugs !== undefined;
+
+  const tradePresets = useMemo(() => {
+    if (!showContractorTradePresets) return undefined;
+    const presets: Array<{
+      id: string;
+      label: string;
+      values: string[] | null;
+    }> = [
+      {
+        id: 'all-trades',
+        label: t('filters.allTrades'),
+        values: null,
+      },
+    ];
+    if (contractorTagSlugs.length > 0) {
+      presets.push({
+        id: 'my-trades',
+        label: t('filters.myTrades'),
+        values: contractorTagSlugs,
+      });
+    }
+    return presets;
+  }, [showContractorTradePresets, contractorTagSlugs, t]);
 
   const statusValues = useMemo(
     () => [
@@ -149,11 +190,29 @@ export function HomeProjectFilters({
       areaSlug: '',
       projectTrack: null,
       propertyTypes: [],
+      ownershipScope: 'all',
     });
+    onSearchChange('');
   };
 
   const activePills: Array<{ key: string; label: string; onRemove: () => void }> =
     [];
+
+  if (filters.ownershipScope === 'mine') {
+    activePills.push({
+      key: 'ownership-mine',
+      label: t('filters.myProjects'),
+      onRemove: () => update({ ownershipScope: 'all' }),
+    });
+  }
+
+  if (searchQuery.trim()) {
+    activePills.push({
+      key: 'search',
+      label: t('filters.searchPill', { query: searchQuery.trim() }),
+      onRemove: () => onSearchChange(''),
+    });
+  }
 
   if (locationCatalog && filters.regionSlug) {
     const region = regionLabel(locationCatalog, filters.regionSlug);
@@ -231,6 +290,21 @@ export function HomeProjectFilters({
             <span className="project-filters-clear-badge">{activeCount}</span>
           </button>
         )}
+      </div>
+
+      <div className="project-filters-search">
+        <label className="project-filters-field-label" htmlFor="home-project-search">
+          {t('filters.search')}
+        </label>
+        <input
+          id="home-project-search"
+          type="search"
+          className="project-filters-search-input"
+          value={searchQuery}
+          placeholder={t('filters.searchPlaceholder')}
+          aria-label={t('filters.search')}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
       </div>
 
       <div className="project-filters-location-layout">
@@ -380,17 +454,61 @@ export function HomeProjectFilters({
               }
             />
 
-            {tags.length > 0 && (
-              <FilterMultiSelect
-                label={t('filters.tradesAndScope')}
-                emptyLabel={t('filters.any')}
-                options={tags.map((tag) => ({
-                  value: tag.slug,
-                  label: tag.label,
-                }))}
-                selected={filters.tags}
-                onToggle={toggleTag}
-              />
+            {showClientWorkspaceFilters ? (
+              <div className="project-filters-status-section">
+                <span className="project-filters-field-label">
+                  {t('filters.ownershipScopeLabel')}
+                </span>
+                <div
+                  className="project-filters-segmented project-filters-segmented--track"
+                  role="group"
+                  aria-label={t('filters.ownershipScopeAria')}
+                >
+                  <button
+                    type="button"
+                    className={`project-filters-segment${
+                      filters.ownershipScope === 'all'
+                        ? ' project-filters-segment--active'
+                        : ''
+                    }`}
+                    aria-pressed={filters.ownershipScope === 'all'}
+                    onClick={() => update({ ownershipScope: 'all' })}
+                  >
+                    {t('filters.allProjects')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`project-filters-segment${
+                      filters.ownershipScope === 'mine'
+                        ? ' project-filters-segment--active'
+                        : ''
+                    }`}
+                    aria-pressed={filters.ownershipScope === 'mine'}
+                    onClick={() => update({ ownershipScope: 'mine' })}
+                  >
+                    {t('filters.myProjects')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              tags.length > 0 && (
+                <FilterMultiSelect
+                  label={t('filters.tradesAndScope')}
+                  emptyLabel={
+                    showContractorTradePresets
+                      ? t('filters.allTrades')
+                      : t('filters.any')
+                  }
+                  options={tags.map((tag) => ({
+                    value: tag.slug,
+                    label: tag.label,
+                  }))}
+                  selected={filters.tags}
+                  onToggle={toggleTag}
+                  onSelectValues={(values) => update({ tags: values })}
+                  presets={tradePresets}
+                />
+              )
             )}
           </div>
         </div>

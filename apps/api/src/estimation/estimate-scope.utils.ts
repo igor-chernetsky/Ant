@@ -22,7 +22,51 @@ const CORE_SCOPE_TRADES = new Set([
   'tiling',
   'flooring',
   'painting',
+  'fire-suppression',
 ]);
+
+export const FIRE_SUPPRESSION_PATTERN =
+  /\b(fire[-\s]?suppress|fire[-\s]?extinguish|sprinkler|пожар(отушен|ной\s*безопас)|автоматическ\w*\s*пожар|ระบบดับเพลิง)\b/i;
+
+export const INDUSTRIAL_VENTILATION_PATTERN =
+  /\b(supply[\s\-/]*exhaust|приточн\w*\s*-?\s*вытяж|приточно-вытяж|industrial\s*ventil|warehouse\s*ventil|вентиляц(ия|ии|ионн)|exhaust\s*ventil|механическ\w*\s*вентиляц)\b/i;
+
+const WAREHOUSE_OR_PRODUCTION_PATTERN =
+  /\b(warehouse|склад|factory|завод|производств|woodwork|деревообработ|furniture\s*product|мебельн\w*\s*производ|industrial|промышленн)\b/i;
+
+const HEAVY_ELECTRICAL_LOAD_PATTERN =
+  /\b(cnc|heavy\s*machin|high[- ]?voltage|process\s*equipment|промышленн\w*\s*(нагруз|электр)|силовое\s*оборуд|станок|substation|трансформатор)\b/i;
+
+/** Industrial supply/exhaust ventilation priced per sqm (THB). */
+export const INDUSTRIAL_HVAC_SQM_MIN = 1200;
+export const INDUSTRIAL_HVAC_SQM_MAX = 3200;
+
+const APPROX_AREA_BUCKET_SQM: Record<string, number> = {
+  'under-30': 25,
+  '30-80': 55,
+  '80-150': 115,
+  '150-plus': 220,
+};
+
+/** Explicitly requested extras that are not a dedicated catalog trade → `other`. */
+const REQUESTED_OTHER_SYSTEMS: Array<{
+  id: string;
+  pattern: RegExp;
+  description: string;
+}> = [
+  {
+    id: 'access-control',
+    pattern:
+      /\b(access\s*control|скуд|cctv|видео.?наблюд|security\s*system|охранн\w*\s*систем)\b/i,
+    description: 'Access control / security systems',
+  },
+  {
+    id: 'fire-alarm',
+    pattern:
+      /\b(fire\s*alarm|пожар\w*\s*сигнализ|smoke\s*detect|дымов\w*\s*извещ)\b/i,
+    description: 'Fire alarm / detection system',
+  },
+];
 
 export function catalogTradeSlugs(): string[] {
   return TH_REGIONAL_CATALOG.map((item) => item.trade);
@@ -100,12 +144,16 @@ export function buildEstimateScopeRules(
     'Quality upgrades mentioned in description, intake answers, or amendments (chlorine-free / UV / ozone / salt treatment; specialty / underwater / designer lights) MUST increase unit prices and/or add dedicated lines. Changing only the line description without changing amounts is incorrect.',
     'Civil / landscaping additions (paths, umbrella footings, concrete pads) and MEP quality upgrades must BOTH move totals — never ignore MEP notes while pricing concrete.',
     'Cover confirmed MEP (electrical, plumbing) whenever wiring, lighting, fixtures, water supply, sanitary, filtration, or utility connection works are in scope.',
+    'When the client (description, amendments, intake) requests a new system — fire suppression/sprinklers, specialty MEP, or other named equipment — ADD a separate priced estimate line. Use trade fire-suppression for automatic fire extinguishing; use trade other for explicitly requested systems that are not a catalog trade. Never only mention them in description text.',
+    'Do not remap fire-suppression or other lines into finishing.',
+    'Supply/exhaust or industrial/warehouse ventilation must be priced as HVAC per sqm (roughly 1,200–3,200 THB/sqm), not as a single residential AC unit (18–45k).',
+    'Prefer a single consolidated electrical line for base wiring/board/lighting; avoid duplicate electrical rows that inflate totals.',
   ];
 
   if (hasPreviousEstimate) {
     lines.push(
       'A previousEstimate is provided. REVISE it for the updated scope: keep still-relevant trades, adjust quantities/prices as needed, and ADD lines for new work. Do NOT drop construction, finishing, or electrical lines just because newer items (tiling, furniture, umbrellas) were added.',
-      'When an amendment adds premium equipment/systems (treatment, specialty lighting), INCREASE related previous line amounts or add new premium lines — do not leave electrical/plumbing totals unchanged.',
+      'When an amendment adds premium equipment/systems (treatment, specialty lighting, fire suppression, or other named systems), INCREASE related previous line amounts or add new dedicated lines — do not leave totals unchanged.',
       'Only remove a previous trade if the updated scope clearly cancels that work.',
     );
   }
@@ -122,6 +170,12 @@ export function buildEstimateScopeRules(
     );
   }
 
+  if (projectType === 'new_build' || projectType === 'extension') {
+    lines.push(
+      'For new build / extension: if intake foundation-type is set (slab, strip, piles, undecided) and is not already_exists, include foundation works in structural scope (dedicated structural line or clear foundation quantity) — do not omit foundations because they were not repeated in the free-text description.',
+    );
+  }
+
   return lines.map((line) => `- ${line}`).join('\n');
 }
 
@@ -132,6 +186,10 @@ const TRADE_KEYWORD_MAP: Array<{ pattern: RegExp; trade: string }> = [
     pattern:
       /\b(foundation|footing|pile|structural|civil|строительн|конструкц|каркас|бетон|фундамент)\b/i,
     trade: 'structural',
+  },
+  {
+    pattern: FIRE_SUPPRESSION_PATTERN,
+    trade: 'fire-suppression',
   },
   { pattern: /\b(roof|roofing|кровл|крыш)\b/i, trade: 'roofing' },
   {
@@ -192,11 +250,11 @@ export function mapLineToCatalogTrade(line: EstimateLine): EstimateLine | null {
     }
   }
 
-  // Soft fallback: keep priced lines under finishing rather than dropping them.
+  // Soft fallback: keep priced unknown trades as `other` rather than folding into finishing.
   if (line.lineMin > 0 || line.lineMax > 0) {
     return {
       ...line,
-      trade: 'finishing',
+      trade: 'other',
       description: line.description || line.trade,
     };
   }
@@ -303,6 +361,373 @@ export function mergePreviousEstimateLines(input: {
   return merged;
 }
 
+function catalogLumpLine(
+  trade: string,
+  description: string,
+): EstimateLine | null {
+  const catalog = TH_REGIONAL_CATALOG.find((item) => item.trade === trade);
+  if (!catalog) {
+    return null;
+  }
+  return {
+    trade,
+    description,
+    quantity: 1,
+    unit: catalog.unit,
+    unitPriceMin: catalog.priceMinThb,
+    unitPriceMax: catalog.priceMaxThb,
+    lineMin: catalog.priceMinThb,
+    lineMax: catalog.priceMaxThb,
+  };
+}
+
+function lineCoversTradeOrPattern(
+  lines: EstimateLine[],
+  trade: string,
+  pattern: RegExp,
+): boolean {
+  return lines.some(
+    (line) =>
+      line.trade === trade ||
+      pattern.test(`${line.trade} ${line.description}`),
+  );
+}
+
+/**
+ * After AI/fallback generation, ensure explicitly requested specialty systems
+ * appear as dedicated priced lines (not description-only notes).
+ */
+export function ensureRequestedExtraLines(input: {
+  lines: EstimateLine[];
+  narrative: string;
+  tagSlugs: string[];
+}): EstimateLine[] {
+  const next = [...input.lines];
+  const narrative = input.narrative;
+  const wantsFire =
+    input.tagSlugs.includes('fire-suppression') ||
+    FIRE_SUPPRESSION_PATTERN.test(narrative);
+
+  if (
+    wantsFire &&
+    !lineCoversTradeOrPattern(next, 'fire-suppression', FIRE_SUPPRESSION_PATTERN)
+  ) {
+    const line = catalogLumpLine(
+      'fire-suppression',
+      'Automatic fire suppression / sprinkler system',
+    );
+    if (line) {
+      next.push(line);
+    }
+  }
+
+  for (const system of REQUESTED_OTHER_SYSTEMS) {
+    if (!system.pattern.test(narrative)) {
+      continue;
+    }
+    if (lineCoversTradeOrPattern(next, 'other', system.pattern)) {
+      continue;
+    }
+    // Skip if already covered under another trade with matching description.
+    if (next.some((line) => system.pattern.test(line.description))) {
+      continue;
+    }
+    const line = catalogLumpLine('other', system.description);
+    if (line) {
+      next.push(line);
+    }
+  }
+
+  return next;
+}
+
+/** Resolve GFA for pricing: brief → WxH dimensions → intake buckets → default. */
+export function resolveEstimateAreaSqm(
+  brief: ProjectBriefV1,
+  narrative: string,
+): number {
+  const fromBrief = brief.property?.areaSqm;
+  if (typeof fromBrief === 'number' && fromBrief > 0) {
+    return Math.round(fromBrief);
+  }
+
+  const fromPackage = brief.packages?.find(
+    (pkg) => typeof pkg.areaSqm === 'number' && (pkg.areaSqm ?? 0) > 0,
+  )?.areaSqm;
+  if (typeof fromPackage === 'number' && fromPackage > 0) {
+    return Math.round(fromPackage);
+  }
+
+  const fromDimensions = parseAreaFromDimensions(narrative);
+  if (fromDimensions) {
+    return fromDimensions;
+  }
+
+  const fromExplicit = parseExplicitSqm(narrative);
+  if (fromExplicit) {
+    return fromExplicit;
+  }
+
+  const approxAnswer = brief.ai?.intake?.answers?.find(
+    (entry) => entry.questionId === 'approx-area' && !entry.skipped,
+  );
+  if (approxAnswer) {
+    const raw = Array.isArray(approxAnswer.value)
+      ? String(approxAnswer.value[0] ?? '')
+      : String(approxAnswer.value ?? '');
+    const bucket = APPROX_AREA_BUCKET_SQM[raw];
+    if (bucket) {
+      return bucket;
+    }
+    const custom = parseExplicitSqm(approxAnswer.customText ?? '');
+    if (custom) {
+      return custom;
+    }
+  }
+
+  return 50;
+}
+
+function parseAreaFromDimensions(text: string): number | null {
+  const match = text.match(
+    /(\d+(?:[.,]\d+)?)\s*[x×х]\s*(\d+(?:[.,]\d+)?)\s*(?:m|м|meter|metre|meters|metres)?/i,
+  );
+  if (!match) {
+    return null;
+  }
+  const a = Number(match[1].replace(',', '.'));
+  const b = Number(match[2].replace(',', '.'));
+  if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0) {
+    return null;
+  }
+  const area = Math.round(a * b);
+  // Ignore tiny product dimensions (e.g. 2x4 lumber) and absurd values.
+  if (area < 20 || area > 20000) {
+    return null;
+  }
+  return area;
+}
+
+function parseExplicitSqm(text: string): number | null {
+  const match = text.match(
+    /(\d+(?:[.,]\d+)?)\s*(?:sqm|sq\.?\s*m|m2|m²|кв\.?\s*м|м\s*2)/i,
+  );
+  if (!match) {
+    return null;
+  }
+  const value = Number(match[1].replace(',', '.'));
+  if (!Number.isFinite(value) || value < 10 || value > 20000) {
+    return null;
+  }
+  return Math.round(value);
+}
+
+export function wantsIndustrialVentilation(narrative: string): boolean {
+  if (INDUSTRIAL_VENTILATION_PATTERN.test(narrative)) {
+    return true;
+  }
+  // Warehouse/production + generic ventilation / HVAC mention.
+  return (
+    WAREHOUSE_OR_PRODUCTION_PATTERN.test(narrative) &&
+    /\b(ventil|вентиляц|hvac|air\s*con|кондиц)\b/i.test(narrative)
+  );
+}
+
+/**
+ * Reprice under-costed unit HVAC when industrial supply/exhaust ventilation is in scope.
+ */
+export function normalizeIndustrialHvacLines(input: {
+  lines: EstimateLine[];
+  narrative: string;
+  areaSqm: number;
+}): EstimateLine[] {
+  if (!wantsIndustrialVentilation(input.narrative)) {
+    return input.lines;
+  }
+
+  const areaSqm = Math.max(20, input.areaSqm);
+  const targetMin = Math.round(INDUSTRIAL_HVAC_SQM_MIN * areaSqm);
+  const targetMax = Math.round(INDUSTRIAL_HVAC_SQM_MAX * areaSqm);
+  const description =
+    'Supply and exhaust industrial ventilation system';
+
+  const next = [...input.lines];
+  const hvacIndexes = next
+    .map((line, index) => (line.trade === 'hvac' ? index : -1))
+    .filter((index) => index >= 0);
+
+  if (hvacIndexes.length === 0) {
+    next.push({
+      trade: 'hvac',
+      description,
+      quantity: areaSqm,
+      unit: 'sqm',
+      unitPriceMin: INDUSTRIAL_HVAC_SQM_MIN,
+      unitPriceMax: INDUSTRIAL_HVAC_SQM_MAX,
+      lineMin: targetMin,
+      lineMax: targetMax,
+    });
+    return next;
+  }
+
+  // Keep one HVAC line; reprice if still at residential unit scale.
+  const primaryIndex = hvacIndexes[0];
+  const primary = next[primaryIndex];
+  const underpriced =
+    primary.unit === 'unit' ||
+    primary.lineMax < Math.round(areaSqm * INDUSTRIAL_HVAC_SQM_MIN * 0.5);
+
+  next[primaryIndex] = {
+    ...primary,
+    description:
+      INDUSTRIAL_VENTILATION_PATTERN.test(primary.description) || underpriced
+        ? description
+        : primary.description,
+    quantity: underpriced ? areaSqm : primary.quantity,
+    unit: underpriced ? 'sqm' : primary.unit,
+    unitPriceMin: underpriced
+      ? INDUSTRIAL_HVAC_SQM_MIN
+      : Math.max(primary.unitPriceMin, INDUSTRIAL_HVAC_SQM_MIN),
+    unitPriceMax: underpriced
+      ? INDUSTRIAL_HVAC_SQM_MAX
+      : Math.max(primary.unitPriceMax, INDUSTRIAL_HVAC_SQM_MAX),
+    lineMin: underpriced
+      ? targetMin
+      : Math.max(primary.lineMin, targetMin),
+    lineMax: underpriced
+      ? targetMax
+      : Math.max(primary.lineMax, targetMax),
+  };
+
+  // Drop duplicate HVAC rows after consolidating.
+  for (let i = hvacIndexes.length - 1; i >= 1; i -= 1) {
+    next.splice(hvacIndexes[i], 1);
+  }
+
+  return next;
+}
+
+/**
+ * Merge duplicate electrical rows and cap totals for non-heavy industrial scope.
+ */
+export function dedupeAndCapElectricalLines(input: {
+  lines: EstimateLine[];
+  narrative: string;
+  areaSqm: number;
+}): EstimateLine[] {
+  const electrical = input.lines.filter((line) => line.trade === 'electrical');
+  const others = input.lines.filter((line) => line.trade !== 'electrical');
+  if (electrical.length === 0) {
+    return input.lines;
+  }
+
+  const areaSqm = Math.max(20, input.areaSqm);
+  const catalog = TH_REGIONAL_CATALOG.find((item) => item.trade === 'electrical');
+  const catalogMax = catalog?.priceMaxThb ?? 6500;
+  const catalogMin = catalog?.priceMinThb ?? 2200;
+
+  const descriptions = [
+    ...new Set(
+      electrical
+        .map((line) => line.description.trim())
+        .filter((text) => text.length > 0),
+    ),
+  ];
+  const quantity = Math.max(
+    areaSqm,
+    ...electrical.map((line) =>
+      line.unit === 'sqm' && line.quantity > 0 ? line.quantity : areaSqm,
+    ),
+  );
+  let unitPriceMin = Math.max(
+    catalogMin,
+    ...electrical.map((line) => line.unitPriceMin),
+  );
+  let unitPriceMax = Math.max(
+    unitPriceMin,
+    ...electrical.map((line) => line.unitPriceMax),
+  );
+  let lineMin = Math.max(...electrical.map((line) => line.lineMin));
+  let lineMax = Math.max(...electrical.map((line) => line.lineMax));
+
+  // Prefer sqm-consistent amounts when quantity looks like area.
+  if (quantity >= 20) {
+    lineMin = Math.max(lineMin, Math.round(unitPriceMin * quantity));
+    lineMax = Math.max(lineMax, Math.round(unitPriceMax * quantity));
+  }
+
+  const heavyLoad = HEAVY_ELECTRICAL_LOAD_PATTERN.test(input.narrative);
+  const warehouseLike =
+    WAREHOUSE_OR_PRODUCTION_PATTERN.test(input.narrative) && !heavyLoad;
+  const capPerSqm = heavyLoad
+    ? catalogMax * 1.5
+    : warehouseLike
+      ? catalogMax * 1.05
+      : catalogMax * 1.25;
+  const capMax = Math.round(capPerSqm * areaSqm);
+  const capMin = Math.round(
+    Math.min(catalogMin * 1.1, catalogMax * 0.55) * areaSqm,
+  );
+
+  if (lineMax > capMax) {
+    lineMax = capMax;
+    unitPriceMax = Math.round(capMax / quantity);
+  }
+  if (lineMin > lineMax) {
+    lineMin = Math.min(lineMax, Math.max(capMin, Math.round(lineMax * 0.7)));
+    unitPriceMin = Math.round(lineMin / quantity);
+  }
+
+  return [
+    ...others,
+    {
+      trade: 'electrical',
+      description:
+        descriptions.length > 0
+          ? descriptions.join('; ').slice(0, 500)
+          : 'Electrical works (wiring, panel, lighting)',
+      quantity,
+      unit: 'sqm',
+      unitPriceMin,
+      unitPriceMax: Math.max(unitPriceMin, unitPriceMax),
+      lineMin,
+      lineMax: Math.max(lineMin, lineMax),
+    },
+  ];
+}
+
+/**
+ * Shared post-processing after filter/merge for OpenAI and fallback paths.
+ */
+export function finalizeEstimateLines(input: {
+  lines: EstimateLine[];
+  narrative: string;
+  tagSlugs: string[];
+  brief: ProjectBriefV1;
+}): EstimateLine[] {
+  const areaSqm = resolveEstimateAreaSqm(input.brief, input.narrative);
+  const ensured = ensureRequestedExtraLines({
+    lines: input.lines,
+    narrative: input.narrative,
+    tagSlugs: input.tagSlugs,
+  });
+  const hvacNormalized = normalizeIndustrialHvacLines({
+    lines: ensured,
+    narrative: input.narrative,
+    areaSqm,
+  });
+  const signals = detectPremiumScopeSignals(input.narrative);
+  const premiumAdjusted = applyPremiumScopePriceAdjustments(
+    hvacNormalized,
+    signals,
+  );
+  return dedupeAndCapElectricalLines({
+    lines: premiumAdjusted,
+    narrative: input.narrative,
+    areaSqm,
+  });
+}
+
 export function buildEstimateUserContext(input: {
   title: string;
   description: string | null;
@@ -319,9 +744,20 @@ export function buildEstimateUserContext(input: {
 }) {
   const narrative = collectEstimateNarrative(input);
   const premiumSignals = detectPremiumScopeSignals(narrative);
+  const areaSqm = resolveEstimateAreaSqm(input.brief, narrative);
   const hasClarifications =
     (input.clarificationQa?.length ?? 0) > 0 ||
     Boolean(input.clarificationSummary?.trim());
+
+  const pricingDirectives = buildPricingDirectives(premiumSignals);
+  if (wantsIndustrialVentilation(narrative)) {
+    pricingDirectives.push(
+      `Supply/exhaust or industrial ventilation is in scope — price HVAC per sqm (~${INDUSTRIAL_HVAC_SQM_MIN}–${INDUSTRIAL_HVAC_SQM_MAX} THB/sqm × ~${areaSqm} sqm), not as a single residential AC unit.`,
+    );
+  }
+  pricingDirectives.push(
+    `Use resolvedAreaSqm=${areaSqm} for sqm-based trades when brief.property.areaSqm is missing.`,
+  );
 
   return {
     project: {
@@ -333,6 +769,7 @@ export function buildEstimateUserContext(input: {
       regionCode: input.regionCode,
       tags: input.tagSlugs,
       scopeSummary: input.scopeSummary ?? null,
+      resolvedAreaSqm: areaSqm,
     },
     brief: {
       summary: input.brief.summary,
@@ -348,7 +785,7 @@ export function buildEstimateUserContext(input: {
     clarificationQa: input.clarificationQa ?? [],
     clarificationSummary: input.clarificationSummary ?? null,
     premiumScopeSignals: premiumSignals,
-    pricingDirectives: buildPricingDirectives(premiumSignals),
+    pricingDirectives,
     ...(input.previousLines && input.previousLines.length > 0
       ? {
           previousEstimate: {

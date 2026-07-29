@@ -17,6 +17,7 @@ import {
   DEFAULT_LOCALE,
   type SupportedLocale,
 } from '../users/locale.types';
+import { CONTRACT_ATTACHMENT_VERIFICATION_CATEGORIES } from '../verification/verification.types';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
   buildCommercialProposalData,
@@ -128,7 +129,10 @@ export class CommercialProposalService {
     projectId?: string,
   ): Promise<number> {
     const bid = await this.loadAndAuthorizeBid(userId, bidId, projectId);
-    const attachments = await this.collectAttachmentFiles(bid.tender.projectId);
+    const attachments = await this.collectAttachmentFiles(
+      bid.tender.projectId,
+      bid.contractorId,
+    );
     return attachments.length;
   }
 
@@ -269,6 +273,7 @@ export class CommercialProposalService {
     if (options.withAttachments) {
       const attachmentFiles = await this.collectAttachmentFiles(
         bid.tender.projectId,
+        bid.contractorId,
       );
       for (const file of attachmentFiles) {
         try {
@@ -423,7 +428,10 @@ export class CommercialProposalService {
     return bid;
   }
 
-  private async collectAttachmentFiles(projectId: string): Promise<
+  private async collectAttachmentFiles(
+    projectId: string,
+    contractorId: string,
+  ): Promise<
     Array<{
       storageKey: string;
       zipPath: string;
@@ -434,40 +442,54 @@ export class CommercialProposalService {
       select: { id: true },
     });
 
-    const [projectDocuments, clarificationAttachments] = await Promise.all([
-      this.prisma.document.findMany({
-        where: {
-          projectId,
-          status: DocumentStatus.uploaded,
-        },
-        orderBy: { createdAt: 'asc' },
-        select: {
-          storageKey: true,
-          originalName: true,
-          category: true,
-        },
-      }),
-      tender
-        ? this.prisma.clarificationAnswerAttachment.findMany({
-            where: {
-              status: DocumentStatus.uploaded,
-              question: { tenderId: tender.id },
-            },
-            orderBy: { createdAt: 'asc' },
-            select: {
-              storageKey: true,
-              originalName: true,
-              question: {
-                select: {
-                  id: true,
-                  questionText: true,
-                  sortOrder: true,
+    const [projectDocuments, clarificationAttachments, contractorDocuments] =
+      await Promise.all([
+        this.prisma.document.findMany({
+          where: {
+            projectId,
+            status: DocumentStatus.uploaded,
+          },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            storageKey: true,
+            originalName: true,
+            category: true,
+          },
+        }),
+        tender
+          ? this.prisma.clarificationAnswerAttachment.findMany({
+              where: {
+                status: DocumentStatus.uploaded,
+                question: { tenderId: tender.id },
+              },
+              orderBy: { createdAt: 'asc' },
+              select: {
+                storageKey: true,
+                originalName: true,
+                question: {
+                  select: {
+                    id: true,
+                    questionText: true,
+                    sortOrder: true,
+                  },
                 },
               },
-            },
-          })
-        : Promise.resolve([]),
-    ]);
+            })
+          : Promise.resolve([]),
+        this.prisma.contractorVerificationDocument.findMany({
+          where: {
+            contractorId,
+            status: DocumentStatus.uploaded,
+            category: { in: CONTRACT_ATTACHMENT_VERIFICATION_CATEGORIES },
+          },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            storageKey: true,
+            originalName: true,
+            category: true,
+          },
+        }),
+      ]);
 
     const files: Array<{ storageKey: string; zipPath: string }> = [];
 
@@ -490,7 +512,22 @@ export class CommercialProposalService {
       });
     }
 
+    for (const doc of contractorDocuments) {
+      const category = doc.category.replace(/_/g, '-');
+      files.push({
+        storageKey: doc.storageKey,
+        zipPath: `contractor-documents/${category}-${sanitizeZipEntryName(doc.originalName)}`,
+      });
+    }
+
     return files;
+  }
+
+  private contractorDocumentDownloadHref(
+    projectId: string,
+    documentId: string,
+  ): string {
+    return `/api/projects/${encodeURIComponent(projectId)}/contract/contractor-documents/${encodeURIComponent(documentId)}`;
   }
 
   private async buildProposalDataForLocale(
@@ -577,6 +614,17 @@ export class CommercialProposalService {
       select: { originalName: true, category: true },
     });
 
+    const contractorDocuments =
+      await this.prisma.contractorVerificationDocument.findMany({
+        where: {
+          contractorId: bid.contractorId,
+          status: DocumentStatus.uploaded,
+          category: { in: CONTRACT_ATTACHMENT_VERIFICATION_CATEGORIES },
+        },
+        orderBy: [{ category: 'asc' }, { createdAt: 'asc' }],
+        select: { id: true, originalName: true, category: true },
+      });
+
     const contract = await this.prisma.contract.findUnique({
       where: { bidId: bid.id },
       select: {
@@ -598,6 +646,14 @@ export class CommercialProposalService {
       projectDocuments: projectDocuments.map((doc) => ({
         originalName: doc.originalName,
         category: doc.category,
+      })),
+      contractorDocuments: contractorDocuments.map((doc) => ({
+        originalName: doc.originalName,
+        category: doc.category,
+        downloadHref: this.contractorDocumentDownloadHref(
+          bid.tender.projectId,
+          doc.id,
+        ),
       })),
       employerName:
         localized.contractTerms.employerName?.trim() ||

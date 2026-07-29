@@ -82,7 +82,8 @@ export const TH_REGIONAL_CATALOG: RegionalCatalogItem[] = [
   },
   {
     trade: 'hvac',
-    label: 'HVAC / air conditioning',
+    label:
+      'HVAC: split AC per unit, OR supply/exhaust industrial ventilation priced per sqm for warehouses/production',
     unit: 'unit',
     priceMinThb: 18000,
     priceMaxThb: 45000,
@@ -115,6 +116,22 @@ export const TH_REGIONAL_CATALOG: RegionalCatalogItem[] = [
     priceMinThb: 600,
     priceMaxThb: 2500,
   },
+  {
+    trade: 'fire-suppression',
+    label:
+      'Automatic fire suppression / sprinkler system (warehouse & production scale)',
+    unit: 'lump',
+    priceMinThb: 180000,
+    priceMaxThb: 650000,
+  },
+  {
+    trade: 'other',
+    label:
+      'Other explicitly requested systems (priced lump — do not fold into finishing)',
+    unit: 'lump',
+    priceMinThb: 40000,
+    priceMaxThb: 350000,
+  },
 ];
 
 export function catalogSummaryForPrompt(
@@ -131,5 +148,9 @@ Notes:
 - electrical: lighting fixtures and switchgear push toward mid-high band; specialty / underwater / designer luminaires require upper-band OR a separate electrical lump (often +40k–180k THB), not "free wording" inside a cheap wiring line.
 - plumbing: mains water / sewer utility tie-in is substantially more than a single fixture point — treat connection works near the upper band or as an additional lump.
 - pool water treatment: chlorine-free / UV / ozone / salt systems must be priced explicitly (typically +80k–250k THB lump on plumbing or a dedicated plumbing line). Do not treat them as zero-cost notes.
+- fire-suppression: when the client requests automatic fire extinguishing / sprinklers, add a dedicated fire-suppression line — never only a description note.
+- other: use for explicitly requested systems that are not a catalog trade (e.g. access control, specialized process equipment). Keep a separate priced line — do not remap to finishing.
+- hvac: residential split AC = per unit (18–45k). Supply/exhaust / industrial / warehouse ventilation MUST be priced per sqm (about 1,200–3,200 THB/sqm), never as a single 30–45k unit.
+- electrical: prefer ONE consolidated electrical line per project for base wiring/board/lighting. Do not stack duplicate electrical lines. For warehouses without heavy process equipment, stay within catalog band (≤ ~6,500 THB/sqm).
 - Prefer multiple MEP lines when scope is detailed (e.g. wiring+board, specialty lighting, utility connection, filtration/treatment) rather than one shallow aggregate.`;
 }

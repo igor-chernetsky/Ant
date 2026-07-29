@@ -1,8 +1,9 @@
 'use client';
 
-import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import type { ContractorProfile } from '@/lib/tendering';
 import { formatFileSize } from '@/lib/documents';
 import {
@@ -15,6 +16,9 @@ import {
   type ContractorVerificationDocument,
 } from '@/lib/verification';
 
+const RECOMMENDED_VERIFICATION_CATEGORIES: ContractorVerificationDocCategory[] =
+  ['business_license', 'registration', 'insurance', 'owners_id'];
+
 interface ContractorVerificationPanelProps {
   profile: ContractorProfile;
   onProfileUpdated: (profile: ContractorProfile) => void;
@@ -26,6 +30,7 @@ export function ContractorVerificationPanel({
 }: ContractorVerificationPanelProps) {
   const { t } = useTranslation();
   const { formatVerificationStatus, formatDocumentCategory } = useAppFormatters();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<ContractorVerificationDocument[]>(
     [],
@@ -44,6 +49,13 @@ export function ContractorVerificationPanel({
   const canRequestApproval =
     profile.verificationStatus === 'pending' ||
     profile.verificationStatus === 'rejected';
+
+  const missingRecommendedCategories = useMemo(() => {
+    const uploaded = new Set(documents.map((doc) => doc.category));
+    return RECOMMENDED_VERIFICATION_CATEGORIES.filter(
+      (category) => !uploaded.has(category),
+    );
+  }, [documents]);
 
   const loadDocs = useCallback(async () => {
     setLoading(true);
@@ -93,6 +105,29 @@ export function ContractorVerificationPanel({
   };
 
   const handleRequestApproval = async () => {
+    const missingList =
+      missingRecommendedCategories.length > 0
+        ? t('verification.requestApprovalConfirmMissing', {
+            categories: missingRecommendedCategories
+              .map((category) => formatDocumentCategory(category))
+              .join(', '),
+          })
+        : '';
+
+    const confirmed = await confirm({
+      title: t('verification.requestApprovalConfirmTitle'),
+      message: [
+        t('verification.requestApprovalConfirmMessage', {
+          count: String(documents.length),
+        }),
+        missingList,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+      confirmLabel: t('verification.requestApprovalConfirmLabel'),
+    });
+    if (!confirmed) return;
+
     setBusy(true);
     setError(null);
     try {
@@ -212,6 +247,7 @@ export function ContractorVerificationPanel({
       )}
 
       {error && <p className="form-error">{error}</p>}
+      {confirmDialog}
     </section>
   );
 }

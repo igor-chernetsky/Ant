@@ -48,7 +48,12 @@ export function suggestTagSlugsFromText(text: string): string[] {
       /\bstruct|\bbeam|\bfoundation|\bстроительн|\bконструкц|\bфундамент|\bconcrete|\bбетон/,
       'structural',
     ],
-    [/\bhvac|\bair cond|\bac\b|\bкондиц/, 'hvac'],
+    // Prefer craft tags for ventilation keywords.
+    [/\bhvac|\bair cond|\bac\b|\bкондиц|\bventil|\bвентиляц/, 'hvac'],
+    [
+      /\bfire[-\s]?suppress|\bsprinkler|\bfire[-\s]?extinguish|\bпожар(отушен|ной\s*безопас)|автоматическ\w*\s*пожар/,
+      'fire-suppression',
+    ],
     [/\bpaint|\bпокраск|\bмаляр/, 'painting'],
     [/\bfloor|\bнапольн/, 'flooring'],
     [/\btile|\bплитк|\bкафель|\bмозаик/, 'tiling'],
@@ -205,5 +210,6 @@ export const TAG_NO_HALLUCINATION_RULES = `Tag and description honesty rules:
 - Tag "design" is appropriate when the client says the contractor prepares working/shop drawings, but that must be ADDITIVE — still keep construction trades.
 - For swimming-pool construction, tagSlugs MUST include structural, plumbing, electrical, and tiling (plus design only if drawings are in contractor scope). Do not leave only demolition and/or design.
 - Do not treat pool excavation / earthworks as demolition unless real strip-out or demolition is stated.
+- When the client requests automatic fire suppression / sprinklers / fire extinguishing, include tag "fire-suppression".
 - tagSlugs must reflect real construction trades in scope. Prefer omitting a speculative tag over guessing.
 - When revising tags after clarifications, keep still-relevant craft trades; do not replace the whole list with only the newest answer topic (e.g. drawings).`;

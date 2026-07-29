@@ -24,6 +24,9 @@ const ELECTRICAL_SCOPE_FACT_PATTERN =
 const WATER_TREATMENT_FACT_PATTERN =
   /\b(chlorine[- ]?free|без\s*хлор|salt\s*water|солев|uv\s*treat|озон|ozone|ultraviolet|ультрафиолет|salt\s*chlorin)\b/i;
 
+const FOUNDATION_FACT_PATTERN =
+  /\b(foundation|footing|pile|piles|raft|slab\s*foundation|фундамент|свай|ростверк|ฐานราก|เสาเข็ม)\b/i;
+
 export const POOL_INTAKE_QUESTION_IDS = [
   'pool-depth',
   'pool-pump-station',
@@ -175,6 +178,29 @@ export function shouldAskStoreyCount(context: ProjectIntakeContext): boolean {
     return false;
   }
   return !narrativeHasStoreyFact(context);
+}
+
+export function narrativeHasFoundationFact(
+  context: ProjectIntakeContext,
+): boolean {
+  if (FOUNDATION_FACT_PATTERN.test(intakeNarrative(context))) {
+    return true;
+  }
+  return context.answers.some(
+    (a) => a.questionId === 'foundation-type' && !a.skipped,
+  );
+}
+
+export function shouldAskFoundationType(
+  context: ProjectIntakeContext,
+): boolean {
+  if (!['new_build', 'extension'].includes(context.projectType)) {
+    return false;
+  }
+  if (!isBuildingShellPrimary(context)) {
+    return false;
+  }
+  return !narrativeHasFoundationFact(context);
 }
 
 export function shouldAskPoolScopeQuestions(

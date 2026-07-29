@@ -9,6 +9,7 @@ import {
 import {
   Contract,
   ContractStatus,
+  DocumentStatus,
   Prisma,
   Project,
   ProjectStatus,
@@ -16,6 +17,8 @@ import {
 import { NotificationsService } from '../notifications/notifications.service';
 import { platformSuccessFeeAmount } from '../notifications/platform-fees';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
+import { CONTRACT_ATTACHMENT_VERIFICATION_CATEGORIES } from '../verification/verification.types';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import {
@@ -55,6 +58,7 @@ export class ContractsService {
     private readonly prisma: PrismaService,
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
     @Inject(forwardRef(() => CommercialProposalService))
     private readonly commercialProposal: CommercialProposalService,
   ) {}
@@ -156,6 +160,44 @@ export class ContractsService {
     }
 
     return this.toResponse(contract, participant.project, participant);
+  }
+
+  async getContractorDocumentDownloadUrl(
+    userId: string,
+    projectId: string,
+    documentId: string,
+  ): Promise<{
+    downloadUrl: string;
+    expiresInSeconds: number;
+    originalName: string;
+    contentType: string;
+  }> {
+    const participant = await this.loadParticipant(userId, projectId);
+    const awardedContractorId =
+      participant.project.tender?.awardedBid?.contractorId ?? null;
+    if (!awardedContractorId) {
+      throw new NotFoundException('Awarded contractor not found');
+    }
+
+    const doc = await this.prisma.contractorVerificationDocument.findFirst({
+      where: {
+        id: documentId,
+        contractorId: awardedContractorId,
+        status: DocumentStatus.uploaded,
+        category: { in: CONTRACT_ATTACHMENT_VERIFICATION_CATEGORIES },
+      },
+    });
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+
+    const presigned = await this.storage.createPresignedDownload(doc.storageKey);
+    return {
+      downloadUrl: presigned.downloadUrl,
+      expiresInSeconds: presigned.expiresInSeconds,
+      originalName: doc.originalName,
+      contentType: doc.contentType,
+    };
   }
 
   async updateDocument(

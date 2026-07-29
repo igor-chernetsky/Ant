@@ -105,6 +105,24 @@ export function parseDocumentDownloadVariant(
   return value === 'thumb' ? 'thumb' : 'original';
 }
 
+/**
+ * Ownership / rent papers for bidders to review — not used for AI project card analysis.
+ * `estimate` kept for legacy uploads that should also skip analysis.
+ */
+export const REFERENCE_ONLY_DOCUMENT_CATEGORIES: ReadonlySet<DocumentCategory> =
+  new Set([
+    DocumentCategory.ownership_certificate,
+    DocumentCategory.owners_id,
+    DocumentCategory.contract,
+    DocumentCategory.estimate,
+  ]);
+
+export function isReferenceOnlyDocumentCategory(
+  category: DocumentCategory | string,
+): boolean {
+  return REFERENCE_ONLY_DOCUMENT_CATEGORIES.has(category as DocumentCategory);
+}
+
 export function inferDocumentCategory(
   contentType: string,
   fileName: string,

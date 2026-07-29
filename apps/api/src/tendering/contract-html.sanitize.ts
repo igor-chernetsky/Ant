@@ -15,6 +15,7 @@ const ALLOWED_TAGS = new Set([
   'em',
   'i',
   'u',
+  'a',
   'table',
   'thead',
   'tbody',
@@ -30,6 +31,9 @@ const ALLOWED_ATTRS = new Set([
   'colspan',
   'rowspan',
   'lang',
+  'href',
+  'target',
+  'rel',
 ]);
 
 const MAX_CONTRACT_BODY_HTML_LENGTH = 500_000;
@@ -85,6 +89,18 @@ function sanitizeOnce(raw: string): string {
             value,
           )
         ) {
+          continue;
+        }
+        if (name === 'href') {
+          const href = value.trim();
+          const safeHref =
+            href.startsWith('/') ||
+            /^https?:\/\//i.test(href);
+          if (!safeHref) {
+            continue;
+          }
+        }
+        if (name === 'target' && value !== '_blank' && value !== '_self') {
           continue;
         }
         if (name === 'class' && /[<>'"`=]/.test(value)) {

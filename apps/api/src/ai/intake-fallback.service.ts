@@ -14,6 +14,7 @@ import {
   narrativeHasPumpStationFact,
   projectMentionsPool,
   shouldAskElectricalScopeQuestions,
+  shouldAskFoundationType,
   shouldAskPoolLightingQuestions,
   shouldAskPoolScopeQuestions,
   shouldAskPoolWaterTreatmentQuestions,
@@ -26,6 +27,7 @@ import {
   fallbackDefaultDescription,
   getFallbackApproxAreaQuestion,
   getFallbackElectricalScopeQuestion,
+  getFallbackFoundationTypeQuestion,
   getFallbackMaterialsNotesQuestion,
   getFallbackPoolDepthQuestion,
   getFallbackPoolLightingQuestion,
@@ -164,6 +166,10 @@ export class IntakeFallbackService {
 
     if (shouldAskStoreyCount(context)) {
       queue.push(getFallbackStoreyCountQuestion(locale));
+    }
+
+    if (shouldAskFoundationType(context)) {
+      queue.push(getFallbackFoundationTypeQuestion(locale));
     }
 
     if (shouldAskUtilityConnectionQuestions(context)) {

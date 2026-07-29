@@ -20,10 +20,10 @@ import {
   buildEstimateScopeRules,
   buildEstimateUserContext,
   collectEstimateNarrative,
-  detectPremiumScopeSignals,
-  applyPremiumScopePriceAdjustments,
   filterEstimateLines,
+  finalizeEstimateLines,
   mergePreviousEstimateLines,
+  resolveEstimateAreaSqm,
 } from './estimate-scope.utils';
 
 const DISCLAIMER =
@@ -94,6 +94,9 @@ Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lin
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
 Use regional reference prices as guidance; prefer mid-to-high of catalog bands for MEP networks, lighting fixtures, utility connections, and premium treatment systems.
 Include 5-16 lines covering the FULL confirmed scope (base construction + detailed MEP + finishing + newly added items). Split MEP into multiple lines when intake/premium signals justify it.
+When the client requests fire suppression / sprinklers or other named specialty systems, include a dedicated line (trade fire-suppression or other) — never description-only.
+Supply/exhaust or warehouse/production ventilation: price HVAC per sqm (~1,200–3,200 THB/sqm), not as one residential AC unit.
+Prefer one consolidated electrical line for base wiring/board/lighting — do not stack duplicate electrical rows.
 lineMin/lineMax must equal quantity * unitPriceMin/Max (rounded).
 Obey pricingDirectives and premiumScopeSignals in the user payload — they must change amounts, not only wording.
 When clarificationQa or clarificationSummary is present, treat that as new pricing-relevant scope and revise MEP/network lines upward when they add utilities, lighting, treatment, or connection works.
@@ -163,9 +166,16 @@ ${scopeRules}`;
     clarificationSummary?: string | null;
     scopeSummary?: string | null;
   }): BallparkEstimateResult {
-    const areaSqm =
-      input.brief.property?.areaSqm ??
-      (input.brief.packages?.find((p) => p.areaSqm)?.areaSqm ?? 50);
+    const narrative = collectEstimateNarrative({
+      title: input.title,
+      description: input.description,
+      tagSlugs: input.tagSlugs,
+      brief: input.brief,
+      clarificationQa: input.clarificationQa,
+      clarificationSummary: input.clarificationSummary,
+      scopeSummary: input.scopeSummary,
+    });
+    const areaSqm = resolveEstimateAreaSqm(input.brief, narrative);
 
     const trades = new Set<string>();
     for (const slug of input.tagSlugs) {
@@ -245,21 +255,12 @@ ${scopeRules}`;
       brief: input.brief,
       tagSlugs: input.tagSlugs,
     });
-    const signals = detectPremiumScopeSignals(
-      collectEstimateNarrative({
-        title: input.title,
-        description: input.description,
-        tagSlugs: input.tagSlugs,
-        brief: input.brief,
-        clarificationQa: input.clarificationQa,
-        clarificationSummary: input.clarificationSummary,
-        scopeSummary: input.scopeSummary,
-      }),
-    );
-    const adjustedLines = applyPremiumScopePriceAdjustments(
-      mergedLines,
-      signals,
-    ).map(normalizeLineAmounts);
+    const adjustedLines = finalizeEstimateLines({
+      lines: mergedLines,
+      narrative,
+      tagSlugs: input.tagSlugs,
+      brief: input.brief,
+    }).map(normalizeLineAmounts);
 
     const totals = computeTotals(adjustedLines);
     const textLen = (input.description ?? '').length;
@@ -326,20 +327,21 @@ ${scopeRules}`;
       tagSlugs: input.tagSlugs,
     });
 
-    const signals = detectPremiumScopeSignals(
-      collectEstimateNarrative({
-        title: input.title,
-        description: input.description,
-        tagSlugs: input.tagSlugs,
-        brief: input.brief,
-        clarificationQa: input.clarificationQa,
-        clarificationSummary: input.clarificationSummary,
-        scopeSummary: input.scopeSummary,
-      }),
-    );
-    const lines = applyPremiumScopePriceAdjustments(merged, signals).map(
-      normalizeLineAmounts,
-    );
+    const narrative = collectEstimateNarrative({
+      title: input.title,
+      description: input.description,
+      tagSlugs: input.tagSlugs,
+      brief: input.brief,
+      clarificationQa: input.clarificationQa,
+      clarificationSummary: input.clarificationSummary,
+      scopeSummary: input.scopeSummary,
+    });
+    const lines = finalizeEstimateLines({
+      lines: merged,
+      narrative,
+      tagSlugs: input.tagSlugs,
+      brief: input.brief,
+    }).map(normalizeLineAmounts);
 
     const totals = computeTotals(lines);
 

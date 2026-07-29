@@ -56,6 +56,10 @@ export const CONTRACTOR_VERIFICATION_DOC_CATEGORIES: Array<{
   { value: 'other', label: 'Other' },
 ];
 
+/** Categories attached to every awarded contract draft (ZIP + annex links). */
+export const CONTRACT_ATTACHMENT_VERIFICATION_CATEGORIES: ContractorVerificationDocCategory[] =
+  ['business_license', 'registration', 'insurance', 'owners_id'];
+
 export function buildContractorDocStorageKey(
   contractorId: string,
   documentId: string,

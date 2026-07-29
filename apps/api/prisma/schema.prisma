@@ -84,6 +84,8 @@ enum DocumentCategory {
   specification
   estimate
   contract
+  ownership_certificate
+  owners_id
   other
 }
 

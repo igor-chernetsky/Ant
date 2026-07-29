@@ -225,6 +225,20 @@ export class ContractorTenderController {
     return contract ?? { contract: null };
   }
 
+  @Get('projects/:projectId/contract/contractor-documents/:documentId')
+  async getContractorDocument(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('documentId') documentId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contracts.getContractorDocumentDownloadUrl(
+      user.id,
+      projectId,
+      documentId,
+    );
+  }
+
   @Patch('projects/:projectId/contract/document')
   @HttpCode(200)
   async updateContractDocument(

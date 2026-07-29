@@ -6,6 +6,8 @@ export type DocumentCategory =
   | 'specification'
   | 'estimate'
   | 'contract'
+  | 'ownership_certificate'
+  | 'owners_id'
   | 'other';
 
 export interface ProjectDocument {
@@ -35,6 +37,7 @@ export interface PresignUploadResult {
   expiresInSeconds: number;
 }
 
+/** Categories shown in the project document upload picker. */
 export const DOCUMENT_CATEGORY_OPTIONS: Array<{
   value: DocumentCategory;
   label: string;
@@ -42,8 +45,9 @@ export const DOCUMENT_CATEGORY_OPTIONS: Array<{
   { value: 'blueprint', label: 'Blueprint / plan' },
   { value: 'photo', label: 'Photo' },
   { value: 'specification', label: 'Specification' },
-  { value: 'estimate', label: 'Estimate' },
-  { value: 'contract', label: 'Contract' },
+  { value: 'ownership_certificate', label: 'Ownership certificate' },
+  { value: 'owners_id', label: "Owner's ID" },
+  { value: 'contract', label: 'Rent contract' },
   { value: 'other', label: 'Other' },
 ];
 

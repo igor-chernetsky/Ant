@@ -72,6 +72,8 @@ export interface CommercialProposalRenderData {
   hasBoq: boolean;
   annex2Html: string;
   hasAnnex2Documents: boolean;
+  annex3Html: string;
+  hasAnnex3Documents: boolean;
   clarificationSummary: string;
   hasClarificationSummary: boolean;
   contractorOrgName: string;

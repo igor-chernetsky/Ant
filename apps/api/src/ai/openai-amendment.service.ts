@@ -40,13 +40,13 @@ Rules:
 - Keep factual content from the original brief; integrate amendments clearly.
 - CRITICAL: updatedDescription must preserve the FULL prior project narrative and ADD amendment facts. Never replace the whole description with only the amendment text.
 - CRITICAL: updatedSummary must stay a project-level brief, not a single micro-task sentence.
-- updatedDescription: full narrative for contractors (2-6 sentences, or longer if prior text was longer). Explicitly name cost-driving MEP upgrades (chlorine-free / UV / salt treatment, specialty or underwater lighting, utility connections) — do not bury them as optional notes.
+- updatedDescription: full narrative for contractors (2-6 sentences, or longer if prior text was longer). Explicitly name cost-driving MEP upgrades (chlorine-free / UV / salt treatment, specialty or underwater lighting, utility connections, automatic fire suppression / sprinklers, and other newly requested systems) — do not bury them as optional notes or as "will be added to the estimate later".
 - updatedSummary: shorter headline summary (1-3 sentences) that still covers the main works.
-- tagSlugs: subset of allowed tags only.
+- tagSlugs: subset of allowed tags only. When amendments request automatic fire extinguishing / sprinklers, include "fire-suppression".
 - confidence: 0-1.
 - Write updatedDescription and updatedSummary in ${language}.
 - Keep ${language} throughout — do not translate existing content into another language.
-- When amendments add equipment quality (treatment systems, special fixtures), state them as required scope, not soft preferences.
+- When amendments add equipment quality (treatment systems, special fixtures) or new systems (fire suppression, specialty MEP), state them as required scope, not soft preferences.
 ${TAG_NO_HALLUCINATION_RULES}`;
 
     const user = JSON.stringify({

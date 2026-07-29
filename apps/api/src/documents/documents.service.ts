@@ -33,6 +33,7 @@ import {
   DocumentResponse,
   DownloadUrlResponse,
   inferDocumentCategory,
+  isReferenceOnlyDocumentCategory,
   MAX_UPLOAD_BYTES,
   PresignUploadDto,
   PresignUploadResponse,
@@ -245,8 +246,10 @@ export class DocumentsService {
       },
     });
 
-    this.documentAnalysis.scheduleAnalysis(projectId, documentId);
     this.scheduleThumbnailGeneration(updated);
+    if (!isReferenceOnlyDocumentCategory(updated.category)) {
+      this.documentAnalysis.scheduleAnalysis(projectId, documentId);
+    }
 
     return this.toResponse(updated);
   }

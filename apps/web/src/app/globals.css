@@ -1337,6 +1337,35 @@ pre {
   font-weight: 700;
 }
 
+.project-filters-search {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+}
+
+.project-filters-search-input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--text);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.92rem;
+  line-height: 1.3;
+}
+
+.project-filters-search-input::placeholder {
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+.project-filters-search-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
 .project-filters-location-layout {
   display: grid;
   gap: 0.95rem;
@@ -1675,6 +1704,17 @@ pre {
   font-weight: 600;
 }
 
+.project-filters-multi-option--preset {
+  font-weight: 600;
+}
+
+.project-filters-multi-separator {
+  height: 1px;
+  margin: 0.25rem 0.5rem;
+  background: var(--border);
+  list-style: none;
+}
+
 .project-filters-multi-check {
   flex-shrink: 0;
   width: 0.9rem;
@@ -1841,6 +1881,7 @@ pre {
   font-size: 0.95rem;
   line-height: 1.55;
   color: var(--muted);
+  white-space: pre-line;
 }
 
 .confirm-dialog-actions {
@@ -5048,6 +5089,12 @@ select:disabled {
 
 .contract-document-editor .tiptap p {
   margin: 0.45rem 0;
+}
+
+.contract-document-editor .tiptap a {
+  color: #1d4ed8;
+  text-decoration: underline;
+  word-break: break-word;
 }
 
 .contract-document-editor .tiptap ul,
