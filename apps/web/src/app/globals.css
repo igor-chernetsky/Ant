@@ -1041,6 +1041,10 @@ pre {
   gap: 1.25rem;
 }
 
+.home-results .project-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr));
+}
+
 .project-tile {
   display: flex;
   flex-direction: column;
@@ -1343,6 +1347,7 @@ pre {
   margin: 0;
   height: 100%;
   min-height: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   padding: 0.85rem 0.9rem 0.75rem;
@@ -1353,6 +1358,8 @@ pre {
 .project-filters-scroll {
   flex: 1 1 auto;
   min-height: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;
@@ -1378,8 +1385,9 @@ pre {
 }
 
 .project-filters-map-slot .project-filters-map {
-  height: 200px;
-  min-height: 180px;
+  height: 180px;
+  min-height: 160px;
+  aspect-ratio: auto;
 }
 
 .home-main {
@@ -1530,6 +1538,84 @@ pre {
 }
 
 @media (min-width: 900px) {
+  .page-shell--home {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .page-shell--home .page-shell-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-shell--home .site-header {
+    flex: 0 0 auto;
+    position: sticky;
+    top: 0;
+  }
+
+  .page-shell--home .site-footer {
+    display: none;
+  }
+
+  .page-shell--home .home-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1.25rem 1rem;
+  }
+
+  .page-shell--home .home-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    grid-template-columns: clamp(320px, 28vw, 380px) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+
+  .page-shell--home .home-toolbar {
+    display: none;
+  }
+
+  .page-shell--home .home-filters-backdrop {
+    display: none !important;
+  }
+
+  .page-shell--home .home-sidebar {
+    display: block;
+    position: relative;
+    top: auto;
+    align-self: stretch;
+    height: 100%;
+    max-height: none;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .page-shell--home .home-sidebar-mobile-header {
+    display: none;
+  }
+
+  .page-shell--home .home-sidebar .project-filters--sidebar {
+    height: 100%;
+  }
+
+  .page-shell--home .home-results {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.15rem;
+  }
+
   .home-main {
     padding: 1.25rem 1.25rem 3rem;
   }
@@ -1573,6 +1659,48 @@ pre {
 
 .project-filters--sidebar .project-filters-location-fields {
   grid-template-columns: 1fr;
+}
+
+.project-filters--sidebar .project-filters-segmented {
+  max-width: 100%;
+}
+
+.project-filters--sidebar .project-filters-segmented--track,
+.project-filters--sidebar .project-filters-segmented--balanced {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex-wrap: unset;
+}
+
+.project-filters--sidebar .project-filters-segmented--track .project-filters-segment,
+.project-filters--sidebar .project-filters-segmented--balanced .project-filters-segment,
+.project-filters--sidebar .project-filters-segment {
+  flex: unset;
+  min-width: 0;
+  width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  padding: 0.4rem 0.4rem;
+}
+
+.project-filters--sidebar .project-filters-select,
+.project-filters--sidebar .project-filters-search-input,
+.project-filters--sidebar .project-filters-multi-trigger {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.project-filters--sidebar .project-filters-pills {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.project-filters--sidebar .project-filters-pill {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .project-filters-header {
@@ -1833,30 +1961,20 @@ pre {
 }
 
 .project-filters-segmented--track {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
 }
 
 .project-filters-segmented--track .project-filters-segment {
-  flex: 1 1 auto;
+  flex: unset;
+  min-width: 0;
   min-height: 2.35rem;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-}
-
-@media (min-width: 900px) {
-  .project-filters-segmented--track {
-    flex-wrap: nowrap;
-  }
-
-  .project-filters-segmented--track .project-filters-segment {
-    flex: 1 1 0;
-    white-space: nowrap;
-    padding-inline: 0.5rem;
-    font-size: 0.78rem;
-  }
+  white-space: normal;
 }
 
 .project-filters-segment {
@@ -1870,7 +1988,7 @@ pre {
   font-size: 0.8rem;
   font-weight: 600;
   line-height: 1.25;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .project-filters-segment:hover {

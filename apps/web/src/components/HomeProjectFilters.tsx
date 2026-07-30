@@ -36,9 +36,8 @@ const PRIMARY_STATUS_VALUES = [
 
 const SECONDARY_STATUS_VALUES = ['completed', 'hidden'] as const;
 
-function balancedSegmentGridStyle(itemCount: number): CSSProperties {
-  const columns = Math.max(2, Math.ceil(itemCount / 2));
-  return { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` };
+function balancedSegmentGridStyle(_itemCount: number): CSSProperties {
+  return { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' };
 }
 
 export interface HomeProjectFilterState {
@@ -381,9 +380,10 @@ export function HomeProjectFilters({
               {t('filters.projectTrackLabel')}
             </span>
             <div
-              className="project-filters-segmented project-filters-segmented--track"
+              className="project-filters-segmented project-filters-segmented--track project-filters-segmented--balanced"
               role="group"
               aria-label={t('filters.projectTrackAria')}
+              style={statusGridStyle}
             >
               <button
                 type="button"
@@ -475,9 +475,10 @@ export function HomeProjectFilters({
                   {t('filters.ownershipScopeLabel')}
                 </span>
                 <div
-                  className="project-filters-segmented project-filters-segmented--track"
+                  className="project-filters-segmented project-filters-segmented--track project-filters-segmented--balanced"
                   role="group"
                   aria-label={t('filters.ownershipScopeAria')}
+                  style={statusGridStyle}
                 >
                   <button
                     type="button"

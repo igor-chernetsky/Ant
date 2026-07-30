@@ -310,7 +310,7 @@ export default function HomePage() {
   const activeFilterCount = countHomeActiveFilters(filters, searchQuery);
 
   return (
-    <PageShell>
+    <PageShell className="page-shell--home">
       <SiteHeader
         me={me}
         onSignIn={() => setLoginOpen(true)}

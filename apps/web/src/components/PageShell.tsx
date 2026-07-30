@@ -1,9 +1,15 @@
 import type { ReactNode } from 'react';
 import { SiteFooter } from '@/components/SiteFooter';
 
-export function PageShell({ children }: { children: ReactNode }) {
+export function PageShell({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="page-shell">
+    <div className={`page-shell${className ? ` ${className}` : ''}`}>
       <div className="page-bg-shapes" aria-hidden>
         <div className="page-bg-grid" />
         <div className="page-bg-steel-sheen" />
