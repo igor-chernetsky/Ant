@@ -12,7 +12,7 @@ export const thExtended = {
     descriptionOptional: "คำอธิบาย (ไม่บังคับ)",
     amount: "จำนวนเงิน",
     backToHome: "กลับหน้าแรก",
-    continueToAnt: "ไปยัง Ant",
+    continueToAnt: "ไปยัง BuilTHAI",
     openProjects: "โครงการที่เปิดรับ",
     days: "วัน",
     daysCount: "{n} วัน",
@@ -94,6 +94,8 @@ export const thExtended = {
     myProjects: "โครงการของฉัน",
     allTrades: "งานทั้งหมด",
     myTrades: "งานของฉัน",
+    openFilters: "ตัวกรอง",
+    closeFilters: "ปิดตัวกรอง",
   },
   projectTile: {
     hidden: "ซ่อน",
@@ -429,7 +431,7 @@ export const thExtended = {
   },
   emailVerified: {
     successTitle: "ยืนยันอีเมลแล้ว",
-    successLead: "ที่อยู่อีเมลของคุณได้รับการยืนยันแล้ว คุณสามารถเข้าสู่ระบบและเริ่มใช้ Ant Construction",
+    successLead: "ที่อยู่อีเมลของคุณได้รับการยืนยันแล้ว คุณสามารถเข้าสู่ระบบและเริ่มใช้ BuilTHAI",
     failedTitle: "การยืนยันล้มเหลว",
     errorExpired: "ลิงก์ยืนยันนี้หมดอายุแล้ว เข้าสู่ระบบและขออีเมลยืนยันใหม่ หรือสร้างบัญชีใหม่",
     errorInvalid: "ลิงก์ยืนยันนี้ไม่ถูกต้องหรือถูกใช้ไปแล้ว",
@@ -721,7 +723,7 @@ export const thExtended = {
   platformFees: {
     signTitle: "ยืนยันค่าธรรมเนียมแพลตฟอร์มก่อนลงนาม",
     signIntro:
-      "ก่อนลงนาม โปรดตรวจสอบค่าธรรมเนียมแพลตฟอร์มของสัญญานี้ ผู้รับเหมาเป็นผู้ชำระ คู่ค้าใช้ Ant ฟรีจนกว่าจะเปิดใช้บริการพรีเมียม",
+      "ก่อนลงนาม โปรดตรวจสอบค่าธรรมเนียมแพลตฟอร์มของสัญญานี้ ผู้รับเหมาเป็นผู้ชำระ คู่ค้าใช้ BuilTHAI ฟรีจนกว่าจะเปิดใช้บริการพรีเมียม",
     trialBadge: "ทดลองใช้ — ส่วนลด {percent}%",
     trialPill: "ทดลองใช้ · ไม่คิดเงิน",
     accessFeeLabel: "ค่าเข้าถึงแพลตฟอร์ม (access fee)",
@@ -748,7 +750,7 @@ export const thExtended = {
     summaryRemaining: "คงเหลือหลังหัก: {amount}",
     summaryDueNow: "ครบกำหนดตอนนี้ (ทดลองใช้): {amount}",
     clientNote:
-      "ค่าธรรมเนียมแพลตฟอร์มชำระโดยผู้รับเหมา คุณใช้ Ant ฟรีได้จนกว่าจะเปิดใช้บริการพรีเมียม",
+      "ค่าธรรมเนียมแพลตฟอร์มชำระโดยผู้รับเหมา คุณใช้ BuilTHAI ฟรีได้จนกว่าจะเปิดใช้บริการพรีเมียม",
   },
   projectDetail: {
     tagsRefreshHint: "แท็กจะอัปเดตเมื่อคุณนำการแก้ไขของลูกค้าไปใช้",
@@ -1160,7 +1162,7 @@ export const thExtended = {
     other: "อื่นๆ",
   },
   help: {
-    title: "Ant ใช้งานอย่างไร",
+    title: "BuilTHAI ใช้งานอย่างไร",
     lead: "คู่มือสั้นสำหรับลูกค้า ผู้รับเหมา และผู้ออกแบบ เปิดสถานการณ์เมื่อต้องการเส้นทางใช้งานอย่างรวดเร็ว",
     roleClient: "ลูกค้า",
     roleContractor: "ผู้รับเหมา",

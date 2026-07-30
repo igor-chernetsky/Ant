@@ -134,16 +134,15 @@ export function SiteHeader({
     <header className="site-header">
       <div className="content-container site-header-inner">
         <div className="header-brand-nav">
-          <Link href="/" className="brand">
+          <Link href="/" className="brand" aria-label="BuilTHAI">
             <Image
-              src="/ant-logo.png"
-              alt=""
-              width={36}
+              src="/logo.png"
+              alt="BuilTHAI"
+              width={121}
               height={36}
               className="brand-logo"
               priority
             />
-            <span className="brand-text">Ant</span>
           </Link>
 
           <nav className="header-nav" aria-label={t('header.primaryNav')}>

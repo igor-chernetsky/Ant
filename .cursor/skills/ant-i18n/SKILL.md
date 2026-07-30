@@ -1,12 +1,12 @@
 ---
 name: ant-i18n
 description: >-
-  Keeps Ant web UI copy in sync across en, ru, and th locales. Use when adding
+  Keeps BuilTHAI web UI copy in sync across en, ru, and th locales. Use when adding
   or changing user-visible strings, translation keys, LocaleProvider/t(),
   message files, or anything involving i18n / localization on apps/web.
 ---
 
-# Ant i18n (en / ru / th)
+# BuilTHAI i18n (en / ru / th)
 
 ## Rules
 

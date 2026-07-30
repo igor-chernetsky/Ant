@@ -12,7 +12,7 @@ export const ruExtended = {
     descriptionOptional: "Описание (необязательно)",
     amount: "Сумма",
     backToHome: "На главную",
-    continueToAnt: "Перейти в Ant",
+    continueToAnt: "Перейти в BuilTHAI",
     openProjects: "открытые проекты",
     days: "дней",
     daysCount: "{n} дней",
@@ -94,6 +94,8 @@ export const ruExtended = {
     myProjects: "Мои проекты",
     allTrades: "Все виды работ",
     myTrades: "Мои виды работ",
+    openFilters: "Фильтры",
+    closeFilters: "Закрыть фильтры",
   },
   projectTile: {
     hidden: "Скрыт",
@@ -432,7 +434,7 @@ export const ruExtended = {
   },
   emailVerified: {
     successTitle: "Email подтверждён",
-    successLead: "Ваш адрес подтверждён. Войдите и начните использовать Ant Construction.",
+    successLead: "Ваш адрес подтверждён. Войдите и начните использовать BuilTHAI.",
     failedTitle: "Ошибка подтверждения",
     errorExpired: "Ссылка подтверждения истекла. Войдите и запросите новое письмо или создайте новый аккаунт.",
     errorInvalid: "Ссылка недействительна или уже использована.",
@@ -724,7 +726,7 @@ export const ruExtended = {
   platformFees: {
     signTitle: "Подтвердите сборы платформы перед подписанием",
     signIntro:
-      "Перед подписанием ознакомьтесь со сборами платформы по этому договору. Их оплачивает подрядчик; заказчики пользуются Ant бесплатно до подключения премиум-услуг.",
+      "Перед подписанием ознакомьтесь со сборами платформы по этому договору. Их оплачивает подрядчик; заказчики пользуются BuilTHAI бесплатно до подключения премиум-услуг.",
     trialBadge: "Триал — скидка {percent}%",
     trialPill: "Триал · без оплаты",
     accessFeeLabel: "Платформенный access fee",
@@ -751,7 +753,7 @@ export const ruExtended = {
     summaryRemaining: "Остаток после зачёта: {amount}",
     summaryDueNow: "К оплате сейчас (триал): {amount}",
     clientNote:
-      "Сборы платформы оплачивает подрядчик. Вы можете пользоваться Ant бесплатно до подключения премиум-услуг.",
+      "Сборы платформы оплачивает подрядчик. Вы можете пользоваться BuilTHAI бесплатно до подключения премиум-услуг.",
   },
   projectDetail: {
     tagsRefreshHint: "Теги обновятся после применения правок заказчика.",
@@ -1163,7 +1165,7 @@ export const ruExtended = {
     other: "Другое",
   },
   help: {
-    title: "Как работает Ant",
+    title: "Как работает BuilTHAI",
     lead: "Короткие сценарии для заказчиков, подрядчиков и проектировщиков. Откройте нужный раздел, когда понадобится быстрый путь по платформе.",
     roleClient: "Заказчик",
     roleContractor: "Подрядчик",

@@ -1,4 +1,4 @@
-# Platform API (MVP)
+# BuilTHAI API (MVP)
 
 NestJS API with Keycloak JWT validation and `GET /v1/me`.
 

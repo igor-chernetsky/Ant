@@ -20,7 +20,7 @@ function buildVerificationEmailHtml(verifyUrl: string): string {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:480px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
           <tr>
             <td style="padding:28px 28px 12px;">
-              <p style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#2563eb;">Ant Construction</p>
+              <p style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#2563eb;">BuilTHAI</p>
               <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;">Verify your email</h1>
               <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#64748b;">
                 Thanks for signing up. Confirm your email address to activate your account — one click and you are done.
@@ -65,7 +65,7 @@ export async function sendAppVerificationEmail(params: {
   const user = process.env.SMTP_USER?.trim();
   const pass = process.env.SMTP_PASSWORD?.trim();
   const from = process.env.SMTP_FROM?.trim();
-  const fromName = process.env.SMTP_FROM_NAME?.trim() || 'Ant Construction';
+  const fromName = process.env.SMTP_FROM_NAME?.trim() || 'BuilTHAI';
   const port = Number(process.env.SMTP_PORT ?? '587');
 
   if (!host || !user || !pass || !from) {
@@ -89,9 +89,9 @@ export async function sendAppVerificationEmail(params: {
     await transport.sendMail({
       from: `"${fromName}" <${from}>`,
       to: params.email,
-      subject: 'Verify your Ant Construction account',
+      subject: 'Verify your BuilTHAI account',
       html: buildVerificationEmailHtml(verifyUrl),
-      text: `Verify your Ant Construction account:\n\n${verifyUrl}\n\nThis link expires in 24 hours.`,
+      text: `Verify your BuilTHAI account:\n\n${verifyUrl}\n\nThis link expires in 24 hours.`,
     });
     return { ok: true };
   } catch (error: unknown) {

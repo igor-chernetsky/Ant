@@ -148,6 +148,10 @@ body {
     var(--shadow-sm);
 }
 
+.site-header .content-container {
+  max-width: none;
+}
+
 .site-header-inner {
   display: flex;
   align-items: center;
@@ -686,7 +690,9 @@ body {
 }
 
 .brand-logo {
-  border-radius: 8px;
+  width: auto;
+  height: 36px;
+  object-fit: contain;
 }
 
 .brand-text {
@@ -1162,12 +1168,67 @@ pre {
   left: 0.65rem;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--text);
+  background: #fef9c3;
+  color: #854d0e;
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: capitalize;
   box-shadow: var(--shadow-sm);
+}
+
+.project-tile-status--draft {
+  background: #fefce8;
+  color: #a16207;
+}
+
+.project-tile-status--intake {
+  background: #fef08a;
+  color: #854d0e;
+}
+
+.project-tile-status--ready_for_estimate {
+  background: #fde68a;
+  color: #92400e;
+}
+
+.project-tile-status--estimated {
+  background: #fbbf24;
+  color: #78350f;
+}
+
+.project-tile-status--pending {
+  background: #f5f5f4;
+  color: #78716c;
+}
+
+.project-tile-status--clarification {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.project-tile-status--in_tender {
+  background: #3b82f6;
+  color: #eff6ff;
+}
+
+.project-tile-status--awarded {
+  background: #5eead4;
+  color: #115e59;
+}
+
+.project-tile-status--active {
+  background: #34d399;
+  color: #064e3b;
+}
+
+.project-tile-status--completed {
+  background: #16a34a;
+  color: #f0fdf4;
+}
+
+.project-tile-status--hidden {
+  background: #ef4444;
+  color: #fef2f2;
 }
 
 .project-tile-owned-badge {
@@ -1278,6 +1339,242 @@ pre {
   box-shadow: var(--shadow-sm);
 }
 
+.project-filters--sidebar {
+  margin: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0.85rem 0.9rem 0.75rem;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.project-filters-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-right: 0.15rem;
+}
+
+.project-filters--sidebar .project-filters-header,
+.project-filters--sidebar .project-filters-search {
+  margin-bottom: 0;
+}
+
+.project-filters-map-slot {
+  flex: 0 0 auto;
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+}
+
+.project-filters-map-slot .project-filters-map-wrap {
+  margin: 0;
+}
+
+.project-filters-map-slot .project-filters-map {
+  height: 200px;
+  min-height: 180px;
+}
+
+.home-main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 1rem 1rem 3rem;
+  box-sizing: border-box;
+}
+
+.home-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  align-items: start;
+  width: 100%;
+}
+
+.home-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  grid-column: 1 / -1;
+}
+
+.home-filters-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 650;
+  box-shadow: var(--shadow-sm);
+}
+
+.home-filters-toggle-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.home-toolbar-count {
+  font-size: 0.88rem;
+}
+
+.home-filters-backdrop {
+  display: none;
+}
+
+.home-sidebar {
+  display: none;
+  min-width: 0;
+}
+
+.home-sidebar-mobile-header {
+  display: none;
+}
+
+.home-results {
+  min-width: 0;
+}
+
+@media (max-width: 899px) {
+  .home-filters-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: rgba(15, 23, 42, 0.42);
+    cursor: pointer;
+  }
+
+  .home-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    width: min(380px, 92vw);
+    height: 100dvh;
+    padding: 0.75rem;
+    box-sizing: border-box;
+    background: var(--surface);
+    border-right: 1px solid var(--border-strong);
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.22);
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+  }
+
+  .home-sidebar--open {
+    transform: translateX(0);
+  }
+
+  .home-sidebar-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+    flex: 0 0 auto;
+  }
+
+  .home-sidebar-mobile-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .home-sidebar-close {
+    padding: 0.35rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .home-sidebar .project-filters--sidebar {
+    flex: 1 1 auto;
+    min-height: 0;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    background: transparent;
+  }
+
+  .home-sidebar .project-filters-title {
+    display: none;
+  }
+}
+
+@media (min-width: 900px) {
+  .home-main {
+    padding: 1.25rem 1.25rem 3rem;
+  }
+
+  .home-layout {
+    grid-template-columns: clamp(320px, 28vw, 380px) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: stretch;
+    min-height: calc(100dvh - 5.5rem);
+  }
+
+  .home-toolbar {
+    display: none;
+  }
+
+  .home-filters-backdrop {
+    display: none !important;
+  }
+
+  .home-sidebar {
+    display: block;
+    position: sticky;
+    top: calc(0.75rem + 3.5rem);
+    align-self: start;
+    height: calc(100dvh - 5.5rem);
+    max-height: calc(100dvh - 5.5rem);
+  }
+
+  .home-sidebar-mobile-header {
+    display: none;
+  }
+
+  .home-sidebar .project-filters--sidebar {
+    height: 100%;
+  }
+}
+
+.project-filters--sidebar .project-filters-extra-grid {
+  grid-template-columns: 1fr;
+}
+
+.project-filters--sidebar .project-filters-location-fields {
+  grid-template-columns: 1fr;
+}
+
 .project-filters-header {
   display: flex;
   align-items: flex-start;
@@ -1370,12 +1667,6 @@ pre {
   display: grid;
   gap: 0.95rem;
   align-items: start;
-}
-
-@media (min-width: 900px) {
-  .project-filters-location-layout {
-    grid-template-columns: minmax(280px, 1fr) minmax(300px, 360px);
-  }
 }
 
 .project-filters-location-panel {
@@ -7525,7 +7816,7 @@ select:disabled {
   }
 }
 
-/* —— Branded Ant spinner —— */
+/* —— Branded BuilTHAI spinner —— */
 .ant-spinner {
   position: relative;
   display: inline-grid;

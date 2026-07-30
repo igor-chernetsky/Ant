@@ -1,13 +1,13 @@
 ---
 name: ant-commercial-proposal
 description: >-
-  Guides Ant commercial proposal (KP) and contract draft PDF work: TipTap
+  Guides BuilTHAI commercial proposal (KP) and contract draft PDF work: TipTap
   englishBodyHtml, multilingual download, BOQ tables, contract terms fields.
   Use when editing KP forms, contract document editor, PDF download, BOQ,
   englishBodyHtml, or commercial-proposal template/service code.
 ---
 
-# Ant commercial proposal & contract PDF
+# BuilTHAI commercial proposal & contract PDF
 
 ## Mental model
 

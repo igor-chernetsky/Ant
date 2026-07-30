@@ -1,6 +1,6 @@
-# Technical Documentation
+# BuilTHAI — Technical Documentation
 
-Documentation for implementing the Construction Marketplace Platform.
+Documentation for implementing the BuilTHAI construction marketplace platform.
 
 | Document | Description |
 |----------|-------------|

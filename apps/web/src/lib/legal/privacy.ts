@@ -5,12 +5,12 @@ const en: LegalDocument = {
   title: 'Privacy Policy',
   updatedLabel: 'Last updated: 14 July 2026',
   intro:
-    'This Privacy Policy explains how Ant (“we”, “us”) collects, uses, and protects personal information when you use the Ant construction marketplace website and related services (the “Service”).',
+    'This Privacy Policy explains how BuilTHAI (“we”, “us”) collects, uses, and protects personal information when you use the BuilTHAI construction marketplace website and related services (the “Service”).',
   sections: [
     {
       title: '1. Who we are',
       paragraphs: [
-        'Ant is a construction marketplace that helps clients publish projects and receive contractor proposals. For privacy questions about this Service, contact us through your Ant account or using the contact details published on the website.',
+        'BuilTHAI is a construction marketplace that helps clients publish projects and receive contractor proposals. For privacy questions about this Service, contact us through your BuilTHAI account or using the contact details published on the website.',
       ],
     },
     {
@@ -63,7 +63,7 @@ const en: LegalDocument = {
     {
       title: '9. Your choices and rights',
       paragraphs: [
-        'Depending on where you live, you may have rights to access, correct, delete, or restrict certain personal information, or to object to certain processing. You can update some account settings in Ant, and you can contact us to request assistance.',
+        'Depending on where you live, you may have rights to access, correct, delete, or restrict certain personal information, or to object to certain processing. You can update some account settings in BuilTHAI, and you can contact us to request assistance.',
         'You can manage email notification preferences in your account. You may also disable non-essential cookies in your browser where available.',
       ],
     },
@@ -86,12 +86,12 @@ const ru: LegalDocument = {
   title: 'Политика конфиденциальности',
   updatedLabel: 'Обновлено: 14 июля 2026',
   intro:
-    'Эта Политика конфиденциальности объясняет, как Ant («мы») собирает, использует и защищает персональные данные при использовании маркетплейса Ant и связанных сервисов (далее — «Сервис»).',
+    'Эта Политика конфиденциальности объясняет, как BuilTHAI («мы») собирает, использует и защищает персональные данные при использовании маркетплейса BuilTHAI и связанных сервисов (далее — «Сервис»).',
   sections: [
     {
       title: '1. Кто мы',
       paragraphs: [
-        'Ant — строительный маркетплейс, который помогает заказчикам публиковать проекты и получать предложения подрядчиков. По вопросам конфиденциальности свяжитесь с нами через аккаунт Ant или по контактам, указанным на сайте.',
+        'BuilTHAI — строительный маркетплейс, который помогает заказчикам публиковать проекты и получать предложения подрядчиков. По вопросам конфиденциальности свяжитесь с нами через аккаунт BuilTHAI или по контактам, указанным на сайте.',
       ],
     },
     {
@@ -144,7 +144,7 @@ const ru: LegalDocument = {
     {
       title: '9. Ваши права и настройки',
       paragraphs: [
-        'В зависимости от вашей юрисдикции вы можете иметь права на доступ, исправление, удаление или ограничение обработки данных. Часть настроек можно изменить в аккаунте Ant; по остальным вопросам свяжитесь с нами.',
+        'В зависимости от вашей юрисдикции вы можете иметь права на доступ, исправление, удаление или ограничение обработки данных. Часть настроек можно изменить в аккаунте BuilTHAI; по остальным вопросам свяжитесь с нами.',
         'Уведомления по email можно настроить в аккаунте. Необязательные cookies можно отключить в браузере, если это доступно.',
       ],
     },
@@ -167,12 +167,12 @@ const th: LegalDocument = {
   title: 'นโยบายความเป็นส่วนตัว',
   updatedLabel: 'อัปเดตล่าสุด: 14 กรกฎาคม 2026',
   intro:
-    'นโยบายความเป็นส่วนตัวนี้อธิบายว่า Ant (“เรา”) เก็บ ใช้ และปกป้องข้อมูลส่วนบุคคลอย่างไร เมื่อคุณใช้ตลาดกลางงานก่อสร้าง Ant และบริการที่เกี่ยวข้อง (“บริการ”)',
+    'นโยบายความเป็นส่วนตัวนี้อธิบายว่า BuilTHAI (“เรา”) เก็บ ใช้ และปกป้องข้อมูลส่วนบุคคลอย่างไร เมื่อคุณใช้ตลาดกลางงานก่อสร้าง BuilTHAI และบริการที่เกี่ยวข้อง (“บริการ”)',
   sections: [
     {
       title: '1. เราคือใคร',
       paragraphs: [
-        'Ant เป็นตลาดกลางงานก่อสร้างที่ช่วยให้ลูกค้าเผยแพร่โครงการและรับข้อเสนอจากผู้รับเหมา หากมีคำถามด้านความเป็นส่วนตัว ติดต่อเราผ่านบัญชี Ant หรือช่องทางติดต่อบนเว็บไซต์',
+        'BuilTHAI เป็นตลาดกลางงานก่อสร้างที่ช่วยให้ลูกค้าเผยแพร่โครงการและรับข้อเสนอจากผู้รับเหมา หากมีคำถามด้านความเป็นส่วนตัว ติดต่อเราผ่านบัญชี BuilTHAI หรือช่องทางติดต่อบนเว็บไซต์',
       ],
     },
     {
@@ -225,7 +225,7 @@ const th: LegalDocument = {
     {
       title: '9. สิทธิและการตั้งค่าของคุณ',
       paragraphs: [
-        'ขึ้นอยู่กับกฎหมายในพื้นที่ของคุณ คุณอาจมีสิทธิ์เข้าถึง แก้ไข ลบ หรือจำกัดการประมวลผลข้อมูล ส่วนหนึ่งสามารถจัดการได้ในบัญชี Ant หรือติดต่อเราเพื่อขอความช่วยเหลือ',
+        'ขึ้นอยู่กับกฎหมายในพื้นที่ของคุณ คุณอาจมีสิทธิ์เข้าถึง แก้ไข ลบ หรือจำกัดการประมวลผลข้อมูล ส่วนหนึ่งสามารถจัดการได้ในบัญชี BuilTHAI หรือติดต่อเราเพื่อขอความช่วยเหลือ',
         'คุณสามารถตั้งค่าการแจ้งเตือนอีเมลในบัญชี และปิดคุกกี้ที่ไม่จำเป็นในเบราว์เซอร์ได้หากรองรับ',
       ],
     },

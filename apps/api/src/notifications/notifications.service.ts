@@ -181,7 +181,7 @@ export class NotificationsService {
 <tr><td align="center">
 <table role="presentation" width="100%" style="max-width:480px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;">
 <tr><td style="padding:28px;">
-<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#2563eb;text-transform:uppercase;">Ant Construction</p>
+<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#2563eb;text-transform:uppercase;">BuilTHAI</p>
 <h1 style="margin:0 0 12px;font-size:20px;">${escapeHtml(title)}</h1>
 <div style="font-size:15px;line-height:1.6;color:#475569;">${bodyHtml}</div>
 <p style="margin:24px 0 0;"><a href="${ctaHref}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;">${escapeHtml(ctaLabel)}</a></p>
@@ -371,7 +371,7 @@ export class NotificationsService {
       kind: NotificationEmailKind.contractor_verification_approved,
       subject: 'Contractor verification approved',
       title: 'Verification approved',
-      bodyHtml: `<p>Your contractor verification for <strong>${escapeHtml(label)}</strong> has been approved.</p><p>You can now use verified contractor features on Ant, including portfolio visibility.</p>`,
+      bodyHtml: `<p>Your contractor verification for <strong>${escapeHtml(label)}</strong> has been approved.</p><p>You can now use verified contractor features on BuilTHAI, including portfolio visibility.</p>`,
       ctaHref: this.contractorPortalUrl(),
       ctaLabel: 'Open contractor portal',
       textBody: `Verification approved for ${label}. Open the contractor portal to continue.`,

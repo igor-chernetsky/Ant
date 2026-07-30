@@ -71,7 +71,7 @@ export const ru: Messages = {
     },
   },
   footer: {
-    copyright: '© {year} Ant. Все права защищены.',
+    copyright: '© {year} BuilTHAI. Все права защищены.',
     legalNav: 'Правовая информация',
     privacyPolicy: 'Политика конфиденциальности',
     termsOfService: 'Условия использования',
@@ -86,7 +86,7 @@ export const ru: Messages = {
     signInSubtitle:
       'Войдите, чтобы управлять проектами и предложениями подрядчиков.',
     signUpSubtitle:
-      'Присоединяйтесь к Ant — публикуйте проекты или участвуйте в тендерах.',
+      'Присоединяйтесь к BuilTHAI — публикуйте проекты или участвуйте в тендерах.',
     fullName: 'Полное имя',
     emailPlaceholder: 'you@example.com',
     roleLegend: 'Ваши роли',
@@ -95,7 +95,7 @@ export const ru: Messages = {
     signingIn: 'Вход…',
     creatingAccount: 'Создание аккаунта…',
     createAccountButton: 'Создать аккаунт',
-    newToAnt: 'Впервые в Ant?',
+    newToAnt: 'Впервые в BuilTHAI?',
     createAnAccount: 'Создать аккаунт',
     alreadyHaveAccount: 'Уже есть аккаунт?',
     signInFailed: 'Не удалось войти',
@@ -124,7 +124,7 @@ export const ru: Messages = {
       'Чтобы создать аккаунт, примите Политику конфиденциальности и соглашение(я) для выбранной роли.',
   },
   home: {
-    kicker: 'Маркетплейс Ant',
+    kicker: 'Маркетплейс BuilTHAI',
     title: 'Строительные проекты',
     lead:
       'Просматривайте ремонт и строительство. Публикуйте проект, получайте ориентировочные сметы и собирайте предложения подрядчиков.',
@@ -157,7 +157,7 @@ export const ru: Messages = {
     emailNotificationsHint:
       'Выберите, какие письма отправлять на {email}. Всё можно отключить в любой момент.',
     allEmailNotifications: 'Все email-уведомления',
-    allEmailNotificationsDesc: 'Главный переключатель писем от Ant',
+    allEmailNotificationsDesc: 'Главный переключатель писем от BuilTHAI',
     bidsOnProjects: 'Ставки по моим проектам',
     bidsOnProjectsDesc:
       'Новые заявки, предложения и сообщения от подрядчиков',

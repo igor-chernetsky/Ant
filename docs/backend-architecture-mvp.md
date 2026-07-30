@@ -1,6 +1,6 @@
 # Backend Architecture — MVP
 
-This document defines the target backend architecture for the Construction Marketplace Platform MVP. It is intended as the primary reference for implementation planning, module boundaries, and future service extraction.
+This document defines the target backend architecture for the BuilTHAI MVP. It is intended as the primary reference for implementation planning, module boundaries, and future service extraction.
 
 **Related documents:**
 - [Product Definition Document (PDD)](../PDD.md)

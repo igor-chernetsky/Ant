@@ -5,13 +5,13 @@ const en: LegalDocument = {
   title: 'Terms of Service',
   updatedLabel: 'Last updated: 15 July 2026',
   intro:
-    'These Terms of Service (“Terms”) govern access to and use of the Ant construction marketplace website and related services (the “Service”). By creating an account or using the Service, you agree to these Terms.',
+    'These Terms of Service (“Terms”) govern access to and use of the BuilTHAI construction marketplace website and related services (the “Service”). By creating an account or using the Service, you agree to these Terms.',
   sections: [
     {
       title: '1. The Service',
       paragraphs: [
-        'Ant provides an online marketplace where clients can publish construction-related projects, request clarification, invite or receive contractor interest, and manage tender workflows. Contractors may create profiles, apply to projects, submit proposals, and communicate with clients.',
-        'Ant is a technology platform. Unless expressly stated in writing, Ant is not a party to construction contracts between clients and contractors and does not itself perform construction works.',
+        'BuilTHAI provides an online marketplace where clients can publish construction-related projects, request clarification, invite or receive contractor interest, and manage tender workflows. Contractors may create profiles, apply to projects, submit proposals, and communicate with clients.',
+        'BuilTHAI is a technology platform. Unless expressly stated in writing, BuilTHAI is not a party to construction contracts between clients and contractors and does not itself perform construction works.',
       ],
     },
     {
@@ -34,20 +34,20 @@ const en: LegalDocument = {
       paragraphs: [
         'Ballpark estimates, suggested scopes, or AI-assisted summaries shown in the Service are indicative only and are not binding quotes, designs, engineered specifications, or legal advice.',
         'Commercial proposals, contract terms, and signatures exchanged through the Service are between the relevant client and contractor. Users should independently review all commercial and legal terms before signing.',
-        'Ant does not guarantee that any project will receive bids, that any bid will be accepted, or that parties will complete a transaction.',
+        'BuilTHAI does not guarantee that any project will receive bids, that any bid will be accepted, or that parties will complete a transaction.',
       ],
     },
     {
       title: '5. Acceptable use',
       paragraphs: [
         'You may not misuse the Service, including by posting unlawful, misleading, defamatory, or infringing content; uploading malware; attempting unauthorised access; scraping data without permission; harassing other users; or circumventing verification, fee, or security controls.',
-        'You may not use Ant to solicit offline dealings in a way that is intended to evade marketplace rules or abuse other users’ personal data.',
+        'You may not use BuilTHAI to solicit offline dealings in a way that is intended to evade marketplace rules or abuse other users’ personal data.',
       ],
     },
     {
       title: '6. Content and licences',
       paragraphs: [
-        'You retain ownership of content you submit. You grant Ant a worldwide, non-exclusive licence to host, process, display, and transmit that content as needed to operate the Service and enforce these Terms.',
+        'You retain ownership of content you submit. You grant BuilTHAI a worldwide, non-exclusive licence to host, process, display, and transmit that content as needed to operate the Service and enforce these Terms.',
         'You represent that you have the rights to submit the content and that doing so does not violate third-party rights or confidentiality obligations.',
       ],
     },
@@ -62,8 +62,8 @@ const en: LegalDocument = {
       paragraphs: [
         'Platform fees for closed deals are paid by the contractor, not by the client (project owner). Clients may use the core Service without platform fees until premium services are enabled.',
         'The listed fee model is: (a) a platform access fee of USD 100 (or the local-currency equivalent at an indicative rate shown in the Service), which is disclosed when the contractor signs and is credited toward the success fee; and (b) a success fee of 2% of the awarded contract amount, reduced by the access-fee credit. Any remaining success fee is due within one calendar month after contract signing, typically after the contractor receives the client’s advance payment under the construction contract.',
-        'During a trial or promotional period, Ant may apply a 100% discount so that listed fees are shown for transparency while the amount payable to Ant is USD 0. Trial discounts do not waive the client’s separate payment obligations to contractors under the construction contract.',
-        'Fees, discounts, and tax treatment are disclosed in the Service before the contractor confirms signing steps that reference them. Actual charge collection may require Ant to operate through a registered legal entity and payment provider; until then, fee screens may be informational only.',
+        'During a trial or promotional period, BuilTHAI may apply a 100% discount so that listed fees are shown for transparency while the amount payable to BuilTHAI is USD 0. Trial discounts do not waive the client’s separate payment obligations to contractors under the construction contract.',
+        'Fees, discounts, and tax treatment are disclosed in the Service before the contractor confirms signing steps that reference them. Actual charge collection may require BuilTHAI to operate through a registered legal entity and payment provider; until then, fee screens may be informational only.',
       ],
     },
     {
@@ -76,14 +76,14 @@ const en: LegalDocument = {
     {
       title: '10. Limitation of liability',
       paragraphs: [
-        'To the maximum extent permitted by law, Ant and its affiliates will not be liable for indirect, incidental, special, consequential, exemplary, or punitive damages, or for lost profits, revenues, data, or business opportunities arising from use of the Service or dealings between users.',
-        'Our aggregate liability for claims relating to the Service is limited to the greater of (a) the amounts you paid to Ant for the Service in the 3 months before the claim or (b) USD 100, except where liability cannot be limited by law.',
+        'To the maximum extent permitted by law, BuilTHAI and its affiliates will not be liable for indirect, incidental, special, consequential, exemplary, or punitive damages, or for lost profits, revenues, data, or business opportunities arising from use of the Service or dealings between users.',
+        'Our aggregate liability for claims relating to the Service is limited to the greater of (a) the amounts you paid to BuilTHAI for the Service in the 3 months before the claim or (b) USD 100, except where liability cannot be limited by law.',
       ],
     },
     {
       title: '11. Indemnity',
       paragraphs: [
-        'You agree to indemnify and hold harmless Ant from claims, damages, and expenses arising out of your content, your use of the Service, your projects or proposals, or your breach of these Terms or applicable law, except to the extent caused by Ant’s wilful misconduct.',
+        'You agree to indemnify and hold harmless BuilTHAI from claims, damages, and expenses arising out of your content, your use of the Service, your projects or proposals, or your breach of these Terms or applicable law, except to the extent caused by BuilTHAI’s wilful misconduct.',
       ],
     },
     {
@@ -107,7 +107,7 @@ const en: LegalDocument = {
     {
       title: '15. Contact',
       paragraphs: [
-        'For questions about these Terms, contact us through your Ant account or using the contact details published on the website.',
+        'For questions about these Terms, contact us through your BuilTHAI account or using the contact details published on the website.',
       ],
     },
   ],
@@ -117,13 +117,13 @@ const ru: LegalDocument = {
   title: 'Условия использования',
   updatedLabel: 'Обновлено: 15 июля 2026',
   intro:
-    'Настоящие Условия использования («Условия») регулируют доступ к маркетплейсу Ant и связанным сервисам («Сервис»). Создавая аккаунт или используя Сервис, вы соглашаетесь с этими Условиями.',
+    'Настоящие Условия использования («Условия») регулируют доступ к маркетплейсу BuilTHAI и связанным сервисам («Сервис»). Создавая аккаунт или используя Сервис, вы соглашаетесь с этими Условиями.',
   sections: [
     {
       title: '1. Сервис',
       paragraphs: [
-        'Ant предоставляет онлайн-площадку, где заказчики публикуют строительные проекты, уточняют объём работ и ведут тендерные процессы, а подрядчики создают профили, подают заявки и общаются с заказчиками.',
-        'Ant — технологическая платформа. Если прямо не указано иное, Ant не является стороной строительных договоров между заказчиками и подрядчиками и не выполняет строительные работы.',
+        'BuilTHAI предоставляет онлайн-площадку, где заказчики публикуют строительные проекты, уточняют объём работ и ведут тендерные процессы, а подрядчики создают профили, подают заявки и общаются с заказчиками.',
+        'BuilTHAI — технологическая платформа. Если прямо не указано иное, BuilTHAI не является стороной строительных договоров между заказчиками и подрядчиками и не выполняет строительные работы.',
       ],
     },
     {
@@ -146,20 +146,20 @@ const ru: LegalDocument = {
       paragraphs: [
         'Ориентировочные оценки, подсказки по объёму и материалы с помощью ИИ носят справочный характер и не являются обязательным коммерческим предложением, проектом или юридической консультацией.',
         'Коммерческие предложения, условия договора и подписи через Сервис заключаются между соответствующими заказчиком и подрядчиком. Перед подписанием стороны должны самостоятельно проверить условия.',
-        'Ant не гарантирует наличие заявок, принятие предложения или завершение сделки.',
+        'BuilTHAI не гарантирует наличие заявок, принятие предложения или завершение сделки.',
       ],
     },
     {
       title: '5. Допустимое использование',
       paragraphs: [
         'Запрещено злоупотреблять Сервисом: публиковать незаконный, вводящий в заблуждение или нарушающий права контент; загружать вредоносное ПО; пытаться получить несанкционированный доступ; собирать данные без разрешения; преследовать пользователей; обходить проверки безопасности.',
-        'Запрещено использовать Ant для сбора персональных данных других пользователей в нарушение правил площадки.',
+        'Запрещено использовать BuilTHAI для сбора персональных данных других пользователей в нарушение правил площадки.',
       ],
     },
     {
       title: '6. Контент и лицензии',
       paragraphs: [
-        'Вы сохраняете права на свой контент и предоставляете Ant неисключительную лицензию на его размещение, обработку и отображение в объёме, необходимом для работы Сервиса.',
+        'Вы сохраняете права на свой контент и предоставляете BuilTHAI неисключительную лицензию на его размещение, обработку и отображение в объёме, необходимом для работы Сервиса.',
         'Вы подтверждаете, что имеете права на размещение контента и не нарушаете права третьих лиц и режим конфиденциальности.',
       ],
     },
@@ -174,7 +174,7 @@ const ru: LegalDocument = {
       paragraphs: [
         'Сборы платформы по закрытым сделкам оплачивает подрядчик, а не заказчик (владелец проекта). Заказчики могут пользоваться основным функционалом Сервиса без платформенных сборов до подключения премиум-услуг.',
         'Модель сборов: (a) platform access fee — 100 USD (или эквивалент в местной валюте по индикативному курсу в Сервисе), раскрывается при подписании подрядчиком и засчитывается в success fee; (b) success fee — 2% от суммы выбранного договора за вычетом access fee. Остаток success fee подлежит оплате в течение одного календарного месяца после подписания, обычно после получения аванса от заказчика.',
-        'В триальном или промо-периоде Ant может применять скидку 100%: указанные суммы показываются для прозрачности, а к оплате Ant — 0 USD. Скидка платформы не отменяет обязательства заказчика по оплате подрядчику по строительному договору.',
+        'В триальном или промо-периоде BuilTHAI может применять скидку 100%: указанные суммы показываются для прозрачности, а к оплате BuilTHAI — 0 USD. Скидка платформы не отменяет обязательства заказчика по оплате подрядчику по строительному договору.',
         'Сборы, скидки и налоги раскрываются в Сервисе до подтверждения шагов подписания подрядчиком. Фактическое списание может потребовать юрлица и платёжного провайдера; до этого экраны сборов могут быть информационными.',
       ],
     },
@@ -188,14 +188,14 @@ const ru: LegalDocument = {
     {
       title: '10. Ограничение ответственности',
       paragraphs: [
-        'В максимально допустимой законом степени Ant не несёт ответственности за косвенные, случайные, особые, штрафные убытки, упущенную выгоду или потерю данных в связи с использованием Сервиса или взаимодействием пользователей.',
-        'Совокупная ответственность Ant ограничена большей из сумм: (a) оплат, перечисленных вами Ant за 3 месяца до требования, или (b) 100 USD, кроме случаев, когда ограничение запрещено законом.',
+        'В максимально допустимой законом степени BuilTHAI не несёт ответственности за косвенные, случайные, особые, штрафные убытки, упущенную выгоду или потерю данных в связи с использованием Сервиса или взаимодействием пользователей.',
+        'Совокупная ответственность BuilTHAI ограничена большей из сумм: (a) оплат, перечисленных вами BuilTHAI за 3 месяца до требования, или (b) 100 USD, кроме случаев, когда ограничение запрещено законом.',
       ],
     },
     {
       title: '11. Возмещение убытков',
       paragraphs: [
-        'Вы соглашаетесь возместить Ant убытки и расходы, вызванные вашим контентом, использованием Сервиса, проектами или предложениями либо нарушением Условий или закона, за исключением случаев умышленного неправомерного поведения Ant.',
+        'Вы соглашаетесь возместить BuilTHAI убытки и расходы, вызванные вашим контентом, использованием Сервиса, проектами или предложениями либо нарушением Условий или закона, за исключением случаев умышленного неправомерного поведения BuilTHAI.',
       ],
     },
     {
@@ -219,7 +219,7 @@ const ru: LegalDocument = {
     {
       title: '15. Контакты',
       paragraphs: [
-        'По вопросам об Условиях свяжитесь с нами через аккаунт Ant или по контактам на сайте.',
+        'По вопросам об Условиях свяжитесь с нами через аккаунт BuilTHAI или по контактам на сайте.',
       ],
     },
   ],
@@ -229,13 +229,13 @@ const th: LegalDocument = {
   title: 'เงื่อนไขการใช้บริการ',
   updatedLabel: 'อัปเดตล่าสุด: 15 กรกฎาคม 2026',
   intro:
-    'เงื่อนไขการใช้บริการเหล่านี้ (“เงื่อนไข”) ควบคุมการเข้าถึงและใช้ตลาดกลางงานก่อสร้าง Ant และบริการที่เกี่ยวข้อง (“บริการ”) การสร้างบัญชีหรือใช้บริการถือว่าคุณตกลงตามเงื่อนไขนี้',
+    'เงื่อนไขการใช้บริการเหล่านี้ (“เงื่อนไข”) ควบคุมการเข้าถึงและใช้ตลาดกลางงานก่อสร้าง BuilTHAI และบริการที่เกี่ยวข้อง (“บริการ”) การสร้างบัญชีหรือใช้บริการถือว่าคุณตกลงตามเงื่อนไขนี้',
   sections: [
     {
       title: '1. บริการ',
       paragraphs: [
-        'Ant ให้บริการตลาดออนไลน์ที่ลูกค้าสามารถเผยแพร่โครงการก่อสร้าง ชี้แจงขอบเขตงาน และจัดการกระบวนการประกวดราคา และผู้รับเหมาสามารถสร้างโปรไฟล์ สมัครงาน ส่งข้อเสนอ และติดต่อลูกค้าได้',
-        'Ant เป็นแพลตฟอร์มเทคโนโลยี หากไม่ได้ระบุเป็นลายลักษณ์อักษร Ant ไม่ใช่คู่สัญญาในสัญญาก่อสร้างระหว่างลูกค้ากับผู้รับเหมา และไม่ได้เป็นผู้ดำเนินการก่อสร้างเอง',
+        'BuilTHAI ให้บริการตลาดออนไลน์ที่ลูกค้าสามารถเผยแพร่โครงการก่อสร้าง ชี้แจงขอบเขตงาน และจัดการกระบวนการประกวดราคา และผู้รับเหมาสามารถสร้างโปรไฟล์ สมัครงาน ส่งข้อเสนอ และติดต่อลูกค้าได้',
+        'BuilTHAI เป็นแพลตฟอร์มเทคโนโลยี หากไม่ได้ระบุเป็นลายลักษณ์อักษร BuilTHAI ไม่ใช่คู่สัญญาในสัญญาก่อสร้างระหว่างลูกค้ากับผู้รับเหมา และไม่ได้เป็นผู้ดำเนินการก่อสร้างเอง',
       ],
     },
     {
@@ -258,20 +258,20 @@ const th: LegalDocument = {
       paragraphs: [
         'การประมาณราคาเบื้องต้น ขอบเขตที่แนะนำ หรือสรุปด้วย AI เป็นข้อมูลอ้างอิงเท่านั้น ไม่ใช่ใบเสนอราคาที่ผูกพัน แบบก่อสร้าง หรือคำปรึกษาทางกฎหมาย',
         'ข้อเสนอเชิงพาณิชย์ เงื่อนไขสัญญา และการลงนามผ่านบริการเป็นเรื่องระหว่างลูกค้ากับผู้รับเหมาที่เกี่ยวข้อง ควรตรวจสอบเงื่อนไขด้วยตนเองก่อนลงนาม',
-        'Ant ไม่รับประกันว่าจะมีผู้ยื่นข้อเสนอ การยอมรับข้อเสนอ หรือการทำธุรกรรมสำเร็จ',
+        'BuilTHAI ไม่รับประกันว่าจะมีผู้ยื่นข้อเสนอ การยอมรับข้อเสนอ หรือการทำธุรกรรมสำเร็จ',
       ],
     },
     {
       title: '5. การใช้งานที่ยอมรับได้',
       paragraphs: [
         'ห้ามใช้บริการในทางที่ผิด รวมถึงการโพสต์เนื้อหาผิดกฎหมาย ทำให้เข้าใจผิด หรือละเมิดสิทธิ์ การอัปโหลดมัลแวร์ การเข้าถึงโดยไม่ได้รับอนุญาต การเก็บข้อมูลโดยไม่ได้รับอนุญาต การคุกคามผู้ใช้อื่น หรือการหลีกเลี่ยงระบบความปลอดภัย',
-        'ห้ามใช้ Ant เพื่อรวบรวมข้อมูลส่วนบุคคลของผู้ใช้อื่นโดยฝ่าฝืนกฎของตลาด',
+        'ห้ามใช้ BuilTHAI เพื่อรวบรวมข้อมูลส่วนบุคคลของผู้ใช้อื่นโดยฝ่าฝืนกฎของตลาด',
       ],
     },
     {
       title: '6. เนื้อหาและสิทธิ์ใช้งาน',
       paragraphs: [
-        'คุณยังคงเป็นเจ้าของเนื้อหาที่ส่ง และมอบสิทธิ์ใช้งานแบบไม่เฉพาะแก่ Ant ในการโฮสต์ ประมวลผล และแสดงเนื้อหานั้นตามที่จำเป็นต่อการให้บริการ',
+        'คุณยังคงเป็นเจ้าของเนื้อหาที่ส่ง และมอบสิทธิ์ใช้งานแบบไม่เฉพาะแก่ BuilTHAI ในการโฮสต์ ประมวลผล และแสดงเนื้อหานั้นตามที่จำเป็นต่อการให้บริการ',
         'คุณรับรองว่ามีสิทธิ์ส่งเนื้อหาและไม่ละเมิดสิทธิ์ของบุคคลที่สามหรือข้อผูกพันด้านความลับ',
       ],
     },
@@ -286,7 +286,7 @@ const th: LegalDocument = {
       paragraphs: [
         'ค่าธรรมเนียมแพลตฟอร์มสำหรับดีลที่ปิดแล้วชำระโดยผู้รับเหมา ไม่ใช่ลูกค้า (เจ้าของโครงการ) ลูกค้าสามารถใช้ฟีเจอร์หลักของบริการโดยไม่มีค่าธรรมเนียมแพลตฟอร์มจนกว่าจะเปิดใช้บริการพรีเมียม',
         'โครงสร้างค่าธรรมเนียม: (a) platform access fee 100 USD (หรือเทียบเท่าสกุลเงินท้องถิ่นตามอัตราโดยประมาณในบริการ) ซึ่งแสดงเมื่อผู้รับเหมาลงนามและนำไปหักกับ success fee และ (b) success fee 2% ของยอดสัญญาที่ได้รับเลือก หักด้วย access fee ยอด success fee ที่เหลือครบกำหนดภายในหนึ่งเดือนปฏิทินหลังลงนาม โดยปกติหลังผู้รับเหมาได้รับเงินล่วงหน้าจากลูกค้า',
-        'ในช่วงทดลองใช้หรือโปรโมชัน Ant อาจให้ส่วนลด 100% โดยแสดงยอดตามราคาเพื่อความโปร่งใส แต่ยอดที่ต้องชำระให้ Ant เป็น 0 USD ส่วนลดแพลตฟอร์มไม่ได้ยกเลิกภาระการชำระเงินของลูกค้าต่อผู้รับเหมาตามสัญญาจ้างก่อสร้าง',
+        'ในช่วงทดลองใช้หรือโปรโมชัน BuilTHAI อาจให้ส่วนลด 100% โดยแสดงยอดตามราคาเพื่อความโปร่งใส แต่ยอดที่ต้องชำระให้ BuilTHAI เป็น 0 USD ส่วนลดแพลตฟอร์มไม่ได้ยกเลิกภาระการชำระเงินของลูกค้าต่อผู้รับเหมาตามสัญญาจ้างก่อสร้าง',
         'ค่าธรรมเนียม ส่วนลด และภาษีจะแสดงในบริการก่อนที่ผู้รับเหมายืนยันขั้นตอนลงนาม การเรียกเก็บจริงอาจต้องมีนิติบุคคลและผู้ให้บริการชำระเงิน จนกว่าจะพร้อม หน้าจอค่าธรรมเนียมอาจเป็นข้อมูลอย่างเดียว',
       ],
     },
@@ -300,14 +300,14 @@ const th: LegalDocument = {
     {
       title: '10. ข้อจำกัดความรับผิด',
       paragraphs: [
-        'ในขอบเขตสูงสุดที่กฎหมายอนุญาต Ant ไม่รับผิดต่อความเสียหายทางอ้อม พิเศษ เชิงลงโทษ ผลกำไรที่เสียไป หรือการสูญเสียข้อมูลที่เกิดจากการใช้บริการหรือการติดต่อระหว่างผู้ใช้',
-        'ความรับผิดรวมของ Ant จำกัดไว้ที่จำนวนที่มากกว่าระหว่าง (ก) จำนวนเงินที่คุณชำระให้ Ant ในช่วง 3 เดือนก่อนเรียกร้อง หรือ (ข) 100 ดอลลาร์สหรัฐ เว้นแต่กฎหมายห้ามจำกัดความรับผิด',
+        'ในขอบเขตสูงสุดที่กฎหมายอนุญาต BuilTHAI ไม่รับผิดต่อความเสียหายทางอ้อม พิเศษ เชิงลงโทษ ผลกำไรที่เสียไป หรือการสูญเสียข้อมูลที่เกิดจากการใช้บริการหรือการติดต่อระหว่างผู้ใช้',
+        'ความรับผิดรวมของ BuilTHAI จำกัดไว้ที่จำนวนที่มากกว่าระหว่าง (ก) จำนวนเงินที่คุณชำระให้ BuilTHAI ในช่วง 3 เดือนก่อนเรียกร้อง หรือ (ข) 100 ดอลลาร์สหรัฐ เว้นแต่กฎหมายห้ามจำกัดความรับผิด',
       ],
     },
     {
       title: '11. การชดใช้',
       paragraphs: [
-        'คุณตกลงที่จะชดใช้ความเสียหายและค่าใช้จ่ายให้ Ant ที่เกิดจากเนื้อหาของคุณ การใช้บริการ โครงการหรือข้อเสนอ หรือการละเมิดเงื่อนไขหรือกฎหมาย เว้นแต่เกิดจากความประพฤติโดยเจตนาของ Ant',
+        'คุณตกลงที่จะชดใช้ความเสียหายและค่าใช้จ่ายให้ BuilTHAI ที่เกิดจากเนื้อหาของคุณ การใช้บริการ โครงการหรือข้อเสนอ หรือการละเมิดเงื่อนไขหรือกฎหมาย เว้นแต่เกิดจากความประพฤติโดยเจตนาของ BuilTHAI',
       ],
     },
     {
@@ -331,7 +331,7 @@ const th: LegalDocument = {
     {
       title: '15. ติดต่อ',
       paragraphs: [
-        'หากมีคำถามเกี่ยวกับเงื่อนไข ติดต่อเราผ่านบัญชี Ant หรือช่องทางติดต่อบนเว็บไซต์',
+        'หากมีคำถามเกี่ยวกับเงื่อนไข ติดต่อเราผ่านบัญชี BuilTHAI หรือช่องทางติดต่อบนเว็บไซต์',
       ],
     },
   ],

@@ -27,7 +27,7 @@ Keycloak Admin → **Realm settings** → **Email**
 | Host | `email-smtp.eu-central-1.amazonaws.com` |
 | Port | `587` |
 | From | `noreply@yourdomain.com` |
-| From display name | `Ant` |
+| From display name | `BuilTHAI` |
 | Enable SSL | off |
 | Enable StartTLS | on |
 | Authentication | on |

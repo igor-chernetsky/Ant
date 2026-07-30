@@ -90,6 +90,8 @@ export function ProjectTile({
     needsSignIn ? ' project-tile-locked--signin' : ''
   }`;
 
+  const statusTone = project.isHidden ? 'hidden' : project.status;
+
   const body = (
     <>
       <div className="project-tile-media">
@@ -106,7 +108,7 @@ export function ProjectTile({
             <span>{formatProjectType(project.projectType as ProjectType)}</span>
           </div>
         )}
-        <span className="project-tile-status">
+        <span className={`project-tile-status project-tile-status--${statusTone}`}>
           {project.isHidden
             ? t('projectTile.hidden')
             : formatProjectStatus(project.status)}

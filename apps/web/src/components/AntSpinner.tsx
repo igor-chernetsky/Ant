@@ -19,7 +19,7 @@ const SIZE_PX: Record<AntSpinnerSize, number> = {
 };
 
 /**
- * Branded waiting indicator: Ant mark with an accent orbit ring.
+ * Branded waiting indicator: BuilTHAI mark with an accent orbit ring.
  * Use inline in buttons (`sm`) or as a standalone status (`md`/`lg`).
  */
 export function AntSpinner({
@@ -38,7 +38,7 @@ export function AntSpinner({
       <span className="ant-spinner-orbit" aria-hidden />
       <span className="ant-spinner-mark" aria-hidden>
         <Image
-          src="/ant-logo.png"
+          src="/logosm.png"
           alt=""
           width={px}
           height={px}

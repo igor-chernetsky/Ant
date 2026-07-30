@@ -51,7 +51,7 @@ export class MailService {
 
     const from = this.config.get<string>('SMTP_FROM')!.trim();
     const fromName =
-      this.config.get<string>('SMTP_FROM_NAME')?.trim() || 'Ant Construction';
+      this.config.get<string>('SMTP_FROM_NAME')?.trim() || 'BuilTHAI';
     const to = Array.isArray(params.to) ? params.to.join(', ') : params.to;
 
     try {

@@ -272,23 +272,23 @@ export class TenderInvitesService {
     const text = [
       greeting,
       '',
-      `You are invited to review a project on Ant Construction and consider participating as a ${roleLabel}.`,
+      `You are invited to review a project on BuilTHAI and consider participating as a ${roleLabel}.`,
       '',
       `Project: ${params.projectTitle}`,
       `Open the project card: ${params.inviteUrl}`,
       '',
       'You can view the project without registering. To submit a commercial proposal, please create an account and sign in.',
       '',
-      '— Ant Construction',
+      '— BuilTHAI',
     ].join('\n');
 
     const html = `
       <p>${escapeHtml(greeting)}</p>
-      <p>You are invited to review a project on <strong>Ant Construction</strong> and consider participating as a ${escapeHtml(roleLabel)}.</p>
+      <p>You are invited to review a project on <strong>BuilTHAI</strong> and consider participating as a ${escapeHtml(roleLabel)}.</p>
       <p><strong>Project:</strong> ${escapeHtml(params.projectTitle)}</p>
       <p><a href="${escapeHtml(params.inviteUrl)}">Open the project card</a></p>
       <p>You can view the project without registering. To submit a commercial proposal, please create an account and sign in.</p>
-      <p>— Ant Construction</p>
+      <p>— BuilTHAI</p>
     `;
 
     return this.mail.send({

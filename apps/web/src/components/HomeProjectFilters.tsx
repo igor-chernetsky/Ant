@@ -88,6 +88,13 @@ function countActiveFilters(
   return count;
 }
 
+export function countHomeActiveFilters(
+  filters: HomeProjectFilterState,
+  searchQuery: string,
+): number {
+  return countActiveFilters(filters, searchQuery);
+}
+
 export function HomeProjectFilters({
   tags,
   locationCatalog,
@@ -269,45 +276,51 @@ export function HomeProjectFilters({
   }
 
   return (
-    <section className="project-filters" aria-label={t('filters.ariaLabel')}>
-      <div className="project-filters-header">
-        <div className="project-filters-heading">
-          <h2 className="project-filters-title">{t('filters.browseProjects')}</h2>
-          {typeof resultCount === 'number' && (
-            <span className="project-filters-count muted">
-              {resultCount}{' '}
-              {resultCount === 1 ? t('filters.project') : t('filters.projects')}
-            </span>
+    <section
+      className="project-filters project-filters--sidebar"
+      aria-label={t('filters.ariaLabel')}
+    >
+      <div className="project-filters-scroll">
+        <div className="project-filters-header">
+          <div className="project-filters-heading">
+            <h2 className="project-filters-title">{t('filters.browseProjects')}</h2>
+            {typeof resultCount === 'number' && (
+              <span className="project-filters-count muted">
+                {resultCount}{' '}
+                {resultCount === 1 ? t('filters.project') : t('filters.projects')}
+              </span>
+            )}
+          </div>
+          {hasFilters && (
+            <button
+              type="button"
+              className="project-filters-clear"
+              onClick={clearAll}
+            >
+              {t('filters.clearAll')}
+              <span className="project-filters-clear-badge">{activeCount}</span>
+            </button>
           )}
         </div>
-        {hasFilters && (
-          <button
-            type="button"
-            className="project-filters-clear"
-            onClick={clearAll}
+
+        <div className="project-filters-search">
+          <label
+            className="project-filters-field-label"
+            htmlFor="home-project-search"
           >
-            {t('filters.clearAll')}
-            <span className="project-filters-clear-badge">{activeCount}</span>
-          </button>
-        )}
-      </div>
+            {t('filters.search')}
+          </label>
+          <input
+            id="home-project-search"
+            type="search"
+            className="project-filters-search-input"
+            value={searchQuery}
+            placeholder={t('filters.searchPlaceholder')}
+            aria-label={t('filters.search')}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+        </div>
 
-      <div className="project-filters-search">
-        <label className="project-filters-field-label" htmlFor="home-project-search">
-          {t('filters.search')}
-        </label>
-        <input
-          id="home-project-search"
-          type="search"
-          className="project-filters-search-input"
-          value={searchQuery}
-          placeholder={t('filters.searchPlaceholder')}
-          aria-label={t('filters.search')}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-      </div>
-
-      <div className="project-filters-location-layout">
         <div className="project-filters-location-panel">
           <div className="project-filters-location-section">
             <span className="project-filters-field-label">{t('filters.location')}</span>
@@ -357,7 +370,9 @@ export function HomeProjectFilters({
                 </div>
               </div>
             ) : (
-              <span className="muted project-filters-loading">{t('common.loading')}</span>
+              <span className="muted project-filters-loading">
+                {t('common.loading')}
+              </span>
             )}
           </div>
 
@@ -513,6 +528,27 @@ export function HomeProjectFilters({
           </div>
         </div>
 
+        {activePills.length > 0 && (
+          <div
+            className="project-filters-pills"
+            aria-label={t('filters.activeFiltersAria')}
+          >
+            {activePills.map((pill) => (
+              <button
+                key={pill.key}
+                type="button"
+                className="project-filters-pill"
+                onClick={pill.onRemove}
+              >
+                {pill.label}
+                <span aria-hidden>×</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="project-filters-map-slot">
         {locationCatalog ? (
           <LocationSearchMap
             catalog={locationCatalog}
@@ -527,25 +563,6 @@ export function HomeProjectFilters({
           />
         ) : null}
       </div>
-
-      {activePills.length > 0 && (
-        <div
-          className="project-filters-pills"
-          aria-label={t('filters.activeFiltersAria')}
-        >
-          {activePills.map((pill) => (
-            <button
-              key={pill.key}
-              type="button"
-              className="project-filters-pill"
-              onClick={pill.onRemove}
-            >
-              {pill.label}
-              <span aria-hidden>×</span>
-            </button>
-          ))}
-        </div>
-      )}
     </section>
   );
 }

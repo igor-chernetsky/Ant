@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { HelpTip } from '@/components/help/HelpTip';
-import { HomeHero } from '@/components/HomeHero';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
@@ -13,6 +12,7 @@ import { useTranslation } from '@/components/LocaleProvider';
 import { canCreateProject, isContractorUser } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
 import {
+  countHomeActiveFilters,
   HomeProjectFilters,
   type HomeProjectFilterState,
 } from '@/components/HomeProjectFilters';
@@ -68,6 +68,7 @@ export default function HomePage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingCreate, setPendingCreate] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const loadProjects = useCallback(async (next: HomeProjectFilterState) => {
     setLoading(true);
@@ -207,6 +208,22 @@ export default function HomePage() {
     }
   }, [me]);
 
+  useEffect(() => {
+    if (!filtersOpen) return;
+
+    const syncBodyLock = () => {
+      const mobile = window.matchMedia('(max-width: 899px)').matches;
+      document.body.style.overflow = mobile ? 'hidden' : '';
+    };
+
+    syncBodyLock();
+    window.addEventListener('resize', syncBodyLock);
+    return () => {
+      window.removeEventListener('resize', syncBodyLock);
+      document.body.style.overflow = '';
+    };
+  }, [filtersOpen]);
+
   const handleAddProject = () => {
     if (me && !canCreateProject(me)) return;
     if (me) {
@@ -290,6 +307,8 @@ export default function HomePage() {
     contractorParticipationByProjectId,
   ]);
 
+  const activeFilterCount = countHomeActiveFilters(filters, searchQuery);
+
   return (
     <PageShell>
       <SiteHeader
@@ -298,97 +317,147 @@ export default function HomePage() {
         onSignOut={handleLogout}
       />
 
-      <main className="content-container main-content">
-        <HomeHero
-          signedIn={Boolean(me)}
-          canAddProject={canAddProject}
-          showContractorPortal={isContractorUser(me)}
-          onAddProject={handleAddProject}
-          onSignIn={() => setLoginOpen(true)}
-        />
-
-        <HomeProjectFilters
-          tags={allTags}
-          locationCatalog={locationCatalog}
-          filters={filters}
-          onChange={setFilters}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          resultCount={!loading && !error ? sortedProjects.length : undefined}
-          showHiddenFilter={canAddProject}
-          showCompletedFilter={Boolean(me)}
-          showClientWorkspaceFilters={canAddProject}
-          contractorTagSlugs={
-            isContractorUser(me) ? contractorTagSlugs : undefined
-          }
-        />
-
-        {loading && (
-          <section className="card">
-            <p className="muted">{t('home.loadingProjects')}</p>
-          </section>
-        )}
-
-        {error && (
-          <section className="card error">
-            <p>{error}</p>
-          </section>
-        )}
-
-        {!loading && !error && sortedProjects.length === 0 && (
-          <section className="card empty-state">
-            {canAddProject && (
-              <HelpTip
-                tipId={HELP_TIP_IDS.homeEmpty}
-                title={t('help.tipHomeEmptyTitle')}
-                body={t('help.tipHomeEmptyBody')}
-                learnMoreHref="/help#client-first-project"
-              />
+      <main className="home-main main-content">
+        <div className={`home-layout${filtersOpen ? ' home-layout--filters-open' : ''}`}>
+          <div className="home-toolbar">
+            <button
+              type="button"
+              className="home-filters-toggle"
+              aria-expanded={filtersOpen}
+              aria-controls="home-filters-sidebar"
+              onClick={() => setFiltersOpen((open) => !open)}
+            >
+              {filtersOpen ? t('filters.closeFilters') : t('filters.openFilters')}
+              {activeFilterCount > 0 && (
+                <span className="home-filters-toggle-badge">{activeFilterCount}</span>
+              )}
+            </button>
+            {!loading && !error && (
+              <span className="home-toolbar-count muted">
+                {sortedProjects.length}{' '}
+                {sortedProjects.length === 1
+                  ? t('filters.project')
+                  : t('filters.projects')}
+              </span>
             )}
-            <p className="muted">
-              {canAddProject
-                ? t('home.emptyNoMatchCanAdd')
-                : t('home.emptyNoMatch')}
-            </p>
-            {canAddProject && (
-              <button type="button" className="primary" onClick={handleAddProject}>
-                {t('home.addProject')}
-              </button>
-            )}
-          </section>
-        )}
+          </div>
 
-        {!loading && sortedProjects.length > 0 && (
-          <section className="project-grid" aria-label={t('home.projectsAria')}>
-            {canAddProject && (
+          {filtersOpen && (
+            <button
+              type="button"
+              className="home-filters-backdrop"
+              aria-label={t('filters.closeFilters')}
+              onClick={() => setFiltersOpen(false)}
+            />
+          )}
+
+          <aside
+            id="home-filters-sidebar"
+            className={`home-sidebar${filtersOpen ? ' home-sidebar--open' : ''}`}
+          >
+            <div className="home-sidebar-mobile-header">
+              <h2 className="home-sidebar-mobile-title">{t('filters.browseProjects')}</h2>
               <button
                 type="button"
-                className="project-tile project-tile-add"
-                onClick={handleAddProject}
+                className="home-sidebar-close"
+                onClick={() => setFiltersOpen(false)}
               >
-                <div className="project-tile-media project-tile-add-media" aria-hidden>
-                  <span className="project-tile-add-icon">+</span>
-                </div>
-                <div className="project-tile-body">
-                  <h3 className="project-tile-title">{t('home.addProject')}</h3>
-                  <p className="project-tile-description">
-                    {t('home.addProjectDescription')}
-                  </p>
-                </div>
+                {t('filters.closeFilters')}
               </button>
+            </div>
+            <HomeProjectFilters
+              tags={allTags}
+              locationCatalog={locationCatalog}
+              filters={filters}
+              onChange={setFilters}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              resultCount={!loading && !error ? sortedProjects.length : undefined}
+              showHiddenFilter={canAddProject}
+              showCompletedFilter={Boolean(me)}
+              showClientWorkspaceFilters={canAddProject}
+              contractorTagSlugs={
+                isContractorUser(me) ? contractorTagSlugs : undefined
+              }
+            />
+          </aside>
+
+          <div className="home-results">
+            {loading && (
+              <section className="card">
+                <p className="muted">{t('home.loadingProjects')}</p>
+              </section>
             )}
-            {sortedProjects.map((project) => (
-              <ProjectTile
-                key={project.id}
-                project={project}
-                isOwned={ownedProjectIds.has(project.id)}
-                contractorParticipation={
-                  contractorParticipationByProjectId.get(project.id) ?? null
-                }
-              />
-            ))}
-          </section>
-        )}
+
+            {error && (
+              <section className="card error">
+                <p>{error}</p>
+              </section>
+            )}
+
+            {!loading && !error && sortedProjects.length === 0 && (
+              <section className="card empty-state">
+                {canAddProject && (
+                  <HelpTip
+                    tipId={HELP_TIP_IDS.homeEmpty}
+                    title={t('help.tipHomeEmptyTitle')}
+                    body={t('help.tipHomeEmptyBody')}
+                    learnMoreHref="/help#client-first-project"
+                  />
+                )}
+                <p className="muted">
+                  {canAddProject
+                    ? t('home.emptyNoMatchCanAdd')
+                    : t('home.emptyNoMatch')}
+                </p>
+                {canAddProject && (
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={handleAddProject}
+                  >
+                    {t('home.addProject')}
+                  </button>
+                )}
+              </section>
+            )}
+
+            {!loading && sortedProjects.length > 0 && (
+              <section className="project-grid" aria-label={t('home.projectsAria')}>
+                {canAddProject && (
+                  <button
+                    type="button"
+                    className="project-tile project-tile-add"
+                    onClick={handleAddProject}
+                  >
+                    <div
+                      className="project-tile-media project-tile-add-media"
+                      aria-hidden
+                    >
+                      <span className="project-tile-add-icon">+</span>
+                    </div>
+                    <div className="project-tile-body">
+                      <h3 className="project-tile-title">{t('home.addProject')}</h3>
+                      <p className="project-tile-description">
+                        {t('home.addProjectDescription')}
+                      </p>
+                    </div>
+                  </button>
+                )}
+                {sortedProjects.map((project) => (
+                  <ProjectTile
+                    key={project.id}
+                    project={project}
+                    isOwned={ownedProjectIds.has(project.id)}
+                    contractorParticipation={
+                      contractorParticipationByProjectId.get(project.id) ?? null
+                    }
+                  />
+                ))}
+              </section>
+            )}
+          </div>
+        </div>
       </main>
 
       <LoginModal

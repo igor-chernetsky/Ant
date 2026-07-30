@@ -1,12 +1,12 @@
 ---
 name: ant-notifications
 description: >-
-  Ant email and in-app notification system. Use when adding notify* methods,
+  BuilTHAI email and in-app notification system. Use when adding notify* methods,
   InAppNotification kinds, header bell/toasts, notification preferences, or
   changing bid/tender/contract events that should alert users.
 ---
 
-# Ant notifications (email + in-app)
+# BuilTHAI notifications (email + in-app)
 
 ## Two channels
 

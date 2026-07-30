@@ -1,6 +1,6 @@
 # Deployment — MVP
 
-This document describes the recommended deployment model for the Construction Marketplace Platform MVP, including what to host on Vercel versus AWS, and when EC2 is appropriate.
+This document describes the recommended deployment model for the BuilTHAI MVP, including what to host on Vercel versus AWS, and when EC2 is appropriate.
 
 **Related:** [Backend Architecture — MVP](./backend-architecture-mvp.md)
 

@@ -1,12 +1,12 @@
 ---
 name: ant-tendering
 description: >-
-  Ant tendering and bid workflow rules: statuses, client vs contractor edits,
+  BuilTHAI tendering and bid workflow rules: statuses, client vs contractor edits,
   counter-offers vs direct Save terms, compare-bids after award. Use when
   changing bids, tenders, KP submission, award, counter-offers, or bid compare UI.
 ---
 
-# Ant tendering & bids
+# BuilTHAI tendering & bids
 
 ## Status cheat sheet
 

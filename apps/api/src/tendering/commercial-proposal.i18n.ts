@@ -223,7 +223,7 @@ const EN: CommercialProposalCopy = {
   annex3EmptyNote:
     'No Business license, Company registration, Owner’s ID, or Insurance documents are recorded for the Contractor on the platform yet.',
   annex3ListIntro:
-    'The following Contractor corporate documents form Annex #3. Open each link in the Ant platform (or find the files in the contract package under contractor-documents/):',
+    'The following Contractor corporate documents form Annex #3. Open each link in the BuilTHAI platform (or find the files in the contract package under contractor-documents/):',
   annex3FilesNote:
     'These documents are attached to every awarded contract package and remain available via the links above while the contract is active on the platform.',
   contractorDocBusinessLicense: 'Business license',
@@ -405,7 +405,7 @@ const RU: CommercialProposalCopy = {
   annex3EmptyNote:
     'Для Подрядчика на платформе пока не загружены Business license, Company registration, Owner’s ID или Insurance.',
   annex3ListIntro:
-    'Следующие корпоративные документы Подрядчика составляют Приложение №3. Откройте каждую ссылку в Ant (или найдите файлы в пакете договора в папке contractor-documents/):',
+    'Следующие корпоративные документы Подрядчика составляют Приложение №3. Откройте каждую ссылку в BuilTHAI (или найдите файлы в пакете договора в папке contractor-documents/):',
   annex3FilesNote:
     'Эти документы прилагаются к каждому пакету договора после выбора подрядчика и доступны по ссылкам выше, пока договор активен на платформе.',
   contractorDocBusinessLicense: 'Business license',
@@ -587,7 +587,7 @@ const TH: CommercialProposalCopy = {
   annex3EmptyNote:
     'ยังไม่มีเอกสาร Business license, Company registration, Owner’s ID หรือ Insurance ของผู้รับจ้างบนแพลตฟอร์ม',
   annex3ListIntro:
-    'เอกสารนิติบุคคลของผู้รับจ้างต่อไปนี้เป็นภาคผนวก #3 เปิดแต่ละลิงก์ใน Ant (หรือดูไฟล์ในแพ็กเกจสัญญาที่โฟลเดอร์ contractor-documents/):',
+    'เอกสารนิติบุคคลของผู้รับจ้างต่อไปนี้เป็นภาคผนวก #3 เปิดแต่ละลิงก์ใน BuilTHAI (หรือดูไฟล์ในแพ็กเกจสัญญาที่โฟลเดอร์ contractor-documents/):',
   annex3FilesNote:
     'เอกสารเหล่านี้แนบกับทุกแพ็กเกจสัญญาหลังคัดเลือกผู้รับจ้าง และเปิดได้ผ่านลิงก์ด้านบนขณะที่สัญญายังใช้งานบนแพลตฟอร์ม',
   contractorDocBusinessLicense: 'Business license',

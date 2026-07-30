@@ -71,7 +71,7 @@ export const th: Messages = {
     },
   },
   footer: {
-    copyright: '© {year} Ant. สงวนลิขสิทธิ์',
+    copyright: '© {year} BuilTHAI. สงวนลิขสิทธิ์',
     legalNav: 'ข้อมูลทางกฎหมาย',
     privacyPolicy: 'นโยบายความเป็นส่วนตัว',
     termsOfService: 'เงื่อนไขการใช้บริการ',
@@ -84,7 +84,7 @@ export const th: Messages = {
     welcomeBack: 'ยินดีต้อนรับกลับ',
     createAccount: 'สร้างบัญชีของคุณ',
     signInSubtitle: 'เข้าสู่ระบบเพื่อจัดการโครงการและข้อเสนอจากผู้รับเหมา',
-    signUpSubtitle: 'เข้าร่วม Ant เพื่อเผยแพร่โครงการหรือตอบรับการประมูล',
+    signUpSubtitle: 'เข้าร่วม BuilTHAI เพื่อเผยแพร่โครงการหรือตอบรับการประมูล',
     fullName: 'ชื่อ-นามสกุล',
     emailPlaceholder: 'you@example.com',
     roleLegend: 'บทบาทของคุณ',
@@ -92,7 +92,7 @@ export const th: Messages = {
     signingIn: 'กำลังเข้าสู่ระบบ…',
     creatingAccount: 'กำลังสร้างบัญชี…',
     createAccountButton: 'สร้างบัญชี',
-    newToAnt: 'ใหม่กับ Ant?',
+    newToAnt: 'ใหม่กับ BuilTHAI?',
     createAnAccount: 'สร้างบัญชี',
     alreadyHaveAccount: 'มีบัญชีอยู่แล้ว?',
     signInFailed: 'เข้าสู่ระบบไม่สำเร็จ',
@@ -120,7 +120,7 @@ export const th: Messages = {
       'โปรดยอมรับนโยบายความเป็นส่วนตัวและข้อตกลงสำหรับบทบาทที่เลือกเพื่อสร้างบัญชี',
   },
   home: {
-    kicker: 'ตลาด Ant',
+    kicker: 'ตลาด BuilTHAI',
     title: 'โครงการก่อสร้าง',
     lead:
       'เรียกดูโอกาสการปรับปรุงและก่อสร้าง เผยแพร่โครงการของคุณ รับประมาณการเบื้องต้น และรวบรวมข้อเสนอจากผู้รับเหมา',
@@ -151,7 +151,7 @@ export const th: Messages = {
     emailNotificationsHint:
       'เลือกการอัปเดตที่เราส่งไปยัง {email} คุณสามารถปิดทั้งหมดได้ตลอดเวลา',
     allEmailNotifications: 'การแจ้งเตือนทางอีเมลทั้งหมด',
-    allEmailNotificationsDesc: 'สวิตช์หลักสำหรับอีเมลจาก Ant',
+    allEmailNotificationsDesc: 'สวิตช์หลักสำหรับอีเมลจาก BuilTHAI',
     bidsOnProjects: 'การประมูลในโครงการของฉัน',
     bidsOnProjectsDesc:
       'ใบสมัคร ข้อเสนอ และข้อความใหม่จากผู้รับเหมา',

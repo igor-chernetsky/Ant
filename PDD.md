@@ -1,13 +1,13 @@
 # Product Definition Document (PDD)
 
 ## Product Name
-Construction Marketplace Platform
+BuilTHAI
 
 ## Document Version
 v1.0 (Initial draft)
 
 ## Product Overview
-Construction Marketplace Platform is a web and mobile-accessible product for private homeowners, professional developers, and companies involved in residential and commercial construction or renovation.
+BuilTHAI is a web and mobile-accessible product for private homeowners, professional developers, and companies involved in residential and commercial construction or renovation.
 
 The platform streamlines the full project lifecycle, from idea formulation and project preparation to contractor tendering, contract generation, and progress monitoring. It is designed to make construction services more transparent, accessible, and efficient for both professional and non-professional users.
 

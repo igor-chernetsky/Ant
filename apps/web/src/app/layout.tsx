@@ -7,11 +7,11 @@ import { SupplyVerificationBanner } from '@/components/SupplyVerificationBanner'
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Ant — Construction Marketplace',
+  title: 'BuilTHAI — Construction Marketplace',
   description: 'Browse and manage construction projects',
   icons: {
-    icon: '/ant-logo.png',
-    apple: '/ant-logo.png',
+    icon: '/logosm.png',
+    apple: '/logosm.png',
   },
 };
 

@@ -70,7 +70,7 @@ export const en = {
     },
   },
   footer: {
-    copyright: '© {year} Ant. All rights reserved.',
+    copyright: '© {year} BuilTHAI. All rights reserved.',
     legalNav: 'Legal',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
@@ -83,7 +83,7 @@ export const en = {
     welcomeBack: 'Welcome back',
     createAccount: 'Create your account',
     signInSubtitle: 'Sign in to manage projects and contractor bids.',
-    signUpSubtitle: 'Join Ant to publish projects or respond to tenders.',
+    signUpSubtitle: 'Join BuilTHAI to publish projects or respond to tenders.',
     fullName: 'Full name',
     emailPlaceholder: 'you@example.com',
     roleLegend: 'Your roles',
@@ -91,7 +91,7 @@ export const en = {
     signingIn: 'Signing in…',
     creatingAccount: 'Creating account…',
     createAccountButton: 'Create account',
-    newToAnt: 'New to Ant?',
+    newToAnt: 'New to BuilTHAI?',
     createAnAccount: 'Create an account',
     alreadyHaveAccount: 'Already have an account?',
     signInFailed: 'Sign in failed',
@@ -119,7 +119,7 @@ export const en = {
       'Please accept the Privacy Policy and the agreement(s) for your selected role(s) to create an account.',
   },
   home: {
-    kicker: 'Ant marketplace',
+    kicker: 'BuilTHAI marketplace',
     title: 'Construction projects',
     lead:
       'Browse renovation and build opportunities. Publish your project, receive ballpark estimates, and collect contractor proposals.',
@@ -150,7 +150,7 @@ export const en = {
     emailNotificationsHint:
       'Choose which updates we send to {email}. You can turn everything off at any time.',
     allEmailNotifications: 'All email notifications',
-    allEmailNotificationsDesc: 'Master switch for Ant emails',
+    allEmailNotificationsDesc: 'Master switch for BuilTHAI emails',
     bidsOnProjects: 'Bids on my projects',
     bidsOnProjectsDesc:
       'New applications, proposals, and messages from contractors',

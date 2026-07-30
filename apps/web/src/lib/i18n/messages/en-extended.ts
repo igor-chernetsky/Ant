@@ -12,7 +12,7 @@ export const enExtended = {
     descriptionOptional: "Description (optional)",
     amount: "Amount",
     backToHome: "Back to home",
-    continueToAnt: "Continue to Ant",
+    continueToAnt: "Continue to BuilTHAI",
     openProjects: "open projects",
     days: "days",
     daysCount: "{n} days",
@@ -94,6 +94,8 @@ export const enExtended = {
     myProjects: "My projects",
     allTrades: "All trades",
     myTrades: "My trades",
+    openFilters: "Filters",
+    closeFilters: "Close filters",
   },
   projectTile: {
     hidden: "Hidden",
@@ -431,7 +433,7 @@ export const enExtended = {
   },
   emailVerified: {
     successTitle: "Email verified",
-    successLead: "Your address is confirmed. You can sign in and start using Ant Construction.",
+    successLead: "Your address is confirmed. You can sign in and start using BuilTHAI.",
     failedTitle: "Verification failed",
     errorExpired: "This verification link has expired. Sign in and request a new verification email, or create a new account.",
     errorInvalid: "This verification link is invalid or has already been used.",
@@ -723,7 +725,7 @@ export const enExtended = {
   platformFees: {
     signTitle: "Confirm platform fees before signing",
     signIntro:
-      "Before you sign, review the platform fees that apply to this contract. Contractors pay these fees; clients use Ant for free until premium services are enabled.",
+      "Before you sign, review the platform fees that apply to this contract. Contractors pay these fees; clients use BuilTHAI for free until premium services are enabled.",
     trialBadge: "Trial — {percent}% discount applied",
     trialPill: "Trial · no charge",
     accessFeeLabel: "Platform access fee",
@@ -750,7 +752,7 @@ export const enExtended = {
     summaryRemaining: "Remaining after credit: {amount}",
     summaryDueNow: "Due now (trial): {amount}",
     clientNote:
-      "Platform fees are paid by the contractor. You can use Ant for free until premium services are enabled.",
+      "Platform fees are paid by the contractor. You can use BuilTHAI for free until premium services are enabled.",
   },
   projectDetail: {
     tagsRefreshHint: "Tags refresh when you apply client amendments.",
@@ -1162,7 +1164,7 @@ export const enExtended = {
     other: "Other",
   },
   help: {
-    title: "How Ant works",
+    title: "How BuilTHAI works",
     lead: "Short guides for clients, contractors, and designers. Open a scenario when you need a quick path through the platform.",
     roleClient: "Client",
     roleContractor: "Contractor",

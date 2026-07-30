@@ -1,4 +1,4 @@
-# Platform Web (MVP)
+# BuilTHAI Web (MVP)
 
 Next.js client with **in-app login modal** (no redirect to Keycloak).  
 Auth uses Vercel Route Handlers (BFF) + httpOnly cookie + **confidential** Keycloak client `platform-bff`.
