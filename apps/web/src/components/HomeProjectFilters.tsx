@@ -321,60 +321,6 @@ export function HomeProjectFilters({
         </div>
 
         <div className="project-filters-location-panel">
-          <div className="project-filters-location-section">
-            <span className="project-filters-field-label">{t('filters.location')}</span>
-            {locationCatalog ? (
-              <div className="project-filters-location-fields">
-                <div className="project-filters-location-select-group">
-                  <span className="project-filters-location-select-label">
-                    {t('filters.region')}
-                  </span>
-                  <select
-                    className="project-filters-select"
-                    value={filters.regionSlug}
-                    aria-label={t('filters.region')}
-                    onChange={(e) =>
-                      update({
-                        regionSlug: e.target.value,
-                        areaSlug: '',
-                      })
-                    }
-                  >
-                    <option value="">{t('filters.allRegions')}</option>
-                    {locationCatalog.regions.map((region) => (
-                      <option key={region.slug} value={region.slug}>
-                        {region.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="project-filters-location-select-group">
-                  <span className="project-filters-location-select-label">
-                    {t('filters.area')}
-                  </span>
-                  <select
-                    className="project-filters-select"
-                    value={filters.areaSlug}
-                    aria-label={t('filters.area')}
-                    disabled={!filters.regionSlug || areas.length === 0}
-                    onChange={(e) => update({ areaSlug: e.target.value })}
-                  >
-                    <option value="">{t('filters.allAreas')}</option>
-                    {areas.map((area) => (
-                      <option key={area.slug} value={area.slug}>
-                        {area.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            ) : (
-              <span className="muted project-filters-loading">
-                {t('common.loading')}
-              </span>
-            )}
-          </div>
-
           <div className="project-filters-status-section">
             <span className="project-filters-field-label">
               {t('filters.projectTrackLabel')}
@@ -550,6 +496,59 @@ export function HomeProjectFilters({
       </div>
 
       <div className="project-filters-map-slot">
+        <div className="project-filters-location-section project-filters-location-section--with-map">
+          <span className="project-filters-field-label">{t('filters.location')}</span>
+          {locationCatalog ? (
+            <div className="project-filters-location-fields">
+              <div className="project-filters-location-select-group">
+                <span className="project-filters-location-select-label">
+                  {t('filters.region')}
+                </span>
+                <select
+                  className="project-filters-select"
+                  value={filters.regionSlug}
+                  aria-label={t('filters.region')}
+                  onChange={(e) =>
+                    update({
+                      regionSlug: e.target.value,
+                      areaSlug: '',
+                    })
+                  }
+                >
+                  <option value="">{t('filters.allRegions')}</option>
+                  {locationCatalog.regions.map((region) => (
+                    <option key={region.slug} value={region.slug}>
+                      {region.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="project-filters-location-select-group">
+                <span className="project-filters-location-select-label">
+                  {t('filters.area')}
+                </span>
+                <select
+                  className="project-filters-select"
+                  value={filters.areaSlug}
+                  aria-label={t('filters.area')}
+                  disabled={!filters.regionSlug || areas.length === 0}
+                  onChange={(e) => update({ areaSlug: e.target.value })}
+                >
+                  <option value="">{t('filters.allAreas')}</option>
+                  {areas.map((area) => (
+                    <option key={area.slug} value={area.slug}>
+                      {area.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ) : (
+            <span className="muted project-filters-loading">
+              {t('common.loading')}
+            </span>
+          )}
+        </div>
         {locationCatalog ? (
           <LocationSearchMap
             catalog={locationCatalog}

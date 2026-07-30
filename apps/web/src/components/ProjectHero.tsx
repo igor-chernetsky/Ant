@@ -36,6 +36,86 @@ const DESIGN_HINT_TYPES = new Set([
   'repair',
 ]);
 
+export function ProjectHeroSidebar({
+  project,
+  estimateMidAmountThb,
+  tags = [],
+  showTags = false,
+  tagsHint = null,
+}: Pick<
+  ProjectHeroProps,
+  'project' | 'estimateMidAmountThb' | 'tags' | 'showTags' | 'tagsHint'
+>) {
+  const { t, locale } = useTranslation();
+  const { formatProjectStatus } = useAppFormatters();
+  const isDesignTrack = project.projectType === 'design';
+
+  return (
+    <aside className="project-hero-aside project-hero-sidebar-card">
+      <span className="status-pill status-pill-lg project-hero-status">
+        {project.isHidden
+          ? t('projectHero.hidden')
+          : formatProjectStatus(project.status)}
+      </span>
+      <div className="project-hero-aside-metrics">
+        <span className="readiness-badge readiness-badge-lg project-hero-readiness">
+          {t('projectHero.readyPercent', { n: project.readinessScore })}
+        </span>
+        {typeof estimateMidAmountThb === 'number' && estimateMidAmountThb > 0 && (
+          <p className="project-hero-meta">
+            {isDesignTrack
+              ? t('projectHero.designBallparkMidpoint')
+              : t('projectHero.ballparkMidpoint')}
+            &nbsp;
+            <span className="project-hero-meta-value">
+              {new Intl.NumberFormat(locale, {
+                style: 'currency',
+                currency: 'THB',
+                maximumFractionDigits: 0,
+              }).format(estimateMidAmountThb)}
+            </span>
+          </p>
+        )}
+      </div>
+      {showTags && tags.length > 0 && (
+        <div className="project-hero-tags">
+          <p className="project-hero-tags-label">{t('projectHero.scopeTags')}</p>
+          <div
+            className="project-hero-tag-list"
+            aria-label={t('projectHero.scopeTagsAria')}
+          >
+            {tags.map((tag) => (
+              <span
+                key={tag.slug}
+                className={`tag-pill${
+                  tag.source === 'client' ? ' tag-pill-client' : ' tag-pill-ai'
+                }`}
+                title={
+                  tag.source === 'client'
+                    ? t('projectHero.tagSelectedDuringIntake')
+                    : t('projectHero.tagSuggestedByAi')
+                }
+              >
+                {tag.label}
+              </span>
+            ))}
+          </div>
+          {tagsHint && (
+            <p className="project-hero-tags-hint muted">{tagsHint}</p>
+          )}
+        </div>
+      )}
+      {project.locationRegionSlug ? (
+        <ProjectLocationMap
+          regionSlug={project.locationRegionSlug}
+          areaSlug={project.locationAreaSlug}
+          caption={project.district}
+        />
+      ) : null}
+    </aside>
+  );
+}
+
 export function ProjectHero({
   project,
   estimateMidAmountThb,
@@ -44,11 +124,12 @@ export function ProjectHero({
   tagsHint = null,
   canEditCard = false,
   onCardUpdated,
-}: ProjectHeroProps) {
-  const { t, locale } = useTranslation();
+  /** When false, only the main title/description column is rendered. */
+  includeSidebar = true,
+}: ProjectHeroProps & { includeSidebar?: boolean }) {
+  const { t } = useTranslation();
   const router = useRouter();
-  const { formatProjectStatus, formatProjectType, formatPropertyType } =
-    useAppFormatters();
+  const { formatProjectType, formatPropertyType } = useAppFormatters();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(project.title);
   const [description, setDescription] = useState(project.description ?? '');
@@ -173,7 +254,10 @@ export function ProjectHero({
   };
 
   return (
-    <section className="project-hero" aria-labelledby="project-hero-title">
+    <section
+      className={`project-hero${includeSidebar ? '' : ' project-hero--main-only'}`}
+      aria-labelledby="project-hero-title"
+    >
       <div className="project-hero-body">
         <div className="project-hero-main">
           <p className="project-hero-kicker">
@@ -360,73 +444,15 @@ export function ProjectHero({
             {t('projectHero.updated')} {formatDateTime(project.updatedAt)}
           </p>
         </div>
-        <div className="project-hero-aside">
-          <span className="status-pill status-pill-lg project-hero-status">
-            {project.isHidden
-              ? t('projectHero.hidden')
-              : formatProjectStatus(project.status)}
-          </span>
-          <div className="project-hero-aside-metrics">
-            <span className="readiness-badge readiness-badge-lg project-hero-readiness">
-              {t('projectHero.readyPercent', { n: project.readinessScore })}
-            </span>
-            {typeof estimateMidAmountThb === 'number' &&
-              estimateMidAmountThb > 0 && (
-                <p className="project-hero-meta">
-                  {isDesignTrack
-                    ? t('projectHero.designBallparkMidpoint')
-                    : t('projectHero.ballparkMidpoint')}
-                  &nbsp;
-                  <span className="project-hero-meta-value">
-                    {new Intl.NumberFormat(locale, {
-                      style: 'currency',
-                      currency: 'THB',
-                      maximumFractionDigits: 0,
-                    }).format(estimateMidAmountThb)}
-                  </span>
-                </p>
-              )}
-          </div>
-          {showTags && tags.length > 0 && (
-            <div className="project-hero-tags">
-              <p className="project-hero-tags-label">
-                {t('projectHero.scopeTags')}
-              </p>
-              <div
-                className="project-hero-tag-list"
-                aria-label={t('projectHero.scopeTagsAria')}
-              >
-                {tags.map((tag) => (
-                  <span
-                    key={tag.slug}
-                    className={`tag-pill${
-                      tag.source === 'client'
-                        ? ' tag-pill-client'
-                        : ' tag-pill-ai'
-                    }`}
-                    title={
-                      tag.source === 'client'
-                        ? t('projectHero.tagSelectedDuringIntake')
-                        : t('projectHero.tagSuggestedByAi')
-                    }
-                  >
-                    {tag.label}
-                  </span>
-                ))}
-              </div>
-              {tagsHint && (
-                <p className="project-hero-tags-hint muted">{tagsHint}</p>
-              )}
-            </div>
-          )}
-          {project.locationRegionSlug ? (
-            <ProjectLocationMap
-              regionSlug={project.locationRegionSlug}
-              areaSlug={project.locationAreaSlug}
-              caption={project.district}
-            />
-          ) : null}
-        </div>
+        {includeSidebar && (
+          <ProjectHeroSidebar
+            project={project}
+            estimateMidAmountThb={estimateMidAmountThb}
+            tags={tags}
+            showTags={showTags}
+            tagsHint={tagsHint}
+          />
+        )}
       </div>
     </section>
   );

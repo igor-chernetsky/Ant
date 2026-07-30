@@ -57,10 +57,7 @@ function ScopePackagesList({ packages }: { packages: BriefScopePackage[] }) {
       <p className="doc-tile-scope-label">{t('documents.inferredScope')}</p>
       <ul className="doc-tile-scope-list">
         {packages.map((pkg, index) => (
-          <li
-            key={`${pkg.trade}-${index}`}
-            className="doc-tile-scope-item"
-          >
+          <li key={`${pkg.trade}-${index}`} className="doc-tile-scope-item">
             <span className="package-trade">{pkg.trade}</span>
             <span>{pkg.description}</span>
             {(pkg.quantity ?? pkg.areaSqm) != null && (
@@ -93,6 +90,7 @@ export function DocumentTile({
   const isImage = isImageDocument(document);
   const ext = fileExtension(document.originalName);
   const category = formatDocumentCategory(document.category);
+  const hasAnalysis = Boolean(insight) || scopePackages.length > 0;
 
   return (
     <figure className="doc-tile">
@@ -128,13 +126,15 @@ export function DocumentTile({
         {category}
         {' · '}
         {formatFileSize(document.sizeBytes)}
-        {document.uploadedAt &&
-          ` · ${formatDateTime(document.uploadedAt)}`}
+        {document.uploadedAt && ` · ${formatDateTime(document.uploadedAt)}`}
       </p>
 
-      <ScopePackagesList packages={scopePackages} />
-
-      {insight && <DocumentInsightCollapsible insight={insight} />}
+      {hasAnalysis && (
+        <DocumentInsightCollapsible
+          insight={insight}
+          scopePackages={scopePackages}
+        />
+      )}
 
       {showDelete && onDelete && (
         <button
@@ -162,27 +162,20 @@ export function OrphanScopePackages({
   }
 
   return (
-    <div className="doc-scope-orphans">
-      <h3 className="doc-scope-orphans-title">
+    <details className="doc-insight-details doc-scope-orphans">
+      <summary className="doc-insight-details-summary">
         {t('documents.generalInferredScope')}
-      </h3>
-      <p className="muted doc-scope-orphans-hint">
-        {t('documents.orphanScopeHint')}
-      </p>
-      <ul className="doc-tile-scope-list doc-tile-scope-list--standalone">
-        {packages.map((pkg, index) => (
-          <li key={`${pkg.trade}-${index}`} className="doc-tile-scope-item">
-            <span className="package-trade">{pkg.trade}</span>
-            <span>{pkg.description}</span>
-            {(pkg.quantity ?? pkg.areaSqm) != null && (
-              <span className="muted package-qty">
-                {pkg.quantity ?? pkg.areaSqm}{' '}
-                {pkg.unit ?? (pkg.areaSqm != null ? t('documents.sqm') : '')}
-              </span>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
+        <span className="doc-insight-scope-count">
+          {' '}
+          · {t('documents.inferredScopeCount', { count: packages.length })}
+        </span>
+      </summary>
+      <div className="doc-insight-details-body">
+        <p className="muted doc-scope-orphans-hint">
+          {t('documents.orphanScopeHint')}
+        </p>
+        <ScopePackagesList packages={packages} />
+      </div>
+    </details>
   );
 }

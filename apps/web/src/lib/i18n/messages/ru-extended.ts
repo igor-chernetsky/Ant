@@ -780,6 +780,7 @@ export const ruExtended = {
     uploadFile: "Загрузить файл",
     empty: "Документы ещё не загружены.",
     inferredScope: "Выведенный объём",
+    inferredScopeCount: "{count} позиций",
     generalInferredScope: "Общий выведенный объём",
     orphanScopeHint: "Позиции работ, не привязанные к конкретному файлу.",
     aiAnalysis: "Анализ ИИ",

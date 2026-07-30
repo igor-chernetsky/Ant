@@ -777,6 +777,7 @@ export const thExtended = {
     uploadFile: "อัปโหลดไฟล์",
     empty: "ยังไม่มีเอกสารที่อัปโหลด",
     inferredScope: "ขอบเขตที่อนุมาน",
+    inferredScopeCount: "{count} รายการ",
     generalInferredScope: "ขอบเขตที่อนุมานทั่วไป",
     orphanScopeHint: "รายการงานที่ไม่ได้เชื่อมกับไฟล์ที่อัปโหลด",
     aiAnalysis: "การวิเคราะห์ AI",

@@ -779,6 +779,7 @@ export const enExtended = {
     uploadFile: "Upload file",
     empty: "No documents uploaded yet.",
     inferredScope: "Inferred scope",
+    inferredScopeCount: "{count} scopes",
     generalInferredScope: "General inferred scope",
     orphanScopeHint: "Work items not linked to a specific uploaded file.",
     aiAnalysis: "AI analysis",

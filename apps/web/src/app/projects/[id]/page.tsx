@@ -11,7 +11,7 @@ import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
 import { IntakeWizard } from '@/components/IntakeWizard';
 import { MetaSpecGrid } from '@/components/MetaSpecGrid';
-import { ProjectHero } from '@/components/ProjectHero';
+import { ProjectHero, ProjectHeroSidebar } from '@/components/ProjectHero';
 import { ProjectStageRail } from '@/components/ProjectStageRail';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
@@ -413,14 +413,14 @@ export default function ProjectDetailPage() {
   };
 
   return (
-    <PageShell>
+    <PageShell className="page-shell--project">
       <SiteHeader
         me={me}
         onSignIn={() => setLoginOpen(true)}
         onSignOut={handleLogout}
       />
 
-      <main className="content-container main-content">
+      <main className="project-detail-main main-content">
         {authState === 'loading' || !pageReady ? (
           <section className="card">
             <p className="muted">{t('common.loading')}</p>
@@ -428,275 +428,296 @@ export default function ProjectDetailPage() {
         ) : null}
 
         {pageReady && project && (
-          <>
-            <ProjectHero
-              project={project}
-              estimateMidAmountThb={
-                isOwner ? (estimate?.totals.midAmount ?? null) : null
-              }
-              tags={project.tags}
-              showTags={!intakeActive && project.tags.length > 0}
-              tagsHint={
-                isOwner &&
-                isAmendableProjectStatus(project.status) &&
-                project.tags.length > 0
-                  ? t('projectDetail.tagsRefreshHint')
-                  : null
-              }
-              canEditCard={isOwner}
-              onCardUpdated={setProject}
-            />
+          <div className="project-detail-layout">
+            <div className="project-detail-primary">
+              <ProjectHero
+                project={project}
+                estimateMidAmountThb={
+                  isOwner ? (estimate?.totals.midAmount ?? null) : null
+                }
+                tags={project.tags}
+                showTags={!intakeActive && project.tags.length > 0}
+                tagsHint={
+                  isOwner &&
+                  isAmendableProjectStatus(project.status) &&
+                  project.tags.length > 0
+                    ? t('projectDetail.tagsRefreshHint')
+                    : null
+                }
+                canEditCard={isOwner}
+                onCardUpdated={setProject}
+                includeSidebar={false}
+              />
 
-            {isOwner && <ProjectStageRail status={project.status} />}
+              {isOwner && <ProjectStageRail status={project.status} />}
 
-            {project.guestInviteAccess && (
-              <section className="card guest-invite-notice">
-                <p>{t('projectDetail.guestInviteNotice')}</p>
-                {authState === 'guest' && (
-                  <button
-                    type="button"
-                    className="primary"
-                    onClick={() => setLoginOpen(true)}
-                  >
-                    {t('header.signIn')}
-                  </button>
-                )}
-              </section>
-            )}
-
-            <section className="card">
-              <h2 className="section-title">{t('documents.title')}</h2>
-              <p className="muted doc-hint">
-                {isOwner
-                  ? t('documents.ownerHint', {
-                      maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
-                    })
-                  : t('documents.publicHint')}
-              </p>
-              {isOwner && (
-                <div className="doc-upload-row">
-                  <label>
-                    {t('documents.category')}
-                    <select
-                      value={docCategory}
-                      onChange={(e) =>
-                        setDocCategory(e.target.value as DocumentCategory)
-                      }
-                      disabled={uploading}
+              {project.guestInviteAccess && (
+                <section className="card guest-invite-notice">
+                  <p>{t('projectDetail.guestInviteNotice')}</p>
+                  {authState === 'guest' && (
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={() => setLoginOpen(true)}
                     >
-                      {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {formatDocumentCategory(opt.value)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="sr-only"
-                    accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.zip"
-                    onChange={handleFileChange}
-                    disabled={uploading}
-                  />
-                  <button
-                    type="button"
-                    className="primary"
-                    disabled={uploading}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {uploading ? t('common.uploading') : t('documents.uploadFile')}
-                  </button>
-                </div>
+                      {t('header.signIn')}
+                    </button>
+                  )}
+                </section>
               )}
 
-              {documents.length === 0 ? (
-                <p className="muted">{t('documents.empty')}</p>
-              ) : (
-                <>
-                  <div className="doc-tiles-grid">
-                    {documents.map((doc) => (
-                      <DocumentTile
-                        key={doc.id}
-                        projectId={projectId}
-                        document={doc}
-                        publicView={!isOwner}
-                        scopePackages={packagesByDocumentId.get(doc.id) ?? []}
-                        insight={insightByDocumentId.get(doc.id)}
-                        showDelete={showDocDelete}
-                        deleting={deletingDocId === doc.id}
-                        formatDateTime={formatDateTime}
-                        onDownload={() => void handleDownload(doc)}
-                        onDelete={() => void handleDeleteDocument(doc)}
-                      />
-                    ))}
-                  </div>
-                  <OrphanScopePackages packages={orphanPackages} />
-                </>
-              )}
-            </section>
-
-            {intakeActive && (
-              <IntakeWizard
-                project={project}
-                onUpdated={(updated) => setProject(updated)}
-              />
-            )}
-
-            {isOwner && (
-              <ClientAmendments
-                project={project}
-                onUpdated={(updated) => setProject(updated)}
-              />
-            )}
-
-            {isOwner && estimate && (
-              <section className="card estimate-card">
-                <h2 className="section-title">
-                  {project.projectType === 'design'
-                    ? t('estimateSection.designTitle')
-                    : t('estimateSection.title')}
-                </h2>
-                <p className="estimate-range">
-                  {formatThb(estimate.totals.minAmount)} –{' '}
-                  {formatThb(estimate.totals.maxAmount)}
+              <section className="card">
+                <h2 className="section-title">{t('documents.title')}</h2>
+                <p className="muted doc-hint">
+                  {isOwner
+                    ? t('documents.ownerHint', {
+                        maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
+                      })
+                    : t('documents.publicHint')}
                 </p>
-                <p className="muted estimate-meta">
-                  {t('estimateSection.midpoint')} {formatThb(estimate.totals.midAmount)} ·{' '}
-                  {t('estimateSection.confidence')}{' '}
-                  {formatConfidence(estimate.confidence)}
-                </p>
-                {estimate.lines.length > 0 && (
-                  <ul className="estimate-lines">
-                    {estimate.lines.map((line, index) => (
-                      <li key={`${line.trade}-${index}`} className="estimate-line">
-                        <div>
-                          <strong>{line.description}</strong>
-                          <span className="muted estimate-line-trade">
-                            {line.trade}
-                          </span>
-                        </div>
-                        <span className="estimate-line-amount">
-                          {formatThb(line.lineMin)} – {formatThb(line.lineMax)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <p className="muted estimate-disclaimer">{estimate.disclaimer}</p>
-              </section>
-            )}
-
-            {isOwner && isTenderEligibleProjectStatus(project.status) && (
-              <TenderSummaryCard
-                projectId={projectId}
-                project={project}
-                onUpdated={setProject}
-              />
-            )}
-
-            {isOwner && isContractProjectStatus(project.status) && (
-              <ClientContractPanel
-                projectId={projectId}
-                project={project}
-                onProjectUpdated={setProject}
-              />
-            )}
-
-            {!isOwner &&
-              ((project.projectType === 'design' && isDesignerUser(me)) ||
-                (project.projectType !== 'design' && isContractorUser(me))) && (
-              <ContractorProjectPanel
-                projectId={projectId}
-                projectTitle={project.title}
-                projectDistrict={project.district}
-                projectDescription={project.description}
-                projectBrief={project.brief ?? null}
-                clarificationSummary={project.clarificationSummary}
-                projectType={project.projectType}
-              />
-            )}
-
-            {brief && (
-              <section className="card project-brief-card">
-                <h2 className="section-title">{t('brief.title')}</h2>
-
-                {brief.summary && (
-                  <p className="brief-lead">{brief.summary}</p>
-                )}
-
-                {briefPropertyItems.length > 0 && (
-                  <div className="brief-subsection">
-                    <h3 className="brief-subsection-title">
-                      {t('brief.propertyDetails')}
-                    </h3>
-                    <MetaSpecGrid items={briefPropertyItems} />
-                  </div>
-                )}
-
-                {briefDesignItems.length > 0 && (
-                  <div className="brief-subsection">
-                    <h3 className="brief-subsection-title">
-                      {t('brief.designPlans')}
-                    </h3>
-                    <MetaSpecGrid items={briefDesignItems} className="brief-meta" />
-                  </div>
-                )}
-
-                {brief.constraints && (
-                  <div className="brief-subsection">
-                    <h3 className="brief-subsection-title">
-                      {t('brief.constraints')}
-                    </h3>
-                    <MetaSpecGrid
-                      items={[
-                        {
-                          label: t('brief.notes'),
-                          value: brief.constraints,
-                          fullWidth: true,
-                        },
-                      ]}
+                {isOwner && (
+                  <div className="doc-upload-row">
+                    <label>
+                      {t('documents.category')}
+                      <select
+                        value={docCategory}
+                        onChange={(e) =>
+                          setDocCategory(e.target.value as DocumentCategory)
+                        }
+                        disabled={uploading}
+                      >
+                        {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {formatDocumentCategory(opt.value)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="sr-only"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                      onChange={handleFileChange}
+                      disabled={uploading}
                     />
+                    <button
+                      type="button"
+                      className="primary"
+                      disabled={uploading}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {uploading ? t('common.uploading') : t('documents.uploadFile')}
+                    </button>
                   </div>
                 )}
 
-                {brief.ai?.missingFields && brief.ai.missingFields.length > 0 && (
-                  <div className="brief-callout">
-                    <p className="brief-callout-title">{t('brief.stillNeeded')}</p>
-                    <ul className="brief-missing-list">
-                      {brief.ai.missingFields.map((field) => (
-                        <li key={field}>{field.replaceAll('_', ' ')}</li>
+                {documents.length === 0 ? (
+                  <p className="muted">{t('documents.empty')}</p>
+                ) : (
+                  <>
+                    <div className="doc-tiles-grid">
+                      {documents.map((doc) => (
+                        <DocumentTile
+                          key={doc.id}
+                          projectId={projectId}
+                          document={doc}
+                          publicView={!isOwner}
+                          scopePackages={packagesByDocumentId.get(doc.id) ?? []}
+                          insight={insightByDocumentId.get(doc.id)}
+                          showDelete={showDocDelete}
+                          deleting={deletingDocId === doc.id}
+                          formatDateTime={formatDateTime}
+                          onDownload={() => void handleDownload(doc)}
+                          onDelete={() => void handleDeleteDocument(doc)}
+                        />
+                      ))}
+                    </div>
+                    <OrphanScopePackages packages={orphanPackages} />
+                  </>
+                )}
+              </section>
+
+              {intakeActive && (
+                <IntakeWizard
+                  project={project}
+                  onUpdated={(updated) => setProject(updated)}
+                />
+              )}
+
+              {isOwner && (
+                <ClientAmendments
+                  project={project}
+                  onUpdated={(updated) => setProject(updated)}
+                />
+              )}
+
+              {isOwner && estimate && (
+                <section className="card estimate-card">
+                  <h2 className="section-title">
+                    {project.projectType === 'design'
+                      ? t('estimateSection.designTitle')
+                      : t('estimateSection.title')}
+                  </h2>
+                  <p className="estimate-range">
+                    {formatThb(estimate.totals.minAmount)} –{' '}
+                    {formatThb(estimate.totals.maxAmount)}
+                  </p>
+                  <p className="muted estimate-meta">
+                    {t('estimateSection.midpoint')} {formatThb(estimate.totals.midAmount)} ·{' '}
+                    {t('estimateSection.confidence')}{' '}
+                    {formatConfidence(estimate.confidence)}
+                  </p>
+                  {estimate.lines.length > 0 && (
+                    <ul className="estimate-lines">
+                      {estimate.lines.map((line, index) => (
+                        <li key={`${line.trade}-${index}`} className="estimate-line">
+                          <div>
+                            <strong>{line.description}</strong>
+                            <span className="muted estimate-line-trade">
+                              {line.trade}
+                            </span>
+                          </div>
+                          <span className="estimate-line-amount">
+                            {formatThb(line.lineMin)} – {formatThb(line.lineMax)}
+                          </span>
+                        </li>
                       ))}
                     </ul>
-                  </div>
+                  )}
+                  <p className="muted estimate-disclaimer">{estimate.disclaimer}</p>
+                </section>
+              )}
+
+              {isOwner && isTenderEligibleProjectStatus(project.status) && (
+                <TenderSummaryCard
+                  projectId={projectId}
+                  project={project}
+                  onUpdated={setProject}
+                />
+              )}
+
+              {isOwner && isContractProjectStatus(project.status) && (
+                <ClientContractPanel
+                  projectId={projectId}
+                  project={project}
+                  onProjectUpdated={setProject}
+                />
+              )}
+
+              {!isOwner &&
+                ((project.projectType === 'design' && isDesignerUser(me)) ||
+                  (project.projectType !== 'design' && isContractorUser(me))) && (
+                  <ContractorProjectPanel
+                    projectId={projectId}
+                    projectTitle={project.title}
+                    projectDistrict={project.district}
+                    projectDescription={project.description}
+                    projectBrief={project.brief ?? null}
+                    clarificationSummary={project.clarificationSummary}
+                    projectType={project.projectType}
+                  />
                 )}
-              </section>
-            )}
 
-            {showLifecycle && project && (
-              <ProjectLifecyclePanel
+              {brief && (
+                <section className="card project-brief-card">
+                  <h2 className="section-title">{t('brief.title')}</h2>
+
+                  {brief.summary && (
+                    <p className="brief-lead">{brief.summary}</p>
+                  )}
+
+                  {briefPropertyItems.length > 0 && (
+                    <div className="brief-subsection">
+                      <h3 className="brief-subsection-title">
+                        {t('brief.propertyDetails')}
+                      </h3>
+                      <MetaSpecGrid items={briefPropertyItems} />
+                    </div>
+                  )}
+
+                  {briefDesignItems.length > 0 && (
+                    <div className="brief-subsection">
+                      <h3 className="brief-subsection-title">
+                        {t('brief.designPlans')}
+                      </h3>
+                      <MetaSpecGrid items={briefDesignItems} className="brief-meta" />
+                    </div>
+                  )}
+
+                  {brief.constraints && (
+                    <div className="brief-subsection">
+                      <h3 className="brief-subsection-title">
+                        {t('brief.constraints')}
+                      </h3>
+                      <MetaSpecGrid
+                        items={[
+                          {
+                            label: t('brief.notes'),
+                            value: brief.constraints,
+                            fullWidth: true,
+                          },
+                        ]}
+                      />
+                    </div>
+                  )}
+
+                  {brief.ai?.missingFields && brief.ai.missingFields.length > 0 && (
+                    <div className="brief-callout">
+                      <p className="brief-callout-title">{t('brief.stillNeeded')}</p>
+                      <ul className="brief-missing-list">
+                        {brief.ai.missingFields.map((field) => (
+                          <li key={field}>{field.replaceAll('_', ' ')}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {showLifecycle && project && (
+                <ProjectLifecyclePanel
+                  project={project}
+                  onUpdated={setProject}
+                />
+              )}
+
+              {showDelete && (
+                <section className="card danger-zone">
+                  <h2 className="section-title">{t('projectDetail.deleteProjectTitle')}</h2>
+                  <p className="muted">{t('projectDetail.deleteProjectHint')}</p>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={deleting}
+                    onClick={() => void handleDelete()}
+                  >
+                    {deleting
+                      ? t('common.pleaseWait')
+                      : t('projectDetail.deleteProject')}
+                  </button>
+                </section>
+              )}
+            </div>
+
+            <aside className="project-detail-sidebar">
+              <ProjectHeroSidebar
                 project={project}
-                onUpdated={setProject}
+                estimateMidAmountThb={
+                  isOwner ? (estimate?.totals.midAmount ?? null) : null
+                }
+                tags={project.tags}
+                showTags={!intakeActive && project.tags.length > 0}
+                tagsHint={
+                  isOwner &&
+                  isAmendableProjectStatus(project.status) &&
+                  project.tags.length > 0
+                    ? t('projectDetail.tagsRefreshHint')
+                    : null
+                }
               />
-            )}
-
-            {showDelete && (
-              <section className="card danger-zone">
-                <h2 className="section-title">{t('projectDetail.deleteProjectTitle')}</h2>
-                <p className="muted">{t('projectDetail.deleteProjectHint')}</p>
-                <button
-                  type="button"
-                  className="danger"
-                  disabled={deleting}
-                  onClick={() => void handleDelete()}
-                >
-                  {deleting
-                    ? t('common.pleaseWait')
-                    : t('projectDetail.deleteProject')}
-                </button>
-              </section>
-            )}
-          </>
+            </aside>
+          </div>
         )}
 
         {pageReady && !project && error && (

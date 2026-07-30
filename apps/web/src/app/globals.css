@@ -1350,9 +1350,10 @@ pre {
   max-width: 100%;
   display: flex;
   flex-direction: column;
-  padding: 0.85rem 0.9rem 0.75rem;
+  padding: 0.85rem 0.9rem 1rem;
   border-radius: 12px;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .project-filters-scroll {
@@ -1375,19 +1376,47 @@ pre {
 
 .project-filters-map-slot {
   flex: 0 0 auto;
-  margin-top: 0.75rem;
-  padding-top: 0.65rem;
+  margin-top: 0.65rem;
+  padding: 0.65rem 0 0.35rem;
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.project-filters-map-slot .project-filters-location-section--with-map {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .project-filters-map-slot .project-filters-map-wrap {
   margin: 0;
+  padding: 0.55rem;
+  min-width: 0;
 }
 
 .project-filters-map-slot .project-filters-map {
-  height: 180px;
-  min-height: 160px;
+  height: 160px;
+  min-height: 140px;
+  max-height: 180px;
   aspect-ratio: auto;
+}
+
+.project-filters-map-slot .project-filters-map-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.project-filters--sidebar .project-filters-map-hint {
+  display: none;
+}
+
+.page-shell--home .home-sidebar .project-filters--sidebar,
+.home-sidebar .project-filters--sidebar {
+  padding-bottom: 1.1rem;
 }
 
 .home-main {
@@ -1558,7 +1587,24 @@ pre {
   }
 
   .page-shell--home .site-footer {
-    display: none;
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    margin: 0;
+    transform: translateY(110%);
+    transition: transform 0.22s ease;
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  .page-shell--home.page-shell--home-footer-visible .site-footer {
+    transform: translateY(0);
+  }
+
+  .page-shell--home .site-footer .content-container {
+    max-width: none;
   }
 
   .page-shell--home .home-main {
@@ -1568,6 +1614,10 @@ pre {
     display: flex;
     flex-direction: column;
     padding: 1rem 1.25rem 1rem;
+  }
+
+  .page-shell--home.page-shell--home-footer-visible .home-results {
+    padding-bottom: 5.5rem;
   }
 
   .page-shell--home .home-layout {
@@ -1595,7 +1645,10 @@ pre {
     height: 100%;
     max-height: none;
     min-height: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 0.5rem;
+    box-sizing: border-box;
   }
 
   .page-shell--home .home-sidebar-mobile-header {
@@ -2699,6 +2752,123 @@ pre {
   box-shadow: var(--shadow-glass);
 }
 
+.project-hero--main-only {
+  margin-bottom: 1rem;
+}
+
+.project-hero--main-only .project-hero-body {
+  display: block;
+}
+
+.project-detail-main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 1rem 1rem 2rem;
+  box-sizing: border-box;
+}
+
+.project-detail-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.project-detail-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.project-detail-sidebar {
+  min-width: 0;
+}
+
+.project-hero-sidebar-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.15rem 1.2rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  background: var(--glass-bg-dense);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.06);
+  box-shadow: var(--shadow-glass);
+}
+
+.project-hero-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  align-items: stretch;
+  min-width: 0;
+}
+
+@media (min-width: 960px) {
+  .page-shell--project {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .page-shell--project .page-shell-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-shell--project .site-header {
+    flex: 0 0 auto;
+  }
+
+  .page-shell--project .site-footer {
+    display: none;
+  }
+
+  .page-shell--project .project-detail-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1.25rem 1rem;
+  }
+
+  .page-shell--project .project-detail-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 28vw, 380px);
+    gap: 1.25rem;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .page-shell--project .project-detail-primary {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.15rem;
+  }
+
+  .page-shell--project .project-detail-sidebar {
+    min-height: 0;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .page-shell--project .project-detail-sidebar .project-hero-sidebar-card {
+    position: sticky;
+    top: 0;
+  }
+}
+
 .project-hero-body {
   display: flex;
   justify-content: space-between;
@@ -2878,19 +3048,12 @@ pre {
   font-weight: 600;
 }
 
-.project-hero-aside {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
 .project-hero-aside-metrics {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 0.15rem;
+  align-items: stretch;
+  gap: 0.35rem;
+  width: 100%;
 }
 
 .project-hero-meta {
@@ -2987,40 +3150,29 @@ pre {
   margin: 0.35rem 0 0;
   font-size: 0.75rem;
   line-height: 1.35;
-  text-align: right;
+  text-align: left;
 }
 
-@media (max-width: 720px) {
-  .project-hero-body {
-    flex-direction: column;
-  }
+.project-hero-tags-label,
+.project-hero-tags-hint,
+.project-hero-map-label {
+  text-align: left;
+}
 
-  .project-hero-aside {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    width: 100%;
-  }
+.project-hero-tag-list {
+  justify-content: flex-start;
+}
 
-  .project-hero-tags,
-  .project-hero-map {
-    max-width: none;
-    align-self: stretch;
-  }
+.project-hero-sidebar-card .project-hero-map,
+.project-hero-sidebar-card .project-hero-tags {
+  max-width: none;
+  width: 100%;
+  align-self: stretch;
+}
 
-  .project-hero-tags-label,
-  .project-hero-tags-hint,
-  .project-hero-map-label,
-  .project-hero-map-caption {
-    text-align: left;
-  }
-
-  .project-hero-tag-list {
-    justify-content: flex-start;
-  }
-
-  .project-hero-map-canvas {
-    max-width: 18rem;
+@media (max-width: 959px) {
+  .project-detail-sidebar {
+    order: -1;
   }
 }
 
@@ -3616,6 +3768,11 @@ pre {
   font-weight: 600;
   color: var(--accent);
   list-style: none;
+}
+
+.doc-insight-scope-count {
+  font-weight: 500;
+  color: var(--muted);
 }
 
 .doc-insight-details-summary::-webkit-details-marker {

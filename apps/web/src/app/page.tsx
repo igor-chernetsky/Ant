@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { HelpTip } from '@/components/help/HelpTip';
 import { LoginModal } from '@/components/LoginModal';
@@ -69,6 +69,9 @@ export default function HomePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingCreate, setPendingCreate] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [footerVisible, setFooterVisible] = useState(false);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
+  const lastResultsScrollTop = useRef(0);
 
   const loadProjects = useCallback(async (next: HomeProjectFilterState) => {
     setLoading(true);
@@ -224,6 +227,31 @@ export default function HomePage() {
     };
   }, [filtersOpen]);
 
+  useEffect(() => {
+    const el = resultsRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      const y = el.scrollTop;
+      const max = Math.max(0, el.scrollHeight - el.clientHeight);
+      const delta = y - lastResultsScrollTop.current;
+      const nearBottom = max > 0 && y >= max - 48;
+
+      if (nearBottom) {
+        setFooterVisible(true);
+      } else if (delta > 6) {
+        setFooterVisible(true);
+      } else if (delta < -6) {
+        setFooterVisible(false);
+      }
+
+      lastResultsScrollTop.current = y;
+    };
+
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
   const handleAddProject = () => {
     if (me && !canCreateProject(me)) return;
     if (me) {
@@ -310,7 +338,9 @@ export default function HomePage() {
   const activeFilterCount = countHomeActiveFilters(filters, searchQuery);
 
   return (
-    <PageShell className="page-shell--home">
+    <PageShell
+      className={`page-shell--home${footerVisible ? ' page-shell--home-footer-visible' : ''}`}
+    >
       <SiteHeader
         me={me}
         onSignIn={() => setLoginOpen(true)}
@@ -382,7 +412,7 @@ export default function HomePage() {
             />
           </aside>
 
-          <div className="home-results">
+          <div className="home-results" ref={resultsRef}>
             {loading && (
               <section className="card">
                 <p className="muted">{t('home.loadingProjects')}</p>
