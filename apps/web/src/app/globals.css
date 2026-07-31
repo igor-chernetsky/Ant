@@ -3656,6 +3656,10 @@ pre {
   min-width: 0;
 }
 
+.page-shell--portal .portal-profile-card {
+  overflow: hidden;
+}
+
 .page-shell--portal .portal-profile-form {
   display: flex;
   flex-direction: column;
@@ -3667,6 +3671,24 @@ pre {
   flex-direction: column;
   gap: 0.85rem;
   min-width: 0;
+}
+
+.page-shell--portal .portal-profile-form > .portal-profile-col > label,
+.page-shell--portal .portal-profile-form .form-row > label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  min-width: 0;
+}
+
+.page-shell--portal .portal-profile-form input:not([type='checkbox']):not(
+    [type='radio']
+  ):not([type='file']),
+.page-shell--portal .portal-profile-form select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .page-shell--portal .portal-applications {
@@ -3682,14 +3704,15 @@ pre {
 
   .page-shell--portal .portal-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 1.15rem;
     align-items: start;
   }
 
+  /* Full-width profile card only — avoid nesting another grid inside a half column */
   .page-shell--portal .portal-profile-form {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 1.15rem;
     align-items: start;
   }

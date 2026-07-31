@@ -306,23 +306,23 @@ export default function ContractorPage() {
 
         {ready && me && profile && (
           <>
+            <section className="card portal-profile-card">
+              <h2 className="section-title">{t('contractor.yourProfile')}</h2>
+              <p className="muted doc-hint">{t('contractor.profileHint')}</p>
+              {renderProfileForm()}
+              {error && <p className="form-error">{error}</p>}
+              <button
+                type="button"
+                className="primary profile-form-submit"
+                disabled={busy}
+                onClick={() => void handleSaveProfile()}
+              >
+                {busy ? t('common.saving') : t('contractor.saveProfile')}
+              </button>
+            </section>
+
             <div className="portal-layout">
               <div className="portal-primary">
-                <section className="card">
-                  <h2 className="section-title">{t('contractor.yourProfile')}</h2>
-                  <p className="muted doc-hint">{t('contractor.profileHint')}</p>
-                  {renderProfileForm()}
-                  {error && <p className="form-error">{error}</p>}
-                  <button
-                    type="button"
-                    className="primary profile-form-submit"
-                    disabled={busy}
-                    onClick={() => void handleSaveProfile()}
-                  >
-                    {busy ? t('common.saving') : t('contractor.saveProfile')}
-                  </button>
-                </section>
-
                 <ContractorVerificationPanel
                   profile={profile}
                   onProfileUpdated={setProfile}
