@@ -132,6 +132,9 @@ export const ruExtended = {
     createButton: "Создать проект",
     sessionExpired: "Сессия истекла. Войдите снова.",
     createFailed: "Не удалось создать проект",
+    newBuildDesignHint:
+      "Для нового строительства обычно сначала нужны проект и разрешения. Выберите Design & Permits, чтобы найти проектировщика, а к строительству перейти позже.",
+    switchToDesignTrack: "Перейти к Design & Permits",
   },
   projectHero: {
     projectsBreadcrumb: "Проекты",
@@ -897,6 +900,8 @@ export const ruExtended = {
     convertButton: "Перевести в DESIGN & PERMITS",
     convertHint:
       "Этот объект строительства или модернизации можно перевести в тендер Design & Permits.",
+    convertHintNewBuild:
+      "Для нового строительства обычно сначала нужны проект и разрешения. Переведите карточку в Design & Permits, чтобы провести тендер среди проектировщиков — строительную карточку можно возобновить позже.",
     convertTooltip:
       "Создаёт карточку Design & Permits и сохраняет снимок строительной карточки в статусе Pending.",
     convertFailed: "Не удалось перевести в Design & Permits",
@@ -938,6 +943,8 @@ export const ruExtended = {
     publishedWaiting: "Опубликовано для ставок. Ожидается начало уточнений от подрядчиков.",
     inviteFromDirectory: "Пригласить из реестра",
     inviteFromDirectoryHint: "Откликов пока нет. Пригласите подрядчиков, проектировщиков или поставщиков из реестра и отправьте им ссылку на карточку проекта.",
+    inviteSuggestStale:
+      "Нет откликов уже 2 дня. Выберите компании из реестра и отправьте им приглашение на тендер по почте.",
     returnToPreparation: "Вернуться к подготовке",
     returning: "Возврат…",
     unpublishHint: "Снимите с публикации, чтобы доработать детали до подачи заявок.",
@@ -1190,6 +1197,8 @@ export const ruExtended = {
     noCoverageTitle: "Нет полного покрытия всех работ в {location}",
     noCoverageText: "В этом районе нет подрядчиков со всеми {count} видами работ сразу{tags}. Рассмотрите разделение на меньшие проекты — например, тендер на каждый вид работ.",
     noCoverageTextDesign: "В этом районе нет проектировщиков со всеми {count} видами работ сразу{tags}. Рассмотрите разделение на меньшие проекты — например, тендер на каждый вид работ.",
+    inviteSuggestLowMatches:
+      "Подходящих {professionals} по объёму и району всего {count}. Выберите компании из реестра и отправьте им приглашение на тендер по почте.",
     locationMatch: "{count} {contractors} в {location} подходят по локации. Добавьте теги работ, чтобы увидеть, сколько покрывают весь объём.",
     coversAll: "{count} {contractors} в {location} {verb} все указанные виды работ{tags}.",
     covers: "покрывает",

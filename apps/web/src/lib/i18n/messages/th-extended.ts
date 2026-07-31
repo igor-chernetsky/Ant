@@ -132,6 +132,9 @@ export const thExtended = {
     createButton: "สร้างโครงการ",
     sessionExpired: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง",
     createFailed: "สร้างโครงการไม่สำเร็จ",
+    newBuildDesignHint:
+      "งานก่อสร้างใหม่มักต้องมีแบบและใบอนุญาตก่อน ลองเลือก Design & Permits เพื่อประมูลหาผู้ออกแบบ แล้วค่อยไปก่อสร้างต่อ",
+    switchToDesignTrack: "เปลี่ยนเป็น Design & Permits",
   },
   projectHero: {
     projectsBreadcrumb: "โครงการ",
@@ -894,6 +897,8 @@ export const thExtended = {
     convertButton: "แปลงเป็น DESIGN & PERMITS",
     convertHint:
       "โครงการก่อสร้างหรือปรับปรุงนี้สามารถแปลงเป็นการประมูล Design & Permits ได้",
+    convertHintNewBuild:
+      "งานก่อสร้างใหม่มักต้องมีแบบและใบอนุญาตก่อนก่อสร้าง แปลงการ์ดนี้เป็น Design & Permits เพื่อประมูลหาผู้ออกแบบก่อน — เปิดการ์ดก่อสร้างต่อได้ภายหลัง",
     convertTooltip:
       "สร้างการ์ด Design & Permits และเก็บสแนปช็อตการ์ดก่อสร้างไว้ในสถานะ Pending",
     convertFailed: "แปลงเป็น Design & Permits ไม่สำเร็จ",
@@ -935,6 +940,8 @@ export const thExtended = {
     publishedWaiting: "เผยแพร่รับข้อเสนอแล้ว รอผู้รับเหมาเริ่มชี้แจง",
     inviteFromDirectory: "เชิญจากทะเบียน",
     inviteFromDirectoryHint: "ยังไม่มีผู้ตอบกลับ เชิญผู้รับเหมา ผู้ออกแบบ หรือซัพพลายเออร์จากทะเบียน และส่งลิงก์การ์ดโครงการทางอีเมล",
+    inviteSuggestStale:
+      "ยังไม่มีใบสมัครเป็นเวลา 2 วัน เลือกบริษัทจากทะเบียนแล้วส่งคำเชิญเข้าร่วมประมูลทางอีเมล",
     returnToPreparation: "กลับไปเตรียมโครงการ",
     returning: "กำลังกลับ…",
     unpublishHint: "ยกเลิกเผยแพร่เพื่อปรับรายละเอียดก่อนผู้รับเหมาสมัคร",
@@ -1187,6 +1194,8 @@ export const thExtended = {
     noCoverageTitle: "ไม่มีผู้รับเหมาครบทุกงานช่างใน {location}",
     noCoverageText: "ไม่มีผู้รับเหมาในพื้นที่นี้ที่ระบุงานช่างทั้ง {count} รายการพร้อมกัน{tags} พิจารณาแยกเป็นโครงการย่อย — เช่น ประมูลต่องานช่าง — เพื่อให้ผู้เชี่ยวชาญประมูลแต่ละขอบเขต",
     noCoverageTextDesign: "ไม่มีผู้ออกแบบในพื้นที่นี้ที่ระบุงานช่างทั้ง {count} รายการพร้อมกัน{tags} พิจารณาแยกเป็นโครงการย่อย — เช่น ประมูลต่องานช่าง — เพื่อให้ผู้เชี่ยวชาญประมูลแต่ละขอบเขต",
+    inviteSuggestLowMatches:
+      "มี {professionals} ที่ตรงขอบเขตและพื้นที่เพียง {count} ราย เลือกบริษัทจากทะเบียนแล้วส่งคำเชิญประมูลทางอีเมล",
     locationMatch: "{count} {contractors} ใน {location} ตรงกับสถานที่นี้ เพิ่มแท็กงานช่างเพื่อดูว่ามีกี่รายครอบคลุมงานทั้งหมด",
     coversAll: "{count} {contractors} ใน {location} {verb}งานช่างที่ระบุทั้งหมด{tags}",
     covers: "ครอบคลุม",

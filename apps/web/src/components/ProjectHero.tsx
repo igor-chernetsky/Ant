@@ -145,10 +145,14 @@ export function ProjectHero({
   const [error, setError] = useState<string | null>(null);
 
   const isDesignTrack = project.projectType === 'design';
+  const isNewBuild = project.projectType === 'new_build';
   const showDesignHint =
     canEditCard &&
     !isDesignTrack &&
     DESIGN_HINT_TYPES.has(project.projectType);
+  const designConvertHintKey = isNewBuild
+    ? 'designPermits.convertHintNewBuild'
+    : 'designPermits.convertHint';
   const canConvert = Boolean(canEditCard && project.canConvertToDesign);
   const canResume = Boolean(canEditCard && project.status === 'pending');
   const canResumeConstruction = Boolean(
@@ -370,10 +374,12 @@ export function ProjectHero({
             <div className="project-hero-design-actions">
               {showDesignHint && (
                 <p
-                  className="muted project-hero-design-hint"
+                  className={`muted project-hero-design-hint${
+                    isNewBuild ? ' project-hero-design-hint--new-build' : ''
+                  }`}
                   title={t('designPermits.convertTooltip')}
                 >
-                  {t('designPermits.convertHint')}
+                  {t(designConvertHintKey)}
                 </p>
               )}
               {canConvert && (

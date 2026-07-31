@@ -3019,6 +3019,32 @@ pre {
   font-size: 0.9rem;
 }
 
+.project-hero-design-hint--new-build {
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #c27803 35%, transparent);
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  color: var(--text);
+}
+
+.create-project-design-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #c27803 35%, transparent);
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+}
+
+.create-project-design-hint-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
 .project-hero-linked {
   font-size: 0.9rem;
   font-weight: 600;
@@ -8217,6 +8243,14 @@ select:disabled {
   font-size: 0.92rem;
   line-height: 1.55;
   color: #334155;
+}
+
+.contractor-coverage-invite {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
 }
 
 .contractor-coverage-loading {

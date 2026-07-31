@@ -7,6 +7,7 @@ import {
 } from '@/lib/tendering';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { DIRECTORY_INVITE_LOW_MATCH_THRESHOLD } from '@/lib/directory-invite-suggest';
 
 interface ContractorCoverageNoticeProps {
   projectId: string;
@@ -14,6 +15,8 @@ interface ContractorCoverageNoticeProps {
   tagKey?: string;
   /** Design & Permits projects address designers, not contractors. */
   audience?: 'contractor' | 'designer';
+  onInviteFromDirectory?: () => void;
+  onCoverageLoaded?: (coverage: ContractorCoveragePreview | null) => void;
 }
 
 function formatTagList(
@@ -28,6 +31,8 @@ export function ContractorCoverageNotice({
   enabled,
   tagKey = '',
   audience = 'contractor',
+  onInviteFromDirectory,
+  onCoverageLoaded,
 }: ContractorCoverageNoticeProps) {
   const { t } = useTranslation();
   const { formatTagLabel } = useAppFormatters();
@@ -42,6 +47,7 @@ export function ContractorCoverageNotice({
     if (!enabled) {
       setCoverage(null);
       setError(null);
+      onCoverageLoaded?.(null);
       return;
     }
 
@@ -53,6 +59,7 @@ export function ContractorCoverageNotice({
       .then((data) => {
         if (!cancelled) {
           setCoverage(data);
+          onCoverageLoaded?.(data);
         }
       })
       .catch((err: unknown) => {
@@ -62,6 +69,7 @@ export function ContractorCoverageNotice({
               ? err.message
               : t(isDesign ? 'coverage.loadFailedDesign' : 'coverage.loadFailed'),
           );
+          onCoverageLoaded?.(null);
         }
       })
       .finally(() => {
@@ -73,7 +81,7 @@ export function ContractorCoverageNotice({
     return () => {
       cancelled = true;
     };
-  }, [enabled, projectId, tagKey, t, isDesign]);
+  }, [enabled, projectId, tagKey, t, isDesign, onCoverageLoaded]);
 
   if (!enabled) {
     return null;
@@ -96,6 +104,31 @@ export function ContractorCoverageNotice({
     coverage.contractorCount === 1
       ? t(isDesign ? 'coverage.designer_one' : 'coverage.contractor_one')
       : t(isDesign ? 'coverage.designer_other' : 'coverage.contractor_other');
+  const professionalPlural = t(
+    isDesign ? 'coverage.designer_other' : 'coverage.contractor_other',
+  );
+  const suggestInvite =
+    coverage.suggestInviteFromDirectory === true ||
+    coverage.contractorCount <= DIRECTORY_INVITE_LOW_MATCH_THRESHOLD;
+
+  const inviteBlock =
+    suggestInvite && onInviteFromDirectory ? (
+      <div className="contractor-coverage-invite">
+        <p className="contractor-coverage-notice-text">
+          {t('coverage.inviteSuggestLowMatches', {
+            count: coverage.contractorCount,
+            professionals: professionalPlural,
+          })}
+        </p>
+        <button
+          type="button"
+          className="secondary"
+          onClick={onInviteFromDirectory}
+        >
+          {t('tenderCard.inviteFromDirectory')}
+        </button>
+      </div>
+    ) : null;
 
   if (coverage.suggestSplitProject) {
     return (
@@ -115,6 +148,7 @@ export function ContractorCoverageNotice({
             },
           )}
         </p>
+        {inviteBlock}
       </div>
     );
   }
@@ -129,12 +163,18 @@ export function ContractorCoverageNotice({
             location: coverage.locationLabel,
           })}
         </p>
+        {inviteBlock}
       </div>
     );
   }
 
   return (
-    <div className="contractor-coverage-notice" role="note">
+    <div
+      className={`contractor-coverage-notice${
+        suggestInvite ? ' contractor-coverage-notice-warning' : ''
+      }`}
+      role="note"
+    >
       <p className="contractor-coverage-notice-text">
         {t('coverage.coversAll', {
           count: coverage.contractorCount,
@@ -147,6 +187,7 @@ export function ContractorCoverageNotice({
           tags: tagList ? `: ${tagList}` : '',
         })}
       </p>
+      {inviteBlock}
     </div>
   );
 }

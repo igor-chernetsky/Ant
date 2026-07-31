@@ -23,6 +23,8 @@ import {
   type Bid,
   type Tender,
 } from '@/lib/tendering';
+import { tenderHasStaleEmptyResponses } from '@/lib/directory-invite-suggest';
+import { ContractorCoverageNotice } from '@/components/ContractorCoverageNotice';
 
 export default function ProjectBidsPage() {
   const params = useParams<{ id: string }>();
@@ -348,8 +350,25 @@ export default function ProjectBidsPage() {
                       ) : (
                         <div className="tender-actions-block">
                           <p className="muted">{t('bidsPage.noApplications')}</p>
+                          <ContractorCoverageNotice
+                            projectId={projectId}
+                            enabled
+                            tagKey={(project?.tags ?? [])
+                              .map((tag) => tag.slug)
+                              .join(',')}
+                            audience={
+                              project?.projectType === 'design'
+                                ? 'designer'
+                                : 'contractor'
+                            }
+                            onInviteFromDirectory={() =>
+                              setInviteModalOpen(true)
+                            }
+                          />
                           <p className="muted tender-hint">
-                            {t('tenderCard.inviteFromDirectoryHint')}
+                            {tenderHasStaleEmptyResponses(tender)
+                              ? t('tenderCard.inviteSuggestStale')
+                              : t('tenderCard.inviteFromDirectoryHint')}
                           </p>
                           <button
                             type="button"

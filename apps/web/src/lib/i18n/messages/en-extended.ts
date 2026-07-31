@@ -132,6 +132,9 @@ export const enExtended = {
     createButton: "Create project",
     sessionExpired: "Your session expired. Please sign in again.",
     createFailed: "Failed to create project",
+    newBuildDesignHint:
+      "New construction usually needs design drawings and permits first. Consider choosing Design & Permits so you can tender for a designer, then continue to construction.",
+    switchToDesignTrack: "Switch to Design & Permits",
   },
   projectHero: {
     projectsBreadcrumb: "Projects",
@@ -896,6 +899,8 @@ export const enExtended = {
     convertButton: "Convert to DESIGN & PERMITS",
     convertHint:
       "This construction or modernization project can be converted into a Design & Permits tender.",
+    convertHintNewBuild:
+      "New construction usually needs design drawings and permits before building. Convert this card to Design & Permits to tender for a designer first — you can resume the construction card afterward.",
     convertTooltip:
       "Creates a Design & Permits card and keeps a Pending snapshot of the construction card.",
     convertFailed: "Could not convert to Design & Permits",
@@ -937,6 +942,8 @@ export const enExtended = {
     publishedWaiting: "Published for bids. Waiting for contractors to start clarification.",
     inviteFromDirectory: "Invite from registry",
     inviteFromDirectoryHint: "No responses yet. Invite contractors, designers, or suppliers from the registry and send them a project link by email.",
+    inviteSuggestStale:
+      "No applications for 2 days. Select companies from the registry and email them an invitation to join this tender.",
     returnToPreparation: "Return to preparation",
     returning: "Returning…",
     unpublishHint: "Unpublish to refine project details before contractors apply.",
@@ -1189,6 +1196,8 @@ export const enExtended = {
     noCoverageTitle: "No full-trade coverage in {location}",
     noCoverageText: "No contractors in this area list all {count} trades at once{tags}. Consider splitting this into smaller projects — for example, one tender per trade — so specialists can bid on each scope.",
     noCoverageTextDesign: "No designers in this area list all {count} trades at once{tags}. Consider splitting this into smaller projects — for example, one tender per trade — so specialists can bid on each scope.",
+    inviteSuggestLowMatches:
+      "Only {count} matching {professionals} are registered for this scope and area. Select companies from the registry to email them a tender invitation.",
     locationMatch: "{count} {contractors} in {location} match this location. Add trade tags to see how many cover all listed work types.",
     coversAll: "{count} {contractors} in {location} {verb} all listed trades{tags}.",
     covers: "covers",

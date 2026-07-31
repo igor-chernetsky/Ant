@@ -26,6 +26,8 @@ import {
   type ApplicationsDeadlineValue,
 } from '@/components/TenderApplicationsDeadlineFields';
 import { HELP_TIP_IDS } from '@/lib/help-tips';
+import { tenderHasStaleEmptyResponses } from '@/lib/directory-invite-suggest';
+import type { ContractorCoveragePreview } from '@/lib/tendering';
 
 interface TenderSummaryCardProps {
   projectId: string;
@@ -64,7 +66,13 @@ export function TenderSummaryCard({
     'create' | 'start' | null
   >(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [coverage, setCoverage] = useState<ContractorCoveragePreview | null>(
+    null,
+  );
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+
+  const audience =
+    project.projectType === 'design' ? 'designer' : 'contractor';
 
   const applicationLabel = (count: number) =>
     count === 1
@@ -175,6 +183,15 @@ export function TenderSummaryCard({
     (tender.applicationCount ?? tender.bids.length) === 0;
   const bidsHref = `/projects/${projectId}/bids`;
   const deadlineExpired = Boolean(tender?.applicationsDeadlinePassed);
+  const staleNoResponses = tenderHasStaleEmptyResponses(tender);
+  const showStaleInviteSuggest = Boolean(tender && staleNoResponses);
+  // Low-match CTA is shown inside ContractorCoverageNotice; stale empty
+  // tenders also get an invite block below.
+  const showDirectoryInviteBlock =
+    showStaleInviteSuggest ||
+    (Boolean(tender) &&
+      (tender?.bids.length ?? 0) === 0 &&
+      !collectingQuestions);
 
   const handleRevert = async () => {
     const confirmed = await confirm({
@@ -246,9 +263,9 @@ export function TenderSummaryCard({
               projectId={projectId}
               enabled={canPublish}
               tagKey={tagKey}
-              audience={
-                project.projectType === 'design' ? 'designer' : 'contractor'
-              }
+              audience={audience}
+              onInviteFromDirectory={() => setInviteModalOpen(true)}
+              onCoverageLoaded={setCoverage}
             />
             <button
               type="button"
@@ -377,9 +394,9 @@ export function TenderSummaryCard({
                 projectId={projectId}
                 enabled={canPublish}
                 tagKey={tagKey}
-                audience={
-                  project.projectType === 'design' ? 'designer' : 'contractor'
-                }
+                audience={audience}
+                onInviteFromDirectory={() => setInviteModalOpen(true)}
+                onCoverageLoaded={setCoverage}
               />
               <button
                 type="button"
@@ -392,20 +409,36 @@ export function TenderSummaryCard({
             </div>
           )}
 
-          {tender.bids.length === 0 && !collectingQuestions && (
+          {showDirectoryInviteBlock && (
             <>
-              <HelpTip
-                tipId={HELP_TIP_IDS.emptyTender}
-                title={t('help.tipEmptyTenderTitle')}
-                body={t('help.tipEmptyTenderBody')}
-                learnMoreHref="/help#client-tender"
-              />
-              <p className="muted tender-phase-hint">
-                {t('tenderCard.publishedWaiting')}
-              </p>
+              {(tender?.bids.length ?? 0) === 0 && !collectingQuestions && (
+                <HelpTip
+                  tipId={HELP_TIP_IDS.emptyTender}
+                  title={t('help.tipEmptyTenderTitle')}
+                  body={t('help.tipEmptyTenderBody')}
+                  learnMoreHref="/help#client-tender"
+                />
+              )}
+              {(tender?.bids.length ?? 0) === 0 && !collectingQuestions && (
+                <p className="muted tender-phase-hint">
+                  {t('tenderCard.publishedWaiting')}
+                </p>
+              )}
+              {!collectingQuestions && (
+                <ContractorCoverageNotice
+                  projectId={projectId}
+                  enabled={canPublish}
+                  tagKey={tagKey}
+                  audience={audience}
+                  onInviteFromDirectory={() => setInviteModalOpen(true)}
+                  onCoverageLoaded={setCoverage}
+                />
+              )}
               <div className="tender-actions-block">
                 <p className="muted tender-hint">
-                  {t('tenderCard.inviteFromDirectoryHint')}
+                  {showStaleInviteSuggest
+                    ? t('tenderCard.inviteSuggestStale')
+                    : t('tenderCard.inviteFromDirectoryHint')}
                 </p>
                 <button
                   type="button"
@@ -416,7 +449,7 @@ export function TenderSummaryCard({
                   {t('tenderCard.inviteFromDirectory')}
                 </button>
               </div>
-              {canRevert && (
+              {canRevert && (tender?.bids.length ?? 0) === 0 && !collectingQuestions && (
                 <div className="tender-actions-block">
                   <button
                     type="button"
@@ -435,6 +468,20 @@ export function TenderSummaryCard({
               )}
             </>
           )}
+
+          {!showDirectoryInviteBlock &&
+            tender &&
+            !collectingQuestions &&
+            canPublish && (
+              <ContractorCoverageNotice
+                projectId={projectId}
+                enabled
+                tagKey={tagKey}
+                audience={audience}
+                onInviteFromDirectory={() => setInviteModalOpen(true)}
+                onCoverageLoaded={setCoverage}
+              />
+            )}
 
           {project.clarificationMode === 'structured_qa' && tender && (
             <ClientClarificationQuestionsPanel

@@ -247,6 +247,24 @@ export function CreateProjectModal({
             </label>
           )}
 
+          {projectTrack === 'construction' && projectType === 'new_build' && (
+            <div
+              className="create-project-design-hint"
+              role="note"
+            >
+              <p className="create-project-design-hint-text">
+                {t('createProject.newBuildDesignHint')}
+              </p>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => handleTrackChange('design')}
+              >
+                {t('createProject.switchToDesignTrack')}
+              </button>
+            </div>
+          )}
+
           <label>
             {t('createProject.titleLabel')}
             <input
