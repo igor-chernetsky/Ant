@@ -277,6 +277,11 @@ export const ruExtended = {
     specialtiesSelected: "Выбрано: {tags}",
     specialtiesNone: "Ничего не выбрано — на главной показаны все проекты.",
     specialtiesNotifications: " · Уведомления: {locations}",
+    projectTypesLegend: "Типы объектов и работ",
+    projectTypesHint:
+      "Отметьте все типы объектов и видов работ, которые берёте. Пустой список — подходите под любые типы.",
+    projectTypesNone: "Ничего не выбрано — подходите под все типы объектов и работ.",
+    projectTypesSelected: "Выбрано типов: {count}",
     createProfile: "Создать профиль подрядчика",
     yourProfile: "Ваш профиль",
     profileHint: "Обновите данные компании, зоны обслуживания и виды работ.",

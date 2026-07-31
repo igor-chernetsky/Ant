@@ -277,6 +277,11 @@ export const enExtended = {
     specialtiesSelected: "Selected: {tags}",
     specialtiesNone: "None selected — home page shows all projects.",
     specialtiesNotifications: " · Notifications: {locations}",
+    projectTypesLegend: "Object / work types",
+    projectTypesHint:
+      "Select every object and work type you take on. Leave empty to match all types.",
+    projectTypesNone: "None selected — you match all object / work types.",
+    projectTypesSelected: "{count} types selected",
     createProfile: "Create contractor profile",
     yourProfile: "Your profile",
     profileHint: "Update company details, service areas, and the trades you want to work on.",

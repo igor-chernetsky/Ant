@@ -646,6 +646,7 @@ export async function upsertContractorProfile(input: {
   companyName?: string;
   regionCode?: string;
   serviceLocations?: Array<{ regionSlug: string; areaSlug?: string }>;
+  projectTypes?: string[];
   tagSlugs?: string[];
   kind?: 'contractor' | 'designer';
 }): Promise<ContractorProfile> {

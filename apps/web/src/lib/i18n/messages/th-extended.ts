@@ -275,6 +275,11 @@ export const thExtended = {
     specialtiesSelected: "เลือกแล้ว: {tags}",
     specialtiesNone: "ยังไม่ได้เลือก — หน้าแรกแสดงโครงการทั้งหมด",
     specialtiesNotifications: " · การแจ้งเตือน: {locations}",
+    projectTypesLegend: "ประเภทอาคาร / งาน",
+    projectTypesHint:
+      "เลือกประเภทอาคารและงานที่รับทั้งหมด เว้นว่างไว้เพื่อจับคู่ทุกประเภท",
+    projectTypesNone: "ยังไม่ได้เลือก — จับคู่ทุกประเภทอาคาร / งาน",
+    projectTypesSelected: "เลือกแล้ว {count} ประเภท",
     createProfile: "สร้างโปรไฟล์ผู้รับเหมา",
     yourProfile: "โปรไฟล์ของคุณ",
     profileHint: "อัปเดตรายละเอียดบริษัท พื้นที่ให้บริการ และงานที่คุณต้องการรับ",

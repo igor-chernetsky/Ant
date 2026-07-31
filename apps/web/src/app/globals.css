@@ -3628,6 +3628,73 @@ pre {
   gap: 0.75rem;
 }
 
+/* Contractor / designer portals: full content width + two columns */
+.page-shell--portal .portal-main,
+.page-shell--portal main.portal-main {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  padding: 1.25rem 1.5rem 3rem;
+}
+
+.page-shell--portal .portal-hero {
+  margin-bottom: 0.35rem;
+}
+
+.page-shell--portal .portal-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.page-shell--portal .portal-primary,
+.page-shell--portal .portal-secondary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.page-shell--portal .portal-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.page-shell--portal .portal-profile-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.page-shell--portal .portal-applications {
+  margin-bottom: 0;
+}
+
+@media (min-width: 960px) {
+  .page-shell--portal .portal-main,
+  .page-shell--portal main.portal-main {
+    padding-left: 1.75rem;
+    padding-right: 1.75rem;
+  }
+
+  .page-shell--portal .portal-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+    gap: 1.15rem;
+    align-items: start;
+  }
+
+  .page-shell--portal .portal-profile-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 1.15rem;
+    align-items: start;
+  }
+}
+
 .profile-form-submit {
   margin-top: 1rem;
 }

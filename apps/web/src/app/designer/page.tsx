@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ContractorApplicationTile } from '@/components/ContractorApplicationTile';
 import { ContractorReviewsPanel } from '@/components/ContractorReviewsPanel';
 import { ContractorVerificationPanel } from '@/components/ContractorVerificationPanel';
@@ -10,6 +10,7 @@ import { HelpTip } from '@/components/help/HelpTip';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
+import { ProjectTypePicker } from '@/components/ProjectTypePicker';
 import { ServiceLocationEditor } from '@/components/ServiceLocationEditor';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TradeTagPicker } from '@/components/TradeTagPicker';
@@ -22,6 +23,10 @@ import {
   type LocationCatalog,
   type ServiceLocation,
 } from '@/lib/locations';
+import {
+  PROJECT_TYPE_OPTIONS,
+  type ProjectType,
+} from '@/lib/projects';
 import { fetchPublicTags } from '@/lib/public-projects';
 import {
   fetchContractorApplications,
@@ -30,6 +35,10 @@ import {
   type ContractorApplicationItem,
   type ContractorProfile,
 } from '@/lib/tendering';
+
+function isProjectType(value: string): value is ProjectType {
+  return PROJECT_TYPE_OPTIONS.some((option) => option.value === value);
+}
 
 export default function DesignerPage() {
   const { t } = useTranslation();
@@ -46,6 +55,9 @@ export default function DesignerPage() {
   const [serviceLocations, setServiceLocations] = useState<ServiceLocation[]>([
     DEFAULT_SERVICE_LOCATION,
   ]);
+  const [selectedProjectTypes, setSelectedProjectTypes] = useState<
+    ProjectType[]
+  >([]);
   const [selectedTagSlugs, setSelectedTagSlugs] = useState<string[]>([]);
   const [tradeTags, setTradeTags] = useState<
     Array<{
@@ -60,6 +72,11 @@ export default function DesignerPage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [showCompletedApplications, setShowCompletedApplications] =
     useState(false);
+
+  const specialtyTags = useMemo(
+    () => tradeTags.filter((tag) => tag.groupSlug !== 'service'),
+    [tradeTags],
+  );
 
   const loadAll = useCallback(async () => {
     setError(null);
@@ -86,6 +103,11 @@ export default function DesignerPage() {
     }
     if (prof?.serviceLocations?.length) {
       setServiceLocations(prof.serviceLocations);
+    }
+    if (prof?.projectTypes?.length) {
+      setSelectedProjectTypes(prof.projectTypes.filter(isProjectType));
+    } else {
+      setSelectedProjectTypes([]);
     }
     if (prof?.tagSlugs) setSelectedTagSlugs(prof.tagSlugs);
     setReady(true);
@@ -119,11 +141,13 @@ export default function DesignerPage() {
       const prof = await upsertContractorProfile({
         companyName: companyName.trim() || undefined,
         serviceLocations,
+        projectTypes: selectedProjectTypes,
         tagSlugs: selectedTagSlugs,
         kind: 'designer',
       });
       setProfile(prof);
       setServiceLocations(prof.serviceLocations);
+      setSelectedProjectTypes(prof.projectTypes.filter(isProjectType));
       setSelectedTagSlugs(prof.tagSlugs);
       await refreshSession();
     } catch (err: unknown) {
@@ -140,7 +164,7 @@ export default function DesignerPage() {
   };
 
   const selectedTagLabels = selectedTagSlugs
-    .map((slug) => tradeTags.find((tag) => tag.slug === slug)?.label ?? slug)
+    .map((slug) => specialtyTags.find((tag) => tag.slug === slug)?.label ?? slug)
     .join(', ');
 
   const serviceLocationSummary =
@@ -162,20 +186,80 @@ export default function DesignerPage() {
   const designApplications = applications.filter(
     (app) => app.projectType === 'design',
   );
-  const visibleApplications = (showCompletedApplications
+  const visibleApplications = showCompletedApplications
     ? designApplications
-    : designApplications.filter((app) => app.projectStatus !== 'completed'));
+    : designApplications.filter((app) => app.projectStatus !== 'completed');
+
+  const renderProfileForm = () => (
+    <div className="portal-profile-form">
+      <div className="portal-profile-col">
+        <label>
+          {t('account.companyName')}
+          <input
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            placeholder={t('contractor.companyPlaceholder')}
+          />
+        </label>
+        {locationCatalog ? (
+          <ServiceLocationEditor
+            catalog={locationCatalog}
+            value={serviceLocations}
+            onChange={setServiceLocations}
+            disabled={busy}
+          />
+        ) : (
+          <p className="muted">{t('contractor.loadingLocations')}</p>
+        )}
+      </div>
+      <div className="portal-profile-col">
+        <fieldset className="tag-fieldset">
+          <legend>{t('contractor.projectTypesLegend')}</legend>
+          <p className="muted tag-hint">{t('contractor.projectTypesHint')}</p>
+          <ProjectTypePicker
+            options={PROJECT_TYPE_OPTIONS}
+            selected={selectedProjectTypes}
+            onChange={setSelectedProjectTypes}
+            disabled={busy}
+          />
+        </fieldset>
+        <fieldset className="tag-fieldset">
+          <legend>{t('contractor.specialtiesLegend')}</legend>
+          <p className="muted tag-hint">
+            {profile
+              ? selectedTagLabels
+                ? t('contractor.specialtiesSelected', {
+                    tags: selectedTagLabels,
+                  })
+                : t('contractor.specialtiesNone')
+              : t('contractor.specialtiesHintOptional')}
+            {profile && serviceLocationSummary
+              ? t('contractor.specialtiesNotifications', {
+                  locations: serviceLocationSummary,
+                })
+              : ''}
+          </p>
+          <TradeTagPicker
+            tags={specialtyTags}
+            selected={selectedTagSlugs}
+            onChange={setSelectedTagSlugs}
+            disabled={busy}
+          />
+        </fieldset>
+      </div>
+    </div>
+  );
 
   return (
-    <PageShell>
+    <PageShell className="page-shell--portal">
       <SiteHeader
         me={me}
         onSignIn={() => setLoginOpen(true)}
         onSignOut={handleLogout}
       />
 
-      <main className="content-container main-content">
-        <section className="page-hero">
+      <main className="portal-main main-content">
+        <section className="page-hero portal-hero">
           <h1>{t('designer.portalTitle')}</h1>
           <p className="page-hero-lead muted">{t('designer.portalLead')}</p>
         </section>
@@ -209,38 +293,7 @@ export default function DesignerPage() {
             />
             <h2 className="section-title">{t('designer.registerTitle')}</h2>
             <p className="muted doc-hint">{t('designer.registerHint')}</p>
-            <div className="modal-form">
-              <label>
-                {t('account.companyName')}
-                <input
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder={t('contractor.companyPlaceholder')}
-                />
-              </label>
-              {locationCatalog ? (
-                <ServiceLocationEditor
-                  catalog={locationCatalog}
-                  value={serviceLocations}
-                  onChange={setServiceLocations}
-                  disabled={busy}
-                />
-              ) : (
-                <p className="muted">{t('contractor.loadingLocations')}</p>
-              )}
-              <fieldset className="tag-fieldset">
-                <legend>{t('contractor.specialtiesLegend')}</legend>
-                <p className="muted tag-hint">
-                  {t('contractor.specialtiesHintOptional')}
-                </p>
-                <TradeTagPicker
-                  tags={tradeTags}
-                  selected={selectedTagSlugs}
-                  onChange={setSelectedTagSlugs}
-                  disabled={busy}
-                />
-              </fieldset>
-            </div>
+            {renderProfileForm()}
             {error && <p className="form-error">{error}</p>}
             <button
               type="button"
@@ -255,85 +308,51 @@ export default function DesignerPage() {
 
         {ready && me && profile && (
           <>
-            <section className="card">
-              <h2 className="section-title">{t('designer.yourProfile')}</h2>
-              <p className="muted doc-hint">{t('designer.profileHint')}</p>
-              <div className="modal-form">
-                <label>
-                  {t('account.companyName')}
-                  <input
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder={t('contractor.companyPlaceholder')}
-                  />
-                </label>
-                {locationCatalog ? (
-                  <ServiceLocationEditor
-                    catalog={locationCatalog}
-                    value={serviceLocations}
-                    onChange={setServiceLocations}
+            <div className="portal-layout">
+              <div className="portal-primary">
+                <section className="card">
+                  <h2 className="section-title">{t('designer.yourProfile')}</h2>
+                  <p className="muted doc-hint">{t('designer.profileHint')}</p>
+                  {renderProfileForm()}
+                  {error && <p className="form-error">{error}</p>}
+                  <button
+                    type="button"
+                    className="primary profile-form-submit"
                     disabled={busy}
-                  />
-                ) : (
-                  <p className="muted">{t('contractor.loadingLocations')}</p>
-                )}
-                <fieldset className="tag-fieldset">
-                  <legend>{t('contractor.specialtiesLegend')}</legend>
-                  <p className="muted tag-hint">
-                    {selectedTagLabels
-                      ? t('contractor.specialtiesSelected', {
-                          tags: selectedTagLabels,
-                        })
-                      : t('contractor.specialtiesNone')}
-                    {serviceLocationSummary
-                      ? t('contractor.specialtiesNotifications', {
-                          locations: serviceLocationSummary,
-                        })
-                      : ''}
-                  </p>
-                  <TradeTagPicker
-                    tags={tradeTags}
-                    selected={selectedTagSlugs}
-                    onChange={setSelectedTagSlugs}
-                    disabled={busy}
-                  />
-                </fieldset>
+                    onClick={() => void handleSaveProfile()}
+                  >
+                    {busy ? t('common.saving') : t('contractor.saveProfile')}
+                  </button>
+                </section>
+
+                <ContractorVerificationPanel
+                  profile={profile}
+                  onProfileUpdated={setProfile}
+                />
               </div>
-              {error && <p className="form-error">{error}</p>}
-              <button
-                type="button"
-                className="primary profile-form-submit"
-                disabled={busy}
-                onClick={() => void handleSaveProfile()}
-              >
-                {busy ? t('common.saving') : t('contractor.saveProfile')}
-              </button>
-            </section>
 
-            <ContractorVerificationPanel
-              profile={profile}
-              onProfileUpdated={setProfile}
-            />
+              <div className="portal-secondary">
+                <ContractorPortfolioPanel />
+                <ContractorReviewsPanel />
+              </div>
+            </div>
 
-            <ContractorPortfolioPanel />
-
-            <ContractorReviewsPanel />
-
-            <section className="card">
+            <section className="card portal-applications">
               <div className="contractor-section-header">
                 <h2 className="section-title">{t('contractor.myApplications')}</h2>
-                {designApplications.length > 0 && completedApplications.length > 0 && (
-                  <label className="contractor-toggle">
-                    <input
-                      type="checkbox"
-                      checked={showCompletedApplications}
-                      onChange={(event) =>
-                        setShowCompletedApplications(event.target.checked)
-                      }
-                    />
-                    {t('contractor.showCompleted')}
-                  </label>
-                )}
+                {designApplications.length > 0 &&
+                  completedApplications.length > 0 && (
+                    <label className="contractor-toggle">
+                      <input
+                        type="checkbox"
+                        checked={showCompletedApplications}
+                        onChange={(event) =>
+                          setShowCompletedApplications(event.target.checked)
+                        }
+                      />
+                      {t('contractor.showCompleted')}
+                    </label>
+                  )}
               </div>
               {designApplications.length === 0 ? (
                 <p className="muted">
@@ -357,7 +376,10 @@ export default function DesignerPage() {
                   aria-label={t('contractor.applicationsAria')}
                 >
                   {visibleApplications.map((app) => (
-                    <ContractorApplicationTile key={app.bidId} application={app} />
+                    <ContractorApplicationTile
+                      key={app.bidId}
+                      application={app}
+                    />
                   ))}
                 </div>
               )}

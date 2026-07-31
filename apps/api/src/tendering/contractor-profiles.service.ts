@@ -147,9 +147,10 @@ export class ContractorProfilesService {
     dto: UpsertContractorProfileDto,
     options?: { kind?: SupplyProfileKind },
   ): Promise<ContractorProfileResponse> {
-    const projectTypes = dto.projectTypes?.length
-      ? [...new Set(dto.projectTypes)]
-      : undefined;
+    const projectTypes =
+      dto.projectTypes === undefined
+        ? undefined
+        : [...new Set(dto.projectTypes)];
     const tagSlugs = await this.normalizeTagSlugs(dto.tagSlugs);
     const serviceLocations = this.locations.normalizeServiceLocations(
       dto.serviceLocations,
