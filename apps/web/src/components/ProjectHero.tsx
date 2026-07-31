@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { ProjectLocationMap } from '@/components/ProjectLocationMap';
+import { ProjectStageRail } from '@/components/ProjectStageRail';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
   convertProjectToDesign,
@@ -26,6 +27,8 @@ interface ProjectHeroProps {
   tagsHint?: string | null;
   canEditCard?: boolean;
   onCardUpdated?: (project: Project) => void;
+  /** When set, renders the project stage progress inside the hero. */
+  stageStatus?: string | null;
 }
 
 const DESIGN_HINT_TYPES = new Set([
@@ -124,6 +127,7 @@ export function ProjectHero({
   tagsHint = null,
   canEditCard = false,
   onCardUpdated,
+  stageStatus = null,
   /** When false, only the main title/description column is rendered. */
   includeSidebar = true,
 }: ProjectHeroProps & { includeSidebar?: boolean }) {
@@ -443,6 +447,12 @@ export function ProjectHero({
             {' · '}
             {t('projectHero.updated')} {formatDateTime(project.updatedAt)}
           </p>
+
+          {stageStatus ? (
+            <div className="project-hero-stage">
+              <ProjectStageRail status={stageStatus} />
+            </div>
+          ) : null}
         </div>
         {includeSidebar && (
           <ProjectHeroSidebar

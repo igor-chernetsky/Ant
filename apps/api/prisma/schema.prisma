@@ -309,6 +309,7 @@ model Project {
   statusBeforePending  ProjectStatus?   @map("status_before_pending")
   designFeePercent     Float?           @map("design_fee_percent")
   baseConstructionTotalsJson Json?      @map("base_construction_totals_json")
+  estimateRefinementQaJson Json?        @map("estimate_refinement_qa_json")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
   tags           ProjectTag[]
@@ -392,6 +393,7 @@ model Estimate {
   linesJson   Json     @map("lines_json")
   confidence  Float
   disclaimer  String
+  metaJson    Json?    @map("meta_json")
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@index([projectId])

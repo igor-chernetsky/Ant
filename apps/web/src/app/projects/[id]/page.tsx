@@ -7,12 +7,12 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { DocumentTile, OrphanScopePackages } from '@/components/DocumentTile';
 import { ClientAmendments } from '@/components/ClientAmendments';
+import { EstimateRefinementPanel } from '@/components/EstimateRefinementPanel';
 import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
 import { IntakeWizard } from '@/components/IntakeWizard';
-import { MetaSpecGrid } from '@/components/MetaSpecGrid';
 import { ProjectHero, ProjectHeroSidebar } from '@/components/ProjectHero';
-import { ProjectStageRail } from '@/components/ProjectStageRail';
+import { ProjectBriefCard } from '@/components/ProjectBriefCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
 import { ClientContractPanel, isContractProjectStatus } from '@/components/ClientContractPanel';
@@ -32,7 +32,8 @@ import {
   type DocumentCategory,
   type ProjectDocument,
 } from '@/lib/documents';
-import { formatConfidence, formatThb } from '@/lib/estimate';
+import { formatThb } from '@/lib/estimate';
+import type { BallparkEstimate } from '@/lib/estimate';
 import { isIntakeActive } from '@/lib/intake';
 import { isSessionExpiredError } from '@/lib/auth-client';
 import {
@@ -356,38 +357,13 @@ export default function ProjectDetailPage() {
   const showDocDelete =
     isOwner && project ? canDeleteDocument(project) : false;
   const brief = project?.brief ?? null;
-
-  const briefPropertyItems = brief?.property
-    ? [
-        ...(brief.property.areaSqm != null
-          ? [
-              {
-                label: t('brief.floorArea'),
-                value: `${brief.property.areaSqm} ${t('brief.sqm')}`,
-              },
-            ]
-          : []),
-        ...(brief.property.floors != null
-          ? [{ label: t('brief.floors'), value: String(brief.property.floors) }]
-          : []),
-        ...(brief.property.rooms != null
-          ? [{ label: t('brief.rooms'), value: String(brief.property.rooms) }]
-          : []),
-      ]
-    : [];
-
-  const briefDesignItems = brief?.design
-    ? [
-        {
-          label: t('brief.plansAvailable'),
-          value: brief.design.hasPlans ? t('brief.yes') : t('brief.no'),
-        },
-        {
-          label: t('brief.designTenderNeeded'),
-          value: brief.design.needsDesignTender ? t('brief.yes') : t('brief.no'),
-        },
-      ]
-    : [];
+  const showTender =
+    isOwner && project
+      ? isTenderEligibleProjectStatus(project.status)
+      : false;
+  const showEstimateTenderDuo = Boolean(
+    (isOwner && estimate) || showTender,
+  );
 
   const handleDelete = async () => {
     if (!projectId || !project) return;
@@ -447,9 +423,8 @@ export default function ProjectDetailPage() {
                 canEditCard={isOwner}
                 onCardUpdated={setProject}
                 includeSidebar={false}
+                stageStatus={isOwner ? project.status : null}
               />
-
-              {isOwner && <ProjectStageRail status={project.status} />}
 
               {project.guestInviteAccess && (
                 <section className="card guest-invite-notice">
@@ -552,49 +527,67 @@ export default function ProjectDetailPage() {
                 />
               )}
 
-              {isOwner && estimate && (
-                <section className="card estimate-card">
-                  <h2 className="section-title">
-                    {project.projectType === 'design'
-                      ? t('estimateSection.designTitle')
-                      : t('estimateSection.title')}
-                  </h2>
-                  <p className="estimate-range">
-                    {formatThb(estimate.totals.minAmount)} –{' '}
-                    {formatThb(estimate.totals.maxAmount)}
-                  </p>
-                  <p className="muted estimate-meta">
-                    {t('estimateSection.midpoint')} {formatThb(estimate.totals.midAmount)} ·{' '}
-                    {t('estimateSection.confidence')}{' '}
-                    {formatConfidence(estimate.confidence)}
-                  </p>
-                  {estimate.lines.length > 0 && (
-                    <ul className="estimate-lines">
-                      {estimate.lines.map((line, index) => (
-                        <li key={`${line.trade}-${index}`} className="estimate-line">
-                          <div>
-                            <strong>{line.description}</strong>
-                            <span className="muted estimate-line-trade">
-                              {line.trade}
-                            </span>
-                          </div>
-                          <span className="estimate-line-amount">
-                            {formatThb(line.lineMin)} – {formatThb(line.lineMax)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+              {showEstimateTenderDuo && (
+                <div className="project-detail-duo">
+                  {isOwner && estimate && (
+                    <section className="card estimate-card">
+                      <h2 className="section-title">
+                        {project.projectType === 'design'
+                          ? t('estimateSection.designTitle')
+                          : t('estimateSection.title')}
+                      </h2>
+                      <p className="estimate-range">
+                        {formatThb(estimate.totals.minAmount)} –{' '}
+                        {formatThb(estimate.totals.maxAmount)}
+                      </p>
+                      <p className="muted estimate-meta">
+                        {t('estimateSection.midpoint')}{' '}
+                        {formatThb(estimate.totals.midAmount)}
+                      </p>
+                      <EstimateRefinementPanel
+                        project={project}
+                        estimate={estimate}
+                        onEstimateUpdated={(updated: BallparkEstimate) =>
+                          setProject((prev) =>
+                            prev ? { ...prev, estimate: updated } : prev,
+                          )
+                        }
+                      />
+                      {estimate.lines.length > 0 && (
+                        <ul className="estimate-lines">
+                          {estimate.lines.map((line, index) => (
+                            <li
+                              key={`${line.trade}-${index}`}
+                              className="estimate-line"
+                            >
+                              <div>
+                                <strong>{line.description}</strong>
+                                <span className="muted estimate-line-trade">
+                                  {line.trade}
+                                </span>
+                              </div>
+                              <span className="estimate-line-amount">
+                                {formatThb(line.lineMin)} –{' '}
+                                {formatThb(line.lineMax)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <p className="muted estimate-disclaimer">
+                        {estimate.disclaimer}
+                      </p>
+                    </section>
                   )}
-                  <p className="muted estimate-disclaimer">{estimate.disclaimer}</p>
-                </section>
-              )}
 
-              {isOwner && isTenderEligibleProjectStatus(project.status) && (
-                <TenderSummaryCard
-                  projectId={projectId}
-                  project={project}
-                  onUpdated={setProject}
-                />
+                  {showTender && (
+                    <TenderSummaryCard
+                      projectId={projectId}
+                      project={project}
+                      onUpdated={setProject}
+                    />
+                  )}
+                </div>
               )}
 
               {isOwner && isContractProjectStatus(project.status) && (
@@ -618,62 +611,6 @@ export default function ProjectDetailPage() {
                     projectType={project.projectType}
                   />
                 )}
-
-              {brief && (
-                <section className="card project-brief-card">
-                  <h2 className="section-title">{t('brief.title')}</h2>
-
-                  {brief.summary && (
-                    <p className="brief-lead">{brief.summary}</p>
-                  )}
-
-                  {briefPropertyItems.length > 0 && (
-                    <div className="brief-subsection">
-                      <h3 className="brief-subsection-title">
-                        {t('brief.propertyDetails')}
-                      </h3>
-                      <MetaSpecGrid items={briefPropertyItems} />
-                    </div>
-                  )}
-
-                  {briefDesignItems.length > 0 && (
-                    <div className="brief-subsection">
-                      <h3 className="brief-subsection-title">
-                        {t('brief.designPlans')}
-                      </h3>
-                      <MetaSpecGrid items={briefDesignItems} className="brief-meta" />
-                    </div>
-                  )}
-
-                  {brief.constraints && (
-                    <div className="brief-subsection">
-                      <h3 className="brief-subsection-title">
-                        {t('brief.constraints')}
-                      </h3>
-                      <MetaSpecGrid
-                        items={[
-                          {
-                            label: t('brief.notes'),
-                            value: brief.constraints,
-                            fullWidth: true,
-                          },
-                        ]}
-                      />
-                    </div>
-                  )}
-
-                  {brief.ai?.missingFields && brief.ai.missingFields.length > 0 && (
-                    <div className="brief-callout">
-                      <p className="brief-callout-title">{t('brief.stillNeeded')}</p>
-                      <ul className="brief-missing-list">
-                        {brief.ai.missingFields.map((field) => (
-                          <li key={field}>{field.replaceAll('_', ' ')}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </section>
-              )}
 
               {showLifecycle && project && (
                 <ProjectLifecyclePanel
@@ -701,21 +638,24 @@ export default function ProjectDetailPage() {
             </div>
 
             <aside className="project-detail-sidebar">
-              <ProjectHeroSidebar
-                project={project}
-                estimateMidAmountThb={
-                  isOwner ? (estimate?.totals.midAmount ?? null) : null
-                }
-                tags={project.tags}
-                showTags={!intakeActive && project.tags.length > 0}
-                tagsHint={
-                  isOwner &&
-                  isAmendableProjectStatus(project.status) &&
-                  project.tags.length > 0
-                    ? t('projectDetail.tagsRefreshHint')
-                    : null
-                }
-              />
+              <div className="project-detail-sidebar-stack">
+                <ProjectHeroSidebar
+                  project={project}
+                  estimateMidAmountThb={
+                    isOwner ? (estimate?.totals.midAmount ?? null) : null
+                  }
+                  tags={project.tags}
+                  showTags={!intakeActive && project.tags.length > 0}
+                  tagsHint={
+                    isOwner &&
+                    isAmendableProjectStatus(project.status) &&
+                    project.tags.length > 0
+                      ? t('projectDetail.tagsRefreshHint')
+                      : null
+                  }
+                />
+                {brief && <ProjectBriefCard brief={brief} compact />}
+              </div>
             </aside>
           </div>
         )}

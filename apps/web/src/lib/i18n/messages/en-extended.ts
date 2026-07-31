@@ -852,6 +852,15 @@ export const enExtended = {
     designTitle: "DESIGN Ballpark estimate",
     midpoint: "Midpoint",
     confidence: "Confidence",
+    refineTitle: "Answer to improve estimate confidence",
+    refineHint:
+      "Optional answers help recalculate the ballpark. Confirmed scope is kept; unanswered gaps stay as questions.",
+    answerPlaceholder: "Your answer",
+    recalculate: "Recalculate estimate",
+    refining: "Recalculating…",
+    refineNeedAnswer: "Answer at least one question to recalculate.",
+    refineFailed: "Could not recalculate the estimate",
+    answeredTitle: "Previous answers",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",

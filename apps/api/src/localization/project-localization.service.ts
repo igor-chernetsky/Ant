@@ -451,6 +451,45 @@ export class ProjectLocalizationService implements OnModuleInit {
       orderBy: { createdAt: 'desc' },
     });
 
+    const meta =
+      estimateRecord?.metaJson &&
+      typeof estimateRecord.metaJson === 'object' &&
+      !Array.isArray(estimateRecord.metaJson)
+        ? (estimateRecord.metaJson as { improvementQuestions?: unknown })
+        : null;
+    const improvementQuestions = Array.isArray(meta?.improvementQuestions)
+      ? meta.improvementQuestions
+          .filter((q): q is string => typeof q === 'string')
+          .map((q) => q.trim())
+          .filter(Boolean)
+          .slice(0, 5)
+      : [];
+    const refinementAnswers = Array.isArray(project.estimateRefinementQaJson)
+      ? (
+          project.estimateRefinementQaJson as Array<{
+            question?: unknown;
+            answer?: unknown;
+            answeredAt?: unknown;
+          }>
+        ).flatMap((row) => {
+          const question =
+            typeof row?.question === 'string' ? row.question.trim() : '';
+          const answer =
+            typeof row?.answer === 'string' ? row.answer.trim() : '';
+          if (!question || !answer) return [];
+          return [
+            {
+              question,
+              answer,
+              answeredAt:
+                typeof row.answeredAt === 'string'
+                  ? row.answeredAt
+                  : new Date().toISOString(),
+            },
+          ];
+        })
+      : [];
+
     const estimate: EstimateResponse | null = estimateRecord
       ? {
           id: estimateRecord.id,
@@ -461,6 +500,8 @@ export class ProjectLocalizationService implements OnModuleInit {
           lines: estimateRecord.linesJson as unknown as EstimateResponse['lines'],
           confidence: estimateRecord.confidence,
           disclaimer: estimateRecord.disclaimer,
+          improvementQuestions,
+          refinementAnswers,
           createdAt: estimateRecord.createdAt.toISOString(),
         }
       : null;
@@ -957,7 +998,37 @@ export class ProjectLocalizationService implements OnModuleInit {
           return { ...line, description };
         }),
       );
-      estimate = { ...estimate, disclaimer, lines };
+      const improvementQuestions = await Promise.all(
+        (estimate.improvementQuestions ?? []).map(
+          async (question, index) =>
+            (await readText(
+              `estimate.improvementQuestion.${index}`,
+              question,
+            )) ?? question,
+        ),
+      );
+      const refinementAnswers = await Promise.all(
+        (estimate.refinementAnswers ?? []).map(async (row, index) => {
+          const question =
+            (await readText(
+              `estimate.refinement.${index}.question`,
+              row.question,
+            )) ?? row.question;
+          const answer =
+            (await readText(
+              `estimate.refinement.${index}.answer`,
+              row.answer,
+            )) ?? row.answer;
+          return { ...row, question, answer };
+        }),
+      );
+      estimate = {
+        ...estimate,
+        disclaimer,
+        lines,
+        improvementQuestions,
+        refinementAnswers,
+      };
     }
 
     return {
@@ -1161,6 +1232,13 @@ export function collectTranslatableFields(
     addText('estimate.disclaimer', project.estimate.disclaimer);
     project.estimate.lines.forEach((line, index) => {
       addText(`estimate.line.${index}.description`, line.description);
+    });
+    project.estimate.improvementQuestions?.forEach((question, index) => {
+      addText(`estimate.improvementQuestion.${index}`, question);
+    });
+    project.estimate.refinementAnswers?.forEach((row, index) => {
+      addText(`estimate.refinement.${index}.question`, row.question);
+      addText(`estimate.refinement.${index}.answer`, row.answer);
     });
   }
 

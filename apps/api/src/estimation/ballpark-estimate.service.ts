@@ -55,6 +55,7 @@ export class BallparkEstimateService {
     clarificationQa?: Array<{ question: string; answer: string }>;
     clarificationSummary?: string | null;
     scopeSummary?: string | null;
+    estimateRefinementQa?: Array<{ question: string; answer: string }>;
   }): Promise<BallparkEstimateResult> {
     if (this.apiKey.length > 0) {
       const ai = await this.generateWithOpenAi(input);
@@ -77,6 +78,7 @@ export class BallparkEstimateService {
     clarificationQa?: Array<{ question: string; answer: string }>;
     clarificationSummary?: string | null;
     scopeSummary?: string | null;
+    estimateRefinementQa?: Array<{ question: string; answer: string }>;
   }): Promise<BallparkEstimateResult | null> {
     const lang =
       input.locale && isSupportedLocale(input.locale)
@@ -89,9 +91,13 @@ export class BallparkEstimateService {
       previousLines.length > 0,
     );
     const system = `You produce ballpark construction cost estimates for Thailand (THB).
-Return JSON: { lines, totals, confidence, disclaimer }.
+Return JSON: { lines, totals, confidence, disclaimer, improvementQuestions }.
 Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lineMin, lineMax }.
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
+confidence: number 0–1 reflecting how complete and certain the priced scope is.
+improvementQuestions: 0–5 short questions (in ${lang}) that would most improve confidence if answered. Empty array when confidence is already high or nothing material is missing. Do not repeat questions already answered in estimateRefinementQa.
+Do NOT invent priced scope for unanswered gaps — put that uncertainty into improvementQuestions and keep confidence lower.
+When regenerating with previousEstimate and/or estimateRefinementQa, retain still-confirmed trades/lines unless answers change them; never drop confirmed scope.
 Use regional reference prices as guidance; prefer mid-to-high of catalog bands for MEP networks, lighting fixtures, utility connections, and premium treatment systems.
 Include 5-16 lines covering the FULL confirmed scope (base construction + detailed MEP + finishing + newly added items). Split MEP into multiple lines when intake/premium signals justify it.
 When the client requests fire suppression / sprinklers or other named specialty systems, include a dedicated line (trade fire-suppression or other) — never description-only.
@@ -100,7 +106,7 @@ Prefer one consolidated electrical line for base wiring/board/lighting — do no
 lineMin/lineMax must equal quantity * unitPriceMin/Max (rounded).
 Obey pricingDirectives and premiumScopeSignals in the user payload — they must change amounts, not only wording.
 When clarificationQa or clarificationSummary is present, treat that as new pricing-relevant scope and revise MEP/network lines upward when they add utilities, lighting, treatment, or connection works.
-Write description and disclaimer fields in ${lang}.
+Write description, disclaimer, and improvementQuestions fields in ${lang}.
 Scope rules:
 ${scopeRules}`;
 
@@ -165,6 +171,7 @@ ${scopeRules}`;
     clarificationQa?: Array<{ question: string; answer: string }>;
     clarificationSummary?: string | null;
     scopeSummary?: string | null;
+    estimateRefinementQa?: Array<{ question: string; answer: string }>;
   }): BallparkEstimateResult {
     const narrative = collectEstimateNarrative({
       title: input.title,
@@ -277,6 +284,7 @@ ${scopeRules}`;
       confidence,
       disclaimer: DISCLAIMER,
       provider: 'fallback',
+      improvementQuestions: [],
     };
   }
 
@@ -293,6 +301,7 @@ ${scopeRules}`;
       clarificationQa?: Array<{ question: string; answer: string }>;
       clarificationSummary?: string | null;
       scopeSummary?: string | null;
+      estimateRefinementQa?: Array<{ question: string; answer: string }>;
     },
   ): BallparkEstimateResult {
     const rawLines = Array.isArray(raw.lines)
@@ -344,6 +353,18 @@ ${scopeRules}`;
     }).map(normalizeLineAmounts);
 
     const totals = computeTotals(lines);
+    const answered = new Set(
+      (input.estimateRefinementQa ?? []).map((row) =>
+        row.question.trim().toLowerCase(),
+      ),
+    );
+    const improvementQuestions = Array.isArray(raw.improvementQuestions)
+      ? raw.improvementQuestions
+          .filter((q): q is string => typeof q === 'string')
+          .map((q) => q.trim().slice(0, 280))
+          .filter((q) => q.length > 0 && !answered.has(q.toLowerCase()))
+          .slice(0, 5)
+      : [];
 
     return {
       lines,
@@ -354,6 +375,7 @@ ${scopeRules}`;
           : 0.5,
       disclaimer: String(raw.disclaimer ?? DISCLAIMER).slice(0, 2000),
       provider: 'openai',
+      improvementQuestions,
     };
   }
 }

@@ -16,12 +16,23 @@ export interface EstimateTotals {
   currency: string;
 }
 
+export interface EstimateRefinementAnswer {
+  question: string;
+  answer: string;
+  answeredAt: string;
+}
+
+export interface EstimateMeta {
+  improvementQuestions: string[];
+}
+
 export interface BallparkEstimateResult {
   lines: EstimateLine[];
   totals: EstimateTotals;
   confidence: number;
   disclaimer: string;
   provider: 'openai' | 'fallback';
+  improvementQuestions: string[];
 }
 
 export interface EstimateResponse {
@@ -33,5 +44,7 @@ export interface EstimateResponse {
   lines: EstimateLine[];
   confidence: number;
   disclaimer: string;
+  improvementQuestions: string[];
+  refinementAnswers: EstimateRefinementAnswer[];
   createdAt: string;
 }

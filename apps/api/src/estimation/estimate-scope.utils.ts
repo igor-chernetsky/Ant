@@ -741,6 +741,7 @@ export function buildEstimateUserContext(input: {
   clarificationQa?: Array<{ question: string; answer: string }>;
   clarificationSummary?: string | null;
   scopeSummary?: string | null;
+  estimateRefinementQa?: Array<{ question: string; answer: string }>;
 }) {
   const narrative = collectEstimateNarrative(input);
   const premiumSignals = detectPremiumScopeSignals(narrative);
@@ -748,6 +749,8 @@ export function buildEstimateUserContext(input: {
   const hasClarifications =
     (input.clarificationQa?.length ?? 0) > 0 ||
     Boolean(input.clarificationSummary?.trim());
+  const hasRefinement =
+    (input.estimateRefinementQa?.length ?? 0) > 0;
 
   const pricingDirectives = buildPricingDirectives(premiumSignals);
   if (wantsIndustrialVentilation(narrative)) {
@@ -784,15 +787,17 @@ export function buildEstimateUserContext(input: {
     intakeAnswers: formatIntakeAnswersForEstimate(input.brief),
     clarificationQa: input.clarificationQa ?? [],
     clarificationSummary: input.clarificationSummary ?? null,
+    estimateRefinementQa: input.estimateRefinementQa ?? [],
     premiumScopeSignals: premiumSignals,
     pricingDirectives,
     ...(input.previousLines && input.previousLines.length > 0
       ? {
           previousEstimate: {
             lines: input.previousLines,
-            guidance: hasClarifications
-              ? 'Scope was clarified after the previous estimate. RECALCULATE amounts for affected trades (especially electrical/plumbing/networks). Do not copy previousEstimate lineMin/lineMax unchanged when new MEP, utility connection, lighting, or treatment facts were added.'
-              : 'Revise this estimate for the current scope. Keep still-relevant trades; add new ones; do not collapse to only the newest items. Premium MEP notes must raise electrical/plumbing amounts.',
+            guidance:
+              hasClarifications || hasRefinement
+                ? 'Scope was clarified or refined after the previous estimate. RECALCULATE amounts for affected trades. Do not drop still-confirmed lines. Do not copy previous amounts unchanged when new facts were added.'
+                : 'Revise this estimate for the current scope. Keep still-relevant trades; add new ones; do not collapse to only the newest items. Premium MEP notes must raise electrical/plumbing amounts.',
           },
         }
       : {}),
@@ -807,6 +812,7 @@ export function collectEstimateNarrative(input: {
   clarificationQa?: Array<{ question: string; answer: string }>;
   clarificationSummary?: string | null;
   scopeSummary?: string | null;
+  estimateRefinementQa?: Array<{ question: string; answer: string }>;
 }): string {
   const insightText = (input.brief.ai?.documentInsights ?? [])
     .map((insight) =>
@@ -833,6 +839,9 @@ export function collectEstimateNarrative(input: {
       (row) => `${row.questionId} ${row.answer}`,
     ),
     ...(input.clarificationQa ?? []).map(
+      (row) => `${row.question} ${row.answer}`,
+    ),
+    ...(input.estimateRefinementQa ?? []).map(
       (row) => `${row.question} ${row.answer}`,
     ),
   ]

@@ -850,6 +850,15 @@ export const thExtended = {
     designTitle: "DESIGN ประมาณการเบื้องต้น",
     midpoint: "จุดกลาง",
     confidence: "ความมั่นใจ",
+    refineTitle: "ตอบเพื่อเพิ่มความมั่นใจของประมาณการ",
+    refineHint:
+      "คำตอบเพิ่มเติมช่วยคำนวณใหม่ได้ ขอบเขตที่ยืนยันแล้วจะถูกเก็บไว้ ส่วนที่ยังไม่ตอบจะยังเป็นคำถาม",
+    answerPlaceholder: "คำตอบของคุณ",
+    recalculate: "คำนวณประมาณการใหม่",
+    refining: "กำลังคำนวณใหม่…",
+    refineNeedAnswer: "ตอบอย่างน้อยหนึ่งคำถามเพื่อคำนวณใหม่",
+    refineFailed: "คำนวณประมาณการใหม่ไม่สำเร็จ",
+    answeredTitle: "คำตอบก่อนหน้า",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",

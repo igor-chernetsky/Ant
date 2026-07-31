@@ -18,6 +18,12 @@ export interface EstimateTotals {
   currency: string;
 }
 
+export interface EstimateRefinementAnswer {
+  question: string;
+  answer: string;
+  answeredAt: string;
+}
+
 export interface BallparkEstimate {
   id: string;
   projectId: string;
@@ -27,6 +33,8 @@ export interface BallparkEstimate {
   lines: EstimateLine[];
   confidence: number;
   disclaimer: string;
+  improvementQuestions?: string[];
+  refinementAnswers?: EstimateRefinementAnswer[];
   createdAt: string;
 }
 
@@ -64,4 +72,30 @@ export async function fetchProjectEstimate(
     return null;
   }
   return data as BallparkEstimate;
+}
+
+export async function refineProjectEstimate(
+  projectId: string,
+  answers: Array<{ question: string; answer: string }>,
+): Promise<BallparkEstimate> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/estimate/refine`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers }),
+    },
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string | string[];
+    } | null;
+    const message = Array.isArray(body?.message)
+      ? body.message.join(', ')
+      : body?.message;
+    throw new Error(message ?? 'Failed to refine estimate');
+  }
+
+  return (await response.json()) as BallparkEstimate;
 }

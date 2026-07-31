@@ -46,6 +46,11 @@
     },
     "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
     "disclaimer": { "type": "string", "maxLength": 2000 },
+    "improvementQuestions": {
+      "type": "array",
+      "maxItems": 5,
+      "items": { "type": "string", "minLength": 1, "maxLength": 280 }
+    },
     "provider": { "type": "string", "enum": ["openai", "fallback"] }
   }
 }

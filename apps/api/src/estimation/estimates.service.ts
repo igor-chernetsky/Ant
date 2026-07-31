@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -10,7 +11,59 @@ import { ProjectBriefV1 } from '../projects/project-brief';
 import { buildDesignFeeEstimate } from '../projects/design-fee-estimate';
 import { BallparkEstimateService } from './ballpark-estimate.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
-import { EstimateLine, EstimateResponse, EstimateTotals } from './estimates.types';
+import {
+  EstimateLine,
+  EstimateMeta,
+  EstimateRefinementAnswer,
+  EstimateResponse,
+  EstimateTotals,
+} from './estimates.types';
+
+const REFINE_ALLOWED_STATUSES: ProjectStatus[] = [
+  ProjectStatus.ready_for_estimate,
+  ProjectStatus.estimated,
+];
+
+function parseRefinementQa(raw: unknown): EstimateRefinementAnswer[] {
+  if (!Array.isArray(raw)) return [];
+  const out: EstimateRefinementAnswer[] = [];
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue;
+    const question =
+      typeof (row as { question?: unknown }).question === 'string'
+        ? (row as { question: string }).question.trim()
+        : '';
+    const answer =
+      typeof (row as { answer?: unknown }).answer === 'string'
+        ? (row as { answer: string }).answer.trim()
+        : '';
+    if (!question || !answer) continue;
+    const answeredAt =
+      typeof (row as { answeredAt?: unknown }).answeredAt === 'string'
+        ? (row as { answeredAt: string }).answeredAt
+        : new Date().toISOString();
+    out.push({ question, answer, answeredAt });
+  }
+  return out;
+}
+
+function parseEstimateMeta(raw: unknown): EstimateMeta {
+  if (!raw || typeof raw !== 'object') {
+    return { improvementQuestions: [] };
+  }
+  const questions = (raw as { improvementQuestions?: unknown })
+    .improvementQuestions;
+  if (!Array.isArray(questions)) {
+    return { improvementQuestions: [] };
+  }
+  return {
+    improvementQuestions: questions
+      .filter((q): q is string => typeof q === 'string')
+      .map((q) => q.trim())
+      .filter(Boolean)
+      .slice(0, 5),
+  };
+}
 
 @Injectable()
 export class EstimatesService {
@@ -20,17 +73,26 @@ export class EstimatesService {
     private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
-  toResponse(record: {
-    id: string;
-    projectId: string;
-    type: string;
-    currency: string;
-    totalsJson: unknown;
-    linesJson: unknown;
-    confidence: number;
-    disclaimer: string;
-    createdAt: Date;
-  }): EstimateResponse {
+  refinementAnswersFrom(raw: unknown): EstimateRefinementAnswer[] {
+    return parseRefinementQa(raw);
+  }
+
+  toResponse(
+    record: {
+      id: string;
+      projectId: string;
+      type: string;
+      currency: string;
+      totalsJson: unknown;
+      linesJson: unknown;
+      confidence: number;
+      disclaimer: string;
+      metaJson?: unknown;
+      createdAt: Date;
+    },
+    refinementAnswers: EstimateRefinementAnswer[] = [],
+  ): EstimateResponse {
+    const meta = parseEstimateMeta(record.metaJson);
     return {
       id: record.id,
       projectId: record.projectId,
@@ -40,6 +102,8 @@ export class EstimatesService {
       lines: record.linesJson as EstimateResponse['lines'],
       confidence: record.confidence,
       disclaimer: record.disclaimer,
+      improvementQuestions: meta.improvementQuestions,
+      refinementAnswers,
       createdAt: record.createdAt.toISOString(),
     };
   }
@@ -48,14 +112,72 @@ export class EstimatesService {
     clientId: string,
     projectId: string,
   ): Promise<EstimateResponse | null> {
-    await this.assertProjectOwner(projectId, clientId);
+    const project = await this.assertProjectOwner(projectId, clientId);
 
     const estimate = await this.prisma.estimate.findFirst({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
     });
 
-    return estimate ? this.toResponse(estimate) : null;
+    return estimate
+      ? this.toResponse(
+          estimate,
+          parseRefinementQa(project.estimateRefinementQaJson),
+        )
+      : null;
+  }
+
+  async refineAndRegenerate(
+    clientId: string,
+    projectId: string,
+    answers: Array<{ question: string; answer: string }>,
+  ): Promise<EstimateResponse> {
+    const project = await this.assertProjectOwner(projectId, clientId);
+    if (!REFINE_ALLOWED_STATUSES.includes(project.status)) {
+      throw new BadRequestException(
+        'Estimate refinement is only available before tendering starts',
+      );
+    }
+
+    const cleaned = answers
+      .map((row) => ({
+        question: row.question?.trim() ?? '',
+        answer: row.answer?.trim() ?? '',
+      }))
+      .filter((row) => row.question.length > 0 && row.answer.length > 0);
+
+    if (cleaned.length === 0) {
+      throw new BadRequestException('At least one answered question is required');
+    }
+
+    const existing = parseRefinementQa(project.estimateRefinementQaJson);
+    const now = new Date().toISOString();
+    const merged = [...existing];
+    for (const row of cleaned) {
+      const idx = merged.findIndex(
+        (item) =>
+          item.question.trim().toLowerCase() === row.question.toLowerCase(),
+      );
+      const next: EstimateRefinementAnswer = {
+        question: row.question.slice(0, 280),
+        answer: row.answer.slice(0, 4000),
+        answeredAt: now,
+      };
+      if (idx >= 0) {
+        merged[idx] = next;
+      } else {
+        merged.push(next);
+      }
+    }
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        estimateRefinementQaJson: merged as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    return this.generateAndStore(projectId);
   }
 
   async generateAndStore(projectId: string): Promise<EstimateResponse> {
@@ -87,6 +209,12 @@ export class EstimatesService {
         question: row.questionText,
         answer: row.answer!.trim(),
       }));
+    const estimateRefinementQa = parseRefinementQa(
+      project.estimateRefinementQaJson,
+    ).map((row) => ({
+      question: row.question,
+      answer: row.answer,
+    }));
 
     const previousEstimate = await this.prisma.estimate.findFirst({
       where: { projectId },
@@ -115,6 +243,7 @@ export class EstimatesService {
       clarificationQa,
       clarificationSummary: project.clarificationSummary,
       scopeSummary: project.scopeSummary,
+      estimateRefinementQa,
     });
 
     let lines = result.lines;
@@ -138,6 +267,10 @@ export class EstimatesService {
       baseConstructionTotals = design.baseTotals;
     }
 
+    const meta: EstimateMeta = {
+      improvementQuestions: result.improvementQuestions,
+    };
+
     const record = await this.prisma.estimate.create({
       data: {
         projectId,
@@ -147,6 +280,7 @@ export class EstimatesService {
         linesJson: lines as unknown as Prisma.InputJsonValue,
         confidence: result.confidence,
         disclaimer,
+        metaJson: meta as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -176,7 +310,10 @@ export class EstimatesService {
 
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
-    return this.toResponse(record);
+    return this.toResponse(
+      record,
+      parseRefinementQa(project.estimateRefinementQaJson),
+    );
   }
 
   /**
@@ -200,6 +337,11 @@ export class EstimatesService {
       throw new NotFoundException('No estimate to convert');
     }
 
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { estimateRefinementQaJson: true },
+    });
+
     const baseLines = previous.linesJson as unknown as EstimateLine[];
     const baseTotals = previous.totalsJson as unknown as EstimateTotals;
     const design = buildDesignFeeEstimate({
@@ -209,6 +351,7 @@ export class EstimatesService {
       tagSlugs,
     });
 
+    const previousMeta = parseEstimateMeta(previous.metaJson);
     const record = await this.prisma.estimate.create({
       data: {
         projectId,
@@ -218,11 +361,15 @@ export class EstimatesService {
         linesJson: design.lines as unknown as Prisma.InputJsonValue,
         confidence: previous.confidence,
         disclaimer: design.disclaimer,
+        metaJson: previousMeta as unknown as Prisma.InputJsonValue,
       },
     });
 
     return {
-      estimate: this.toResponse(record),
+      estimate: this.toResponse(
+        record,
+        parseRefinementQa(project?.estimateRefinementQaJson),
+      ),
       percent: design.percent,
       baseTotals: design.baseTotals,
     };

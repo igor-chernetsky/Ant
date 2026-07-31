@@ -1264,7 +1264,14 @@ export class ProjectsService {
 
     const response = this.toResponse(
       project,
-      estimate ? this.estimatesService.toResponse(estimate) : null,
+      estimate
+        ? this.estimatesService.toResponse(
+            estimate,
+            this.estimatesService.refinementAnswersFrom(
+              project.estimateRefinementQaJson,
+            ),
+          )
+        : null,
       linkedConstruction,
     );
 
@@ -1530,6 +1537,10 @@ export class ProjectsService {
           scopeSummary: project.scopeSummary,
           sourceLocale: project.sourceLocale,
           tenderContractTermsJson: project.tenderContractTermsJson ?? Prisma.JsonNull,
+          estimateRefinementQaJson:
+            (project.estimateRefinementQaJson ?? undefined) as
+              | Prisma.InputJsonValue
+              | undefined,
           linkKind: ProjectLinkKind.construction_pending,
         },
       });
@@ -1555,6 +1566,9 @@ export class ProjectsService {
             linesJson: estimate.linesJson as Prisma.InputJsonValue,
             confidence: estimate.confidence,
             disclaimer: estimate.disclaimer,
+            metaJson: (estimate.metaJson ?? undefined) as
+              | Prisma.InputJsonValue
+              | undefined,
           },
         });
       }

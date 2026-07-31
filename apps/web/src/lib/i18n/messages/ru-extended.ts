@@ -853,6 +853,15 @@ export const ruExtended = {
     designTitle: "DESIGN Ориентировочная смета",
     midpoint: "Средняя точка",
     confidence: "Уверенность",
+    refineTitle: "Ответьте, чтобы повысить уверенность сметы",
+    refineHint:
+      "Необязательные ответы помогают пересчитать ориентир. Подтверждённый объём сохраняется; неотвеченные пробелы остаются вопросами.",
+    answerPlaceholder: "Ваш ответ",
+    recalculate: "Пересчитать смету",
+    refining: "Пересчёт…",
+    refineNeedAnswer: "Ответьте хотя бы на один вопрос для пересчёта.",
+    refineFailed: "Не удалось пересчитать смету",
+    answeredTitle: "Предыдущие ответы",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
