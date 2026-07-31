@@ -165,206 +165,219 @@ export default function ProjectBidsPage() {
   }, [tender]);
 
   return (
-    <PageShell>
+    <PageShell className="page-shell--bids">
       <SiteHeader
         me={me}
         onSignIn={() => setLoginOpen(true)}
         onSignOut={() => void signOut()}
       />
 
-      <main className="content-container main-content">
-        {!sessionReady || loading ? (
-          <section className="card">
-            <p className="muted">{t('bidsPage.loading')}</p>
-          </section>
-        ) : null}
+      <main className="project-bids-main main-content">
+        <div className="project-bids-layout">
+          {!sessionReady || loading ? (
+            <section className="card">
+              <p className="muted">{t('bidsPage.loading')}</p>
+            </section>
+          ) : null}
 
-        {!loading && !me && (
-          <section className="card">
-            <p className="muted">{t('bidsPage.signInPrompt')}</p>
-            <button
-              type="button"
-              className="primary"
-              onClick={() => setLoginOpen(true)}
-            >
-              {t('header.signIn')}
-            </button>
-          </section>
-        )}
+          {!loading && !me && (
+            <section className="card">
+              <p className="muted">{t('bidsPage.signInPrompt')}</p>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => setLoginOpen(true)}
+              >
+                {t('header.signIn')}
+              </button>
+            </section>
+          )}
 
-        {error && (
-          <section className="card error">
-            <p>{error}</p>
-            <Link href="/" className="text-link">
-              {t('bidsPage.backToProjects')}
-            </Link>
-          </section>
-        )}
+          {error && (
+            <section className="card error">
+              <p>{error}</p>
+              <Link href="/" className="text-link">
+                {t('bidsPage.backToProjects')}
+              </Link>
+            </section>
+          )}
 
-        {!loading && me && project && (
-          <>
-            <header className="project-bids-header">
-              <p className="project-bids-kicker">
-                <Link href="/" className="project-hero-back-link">
-                  {t('bidsPage.projects')}
-                </Link>
-                <span className="project-hero-kicker-sep" aria-hidden>
-                  /
-                </span>
-                <Link href={projectHref} className="project-hero-back-link">
-                  {project.title}
-                </Link>
-                <span className="project-hero-kicker-sep" aria-hidden>
-                  /
-                </span>
-                <span>{t('bidsPage.bids')}</span>
-              </p>
-              <div className="project-bids-title-row">
-                <h1 className="project-bids-title">{t('bidsPage.compareTitle')}</h1>
-                <div className="project-bids-title-actions">
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={busy || refreshing || loading}
-                    onClick={() => void loadData({ silent: true })}
-                  >
-                    {refreshing
-                      ? t('bidsPage.refreshing')
-                      : t('bidsPage.refresh')}
-                  </button>
-                  <Link
-                    href={projectHref}
-                    className="secondary project-bids-back"
-                  >
-                    {t('bidsPage.backToProject')}
+          {!loading && me && project && (
+            <>
+              <header className="project-bids-header">
+                <p className="project-bids-kicker">
+                  <Link href="/" className="project-hero-back-link">
+                    {t('bidsPage.projects')}
                   </Link>
+                  <span className="project-hero-kicker-sep" aria-hidden>
+                    /
+                  </span>
+                  <Link href={projectHref} className="project-hero-back-link">
+                    {project.title}
+                  </Link>
+                  <span className="project-hero-kicker-sep" aria-hidden>
+                    /
+                  </span>
+                  <span>{t('bidsPage.bids')}</span>
+                </p>
+                <div className="project-bids-title-row">
+                  <h1 className="project-bids-title">
+                    {t('bidsPage.compareTitle')}
+                  </h1>
+                  <div className="project-bids-title-actions">
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy || refreshing || loading}
+                      onClick={() => void loadData({ silent: true })}
+                    >
+                      {refreshing
+                        ? t('bidsPage.refreshing')
+                        : t('bidsPage.refresh')}
+                    </button>
+                    <Link
+                      href={projectHref}
+                      className="secondary project-bids-back"
+                    >
+                      {t('bidsPage.backToProject')}
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              {tender && (
-                <dl className="meta-grid tender-meta project-bids-meta">
-                  <div>
-                    <dt>{t('common.status')}</dt>
-                    <dd>{formatTenderStatus(tender.status)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('tenderCard.applications')}</dt>
-                    <dd>{tender.applicationCount ?? tender.bids.length}</dd>
-                  </div>
-                  {(tender.submittedBidCount > 0 ||
-                    comparableBids.length > 0) && (
+                {tender && (
+                  <dl className="meta-grid tender-meta project-bids-meta">
                     <div>
-                      <dt>{t('tenderCard.proposals')}</dt>
-                      <dd>
-                        {tender.submittedBidCount > 0
-                          ? tender.submittedBidCount
-                          : comparableBids.length}
-                      </dd>
+                      <dt>{t('common.status')}</dt>
+                      <dd>{formatTenderStatus(tender.status)}</dd>
                     </div>
-                  )}
-                  {tender.closesAt && (
                     <div>
-                      <dt>{t('bidsPage.closes')}</dt>
-                      <dd>{new Date(tender.closesAt).toLocaleString()}</dd>
+                      <dt>{t('tenderCard.applications')}</dt>
+                      <dd>{tender.applicationCount ?? tender.bids.length}</dd>
                     </div>
-                  )}
-                </dl>
-              )}
-            </header>
-
-            {!tender ? (
-              <section className="card">
-                <p className="muted">{t('bidsPage.noTender')}</p>
-                <Link href={projectHref} className="primary">
-                  {t('bidsPage.goToProject')}
-                </Link>
-              </section>
-            ) : (
-              <>
-                {comparableBids.length >= 2 && (
-                  <>
-                    <BidAnalysisPanel
-                      projectId={projectId}
-                      submittedBidCount={
-                        tender.submittedBidCount > 0
-                          ? tender.submittedBidCount
-                          : comparableBids.length
-                      }
-                      bidsRevision={bidsRevision}
-                    />
-                    <BidsCompareTable
-                      bids={comparableBids}
-                      ballparkMid={ballparkMid}
-                      defaultCostBreakdown={tender.defaultCostBreakdown}
-                    />
-                  </>
+                    {(tender.submittedBidCount > 0 ||
+                      comparableBids.length > 0) && (
+                      <div>
+                        <dt>{t('tenderCard.proposals')}</dt>
+                        <dd>
+                          {tender.submittedBidCount > 0
+                            ? tender.submittedBidCount
+                            : comparableBids.length}
+                        </dd>
+                      </div>
+                    )}
+                    {tender.closesAt && (
+                      <div>
+                        <dt>{t('bidsPage.closes')}</dt>
+                        <dd>{new Date(tender.closesAt).toLocaleString()}</dd>
+                      </div>
+                    )}
+                  </dl>
                 )}
+              </header>
 
-                <section className="card tender-card">
-                  <h2 className="section-title">{t('bidsPage.applicationsTitle')}</h2>
-
-                  {project?.clarificationMode === 'structured_qa' && (
-                    <ClientClarificationQuestionsPanel
-                      projectId={projectId}
-                      tenderStatus={tender.status}
-                      clarificationSummary={project.clarificationSummary}
-                      onUpdated={() => void loadData()}
-                    />
-                  )}
-
-                  {displayBids.length > 0 ? (
-                    <ul className="bid-proposal-list">
-                      {displayBids.map((bid) => (
-                        <BidApplicationCard
-                          key={bid.id}
-                          bid={bid}
-                          ballparkMid={ballparkMid}
-                          tenderStatus={tender.status}
-                          currency={tender.currency}
-                          busy={busy}
-                          currentUserId={me.id}
-                          projectId={projectId}
-                          onSelect={handleSelectBid}
-                          defaultExpanded={
-                            !tenderAwarded || bid.status === 'selected'
-                          }
-                          clientCounterOffer={{
-                            projectId,
-                            tenderOpen:
-                              tender.status === 'open' ||
-                              tender.status === 'closed',
-                            projectTitle: project?.title,
-                            projectDistrict: project?.district,
-                            projectDescription: project?.description ?? undefined,
-                            projectScopeSummary: project?.scopeSummary,
-                            projectContractTerms: tender.projectContractTerms,
-                            defaultCostBreakdown: tender.defaultCostBreakdown,
-                            onBidUpdated: handleBidUpdated,
-                          }}
-                          clarificationMode={project?.clarificationMode}
-                          onContractSigned={() => void loadData()}
-                        />
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="tender-actions-block">
-                      <p className="muted">{t('bidsPage.noApplications')}</p>
-                      <p className="muted tender-hint">
-                        {t('tenderCard.inviteFromDirectoryHint')}
-                      </p>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => setInviteModalOpen(true)}
-                      >
-                        {t('tenderCard.inviteFromDirectory')}
-                      </button>
-                    </div>
-                  )}
+              {!tender ? (
+                <section className="card">
+                  <p className="muted">{t('bidsPage.noTender')}</p>
+                  <Link href={projectHref} className="primary">
+                    {t('bidsPage.goToProject')}
+                  </Link>
                 </section>
-              </>
-            )}
-          </>
-        )}
+              ) : (
+                <>
+                  {comparableBids.length >= 2 && (
+                    <>
+                      <BidAnalysisPanel
+                        projectId={projectId}
+                        submittedBidCount={
+                          tender.submittedBidCount > 0
+                            ? tender.submittedBidCount
+                            : comparableBids.length
+                        }
+                        bidsRevision={bidsRevision}
+                      />
+                      <BidsCompareTable
+                        bids={comparableBids}
+                        ballparkMid={ballparkMid}
+                        defaultCostBreakdown={tender.defaultCostBreakdown}
+                      />
+                    </>
+                  )}
+
+                  <div className="project-bids-duo">
+                    <section className="card tender-card">
+                      <h2 className="section-title">
+                        {t('bidsPage.applicationsTitle')}
+                      </h2>
+
+                      {displayBids.length > 0 ? (
+                        <ul className="bid-proposal-list">
+                          {displayBids.map((bid) => (
+                            <BidApplicationCard
+                              key={bid.id}
+                              bid={bid}
+                              ballparkMid={ballparkMid}
+                              tenderStatus={tender.status}
+                              currency={tender.currency}
+                              busy={busy}
+                              currentUserId={me.id}
+                              projectId={projectId}
+                              onSelect={handleSelectBid}
+                              defaultExpanded={
+                                !tenderAwarded || bid.status === 'selected'
+                              }
+                              clientCounterOffer={{
+                                projectId,
+                                tenderOpen:
+                                  tender.status === 'open' ||
+                                  tender.status === 'closed',
+                                projectTitle: project?.title,
+                                projectDistrict: project?.district,
+                                projectDescription:
+                                  project?.description ?? undefined,
+                                projectScopeSummary: project?.scopeSummary,
+                                projectContractTerms:
+                                  tender.projectContractTerms,
+                                defaultCostBreakdown:
+                                  tender.defaultCostBreakdown,
+                                onBidUpdated: handleBidUpdated,
+                              }}
+                              clarificationMode={project?.clarificationMode}
+                              onContractSigned={() => void loadData()}
+                            />
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="tender-actions-block">
+                          <p className="muted">{t('bidsPage.noApplications')}</p>
+                          <p className="muted tender-hint">
+                            {t('tenderCard.inviteFromDirectoryHint')}
+                          </p>
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() => setInviteModalOpen(true)}
+                          >
+                            {t('tenderCard.inviteFromDirectory')}
+                          </button>
+                        </div>
+                      )}
+                    </section>
+
+                    {project.clarificationMode === 'structured_qa' && (
+                      <section className="card project-bids-clarifications-card">
+                        <ClientClarificationQuestionsPanel
+                          projectId={projectId}
+                          tenderStatus={tender.status}
+                          clarificationSummary={project.clarificationSummary}
+                          onUpdated={() => void loadData()}
+                        />
+                      </section>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
       </main>
 
       {inviteModalOpen && projectId && (
