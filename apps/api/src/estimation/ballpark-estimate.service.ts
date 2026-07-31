@@ -25,9 +25,13 @@ import {
   mergePreviousEstimateLines,
   resolveEstimateAreaSqm,
 } from './estimate-scope.utils';
+import { isLandscapingOrCivilAmenityNarrative } from '../ai/intake-scope-heuristics';
 
 const DISCLAIMER =
   'Ballpark estimate only — not a binding quote. Final pricing requires site visit and detailed scope review.';
+
+const BUILDING_SHELL_IMPROVEMENT_QUESTION_PATTERN =
+  /\b(storey|storeys|floors?|этаж|ชั้น|sanitary|wet\s*points?|сантех|foundation|фундамент|elevator|lift|лифт|basement|подвал)\b/i;
 
 @Injectable()
 export class BallparkEstimateService {
@@ -85,10 +89,14 @@ export class BallparkEstimateService {
         ? localeLanguageName(input.locale)
         : localeLanguageName(DEFAULT_LOCALE);
     const previousLines = input.previousLines ?? [];
+    const landscapingOrCivilAmenityOnly = isLandscapingOrCivilAmenityNarrative(
+      [input.title, input.description ?? ''].join(' '),
+    );
     const scopeRules = buildEstimateScopeRules(
       input.projectType,
       input.propertyType,
       previousLines.length > 0,
+      { landscapingOrCivilAmenityOnly },
     );
     const system = `You produce ballpark construction cost estimates for Thailand (THB).
 Return JSON: { lines, totals, confidence, disclaimer, improvementQuestions }.
@@ -358,11 +366,19 @@ ${scopeRules}`;
         row.question.trim().toLowerCase(),
       ),
     );
+    const landscapingOrCivilAmenityOnly = isLandscapingOrCivilAmenityNarrative(
+      [input.title, input.description ?? ''].join(' '),
+    );
     const improvementQuestions = Array.isArray(raw.improvementQuestions)
       ? raw.improvementQuestions
           .filter((q): q is string => typeof q === 'string')
           .map((q) => q.trim().slice(0, 280))
           .filter((q) => q.length > 0 && !answered.has(q.toLowerCase()))
+          .filter(
+            (q) =>
+              !landscapingOrCivilAmenityOnly ||
+              !BUILDING_SHELL_IMPROVEMENT_QUESTION_PATTERN.test(q),
+          )
           .slice(0, 5)
       : [];
 

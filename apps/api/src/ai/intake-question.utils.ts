@@ -1,5 +1,7 @@
 import { INTAKE_OTHER_OPTION_ID, IntakeQuestion, ProjectIntakeContext } from './intake.types';
 import {
+  BUILDING_SHELL_INTAKE_QUESTION_IDS,
+  isLandscapingOrCivilAmenityOnly,
   POOL_INTAKE_QUESTION_IDS,
   projectMentionsPool,
 } from './intake-scope-heuristics';
@@ -48,11 +50,20 @@ export function sanitizeIntakeQuestion(question: IntakeQuestion): IntakeQuestion
 }
 
 const POOL_INTAKE_QUESTION_ID_SET = new Set<string>(POOL_INTAKE_QUESTION_IDS);
+const BUILDING_SHELL_INTAKE_QUESTION_ID_SET = new Set<string>(
+  BUILDING_SHELL_INTAKE_QUESTION_IDS,
+);
 
 const POOL_PROMPT_PATTERN =
   /\b(pool|swimming\s*pool|бассейн|สระว่ายน้ำ|สระน้ำ|underwater\s*light|подводн.*свет)\b/i;
 
-/** Drop or trim pool-related questions when a pool is not in project scope. */
+const BUILDING_SHELL_PROMPT_PATTERN =
+  /\b(storey|storeys|floors?|этаж|ชั้น|sanitary|wet\s*points?|сантех|foundation\s*type|фундамент|elevator|lift|лифт|basement|подвал|smart\s*home|умн.*дом)\b/i;
+
+/**
+ * Drop or trim questions that do not match project scope
+ * (pool FAQs without a pool; building-shell FAQs on landscaping/civil amenity jobs).
+ */
 export function filterIntakeQuestionForScope(
   context: ProjectIntakeContext,
   question: IntakeQuestion | null,
@@ -72,9 +83,18 @@ export function filterIntakeQuestionForScope(
       if (options.length < 1) {
         return null;
       }
-      return { ...question, options };
+      question = { ...question, options };
     }
     if (POOL_PROMPT_PATTERN.test(question.prompt)) {
+      return null;
+    }
+  }
+
+  if (isLandscapingOrCivilAmenityOnly(context)) {
+    if (BUILDING_SHELL_INTAKE_QUESTION_ID_SET.has(question.id)) {
+      return null;
+    }
+    if (BUILDING_SHELL_PROMPT_PATTERN.test(question.prompt)) {
       return null;
     }
   }

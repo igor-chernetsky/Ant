@@ -133,22 +133,38 @@ export function buildEstimateScopeRules(
   projectType: string,
   propertyType: string | null,
   hasPreviousEstimate: boolean,
+  options?: { landscapingOrCivilAmenityOnly?: boolean },
 ): string {
   const allowed = catalogTradeSlugs().join(', ');
+  const landscapingOnly = options?.landscapingOrCivilAmenityOnly === true;
   const lines = [
     `trade on each line MUST be one of: ${allowed}. Do not invent new trade slugs.`,
     'Only include scope that is explicitly stated or clearly implied by project data and intake answers.',
-    'If a major system (elevator, pool, basement, facade access equipment) is uncertain, omit it from lines — it should be clarified in intake instead.',
-    'MEP must be priced in depth when confirmed: prefer separate lines for (1) base electrical / plumbing, (2) external utility connections, (3) specialty lighting fixtures, (4) premium water treatment / filtration — not one shallow aggregate.',
-    'Price lighting fixtures and water-supply utility connection realistically for Thailand — prefer mid-to-high of catalog bands; do not underprice networks.',
-    'Quality upgrades mentioned in description, intake answers, or amendments (chlorine-free / UV / ozone / salt treatment; specialty / underwater / designer lights) MUST increase unit prices and/or add dedicated lines. Changing only the line description without changing amounts is incorrect.',
-    'Civil / landscaping additions (paths, umbrella footings, concrete pads) and MEP quality upgrades must BOTH move totals — never ignore MEP notes while pricing concrete.',
-    'Cover confirmed MEP (electrical, plumbing) whenever wiring, lighting, fixtures, water supply, sanitary, filtration, or utility connection works are in scope.',
-    'When the client (description, amendments, intake) requests a new system — fire suppression/sprinklers, specialty MEP, or other named equipment — ADD a separate priced estimate line. Use trade fire-suppression for automatic fire extinguishing; use trade other for explicitly requested systems that are not a catalog trade. Never only mention them in description text.',
-    'Do not remap fire-suppression or other lines into finishing.',
-    'Supply/exhaust or industrial/warehouse ventilation must be priced as HVAC per sqm (roughly 1,200–3,200 THB/sqm), not as a single residential AC unit (18–45k).',
-    'Prefer a single consolidated electrical line for base wiring/board/lighting; avoid duplicate electrical rows that inflate totals.',
+    landscapingOnly
+      ? 'Primary scope is landscaping / civil amenity (path, paving, fence, yard works). Price confirmed outdoor civil/landscaping work only — do NOT invent building shell, indoor MEP, sanitary wet points, or storeys.'
+      : 'If a major system (elevator, pool, basement, facade access equipment) is uncertain, omit it from lines — it should be clarified in intake instead.',
+    landscapingOnly
+      ? 'improvementQuestions must address amenity gaps only (dimensions/width, base/site prep, materials/finish, drainage/edging, outdoor lighting if relevant). NEVER ask about building storeys, sanitary wet points, foundations of a house, or indoor plumbing.'
+      : 'MEP must be priced in depth when confirmed: prefer separate lines for (1) base electrical / plumbing, (2) external utility connections, (3) specialty lighting fixtures, (4) premium water treatment / filtration — not one shallow aggregate.',
   ];
+
+  if (!landscapingOnly) {
+    lines.push(
+      'Price lighting fixtures and water-supply utility connection realistically for Thailand — prefer mid-to-high of catalog bands; do not underprice networks.',
+      'Quality upgrades mentioned in description, intake answers, or amendments (chlorine-free / UV / ozone / salt treatment; specialty / underwater / designer lights) MUST increase unit prices and/or add dedicated lines. Changing only the line description without changing amounts is incorrect.',
+      'Civil / landscaping additions (paths, umbrella footings, concrete pads) and MEP quality upgrades must BOTH move totals — never ignore MEP notes while pricing concrete.',
+      'Cover confirmed MEP (electrical, plumbing) whenever wiring, lighting, fixtures, water supply, sanitary, filtration, or utility connection works are in scope.',
+      'When the client (description, amendments, intake) requests a new system — fire suppression/sprinklers, specialty MEP, or other named equipment — ADD a separate priced estimate line. Use trade fire-suppression for automatic fire extinguishing; use trade other for explicitly requested systems that are not a catalog trade. Never only mention them in description text.',
+      'Do not remap fire-suppression or other lines into finishing.',
+      'Supply/exhaust or industrial/warehouse ventilation must be priced as HVAC per sqm (roughly 1,200–3,200 THB/sqm), not as a single residential AC unit (18–45k).',
+      'Prefer a single consolidated electrical line for base wiring/board/lighting; avoid duplicate electrical rows that inflate totals.',
+    );
+  } else {
+    lines.push(
+      'Prefer civil/landscaping trades (and finishing only when paving/tile finishes are confirmed). Include site preparation when the ground is unprepared.',
+      'Do not add electrical/plumbing lines unless lighting or utilities are explicitly in scope.',
+    );
+  }
 
   if (hasPreviousEstimate) {
     lines.push(
@@ -158,19 +174,26 @@ export function buildEstimateScopeRules(
     );
   }
 
-  if (propertyType === 'residential') {
+  if (!landscapingOnly && propertyType === 'residential') {
     lines.push(
       'For residential projects: do NOT include elevators, lifts, podium works, or commercial-scale building services unless intake answers or description explicitly require them.',
     );
   }
 
-  if (projectType === 'new_build' && propertyType === 'residential') {
+  if (
+    !landscapingOnly &&
+    projectType === 'new_build' &&
+    propertyType === 'residential'
+  ) {
     lines.push(
       'Typical single-family new build: structural, roofing, MEP (electrical, plumbing, hvac), windows-doors, finishing — not passenger elevators unless confirmed.',
     );
   }
 
-  if (projectType === 'new_build' || projectType === 'extension') {
+  if (
+    !landscapingOnly &&
+    (projectType === 'new_build' || projectType === 'extension')
+  ) {
     lines.push(
       'For new build / extension: if intake foundation-type is set (slab, strip, piles, undecided) and is not already_exists, include foundation works in structural scope (dedicated structural line or clear foundation quantity) — do not omit foundations because they were not repeated in the free-text description.',
     );

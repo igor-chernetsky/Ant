@@ -112,6 +112,10 @@ Question object schema:
 
   private buildingSystemsIntakeRules(): string {
     return `Ask only questions relevant to the primary scope. Prefer project-specific gaps over generic building FAQs.
+Landscaping / civil amenity only (path, paving, driveway, fence, yard/garden works) — STRICT RULE:
+- If title/description is clearly a path, paving, landscaping, fence, or similar outdoor amenity WITHOUT building shell construction, NEVER ask storey-count, sanitary-points, foundation-type, special-systems (elevator/basement/smart home), or indoor plumbing/MEP building FAQs
+- Do NOT infer a house/villa build from projectType alone (new_build can mean civil works)
+- Prefer gaps for that amenity: dimensions/width, site/base preparation, materials/finish, drainage/edging, outdoor lighting only if relevant
 Swimming pool / бассейн questions — STRICT RULE:
 - NEVER ask pool-depth, pool-pump-station, pool-water-treatment, pool-lighting, or any pool-specific question unless the title, description, or uploadedDocuments explicitly mention a pool / swimming pool / бассейн
 - Retail shops, offices, warehouses, and commercial fit-out without a pool in scope: do NOT mention pools at all
@@ -123,10 +127,10 @@ For pool projects only (pool explicitly in title, description, or uploadedDocume
 - Ask water treatment (chlorine / salt / chlorine-free UV-ozone) when unknown — prefer question id "pool-water-treatment"
 - Ask pool / underwater lighting level when unknown — prefer question id "pool-lighting"
 - Also clarify dimensions, overflow type, finishes, and filtration gaps if missing
-For MEP / utilities (new build, renovation, pool, or any project with electrical/plumbing scope):
+For MEP / utilities (building new build, renovation, pool — NOT landscaping/path-only jobs):
 - Ask which external utility connections are needed — prefer question id "utility-connections" (multi)
 - Ask electrical package depth (wiring / board / fixtures / specialty lighting) — prefer question id "electrical-scope" (multi)
-For new_build / extension / commercial_fitout of buildings (not amenity-only pool jobs):
+For new_build / extension / commercial_fitout of buildings (not amenity-only pool or landscaping jobs):
 - Ask about storey count when not already clear — use id "storey-count"
 - For new_build / extension only: ask foundation type when not already clear — use id "foundation-type" (options: slab, strip, piles, already_exists, undecided). Do not assume foundations are out of scope.
 - Ask approximate sanitary wet-point count when unknown — prefer question id "sanitary-points"
@@ -176,7 +180,7 @@ Rules:
 - confidence: 0-1
 - nextQuestion: first follow-up question to clarify scope, or null if nothing needed
 - Ask at most ONE question in nextQuestion; prompt and options in ${lang}
-- Prefer practical construction questions matched to scope (for pools: depth, pump room; for buildings: area, storeys, materials)
+- Prefer practical construction questions matched to scope (for landscaping/paths: dimensions, base prep, materials; for pools: depth, pump room; for buildings: area, storeys, materials)
 ${TAG_NO_HALLUCINATION_RULES}
 ${this.buildingSystemsIntakeRules()}
 ${this.documentContextRules()}`;

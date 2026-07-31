@@ -6,6 +6,14 @@ const POOL_PATTERN =
 const BUILDING_PRIMARY_PATTERN =
   /\b(house|villa|home|apartment|condo|дом|вилл|квартир|cottage|mansion|bungalow)\b/i;
 
+/** Outdoor civil / landscaping amenity work (path, paving, fence, yard), not a building shell. */
+const LANDSCAPING_OR_CIVIL_AMENITY_PATTERN =
+  /\b(path|walkway|pav(e|ing|ed)|driveway|sidewalk|footpath|patio|decking|fence|fencing|gate|landscap|garden\s*(path|bed|work|works)?|yard\s*(path|work|works)|stone\s*(tile\s*)?path|tile\s*path|бордюр|дорожк|мощен|отмостк|забор|огражден|ландшафт|садов.*(дорож|работ)|мощен\w*|плитк\w*\s*дорож|ทางเดิน|ปูพื้น|รั้ว|ทางเท้า)\b/i;
+
+/** Explicit building construction / renovation intent (not merely mentioning a nearby house). */
+const BUILDING_CONSTRUCTION_INTENT_PATTERN =
+  /\b((build|construct|erect|строительств|постройк).{0,48}(house|villa|home|apartment|building|дом|вилл|здан)|new\s*(house|villa|home|building)|house\s*(construction|build|extension)|villa\s*(construction|build|extension)|building\s*(construction|extension)|extension|пристройк|commercial\s*fit[- ]?out|fit[- ]?out|renovat\w*.{0,40}(kitchen|bathroom|interior|house|villa|apartment)|модернизац|реконструкц.{0,24}(здан|дом|вилл)|каркас\s*дом|этажност|storey\s*count|foundation\s*(type|work)|фундамент)\b/i;
+
 const STOREY_FACT_PATTERN =
   /\b(storey|storeys|floor|floors|этаж|ชั้น)\b/i;
 
@@ -21,6 +29,9 @@ const UTILITY_CONNECTION_FACT_PATTERN =
 const ELECTRICAL_SCOPE_FACT_PATTERN =
   /\b(lighting\s*fixtures|switchboard|distribution\s*board|щит|светильник|розетк|underwater\s*light|подводн.*свет)\b/i;
 
+const PATH_LIGHTING_PATTERN =
+  /\b(path\s*light|garden\s*light|outdoor\s*light|landscape\s*light|lighting|светильник|освещен|ไฟ\s*ทางเดิน|ไฟสวน)\b/i;
+
 const WATER_TREATMENT_FACT_PATTERN =
   /\b(chlorine[- ]?free|без\s*хлор|salt\s*water|солев|uv\s*treat|озон|ozone|ultraviolet|ультрафиолет|salt\s*chlorin)\b/i;
 
@@ -32,6 +43,14 @@ export const POOL_INTAKE_QUESTION_IDS = [
   'pool-pump-station',
   'pool-water-treatment',
   'pool-lighting',
+] as const;
+
+/** Building-shell FAQs that must not appear on landscaping / civil amenity-only jobs. */
+export const BUILDING_SHELL_INTAKE_QUESTION_IDS = [
+  'storey-count',
+  'sanitary-points',
+  'foundation-type',
+  'special-systems',
 ] as const;
 
 function documentNarrative(context: ProjectIntakeContext): string {
@@ -75,6 +94,30 @@ export function intakeNarrative(context: ProjectIntakeContext): string {
     .trim();
 }
 
+/**
+ * True when source text is about outdoor civil/landscaping amenity work and does not
+ * clearly describe building shell construction (house/villa build, fit-out, etc.).
+ */
+export function isLandscapingOrCivilAmenityNarrative(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return false;
+  }
+  if (!LANDSCAPING_OR_CIVIL_AMENITY_PATTERN.test(trimmed)) {
+    return false;
+  }
+  if (BUILDING_CONSTRUCTION_INTENT_PATTERN.test(trimmed)) {
+    return false;
+  }
+  return true;
+}
+
+export function isLandscapingOrCivilAmenityOnly(
+  context: ProjectIntakeContext,
+): boolean {
+  return isLandscapingOrCivilAmenityNarrative(projectSourceNarrative(context));
+}
+
 /** True when the user explicitly confirmed a pool via special-systems. */
 export function userSelectedPoolInAnswers(
   context: ProjectIntakeContext,
@@ -102,6 +145,10 @@ export function isPoolFocusedProject(context: ProjectIntakeContext): boolean {
 
 /** True when the main job is constructing/renovating a building shell, not an amenity-only scope. */
 export function isBuildingShellPrimary(context: ProjectIntakeContext): boolean {
+  if (isLandscapingOrCivilAmenityOnly(context)) {
+    return false;
+  }
+
   const narrative = intakeNarrative(context);
   if (!isPoolFocusedProject(context)) {
     return ['new_build', 'extension', 'commercial_fitout'].includes(
@@ -215,6 +262,9 @@ export function shouldAskSpecialSystemsQuestion(
   if (projectMentionsPool(context)) {
     return false;
   }
+  if (isLandscapingOrCivilAmenityOnly(context)) {
+    return false;
+  }
   if (
     !['new_build', 'extension', 'commercial_fitout'].includes(
       context.projectType,
@@ -248,6 +298,9 @@ export function shouldAskUtilityConnectionQuestions(
   if (narrativeHasUtilityConnectionFact(context)) {
     return false;
   }
+  if (isLandscapingOrCivilAmenityOnly(context)) {
+    return false;
+  }
   return (
     isBuildingShellPrimary(context) ||
     isPoolFocusedProject(context) ||
@@ -267,6 +320,9 @@ export function shouldAskElectricalScopeQuestions(
 ): boolean {
   if (narrativeHasElectricalScopeFact(context)) {
     return false;
+  }
+  if (isLandscapingOrCivilAmenityOnly(context)) {
+    return PATH_LIGHTING_PATTERN.test(projectSourceNarrative(context));
   }
   return (
     isBuildingShellPrimary(context) ||
