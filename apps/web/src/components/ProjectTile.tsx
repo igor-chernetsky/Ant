@@ -50,7 +50,7 @@ export function ProjectTile({
   const router = useRouter();
   const { t } = useTranslation();
   const { me, refreshSession } = useSession();
-  const { formatProjectStatus, formatProjectType, formatParticipationLabel } =
+  const { formatProjectStatus, formatProjectType, formatParticipationLabel, formatTagLabel } =
     useAppFormatters();
   const [loginOpen, setLoginOpen] = useState(false);
 
@@ -149,7 +149,7 @@ export function ProjectTile({
           <p className="project-tile-participation muted">{participationLabel}</p>
         )}
         {excerpt && <p className="project-tile-description">{excerpt}</p>}
-        {project.estimate && (
+        {isOwned && project.estimate && (
           <div className="project-tile-estimate">
             <div className="project-tile-estimate-main">
               <p className="project-tile-estimate-label">
@@ -171,7 +171,7 @@ export function ProjectTile({
           <div className="project-tile-tags">
             {project.tags.slice(0, 4).map((tag) => (
               <span key={tag.slug} className="tag-pill tag-pill-ai">
-                {tag.label}
+                {formatTagLabel(tag.slug, tag.label)}
               </span>
             ))}
           </div>

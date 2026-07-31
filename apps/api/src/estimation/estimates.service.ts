@@ -11,6 +11,7 @@ import { ProjectBriefV1 } from '../projects/project-brief';
 import { buildDesignFeeEstimate } from '../projects/design-fee-estimate';
 import { BallparkEstimateService } from './ballpark-estimate.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
+import { filterImprovementQuestionsAgainstAnswers } from './estimate-scope.utils';
 import {
   EstimateLine,
   EstimateMeta,
@@ -93,6 +94,10 @@ export class EstimatesService {
     refinementAnswers: EstimateRefinementAnswer[] = [],
   ): EstimateResponse {
     const meta = parseEstimateMeta(record.metaJson);
+    const improvementQuestions = filterImprovementQuestionsAgainstAnswers(
+      meta.improvementQuestions,
+      refinementAnswers.map((row) => row.question),
+    );
     return {
       id: record.id,
       projectId: record.projectId,
@@ -102,7 +107,7 @@ export class EstimatesService {
       lines: record.linesJson as EstimateResponse['lines'],
       confidence: record.confidence,
       disclaimer: record.disclaimer,
-      improvementQuestions: meta.improvementQuestions,
+      improvementQuestions,
       refinementAnswers,
       createdAt: record.createdAt.toISOString(),
     };
@@ -111,6 +116,7 @@ export class EstimatesService {
   async getLatestForProject(
     clientId: string,
     projectId: string,
+    viewerLocale?: import('../users/locale.types').SupportedLocale,
   ): Promise<EstimateResponse | null> {
     const project = await this.assertProjectOwner(projectId, clientId);
 
@@ -119,18 +125,25 @@ export class EstimatesService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return estimate
+    const response = estimate
       ? this.toResponse(
           estimate,
           parseRefinementQa(project.estimateRefinementQaJson),
         )
       : null;
+
+    return this.applyViewerLocale(project, response, viewerLocale);
   }
 
   async refineAndRegenerate(
     clientId: string,
     projectId: string,
-    answers: Array<{ question: string; answer: string }>,
+    answers: Array<{
+      question: string;
+      answer: string;
+      questionIndex?: number;
+    }>,
+    viewerLocale?: import('../users/locale.types').SupportedLocale,
   ): Promise<EstimateResponse> {
     const project = await this.assertProjectOwner(projectId, clientId);
     if (!REFINE_ALLOWED_STATUSES.includes(project.status)) {
@@ -139,11 +152,32 @@ export class EstimatesService {
       );
     }
 
+    const latestEstimate = await this.prisma.estimate.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: 'desc' },
+      select: { metaJson: true },
+    });
+    const sourceQuestions = parseEstimateMeta(
+      latestEstimate?.metaJson,
+    ).improvementQuestions;
+
     const cleaned = answers
-      .map((row) => ({
-        question: row.question?.trim() ?? '',
-        answer: row.answer?.trim() ?? '',
-      }))
+      .map((row) => {
+        const answer = row.answer?.trim() ?? '';
+        const index =
+          typeof row.questionIndex === 'number' &&
+          Number.isInteger(row.questionIndex)
+            ? row.questionIndex
+            : undefined;
+        const sourceQuestion =
+          index != null && index >= 0 && index < sourceQuestions.length
+            ? sourceQuestions[index]
+            : row.question?.trim() ?? '';
+        return {
+          question: sourceQuestion.slice(0, 280),
+          answer: answer.slice(0, 4000),
+        };
+      })
       .filter((row) => row.question.length > 0 && row.answer.length > 0);
 
     if (cleaned.length === 0) {
@@ -159,8 +193,8 @@ export class EstimatesService {
           item.question.trim().toLowerCase() === row.question.toLowerCase(),
       );
       const next: EstimateRefinementAnswer = {
-        question: row.question.slice(0, 280),
-        answer: row.answer.slice(0, 4000),
+        question: row.question,
+        answer: row.answer,
         answeredAt: now,
       };
       if (idx >= 0) {
@@ -177,7 +211,29 @@ export class EstimatesService {
       },
     });
 
-    return this.generateAndStore(projectId);
+    const response = await this.generateAndStore(projectId);
+    return (
+      (await this.applyViewerLocale(project, response, viewerLocale)) ?? response
+    );
+  }
+
+  private async applyViewerLocale(
+    project: { id: string; sourceLocale?: string | null },
+    estimate: EstimateResponse | null,
+    viewerLocale?: import('../users/locale.types').SupportedLocale,
+  ): Promise<EstimateResponse | null> {
+    if (!estimate || !viewerLocale) {
+      return estimate;
+    }
+    const sourceLocale = normalizeSourceLocale(project.sourceLocale);
+    if (viewerLocale === sourceLocale) {
+      return estimate;
+    }
+    return this.projectLocalization.localizeEstimateFields(
+      project.id,
+      estimate,
+      viewerLocale,
+    );
   }
 
   async generateAndStore(projectId: string): Promise<EstimateResponse> {

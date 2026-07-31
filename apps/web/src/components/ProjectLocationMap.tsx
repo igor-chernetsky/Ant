@@ -31,7 +31,8 @@ function resolvePoint(
         lat: area.lat,
         lng: area.lng,
         label: area.label,
-        zoom: 13,
+        // District / neighborhood — roughly one city amphoe/khet.
+        zoom: 14,
       };
     }
   }
@@ -45,7 +46,8 @@ function resolvePoint(
     lat: region.lat,
     lng: region.lng,
     label: region.label,
-    zoom: 11,
+    // Region pin without area: still city-district scale, not metro overview.
+    zoom: 13,
   };
 }
 

@@ -923,6 +923,36 @@ export class ProjectLocalizationService implements OnModuleInit {
     });
   }
 
+  async localizeAmendments<T extends { id: string; body: string }>(
+    projectId: string,
+    amendments: T[],
+    targetLocale: SupportedLocale,
+  ): Promise<T[]> {
+    if (amendments.length === 0) {
+      return amendments;
+    }
+
+    return Promise.all(
+      amendments.map(async (row) => {
+        if (!row.body.trim()) {
+          return row;
+        }
+        const body = await this.translations.translateAndCacheTextAuto({
+          projectId,
+          fieldKey: `amendment.${row.id}.body`,
+          sourceText: row.body,
+          targetLocale,
+        });
+        return { ...row, body };
+      }),
+    );
+  }
+
+  /**
+   * Localize project payload for a viewer. Translates on cache miss so the
+   * first paint in the viewer locale is not stuck on source-language text.
+   * `cacheMiss` stays false because misses are filled synchronously.
+   */
   async localizeProjectResponse(
     project: ProjectResponse,
     sourceLocale: SupportedLocale,
@@ -933,7 +963,6 @@ export class ProjectLocalizationService implements OnModuleInit {
     }
 
     const projectId = project.id;
-    let cacheMiss = false;
 
     const readText = async (
       fieldKey: string,
@@ -942,17 +971,12 @@ export class ProjectLocalizationService implements OnModuleInit {
       if (!sourceText) {
         return sourceText ?? null;
       }
-      const cached = await this.translations.getCachedText({
+      return this.translations.translateAndCacheTextAuto({
         projectId,
         fieldKey,
         sourceText,
         targetLocale,
       });
-      if (cached == null) {
-        cacheMiss = true;
-        return sourceText;
-      }
-      return cached;
     };
 
     const title = await readText('title', project.title);
@@ -969,66 +993,21 @@ export class ProjectLocalizationService implements OnModuleInit {
 
     let brief = project.brief;
     if (brief) {
-      const localizedBrief = await this.localizeBriefFromCache(
+      brief = await this.localizeBrief(
         projectId,
         brief,
+        sourceLocale,
         targetLocale,
-        () => {
-          cacheMiss = true;
-        },
       );
-      brief = localizedBrief;
     }
 
     let estimate = project.estimate;
     if (estimate) {
-      const disclaimer =
-        (await readText('estimate.disclaimer', estimate.disclaimer ?? '')) ??
-        estimate.disclaimer;
-      const lines = await Promise.all(
-        estimate.lines.map(async (line, index) => {
-          if (!line.description) {
-            return line;
-          }
-          const description =
-            (await readText(
-              `estimate.line.${index}.description`,
-              line.description,
-            )) ?? line.description;
-          return { ...line, description };
-        }),
+      estimate = await this.localizeEstimateFields(
+        projectId,
+        estimate,
+        targetLocale,
       );
-      const improvementQuestions = await Promise.all(
-        (estimate.improvementQuestions ?? []).map(
-          async (question, index) =>
-            (await readText(
-              `estimate.improvementQuestion.${index}`,
-              question,
-            )) ?? question,
-        ),
-      );
-      const refinementAnswers = await Promise.all(
-        (estimate.refinementAnswers ?? []).map(async (row, index) => {
-          const question =
-            (await readText(
-              `estimate.refinement.${index}.question`,
-              row.question,
-            )) ?? row.question;
-          const answer =
-            (await readText(
-              `estimate.refinement.${index}.answer`,
-              row.answer,
-            )) ?? row.answer;
-          return { ...row, question, answer };
-        }),
-      );
-      estimate = {
-        ...estimate,
-        disclaimer,
-        lines,
-        improvementQuestions,
-        refinementAnswers,
-      };
     }
 
     return {
@@ -1041,100 +1020,155 @@ export class ProjectLocalizationService implements OnModuleInit {
         brief,
         estimate,
       },
-      cacheMiss,
+      cacheMiss: false,
     };
   }
 
-  private async localizeBriefFromCache(
+  async localizeEstimateFields<T extends EstimateResponse>(
+    projectId: string,
+    estimate: T,
+    targetLocale: SupportedLocale,
+  ): Promise<T> {
+    const readText = async (
+      fieldKey: string,
+      sourceText: string | null | undefined,
+    ): Promise<string | null> => {
+      if (!sourceText) {
+        return sourceText ?? null;
+      }
+      return this.translations.translateAndCacheTextAuto({
+        projectId,
+        fieldKey,
+        sourceText,
+        targetLocale,
+      });
+    };
+
+    const disclaimer =
+      (await readText('estimate.disclaimer', estimate.disclaimer ?? '')) ??
+      estimate.disclaimer;
+    const lines = await Promise.all(
+      estimate.lines.map(async (line, index) => {
+        const description = line.description
+          ? ((await readText(
+              `estimate.line.${index}.description`,
+              line.description,
+            )) ?? line.description)
+          : line.description;
+        return { ...line, description };
+      }),
+    );
+    const improvementQuestions = await Promise.all(
+      (estimate.improvementQuestions ?? []).map(
+        async (question, index) =>
+          (await readText(
+            `estimate.improvementQuestion.${index}`,
+            question,
+          )) ?? question,
+      ),
+    );
+    const refinementAnswers = await Promise.all(
+      (estimate.refinementAnswers ?? []).map(async (row, index) => {
+        const question =
+          (await readText(
+            `estimate.refinement.${index}.question`,
+            row.question,
+          )) ?? row.question;
+        const answer =
+          (await readText(
+            `estimate.refinement.${index}.answer`,
+            row.answer,
+          )) ?? row.answer;
+        return { ...row, question, answer };
+      }),
+    );
+
+    return {
+      ...estimate,
+      disclaimer,
+      lines,
+      improvementQuestions,
+      refinementAnswers,
+    };
+  }
+
+  private async localizeBrief(
     projectId: string,
     brief: ProjectBriefV1,
+    sourceLocale: SupportedLocale,
     targetLocale: SupportedLocale,
-    onMiss: () => void,
   ): Promise<ProjectBriefV1> {
     const next: ProjectBriefV1 = { ...brief };
 
-    if (brief.summary) {
-      const cached = await this.translations.getCachedText({
+    const readText = async (fieldKey: string, sourceText: string) =>
+      this.translations.translateAndCacheTextAuto({
         projectId,
-        fieldKey: 'brief.summary',
-        sourceText: brief.summary,
+        fieldKey,
+        sourceText,
         targetLocale,
       });
-      next.summary = this.resolveText(cached, brief.summary, onMiss);
+
+    if (brief.summary) {
+      next.summary = await readText('brief.summary', brief.summary);
     }
 
     if (brief.packages?.length) {
       next.packages = await Promise.all(
         brief.packages.map(async (pkg, index) => {
-          if (!pkg.description) {
-            return pkg;
-          }
-          const cached = await this.translations.getCachedText({
-            projectId,
-            fieldKey: `brief.package.${index}.description`,
-            sourceText: pkg.description,
-            targetLocale,
-          });
-          return {
-            ...pkg,
-            description: this.resolveText(cached, pkg.description, onMiss),
-          };
+          const trade = pkg.trade?.trim()
+            ? await readText(`brief.package.${index}.trade`, pkg.trade)
+            : pkg.trade;
+          const description = pkg.description?.trim()
+            ? await readText(
+                `brief.package.${index}.description`,
+                pkg.description,
+              )
+            : pkg.description;
+          return { ...pkg, trade, description };
         }),
       );
+    }
+
+    if (brief.constraints?.trim()) {
+      next.constraints = await readText('brief.constraints', brief.constraints);
     }
 
     if (brief.ai) {
       const ai = { ...brief.ai };
 
       if (ai.improvedDescription) {
-        const cached = await this.translations.getCachedText({
-          projectId,
-          fieldKey: 'brief.ai.improvedDescription',
-          sourceText: ai.improvedDescription,
-          targetLocale,
-        });
-        ai.improvedDescription = this.resolveText(
-          cached,
+        ai.improvedDescription = await readText(
+          'brief.ai.improvedDescription',
           ai.improvedDescription,
-          onMiss,
         );
       }
 
       if (ai.documentInsights?.length) {
         ai.documentInsights = await Promise.all(
           ai.documentInsights.map(async (insight) => {
-            const summaryCached = await this.translations.getCachedText({
-              projectId,
-              fieldKey: `insight.${insight.documentId}.summary`,
-              sourceText: insight.summary,
-              targetLocale,
-            });
-            const summary = this.resolveText(summaryCached, insight.summary, onMiss);
+            const summary = await readText(
+              `insight.${insight.documentId}.summary`,
+              insight.summary,
+            );
 
             let keyFacts = insight.keyFacts;
             if (keyFacts?.length) {
               keyFacts = await Promise.all(
-                keyFacts.map(async (fact, factIndex) => {
-                  const cached = await this.translations.getCachedText({
-                    projectId,
-                    fieldKey: `insight.${insight.documentId}.keyFact.${factIndex}`,
-                    sourceText: fact,
-                    targetLocale,
-                  });
-                  return this.resolveText(cached, fact, onMiss);
-                }),
+                keyFacts.map(async (fact, factIndex) =>
+                  readText(
+                    `insight.${insight.documentId}.keyFact.${factIndex}`,
+                    fact,
+                  ),
+                ),
               );
             }
 
             let omittedNote = insight.omittedNote;
             if (omittedNote) {
-              const cached = await this.translations.getCachedText({
-                projectId,
-                fieldKey: `insight.${insight.documentId}.omittedNote`,
-                sourceText: omittedNote,
-                targetLocale,
-              });
-              omittedNote = this.resolveText(cached, omittedNote, onMiss);
+              omittedNote = await readText(
+                `insight.${insight.documentId}.omittedNote`,
+                omittedNote,
+              );
             }
 
             return { ...insight, summary, keyFacts, omittedNote };
@@ -1143,19 +1177,17 @@ export class ProjectLocalizationService implements OnModuleInit {
       }
 
       if (ai.intake?.currentQuestion) {
-        const cached =
-          await this.translations.getCachedJson<IntakeQuestion>({
+        const currentQuestion =
+          await this.translations.translateAndCacheJson<IntakeQuestion>({
             projectId,
             fieldKey: `intake.question.${ai.intake.currentQuestion.id}`,
             sourceValue: ai.intake.currentQuestion,
+            sourceLocale,
             targetLocale,
           });
-        if (cached == null) {
-          onMiss();
-        }
         ai.intake = {
           ...ai.intake,
-          currentQuestion: cached ?? ai.intake.currentQuestion,
+          currentQuestion,
         };
       }
 
@@ -1163,18 +1195,6 @@ export class ProjectLocalizationService implements OnModuleInit {
     }
 
     return next;
-  }
-
-  private resolveText(
-    cached: string | null,
-    fallback: string,
-    onMiss: () => void,
-  ): string {
-    if (cached == null) {
-      onMiss();
-      return fallback;
-    }
-    return cached;
   }
 }
 
@@ -1197,7 +1217,9 @@ export function collectTranslatableFields(
   const brief = project.brief;
   if (brief) {
     addText('brief.summary', brief.summary);
+    addText('brief.constraints', brief.constraints);
     brief.packages?.forEach((pkg, index) => {
+      addText(`brief.package.${index}.trade`, pkg.trade);
       addText(`brief.package.${index}.description`, pkg.description);
     });
 

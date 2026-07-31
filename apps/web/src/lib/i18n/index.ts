@@ -11,6 +11,8 @@ export {
   formatProjectStatus,
   formatProjectType,
   formatPropertyType,
+  formatTagGroupLabel,
+  formatTagLabel,
   formatTenderStatus,
   formatVerificationStatus,
   getContractSigningHeadline,

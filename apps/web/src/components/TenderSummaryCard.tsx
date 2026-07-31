@@ -246,6 +246,9 @@ export function TenderSummaryCard({
               projectId={projectId}
               enabled={canPublish}
               tagKey={tagKey}
+              audience={
+                project.projectType === 'design' ? 'designer' : 'contractor'
+              }
             />
             <button
               type="button"
@@ -374,6 +377,9 @@ export function TenderSummaryCard({
                 projectId={projectId}
                 enabled={canPublish}
                 tagKey={tagKey}
+                audience={
+                  project.projectType === 'design' ? 'designer' : 'contractor'
+                }
               />
               <button
                 type="button"

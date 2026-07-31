@@ -6,28 +6,37 @@ import {
   type ContractorCoveragePreview,
 } from '@/lib/tendering';
 import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 
 interface ContractorCoverageNoticeProps {
   projectId: string;
   enabled: boolean;
   tagKey?: string;
+  /** Design & Permits projects address designers, not contractors. */
+  audience?: 'contractor' | 'designer';
 }
 
-function formatTagList(tags: ContractorCoveragePreview['projectTags']): string {
-  return tags.map((tag) => tag.label).join(', ');
+function formatTagList(
+  tags: ContractorCoveragePreview['projectTags'],
+  formatTagLabel: (slug: string, fallback?: string | null) => string,
+): string {
+  return tags.map((tag) => formatTagLabel(tag.slug, tag.label)).join(', ');
 }
 
 export function ContractorCoverageNotice({
   projectId,
   enabled,
   tagKey = '',
+  audience = 'contractor',
 }: ContractorCoverageNoticeProps) {
   const { t } = useTranslation();
+  const { formatTagLabel } = useAppFormatters();
   const [coverage, setCoverage] = useState<ContractorCoveragePreview | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isDesign = audience === 'designer';
 
   useEffect(() => {
     if (!enabled) {
@@ -51,7 +60,7 @@ export function ContractorCoverageNotice({
           setError(
             err instanceof Error
               ? err.message
-              : t('coverage.loadFailed'),
+              : t(isDesign ? 'coverage.loadFailedDesign' : 'coverage.loadFailed'),
           );
         }
       })
@@ -64,7 +73,7 @@ export function ContractorCoverageNotice({
     return () => {
       cancelled = true;
     };
-  }, [enabled, projectId, tagKey, t]);
+  }, [enabled, projectId, tagKey, t, isDesign]);
 
   if (!enabled) {
     return null;
@@ -73,7 +82,7 @@ export function ContractorCoverageNotice({
   if (loading) {
     return (
       <p className="muted contractor-coverage-notice contractor-coverage-loading">
-        {t('coverage.loading')}
+        {t(isDesign ? 'coverage.loadingDesign' : 'coverage.loading')}
       </p>
     );
   }
@@ -82,11 +91,11 @@ export function ContractorCoverageNotice({
     return null;
   }
 
-  const tagList = formatTagList(coverage.projectTags);
-  const contractorLabel =
+  const tagList = formatTagList(coverage.projectTags, formatTagLabel);
+  const professionalLabel =
     coverage.contractorCount === 1
-      ? t('coverage.contractor_one')
-      : t('coverage.contractor_other');
+      ? t(isDesign ? 'coverage.designer_one' : 'coverage.contractor_one')
+      : t(isDesign ? 'coverage.designer_other' : 'coverage.contractor_other');
 
   if (coverage.suggestSplitProject) {
     return (
@@ -98,10 +107,13 @@ export function ContractorCoverageNotice({
           {t('coverage.noCoverageTitle', { location: coverage.locationLabel })}
         </p>
         <p className="contractor-coverage-notice-text">
-          {t('coverage.noCoverageText', {
-            count: coverage.projectTags.length,
-            tags: tagList ? ` (${tagList})` : '',
-          })}
+          {t(
+            isDesign ? 'coverage.noCoverageTextDesign' : 'coverage.noCoverageText',
+            {
+              count: coverage.projectTags.length,
+              tags: tagList ? ` (${tagList})` : '',
+            },
+          )}
         </p>
       </div>
     );
@@ -113,7 +125,7 @@ export function ContractorCoverageNotice({
         <p className="contractor-coverage-notice-text">
           {t('coverage.locationMatch', {
             count: coverage.contractorCount,
-            contractors: contractorLabel,
+            contractors: professionalLabel,
             location: coverage.locationLabel,
           })}
         </p>
@@ -126,7 +138,7 @@ export function ContractorCoverageNotice({
       <p className="contractor-coverage-notice-text">
         {t('coverage.coversAll', {
           count: coverage.contractorCount,
-          contractors: contractorLabel,
+          contractors: professionalLabel,
           location: coverage.locationLabel,
           verb:
             coverage.contractorCount === 1

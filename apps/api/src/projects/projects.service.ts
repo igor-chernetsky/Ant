@@ -691,9 +691,15 @@ export class ProjectsService {
     viewer?: DiscoverViewerContext,
   ): Promise<PublicProjectCard[]> {
     const projectIds = projects.map((p) => p.id);
+    // Ballpark is client-private: only include totals for projects the viewer owns.
+    const estimateProjectIds = viewer?.userId
+      ? projects
+          .filter((project) => project.clientId === viewer.userId)
+          .map((project) => project.id)
+      : [];
     const [coverByProject, estimateByProject] = await Promise.all([
       this.loadCoverUrls(projectIds),
-      this.loadEstimateSummaries(projectIds),
+      this.loadEstimateSummaries(estimateProjectIds),
     ]);
 
     return Promise.all(
@@ -720,6 +726,9 @@ export class ProjectsService {
           slug: t.slug,
           label: t.label,
         }));
+        const isOwner = Boolean(
+          viewer?.userId && project.clientId === viewer.userId,
+        );
 
         return {
           id: project.id,
@@ -741,7 +750,9 @@ export class ProjectsService {
             this.shouldShowApplicationDeadlineWarning(project) &&
             this.isApplicationsDeadlinePassedForProject(project),
           canOpenDetail,
-          estimate: estimateByProject.get(project.id) ?? null,
+          estimate: isOwner
+            ? (estimateByProject.get(project.id) ?? null)
+            : null,
         };
       }),
     );

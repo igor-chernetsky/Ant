@@ -21,6 +21,7 @@ import {
   buildEstimateUserContext,
   collectEstimateNarrative,
   filterEstimateLines,
+  filterImprovementQuestionsAgainstAnswers,
   finalizeEstimateLines,
   mergePreviousEstimateLines,
   resolveEstimateAreaSqm,
@@ -103,7 +104,8 @@ Return JSON: { lines, totals, confidence, disclaimer, improvementQuestions }.
 Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lineMin, lineMax }.
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
 confidence: number 0–1 reflecting how complete and certain the priced scope is.
-improvementQuestions: 0–5 short questions (in ${lang}) that would most improve confidence if answered. Empty array when confidence is already high or nothing material is missing. Do not repeat questions already answered in estimateRefinementQa.
+improvementQuestions: 0–5 short questions (in ${lang}) that would most improve confidence if answered. Empty array when confidence is already high or nothing material is missing.
+CRITICAL: Do not repeat or rephrase questions already answered in estimateRefinementQa. If a topic+space was already covered (e.g. office finishing, warehouse lighting, plumbing), do not ask again with wording like "exact requirements" or "additional requirements". Prefer a genuinely new gap only; otherwise return [].
 Do NOT invent priced scope for unanswered gaps — put that uncertainty into improvementQuestions and keep confidence lower.
 When regenerating with previousEstimate and/or estimateRefinementQa, retain still-confirmed trades/lines unless answers change them; never drop confirmed scope.
 Use regional reference prices as guidance; prefer mid-to-high of catalog bands for MEP networks, lighting fixtures, utility connections, and premium treatment systems.
@@ -111,6 +113,7 @@ Include 5-16 lines covering the FULL confirmed scope (base construction + detail
 When the client requests fire suppression / sprinklers or other named specialty systems, include a dedicated line (trade fire-suppression or other) — never description-only.
 Supply/exhaust or warehouse/production ventilation: price HVAC per sqm (~1,200–3,200 THB/sqm), not as one residential AC unit.
 Prefer one consolidated electrical line for base wiring/board/lighting — do not stack duplicate electrical rows.
+For sqm trades (structural, roofing, flooring, warehouse HVAC): quantity MUST be building GFA (resolvedAreaSqm), never 1 and never building height in metres. Height/storeys may raise unit rates, not replace area as quantity.
 lineMin/lineMax must equal quantity * unitPriceMin/Max (rounded).
 Obey pricingDirectives and premiumScopeSignals in the user payload — they must change amounts, not only wording.
 When clarificationQa or clarificationSummary is present, treat that as new pricing-relevant scope and revise MEP/network lines upward when they add utilities, lighting, treatment, or connection works.
@@ -361,26 +364,27 @@ ${scopeRules}`;
     }).map(normalizeLineAmounts);
 
     const totals = computeTotals(lines);
-    const answered = new Set(
-      (input.estimateRefinementQa ?? []).map((row) =>
-        row.question.trim().toLowerCase(),
-      ),
+    const answeredQuestions = (input.estimateRefinementQa ?? []).map(
+      (row) => row.question,
     );
     const landscapingOrCivilAmenityOnly = isLandscapingOrCivilAmenityNarrative(
       [input.title, input.description ?? ''].join(' '),
     );
-    const improvementQuestions = Array.isArray(raw.improvementQuestions)
+    const rawImprovementQuestions = Array.isArray(raw.improvementQuestions)
       ? raw.improvementQuestions
           .filter((q): q is string => typeof q === 'string')
           .map((q) => q.trim().slice(0, 280))
-          .filter((q) => q.length > 0 && !answered.has(q.toLowerCase()))
+          .filter((q) => q.length > 0)
           .filter(
             (q) =>
               !landscapingOrCivilAmenityOnly ||
               !BUILDING_SHELL_IMPROVEMENT_QUESTION_PATTERN.test(q),
           )
-          .slice(0, 5)
       : [];
+    const improvementQuestions = filterImprovementQuestionsAgainstAnswers(
+      rawImprovementQuestions,
+      answeredQuestions,
+    ).slice(0, 5);
 
     return {
       lines,

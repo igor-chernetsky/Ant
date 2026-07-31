@@ -32,6 +32,7 @@ export interface PublicProjectCard {
   updatedAt: string;
   applicationsDeadlinePassed?: boolean;
   canOpenDetail?: boolean;
+  /** Ballpark — only present for the owning client. */
   estimate?: PublicProjectEstimateSummary | null;
 }
 

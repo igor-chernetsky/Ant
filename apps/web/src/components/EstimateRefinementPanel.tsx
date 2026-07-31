@@ -40,8 +40,9 @@ export function EstimateRefinementPanel({
     if (!canRefine || submitting) return;
 
     const payload = questions
-      .map((question) => ({
+      .map((question, questionIndex) => ({
         question,
+        questionIndex,
         answer: (answers[question] ?? '').trim(),
       }))
       .filter((row) => row.answer.length > 0);

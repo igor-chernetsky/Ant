@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import type { Project } from '@/lib/projects';
 import { fetchProject } from '@/lib/projects';
 import {
@@ -20,6 +21,7 @@ interface IntakeWizardProps {
 
 export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
   const { t } = useTranslation();
+  const { formatTagLabel } = useAppFormatters();
   const intake = project.brief?.ai?.intake;
   const question = intake?.currentQuestion
     ? sanitizeIntakeQuestion(intake.currentQuestion)
@@ -175,7 +177,7 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
                 key={tag.slug}
                 className={`tag-pill ${tag.source === 'ai' ? 'tag-pill-ai' : 'tag-pill-client'}`}
               >
-                {tag.label}
+                {formatTagLabel(tag.slug, tag.label)}
               </span>
             ))}
           </div>

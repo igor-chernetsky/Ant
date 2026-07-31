@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 
 interface TradeTagPickerProps {
   tags: Array<{
@@ -21,11 +22,12 @@ export function TradeTagPicker({
   disabled = false,
 }: TradeTagPickerProps) {
   const { t } = useTranslation();
+  const { formatTagLabel, formatTagGroupLabel } = useAppFormatters();
   const groups = tags.reduce<
     Map<string, { label: string; items: typeof tags }>
   >((acc, tag) => {
     const key = tag.groupSlug ?? 'other';
-    const label = tag.groupLabel ?? t('common.other');
+    const label = formatTagGroupLabel(tag.groupSlug, tag.groupLabel);
     const group = acc.get(key) ?? { label, items: [] };
     group.items.push(tag);
     acc.set(key, group);
@@ -62,7 +64,7 @@ export function TradeTagPicker({
                   disabled={disabled}
                   onClick={() => toggle(tag.slug)}
                 >
-                  {tag.label}
+                  {formatTagLabel(tag.slug, tag.label)}
                 </button>
               );
             })}

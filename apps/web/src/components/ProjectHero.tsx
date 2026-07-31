@@ -50,7 +50,7 @@ export function ProjectHeroSidebar({
   'project' | 'estimateMidAmountThb' | 'tags' | 'showTags' | 'tagsHint'
 >) {
   const { t, locale } = useTranslation();
-  const { formatProjectStatus } = useAppFormatters();
+  const { formatProjectStatus, formatTagLabel } = useAppFormatters();
   const isDesignTrack = project.projectType === 'design';
 
   return (
@@ -99,7 +99,7 @@ export function ProjectHeroSidebar({
                     : t('projectHero.tagSuggestedByAi')
                 }
               >
-                {tag.label}
+                {formatTagLabel(tag.slug, tag.label)}
               </span>
             ))}
           </div>

@@ -41,6 +41,16 @@ const HEAVY_ELECTRICAL_LOAD_PATTERN =
 export const INDUSTRIAL_HVAC_SQM_MIN = 1200;
 export const INDUSTRIAL_HVAC_SQM_MAX = 3200;
 
+/**
+ * Warehouse / light-industrial electrical (lighting, sockets, small boards)
+ * without heavy process equipment — far below residential fit-out bands.
+ */
+export const WAREHOUSE_ELECTRICAL_SQM_MIN = 550;
+export const WAREHOUSE_ELECTRICAL_SQM_MAX = 1600;
+
+/** Shell trades that must be priced on GFA, never as qty=1 catalog lumps. */
+const SQM_SHELL_TRADES = new Set(['structural', 'roofing', 'flooring']);
+
 const APPROX_AREA_BUCKET_SQM: Record<string, number> = {
   'under-30': 25,
   '30-80': 55,
@@ -556,6 +566,13 @@ export function wantsIndustrialVentilation(narrative: string): boolean {
   );
 }
 
+function warehouseLikeForPricing(narrative: string): boolean {
+  return (
+    WAREHOUSE_OR_PRODUCTION_PATTERN.test(narrative) &&
+    !HEAVY_ELECTRICAL_LOAD_PATTERN.test(narrative)
+  );
+}
+
 /**
  * Reprice under-costed unit HVAC when industrial supply/exhaust ventilation is in scope.
  */
@@ -631,7 +648,90 @@ export function normalizeIndustrialHvacLines(input: {
 }
 
 /**
- * Merge duplicate electrical rows and cap totals for non-heavy industrial scope.
+ * AI sometimes returns shell trades as qty=1 × catalog unit rates after a
+ * height/geometry answer (e.g. structural 2,500–5,500 THB total). Rescale to GFA.
+ */
+export function normalizeUnderpricedSqmShellLines(input: {
+  lines: EstimateLine[];
+  areaSqm: number;
+}): EstimateLine[] {
+  const areaSqm = Math.max(20, input.areaSqm);
+
+  return input.lines.map((line) => {
+    if (!SQM_SHELL_TRADES.has(line.trade)) {
+      return line;
+    }
+
+    const catalog = TH_REGIONAL_CATALOG.find((item) => item.trade === line.trade);
+    if (!catalog || catalog.unit !== 'sqm') {
+      return line;
+    }
+
+    const catalogMin = catalog.priceMinThb;
+    const catalogMax = catalog.priceMaxThb;
+    const floorTotal = Math.round(catalogMin * areaSqm * 0.45);
+    const looksLikeUnitLump =
+      line.quantity <= 5 ||
+      (line.unit !== 'sqm' && line.quantity < areaSqm * 0.25) ||
+      line.lineMax < floorTotal ||
+      (line.unit === 'sqm' &&
+        line.quantity < areaSqm * 0.25 &&
+        line.lineMax <= catalogMax * 3);
+
+    if (!looksLikeUnitLump) {
+      // Still enforce quantity ≈ area when unit is sqm but qty drifted to height (e.g. 6–12).
+      if (
+        line.unit === 'sqm' &&
+        line.quantity > 0 &&
+        line.quantity < areaSqm * 0.25 &&
+        line.quantity <= 30
+      ) {
+        const unitPriceMin = Math.min(
+          catalogMax,
+          Math.max(catalogMin, line.unitPriceMin || catalogMin),
+        );
+        const unitPriceMax = Math.max(
+          unitPriceMin,
+          Math.min(catalogMax * 1.15, line.unitPriceMax || catalogMax),
+        );
+        return {
+          ...line,
+          quantity: areaSqm,
+          unit: 'sqm',
+          unitPriceMin,
+          unitPriceMax,
+          lineMin: Math.round(unitPriceMin * areaSqm),
+          lineMax: Math.round(unitPriceMax * areaSqm),
+        };
+      }
+      return line;
+    }
+
+    const unitPriceMin = Math.min(
+      catalogMax,
+      Math.max(catalogMin, line.unitPriceMin || catalogMin),
+    );
+    const unitPriceMax = Math.max(
+      unitPriceMin,
+      Math.min(catalogMax * 1.15, line.unitPriceMax || catalogMax),
+    );
+
+    return {
+      ...line,
+      quantity: areaSqm,
+      unit: 'sqm',
+      unitPriceMin,
+      unitPriceMax,
+      lineMin: Math.round(unitPriceMin * areaSqm),
+      lineMax: Math.round(unitPriceMax * areaSqm),
+    };
+  });
+}
+
+/**
+ * Merge duplicate electrical rows and apply band caps.
+ * Warehouse/light-industrial without heavy process load uses a much lower
+ * ฿/sqm band than residential fit-out (catalog 2,200–6,500).
  */
 export function dedupeAndCapElectricalLines(input: {
   lines: EstimateLine[];
@@ -649,6 +749,17 @@ export function dedupeAndCapElectricalLines(input: {
   const catalogMax = catalog?.priceMaxThb ?? 6500;
   const catalogMin = catalog?.priceMinThb ?? 2200;
 
+  const heavyLoad = HEAVY_ELECTRICAL_LOAD_PATTERN.test(input.narrative);
+  const warehouseLike =
+    WAREHOUSE_OR_PRODUCTION_PATTERN.test(input.narrative) && !heavyLoad;
+
+  const bandMin = warehouseLike ? WAREHOUSE_ELECTRICAL_SQM_MIN : catalogMin;
+  const bandMax = warehouseLike
+    ? WAREHOUSE_ELECTRICAL_SQM_MAX
+    : heavyLoad
+      ? catalogMax * 1.5
+      : catalogMax * 1.25;
+
   const descriptions = [
     ...new Set(
       electrical
@@ -662,42 +773,46 @@ export function dedupeAndCapElectricalLines(input: {
       line.unit === 'sqm' && line.quantity > 0 ? line.quantity : areaSqm,
     ),
   );
-  let unitPriceMin = Math.max(
-    catalogMin,
-    ...electrical.map((line) => line.unitPriceMin),
-  );
-  let unitPriceMax = Math.max(
-    unitPriceMin,
-    ...electrical.map((line) => line.unitPriceMax),
-  );
-  let lineMin = Math.max(...electrical.map((line) => line.lineMin));
-  let lineMax = Math.max(...electrical.map((line) => line.lineMax));
 
-  // Prefer sqm-consistent amounts when quantity looks like area.
-  if (quantity >= 20) {
-    lineMin = Math.max(lineMin, Math.round(unitPriceMin * quantity));
-    lineMax = Math.max(lineMax, Math.round(unitPriceMax * quantity));
+  const modelMin = Math.min(...electrical.map((line) => line.unitPriceMin));
+  const modelMax = Math.max(...electrical.map((line) => line.unitPriceMax));
+
+  let unitPriceMin: number;
+  let unitPriceMax: number;
+
+  if (warehouseLike) {
+    // Pull residential-scale model rates down into the warehouse band.
+    const rawMin = Number.isFinite(modelMin) ? modelMin : bandMin;
+    const rawMax = Number.isFinite(modelMax) ? modelMax : bandMax;
+    unitPriceMin = Math.max(bandMin, Math.min(bandMax, rawMin));
+    unitPriceMax = Math.max(unitPriceMin, Math.min(bandMax, rawMax));
+    if (rawMin > bandMax * 1.2 || rawMax > bandMax * 1.2) {
+      unitPriceMin = bandMin;
+      unitPriceMax = bandMax;
+    }
+  } else {
+    unitPriceMin = Math.max(bandMin, Number.isFinite(modelMin) ? modelMin : bandMin);
+    unitPriceMax = Math.max(
+      unitPriceMin,
+      Math.min(bandMax, Number.isFinite(modelMax) ? modelMax : bandMax),
+    );
   }
 
-  const heavyLoad = HEAVY_ELECTRICAL_LOAD_PATTERN.test(input.narrative);
-  const warehouseLike =
-    WAREHOUSE_OR_PRODUCTION_PATTERN.test(input.narrative) && !heavyLoad;
-  const capPerSqm = heavyLoad
-    ? catalogMax * 1.5
-    : warehouseLike
-      ? catalogMax * 1.05
-      : catalogMax * 1.25;
-  const capMax = Math.round(capPerSqm * areaSqm);
-  const capMin = Math.round(
-    Math.min(catalogMin * 1.1, catalogMax * 0.55) * areaSqm,
-  );
+  let lineMin = Math.round(unitPriceMin * quantity);
+  let lineMax = Math.round(unitPriceMax * quantity);
+  const capMax = Math.round(bandMax * areaSqm);
+  const capMin = Math.round(bandMin * areaSqm);
 
   if (lineMax > capMax) {
     lineMax = capMax;
     unitPriceMax = Math.round(capMax / quantity);
   }
+  if (lineMin < capMin) {
+    lineMin = capMin;
+    unitPriceMin = Math.round(lineMin / quantity);
+  }
   if (lineMin > lineMax) {
-    lineMin = Math.min(lineMax, Math.max(capMin, Math.round(lineMax * 0.7)));
+    lineMin = Math.round(lineMax * 0.7);
     unitPriceMin = Math.round(lineMin / quantity);
   }
 
@@ -713,7 +828,7 @@ export function dedupeAndCapElectricalLines(input: {
       unit: 'sqm',
       unitPriceMin,
       unitPriceMax: Math.max(unitPriceMin, unitPriceMax),
-      lineMin,
+      lineMin: Math.min(lineMin, lineMax),
       lineMax: Math.max(lineMin, lineMax),
     },
   ];
@@ -739,9 +854,13 @@ export function finalizeEstimateLines(input: {
     narrative: input.narrative,
     areaSqm,
   });
+  const shellNormalized = normalizeUnderpricedSqmShellLines({
+    lines: hvacNormalized,
+    areaSqm,
+  });
   const signals = detectPremiumScopeSignals(input.narrative);
   const premiumAdjusted = applyPremiumScopePriceAdjustments(
-    hvacNormalized,
+    shellNormalized,
     signals,
   );
   return dedupeAndCapElectricalLines({
@@ -782,8 +901,13 @@ export function buildEstimateUserContext(input: {
     );
   }
   pricingDirectives.push(
-    `Use resolvedAreaSqm=${areaSqm} for sqm-based trades when brief.property.areaSqm is missing.`,
+    `Use resolvedAreaSqm=${areaSqm} as quantity for structural, roofing, flooring, and other sqm shell trades. Never use building height (metres) or quantity=1 for those trades.`,
   );
+  if (warehouseLikeForPricing(narrative)) {
+    pricingDirectives.push(
+      `Warehouse/light-industrial electrical without heavy process equipment: price ~${WAREHOUSE_ELECTRICAL_SQM_MIN}–${WAREHOUSE_ELECTRICAL_SQM_MAX} THB/sqm (lighting/sockets/boards), not residential fit-out rates.`,
+    );
+  }
 
   return {
     project: {
@@ -1053,4 +1177,242 @@ export function applyPremiumScopePriceAdjustments(
   }
 
   return next;
+}
+
+const IMPROVEMENT_QUESTION_STOPWORDS = new Set([
+  'a',
+  'an',
+  'the',
+  'and',
+  'or',
+  'of',
+  'to',
+  'for',
+  'in',
+  'on',
+  'at',
+  'is',
+  'are',
+  'any',
+  'what',
+  'which',
+  'how',
+  'with',
+  'from',
+  'about',
+  'exact',
+  'additional',
+  'requirements',
+  'requirement',
+  'required',
+  'please',
+  'need',
+  'needed',
+  'type',
+  'types',
+  'каковы',
+  'какой',
+  'какая',
+  'какие',
+  'есть',
+  'ли',
+  'для',
+  'к',
+  'и',
+  'в',
+  'на',
+  'по',
+  'с',
+  'от',
+  'из',
+  'это',
+  'эти',
+  'нужно',
+  'нужны',
+  'требуется',
+  'требуются',
+  'точные',
+  'точный',
+  'дополнительные',
+  'дополнительный',
+  'требования',
+  'требование',
+  'тип',
+  'типы',
+]);
+
+/**
+ * Topic groups: a candidate is redundant if it and an answered question
+ * both match every pattern in the same group (e.g. office finishing).
+ * Space-qualified finishing is split so office ≠ warehouse.
+ */
+const IMPROVEMENT_TOPIC_GROUPS: RegExp[][] = [
+  [/отделк|finish(?:ing)?|fit[- ]?out|interior\s*fit/i, /офис|office/i],
+  [
+    /отделк|finish(?:ing)?|fit[- ]?out|interior\s*fit/i,
+    /склад|warehouse|storage|остальн/i,
+  ],
+  [
+    /сантехн|plumbing|водоснаб|канализ|drainage|sewer|wet\s*point|сануз|bathroom|toilet/i,
+  ],
+  [
+    /электр|electrical|освещен|lighting|wiring|socket|розет|проводк|fluorescent|светильник/i,
+  ],
+  [/hvac|вентил|кондиц|ventilation|air[- ]?cond|климат/i],
+  [/пожарн|fire[- ]?suppress|sprinkler|fire[- ]?alarm/i],
+  [/крыш|roof|кровл/i],
+  [/пол|floor(?:ing)?|стяжк/i],
+  [/фасад|facade|façade|exterior\s*wall/i],
+];
+
+const IMPROVEMENT_SPACE_MARKERS: Array<{ id: string; pattern: RegExp }> = [
+  { id: 'office', pattern: /офис|office/i },
+  { id: 'warehouse', pattern: /склад|warehouse|storage|остальн/i },
+];
+
+function improvementSpaceIds(question: string): string[] {
+  return IMPROVEMENT_SPACE_MARKERS.filter((marker) =>
+    marker.pattern.test(question),
+  ).map((marker) => marker.id);
+}
+
+/** True when both questions name distinct spaces (office vs warehouse). */
+function improvementQuestionsConflictOnSpace(a: string, b: string): boolean {
+  const spacesA = improvementSpaceIds(a);
+  const spacesB = improvementSpaceIds(b);
+  if (spacesA.length === 0 || spacesB.length === 0) {
+    return false;
+  }
+  return !spacesA.some((id) => spacesB.includes(id));
+}
+
+function stemImprovementToken(token: string): string {
+  return token
+    .replace(
+      /(иями|ями|ами|иях|ях|ием|ем|ов|ев|ах|ям|ом|ой|ый|ий|ая|ое|ые|ие|ию|ью|ии|ыми|ими|ы|и|а|у|е|о|я|ю)$/u,
+      '',
+    )
+    .replace(/(ings|ing|tions|tion|ments|ment|ies|ied|es|s)$/i, '');
+}
+
+function improvementQuestionTokens(question: string): Set<string> {
+  const normalized = question
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const tokens = new Set<string>();
+  for (const raw of normalized.split(' ')) {
+    if (!raw || raw.length < 3 || IMPROVEMENT_QUESTION_STOPWORDS.has(raw)) {
+      continue;
+    }
+    const stemmed = stemImprovementToken(raw);
+    if (stemmed.length >= 3 && !IMPROVEMENT_QUESTION_STOPWORDS.has(stemmed)) {
+      tokens.add(stemmed);
+    }
+  }
+  return tokens;
+}
+
+function improvementTokenOverlap(
+  a: Set<string>,
+  b: Set<string>,
+): { jaccard: number; recall: number } {
+  if (a.size === 0 || b.size === 0) {
+    return { jaccard: 0, recall: 0 };
+  }
+  let intersection = 0;
+  for (const token of a) {
+    if (b.has(token)) intersection += 1;
+  }
+  const union = a.size + b.size - intersection;
+  return {
+    jaccard: union === 0 ? 0 : intersection / union,
+    recall: intersection / Math.min(a.size, b.size),
+  };
+}
+
+function matchesImprovementTopicGroup(
+  question: string,
+  patterns: RegExp[],
+): boolean {
+  return patterns.every((pattern) => pattern.test(question));
+}
+
+function sharesImprovementTopic(a: string, b: string): boolean {
+  if (improvementQuestionsConflictOnSpace(a, b)) {
+    return false;
+  }
+  return IMPROVEMENT_TOPIC_GROUPS.some(
+    (patterns) =>
+      matchesImprovementTopicGroup(a, patterns) &&
+      matchesImprovementTopicGroup(b, patterns),
+  );
+}
+
+/**
+ * Drop improvement questions that repeat already-answered topics,
+ * including paraphrases ("exact requirements", "additional…", etc.).
+ */
+export function filterImprovementQuestionsAgainstAnswers(
+  candidates: string[],
+  answeredQuestions: string[],
+): string[] {
+  if (candidates.length === 0) {
+    return [];
+  }
+
+  const answeredExact = new Set(
+    answeredQuestions
+      .map((q) => q.trim().toLowerCase())
+      .filter((q) => q.length > 0),
+  );
+  const answeredTokens = answeredQuestions
+    .map((q) => ({ question: q, tokens: improvementQuestionTokens(q) }))
+    .filter((row) => row.tokens.size > 0);
+
+  const kept: string[] = [];
+  const keptTokens: Array<Set<string>> = [];
+
+  for (const raw of candidates) {
+    const question = raw.trim();
+    if (!question) continue;
+
+    const lower = question.toLowerCase();
+    if (answeredExact.has(lower)) continue;
+
+    const tokens = improvementQuestionTokens(question);
+    const overlapsAnswered = answeredTokens.some((row) => {
+      if (improvementQuestionsConflictOnSpace(question, row.question)) {
+        return false;
+      }
+      if (sharesImprovementTopic(question, row.question)) {
+        return true;
+      }
+      const { jaccard, recall } = improvementTokenOverlap(tokens, row.tokens);
+      return jaccard >= 0.45 || recall >= 0.75;
+    });
+    if (overlapsAnswered) continue;
+
+    const overlapsKept = kept.some((prior, index) => {
+      if (improvementQuestionsConflictOnSpace(question, prior)) {
+        return false;
+      }
+      if (sharesImprovementTopic(question, prior)) {
+        return true;
+      }
+      const { jaccard, recall } = improvementTokenOverlap(
+        tokens,
+        keptTokens[index]!,
+      );
+      return jaccard >= 0.45 || recall >= 0.75;
+    });
+    if (overlapsKept) continue;
+
+    kept.push(question);
+    keptTokens.push(tokens);
+    answeredExact.add(lower);
+  }
+
+  return kept;
 }

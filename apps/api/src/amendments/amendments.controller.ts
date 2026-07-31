@@ -10,6 +10,7 @@ import {
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
+import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import { AmendmentsService } from './amendments.service';
 import { CreateAmendmentDto } from './amendments.types';
@@ -28,7 +29,8 @@ export class AmendmentsController {
     @Param('projectId') projectId: string,
   ) {
     const user = await this.usersService.findOrCreateFromJwt(req.user);
-    return this.amendmentsService.listForProject(user.id, projectId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.amendmentsService.listForProject(user.id, projectId, locale);
   }
 
   @Post()
@@ -38,7 +40,8 @@ export class AmendmentsController {
     @Body() body: CreateAmendmentDto,
   ) {
     const user = await this.usersService.findOrCreateFromJwt(req.user);
-    return this.amendmentsService.create(user.id, projectId, body);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.amendmentsService.create(user.id, projectId, body, locale);
   }
 
   @Post('process')
@@ -47,7 +50,8 @@ export class AmendmentsController {
     @Param('projectId') projectId: string,
   ) {
     const user = await this.usersService.findOrCreateFromJwt(req.user);
-    return this.amendmentsService.processPending(user.id, projectId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.amendmentsService.processPending(user.id, projectId, locale);
   }
 
   @Post(':amendmentId/process')
@@ -57,6 +61,12 @@ export class AmendmentsController {
     @Param('amendmentId') amendmentId: string,
   ) {
     const user = await this.usersService.findOrCreateFromJwt(req.user);
-    return this.amendmentsService.processOne(user.id, projectId, amendmentId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.amendmentsService.processOne(
+      user.id,
+      projectId,
+      amendmentId,
+      locale,
+    );
   }
 }

@@ -151,6 +151,7 @@ Notes:
 - fire-suppression: when the client requests automatic fire extinguishing / sprinklers, add a dedicated fire-suppression line — never only a description note.
 - other: use for explicitly requested systems that are not a catalog trade (e.g. access control, specialized process equipment). Keep a separate priced line — do not remap to finishing.
 - hvac: residential split AC = per unit (18–45k). Supply/exhaust / industrial / warehouse ventilation MUST be priced per sqm (about 1,200–3,200 THB/sqm), never as a single 30–45k unit.
-- electrical: prefer ONE consolidated electrical line per project for base wiring/board/lighting. Do not stack duplicate electrical lines. For warehouses without heavy process equipment, stay within catalog band (≤ ~6,500 THB/sqm).
+- electrical: prefer ONE consolidated electrical line per project for base wiring/board/lighting. Do not stack duplicate electrical lines. For warehouses / light industrial without heavy process equipment, use ~550–1,600 THB/sqm (lighting, sockets, small boards) — NOT the residential fit-out band (2,200–6,500).
+- structural / roofing: quantity = GFA sqm (resolvedAreaSqm). Never quantity=1 with catalog unit rates as the line total. Building height answers adjust complexity/unit rate only.
 - Prefer multiple MEP lines when scope is detailed (e.g. wiring+board, specialty lighting, utility connection, filtration/treatment) rather than one shallow aggregate.`;
 }

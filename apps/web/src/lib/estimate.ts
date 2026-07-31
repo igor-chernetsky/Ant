@@ -76,7 +76,11 @@ export async function fetchProjectEstimate(
 
 export async function refineProjectEstimate(
   projectId: string,
-  answers: Array<{ question: string; answer: string }>,
+  answers: Array<{
+    question: string;
+    answer: string;
+    questionIndex?: number;
+  }>,
 ): Promise<BallparkEstimate> {
   const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/estimate/refine`,

@@ -116,6 +116,29 @@ export function formatDocumentCategory(category: string, t?: TranslateFn): strin
   return tOrFallback(t, `documentCategory.${category}`, category.replaceAll('_', ' '));
 }
 
+export function formatTagLabel(
+  slug: string,
+  fallbackLabel?: string | null,
+  t?: TranslateFn,
+): string {
+  const fallback =
+    fallbackLabel?.trim() || slug.replaceAll('-', ' ').replaceAll('_', ' ');
+  return tOrFallback(t, `tags.labels.${slug}`, fallback);
+}
+
+export function formatTagGroupLabel(
+  slug: string | null | undefined,
+  fallbackLabel?: string | null,
+  t?: TranslateFn,
+): string {
+  if (!slug) {
+    return fallbackLabel?.trim() || t?.('common.other') || 'Other';
+  }
+  const fallback =
+    fallbackLabel?.trim() || slug.replaceAll('-', ' ').replaceAll('_', ' ');
+  return tOrFallback(t, `tags.groups.${slug}`, fallback);
+}
+
 export function getContractSigningHeadline(
   status: string,
   t?: TranslateFn,

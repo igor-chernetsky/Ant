@@ -29,6 +29,7 @@ import {
 import { ProjectsService } from '../projects/projects.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { PrismaService } from '../prisma/prisma.service';
+import type { SupportedLocale } from '../users/locale.types';
 import { isAmendableStatus } from './amendments.constants';
 import {
   AmendmentResponse,
@@ -50,19 +51,29 @@ export class AmendmentsService {
   async listForProject(
     clientId: string,
     projectId: string,
+    viewerLocale?: SupportedLocale,
   ): Promise<AmendmentResponse[]> {
     await this.loadOwnedProject(clientId, projectId);
     const rows = await this.prisma.projectAmendment.findMany({
       where: { projectId },
       orderBy: { createdAt: 'asc' },
     });
-    return rows.map((row) => this.toResponse(row));
+    const amendments = rows.map((row) => this.toResponse(row));
+    if (!viewerLocale) {
+      return amendments;
+    }
+    return this.projectLocalization.localizeAmendments(
+      projectId,
+      amendments,
+      viewerLocale,
+    );
   }
 
   async create(
     clientId: string,
     projectId: string,
     dto: CreateAmendmentDto,
+    viewerLocale?: SupportedLocale,
   ): Promise<AmendmentResponse> {
     const project = await this.loadOwnedProject(clientId, projectId);
     this.assertAmendable(project.status);
@@ -82,12 +93,22 @@ export class AmendmentsService {
       },
     });
 
-    return this.toResponse(row);
+    const amendment = this.toResponse(row);
+    if (!viewerLocale) {
+      return amendment;
+    }
+    const [localized] = await this.projectLocalization.localizeAmendments(
+      projectId,
+      [amendment],
+      viewerLocale,
+    );
+    return localized;
   }
 
   async processPending(
     clientId: string,
     projectId: string,
+    viewerLocale?: SupportedLocale,
   ): Promise<ProcessAmendmentsResult> {
     const project = await this.loadOwnedProject(clientId, projectId);
     this.assertAmendable(project.status);
@@ -101,13 +122,14 @@ export class AmendmentsService {
       throw new BadRequestException('No pending amendments to process');
     }
 
-    return this.processAmendmentRows(clientId, project, pending);
+    return this.processAmendmentRows(clientId, project, pending, viewerLocale);
   }
 
   async processOne(
     clientId: string,
     projectId: string,
     amendmentId: string,
+    viewerLocale?: SupportedLocale,
   ): Promise<ProcessAmendmentsResult> {
     const project = await this.loadOwnedProject(clientId, projectId);
     this.assertAmendable(project.status);
@@ -122,7 +144,7 @@ export class AmendmentsService {
       throw new BadRequestException('Amendment already processed');
     }
 
-    return this.processAmendmentRows(clientId, project, [amendment]);
+    return this.processAmendmentRows(clientId, project, [amendment], viewerLocale);
   }
 
   /**
@@ -144,6 +166,7 @@ export class AmendmentsService {
       sourceLocale?: string | null;
     },
     rows: ProjectAmendment[],
+    viewerLocale?: SupportedLocale,
   ): Promise<ProcessAmendmentsResult> {
     const sorted = [...rows].sort(
       (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
@@ -277,12 +300,22 @@ export class AmendmentsService {
     const projectResponse = await this.projectsService.getForClient(
       clientId,
       project.id,
+      viewerLocale,
     );
+
+    const amendments = updatedRows.map((row) => this.toResponse(row));
+    const localizedAmendments = viewerLocale
+      ? await this.projectLocalization.localizeAmendments(
+          project.id,
+          amendments,
+          viewerLocale,
+        )
+      : amendments;
 
     return {
       project: projectResponse,
       processedCount: sorted.length,
-      amendments: updatedRows.map((row) => this.toResponse(row)),
+      amendments: localizedAmendments,
     };
   }
 

@@ -10,6 +10,8 @@ import {
   formatProjectStatus,
   formatProjectType,
   formatPropertyType,
+  formatTagGroupLabel,
+  formatTagLabel,
   formatTenderStatus,
   formatVerificationStatus,
   getContractSigningHeadline,
@@ -36,6 +38,12 @@ export function useAppFormatters() {
         formatAmendmentType(type, t),
       formatDocumentCategory: (category: string) =>
         formatDocumentCategory(category, t),
+      formatTagLabel: (slug: string, fallbackLabel?: string | null) =>
+        formatTagLabel(slug, fallbackLabel, t),
+      formatTagGroupLabel: (
+        slug: string | null | undefined,
+        fallbackLabel?: string | null,
+      ) => formatTagGroupLabel(slug, fallbackLabel, t),
       getContractSigningHeadline: (status: string) =>
         getContractSigningHeadline(status, t),
       getContractSigningMessage: (status: string) =>

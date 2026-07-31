@@ -108,7 +108,7 @@ export function HomeProjectFilters({
   contractorTagSlugs,
 }: HomeProjectFiltersProps) {
   const { t } = useTranslation();
-  const { formatProjectStatus } = useAppFormatters();
+  const { formatProjectStatus, formatTagLabel } = useAppFormatters();
   const activeCount = countActiveFilters(filters, searchQuery);
   const hasFilters = activeCount > 0;
   const showContractorTradePresets = contractorTagSlugs !== undefined;
@@ -265,7 +265,10 @@ export function HomeProjectFilters({
   }
 
   for (const slug of filters.tags) {
-    const label = tags.find((tag) => tag.slug === slug)?.label ?? slug;
+    const label = formatTagLabel(
+      slug,
+      tags.find((tag) => tag.slug === slug)?.label ?? slug,
+    );
     activePills.push({
       key: `tag-${slug}`,
       label,
@@ -463,7 +466,7 @@ export function HomeProjectFilters({
                   }
                   options={tags.map((tag) => ({
                     value: tag.slug,
-                    label: tag.label,
+                    label: formatTagLabel(tag.slug, tag.label),
                   }))}
                   selected={filters.tags}
                   onToggle={toggleTag}

@@ -114,7 +114,7 @@ export interface PublicProjectCard {
   applicationsDeadlinePassed: boolean;
   /** Whether the current viewer may open the project detail card. */
   canOpenDetail: boolean;
-  /** Latest ballpark totals when an estimate exists. */
+  /** Latest ballpark totals — only for the owning client on their own cards. */
   estimate: PublicProjectEstimateSummary | null;
 }
 
