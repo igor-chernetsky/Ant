@@ -102,6 +102,7 @@ export const thExtended = {
     deadlineExpiredTitle: "หมดเขตรับสมัครแล้ว",
     deadlineExpiredAria: "หมดเขตรับสมัครแล้ว",
     myProject: "โครงการของฉัน",
+    ballpark: "ประมาณการเบื้องต้น",
     lockedAria: "โครงการ {title} — การเข้าถึงถูกจำกัด",
     signInContractorHint: "เข้าสู่ระบบในฐานะผู้รับเหมาเพื่อเปิดโครงการนี้",
     contractorOnlyHint: "เฉพาะผู้รับเหมาที่ลงทะเบียนแล้วเท่านั้นที่เปิดโครงการที่รับประมูลได้",

@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
-  formatConfidence,
   refineProjectEstimate,
   type BallparkEstimate,
 } from '@/lib/estimate';
@@ -68,17 +67,12 @@ export function EstimateRefinementPanel({
     }
   };
 
+  if (!canRefine && history.length === 0) {
+    return null;
+  }
+
   return (
     <div className="estimate-refinement">
-      <p className="estimate-confidence">
-        <span className="estimate-confidence-label">
-          {t('estimateSection.confidence')}
-        </span>
-        <span className="estimate-confidence-value">
-          {formatConfidence(estimate.confidence)}
-        </span>
-      </p>
-
       {canRefine && (
         <details className="estimate-refine-details" open>
           <summary>{t('estimateSection.refineTitle')}</summary>

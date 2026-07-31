@@ -102,6 +102,7 @@ export const enExtended = {
     deadlineExpiredTitle: "Application deadline expired",
     deadlineExpiredAria: "Application deadline expired",
     myProject: "My project",
+    ballpark: "Ballpark estimate",
     lockedAria: "Project {title} — limited access",
     signInContractorHint: "Sign in as a contractor to open this project.",
     contractorOnlyHint: "Only registered contractors can open projects that are accepting bids.",

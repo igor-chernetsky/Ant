@@ -102,6 +102,7 @@ export const ruExtended = {
     deadlineExpiredTitle: "Срок подачи заявок истёк",
     deadlineExpiredAria: "Срок подачи заявок истёк",
     myProject: "Мой проект",
+    ballpark: "Ориентировочная смета",
     lockedAria: "Проект {title} — ограниченный доступ",
     signInContractorHint: "Войдите как подрядчик, чтобы открыть этот проект.",
     contractorOnlyHint: "Проекты на этапе приёма заявок могут открывать только зарегистрированные подрядчики.",

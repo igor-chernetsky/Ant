@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { EstimateConfidenceRing } from '@/components/EstimateConfidenceRing';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { formatThb } from '@/lib/estimate';
 import {
   canOpenProjectDetail,
   getProjectOpenBlockReason,
@@ -14,7 +16,6 @@ import {
 } from '@/lib/project-open-access';
 import type { ProjectType } from '@/lib/projects';
 import type { PublicProjectCard } from '@/lib/public-projects';
-import { isContractorUser, isDesignerUser } from '@/lib/session';
 import type { ContractorApplicationItem } from '@/lib/tendering';
 
 interface ProjectTileProps {
@@ -148,6 +149,24 @@ export function ProjectTile({
           <p className="project-tile-participation muted">{participationLabel}</p>
         )}
         {excerpt && <p className="project-tile-description">{excerpt}</p>}
+        {project.estimate && (
+          <div className="project-tile-estimate">
+            <div className="project-tile-estimate-main">
+              <p className="project-tile-estimate-label">
+                {t('projectTile.ballpark')}
+              </p>
+              <p className="project-tile-estimate-range">
+                {formatThb(project.estimate.minAmount)} –{' '}
+                {formatThb(project.estimate.maxAmount)}
+              </p>
+            </div>
+            <EstimateConfidenceRing
+              confidence={project.estimate.confidence}
+              size={56}
+              showCaption={false}
+            />
+          </div>
+        )}
         {project.tags.length > 0 && (
           <div className="project-tile-tags">
             {project.tags.slice(0, 4).map((tag) => (

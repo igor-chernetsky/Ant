@@ -61,6 +61,8 @@ import {
 
   PublicProjectCard,
 
+  PublicProjectEstimateSummary,
+
   CompleteProjectDto,
 
   UpdateProjectDto,
@@ -689,7 +691,10 @@ export class ProjectsService {
     viewer?: DiscoverViewerContext,
   ): Promise<PublicProjectCard[]> {
     const projectIds = projects.map((p) => p.id);
-    const coverByProject = await this.loadCoverUrls(projectIds);
+    const [coverByProject, estimateByProject] = await Promise.all([
+      this.loadCoverUrls(projectIds),
+      this.loadEstimateSummaries(projectIds),
+    ]);
 
     return Promise.all(
       projects.map(async (project) => {
@@ -736,6 +741,7 @@ export class ProjectsService {
             this.shouldShowApplicationDeadlineWarning(project) &&
             this.isApplicationsDeadlinePassedForProject(project),
           canOpenDetail,
+          estimate: estimateByProject.get(project.id) ?? null,
         };
       }),
     );
@@ -1066,6 +1072,57 @@ export class ProjectsService {
     projectIds: string[],
   ): Promise<Map<string, string>> {
     return this.loadCoverUrls(projectIds);
+  }
+
+  private async loadEstimateSummaries(
+    projectIds: string[],
+  ): Promise<Map<string, PublicProjectEstimateSummary>> {
+    const result = new Map<string, PublicProjectEstimateSummary>();
+    if (projectIds.length === 0) {
+      return result;
+    }
+
+    const estimates = await this.prisma.estimate.findMany({
+      where: { projectId: { in: projectIds } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        projectId: true,
+        confidence: true,
+        totalsJson: true,
+      },
+    });
+
+    for (const estimate of estimates) {
+      if (result.has(estimate.projectId)) continue;
+      const totals = estimate.totalsJson as {
+        minAmount?: unknown;
+        maxAmount?: unknown;
+        midAmount?: unknown;
+        currency?: unknown;
+      } | null;
+      const minAmount =
+        typeof totals?.minAmount === 'number' ? totals.minAmount : null;
+      const maxAmount =
+        typeof totals?.maxAmount === 'number' ? totals.maxAmount : null;
+      const midAmount =
+        typeof totals?.midAmount === 'number' ? totals.midAmount : null;
+      const currency =
+        typeof totals?.currency === 'string' && totals.currency.trim()
+          ? totals.currency.trim()
+          : 'THB';
+      if (minAmount == null || maxAmount == null || midAmount == null) {
+        continue;
+      }
+      result.set(estimate.projectId, {
+        minAmount,
+        maxAmount,
+        midAmount,
+        currency,
+        confidence: Math.min(1, Math.max(0, estimate.confidence)),
+      });
+    }
+
+    return result;
   }
 
   private async loadCoverUrls(

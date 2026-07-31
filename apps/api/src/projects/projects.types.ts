@@ -87,6 +87,14 @@ export interface PublicProjectTag {
   label: string;
 }
 
+export interface PublicProjectEstimateSummary {
+  minAmount: number;
+  maxAmount: number;
+  midAmount: number;
+  currency: string;
+  confidence: number;
+}
+
 export interface PublicProjectCard {
   id: string;
   title: string;
@@ -106,6 +114,8 @@ export interface PublicProjectCard {
   applicationsDeadlinePassed: boolean;
   /** Whether the current viewer may open the project detail card. */
   canOpenDetail: boolean;
+  /** Latest ballpark totals when an estimate exists. */
+  estimate: PublicProjectEstimateSummary | null;
 }
 
 export interface ProjectCompletionContext {

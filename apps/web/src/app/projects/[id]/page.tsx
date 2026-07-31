@@ -8,6 +8,7 @@ import { PageShell } from '@/components/PageShell';
 import { DocumentTile, OrphanScopePackages } from '@/components/DocumentTile';
 import { ClientAmendments } from '@/components/ClientAmendments';
 import { EstimateRefinementPanel } from '@/components/EstimateRefinementPanel';
+import { EstimateConfidenceRing } from '@/components/EstimateConfidenceRing';
 import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
 import { IntakeWizard } from '@/components/IntakeWizard';
@@ -531,19 +532,26 @@ export default function ProjectDetailPage() {
                 <div className="project-detail-duo">
                   {isOwner && estimate && (
                     <section className="card estimate-card">
-                      <h2 className="section-title">
-                        {project.projectType === 'design'
-                          ? t('estimateSection.designTitle')
-                          : t('estimateSection.title')}
-                      </h2>
-                      <p className="estimate-range">
-                        {formatThb(estimate.totals.minAmount)} –{' '}
-                        {formatThb(estimate.totals.maxAmount)}
-                      </p>
-                      <p className="muted estimate-meta">
-                        {t('estimateSection.midpoint')}{' '}
-                        {formatThb(estimate.totals.midAmount)}
-                      </p>
+                      <div className="estimate-header">
+                        <div className="estimate-header-main">
+                          <h2 className="section-title">
+                            {project.projectType === 'design'
+                              ? t('estimateSection.designTitle')
+                              : t('estimateSection.title')}
+                          </h2>
+                          <p className="estimate-range">
+                            {formatThb(estimate.totals.minAmount)} –{' '}
+                            {formatThb(estimate.totals.maxAmount)}
+                          </p>
+                          <p className="muted estimate-meta">
+                            {t('estimateSection.midpoint')}{' '}
+                            {formatThb(estimate.totals.midAmount)}
+                          </p>
+                        </div>
+                        <EstimateConfidenceRing
+                          confidence={estimate.confidence}
+                        />
+                      </div>
                       <EstimateRefinementPanel
                         project={project}
                         estimate={estimate}
@@ -612,13 +620,6 @@ export default function ProjectDetailPage() {
                   />
                 )}
 
-              {showLifecycle && project && (
-                <ProjectLifecyclePanel
-                  project={project}
-                  onUpdated={setProject}
-                />
-              )}
-
               {showDelete && (
                 <section className="card danger-zone">
                   <h2 className="section-title">{t('projectDetail.deleteProjectTitle')}</h2>
@@ -655,6 +656,12 @@ export default function ProjectDetailPage() {
                   }
                 />
                 {brief && <ProjectBriefCard brief={brief} compact />}
+                {showLifecycle && (
+                  <ProjectLifecyclePanel
+                    project={project}
+                    onUpdated={setProject}
+                  />
+                )}
               </div>
             </aside>
           </div>

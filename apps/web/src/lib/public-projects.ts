@@ -6,6 +6,14 @@ export interface PublicProjectTag {
   label: string;
 }
 
+export interface PublicProjectEstimateSummary {
+  minAmount: number;
+  maxAmount: number;
+  midAmount: number;
+  currency: string;
+  confidence: number;
+}
+
 export interface PublicProjectCard {
   id: string;
   title: string;
@@ -24,6 +32,7 @@ export interface PublicProjectCard {
   updatedAt: string;
   applicationsDeadlinePassed?: boolean;
   canOpenDetail?: boolean;
+  estimate?: PublicProjectEstimateSummary | null;
 }
 
 import type { ProjectTrack } from '@/lib/service-filters';
