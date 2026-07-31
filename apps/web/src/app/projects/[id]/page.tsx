@@ -443,50 +443,56 @@ export default function ProjectDetailPage() {
               )}
 
               <section className="card">
-                <h2 className="section-title">{t('documents.title')}</h2>
-                <p className="muted doc-hint">
-                  {isOwner
-                    ? t('documents.ownerHint', {
-                        maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
-                      })
-                    : t('documents.publicHint')}
-                </p>
-                {isOwner && (
-                  <div className="doc-upload-row">
-                    <label>
-                      {t('documents.category')}
-                      <select
-                        value={docCategory}
-                        onChange={(e) =>
-                          setDocCategory(e.target.value as DocumentCategory)
-                        }
-                        disabled={uploading}
-                      >
-                        {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {formatDocumentCategory(opt.value)}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="sr-only"
-                      accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.zip"
-                      onChange={handleFileChange}
-                      disabled={uploading}
-                    />
-                    <button
-                      type="button"
-                      className="primary"
-                      disabled={uploading}
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {uploading ? t('common.uploading') : t('documents.uploadFile')}
-                    </button>
+                <div className="doc-section-header">
+                  <div className="doc-section-intro">
+                    <h2 className="section-title">{t('documents.title')}</h2>
+                    <p className="muted doc-hint">
+                      {isOwner
+                        ? t('documents.ownerHint', {
+                            maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
+                          })
+                        : t('documents.publicHint')}
+                    </p>
                   </div>
-                )}
+                  {isOwner && (
+                    <div className="doc-upload-row">
+                      <label>
+                        {t('documents.category')}
+                        <select
+                          value={docCategory}
+                          onChange={(e) =>
+                            setDocCategory(e.target.value as DocumentCategory)
+                          }
+                          disabled={uploading}
+                        >
+                          {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {formatDocumentCategory(opt.value)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="sr-only"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                        onChange={handleFileChange}
+                        disabled={uploading}
+                      />
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={uploading}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploading
+                          ? t('common.uploading')
+                          : t('documents.uploadFile')}
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {documents.length === 0 ? (
                   <p className="muted">{t('documents.empty')}</p>

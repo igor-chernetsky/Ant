@@ -3793,8 +3793,26 @@ pre {
 }
 
 .doc-hint {
-  margin: 0 0 1rem;
+  margin: 0;
   font-size: 0.9rem;
+}
+
+.doc-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.doc-section-intro {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.doc-section-intro .section-title {
+  margin-bottom: 0.35rem;
 }
 
 .doc-upload-row {
@@ -3802,7 +3820,8 @@ pre {
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: flex-end;
-  margin-bottom: 1rem;
+  margin: 0;
+  flex: 0 1 auto;
 }
 
 .doc-upload-row label {

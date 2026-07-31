@@ -212,14 +212,23 @@ export function TenderSummaryCard({
       <div className="tender-card-header">
         <h2 className="section-title">{t('tenderCard.title')}</h2>
         {tender && (
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={() => void loadTender()}
-          >
-            {t('tenderCard.refresh')}
-          </button>
+          <div className="tender-card-header-actions">
+            {tender.bids.length > 0 && (
+              <Link href={bidsHref} className="primary tender-summary-cta">
+                {tender.status === 'awarded'
+                  ? t('tenderCard.reviewBids')
+                  : t('tenderCard.viewCompareBids')}
+              </Link>
+            )}
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => void loadTender()}
+            >
+              {t('tenderCard.refresh')}
+            </button>
+          </div>
         )}
       </div>
 
@@ -353,11 +362,6 @@ export function TenderSummaryCard({
                   })
                 )}
               </p>
-              <Link href={bidsHref} className="primary tender-summary-cta">
-                {tender.status === 'awarded'
-                  ? t('tenderCard.reviewBids')
-                  : t('tenderCard.viewCompareBids')}
-              </Link>
             </div>
           )}
 
