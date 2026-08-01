@@ -69,13 +69,16 @@ export function isApplicationsDeadlinePassed(
   return closesAt.getTime() < now.getTime();
 }
 
+/**
+ * @deprecated Listing no longer hides cards after the applications deadline.
+ * Cards stay in discovery; award/active stages lock open access via
+ * `canOpenProjectDetail`. Prefer `isApplicationsDeadlinePassed`.
+ */
 export function shouldHideProjectFromPublicDiscovery(params: {
   tenderStatus: string;
   closesAt: Date | null;
   now?: Date;
 }): boolean {
-  if (params.tenderStatus === 'draft') {
-    return false;
-  }
-  return isApplicationsDeadlinePassed(params.closesAt, params.now);
+  void params;
+  return false;
 }

@@ -2,6 +2,8 @@ import { ProjectStatus } from '@prisma/client';
 
 /**
  * Statuses shown on the public homepage by default.
+ * Includes Accepting bids through Winner selected / Active — cards stay visible
+ * after the applications deadline; opening is locked for non-parties once awarded.
  * Pre-tender stages stay client-only until the client publishes a tender.
  */
 export const DISCOVERY_STATUSES: ProjectStatus[] = [

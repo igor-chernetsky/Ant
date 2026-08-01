@@ -11,7 +11,8 @@ export const CONTRACTOR_OPEN_STATUSES: ProjectStatus[] = [
 
 /**
  * Statuses only the client owner, awarded contractor, and admins may open.
- * Cards may still appear in public discovery.
+ * Cards still appear in public discovery for everyone matching filters;
+ * non-parties see a locked tile.
  */
 export const RESTRICTED_OPEN_STATUSES: ProjectStatus[] = [
   ProjectStatus.awarded,

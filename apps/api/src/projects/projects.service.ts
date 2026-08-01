@@ -28,7 +28,7 @@ import {
   DISCOVERY_FILTER_HIDDEN,
   DISCOVERY_STATUSES,
 } from './projects.constants';
-import { shouldHideProjectFromPublicDiscovery } from '../tendering/tender-deadline';
+import { isApplicationsDeadlinePassed } from '../tendering/tender-deadline';
 import {
   buildProjectTrackFilter,
   buildPropertyTypeFilter,
@@ -441,31 +441,9 @@ export class ProjectsService {
       },
     });
 
-    const now = new Date();
-    const visibleProjects = projects.filter((project) => {
-      if (project.isHidden) {
-        return false;
-      }
-      if (project.status === ProjectStatus.completed) {
-        return true;
-      }
-      if (!project.tender) {
-        return true;
-      }
-      const deadlinePassed = shouldHideProjectFromPublicDiscovery({
-        tenderStatus: project.tender.status,
-        closesAt: project.tender.closesAt,
-        now,
-      });
-      if (!deadlinePassed) {
-        return true;
-      }
-      return this.canViewExpiredDiscoverProject(
-        project,
-        userId,
-        participantProjectIds,
-      );
-    });
+    // Keep discovery cards visible after the applications deadline and after
+    // award. Opening is gated separately (locked for non-parties once awarded).
+    const visibleProjects = projects.filter((project) => !project.isHidden);
 
     return this.mapPublicProjectCards(visibleProjects, viewerLocale, viewer);
   }
@@ -643,42 +621,17 @@ export class ProjectsService {
     );
     const isAwardedContractor = viewer.awardedProjectIds.has(project.id);
 
-    if (
-      !canOpenProjectDetail(
-        project.status,
-        {
-          isOwner,
-          isAdmin: viewer.isAdmin,
-          isContractor: viewer.isContractor,
-          isDesigner: viewer.isDesigner,
-          isAwardedContractor,
-        },
-        project.projectType,
-      )
-    ) {
-      return false;
-    }
-
-    const isSupplySide =
-      (viewer.isContractor && project.projectType !== ProjectType.design) ||
-      (viewer.isDesigner && project.projectType === ProjectType.design);
-
-    if (
-      (project.status === ProjectStatus.in_tender ||
-        project.status === ProjectStatus.clarification) &&
-      project.tender &&
-      shouldHideProjectFromPublicDiscovery({
-        tenderStatus: project.tender.status,
-        closesAt: project.tender.closesAt,
-      }) &&
-      !isSupplySide &&
-      !isOwner &&
-      !viewer.isAdmin
-    ) {
-      return false;
-    }
-
-    return true;
+    return canOpenProjectDetail(
+      project.status,
+      {
+        isOwner,
+        isAdmin: viewer.isAdmin,
+        isContractor: viewer.isContractor,
+        isDesigner: viewer.isDesigner,
+        isAwardedContractor,
+      },
+      project.projectType,
+    );
   }
 
   private async mapPublicProjectCards(
@@ -768,30 +721,13 @@ export class ProjectsService {
     );
   }
 
-  private canViewExpiredDiscoverProject(
-    project: { id: string; clientId: string },
-    userId: string | null,
-    participantProjectIds: Set<string>,
-  ): boolean {
-    if (!userId) {
-      return false;
-    }
-    if (project.clientId === userId) {
-      return true;
-    }
-    return participantProjectIds.has(project.id);
-  }
-
   private isApplicationsDeadlinePassedForProject(project: {
     tender?: { status: string; closesAt: Date | null } | null;
   }): boolean {
-    if (!project.tender) {
+    if (!project.tender || project.tender.status === 'draft') {
       return false;
     }
-    return shouldHideProjectFromPublicDiscovery({
-      tenderStatus: project.tender.status,
-      closesAt: project.tender.closesAt,
-    });
+    return isApplicationsDeadlinePassed(project.tender.closesAt);
   }
 
   private async loadParticipantProjectIds(
@@ -963,21 +899,6 @@ export class ProjectsService {
         (project.status === ProjectStatus.in_tender ||
           project.status === ProjectStatus.clarification)
       )
-    ) {
-      throw new NotFoundException('Project not found');
-    }
-
-    // Past applications deadline: keep listing hide for guests; supply side
-    // may still open Accepting bids cards; restricted stages use award ACL above.
-    if (
-      (project.status === ProjectStatus.in_tender ||
-        project.status === ProjectStatus.clarification) &&
-      project.tender &&
-      shouldHideProjectFromPublicDiscovery({
-        tenderStatus: project.tender.status,
-        closesAt: project.tender.closesAt,
-      }) &&
-      !isSupplySide
     ) {
       throw new NotFoundException('Project not found');
     }
