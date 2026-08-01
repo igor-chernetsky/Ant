@@ -28,6 +28,7 @@ import {
 import {
   fetchPublicProjects,
   fetchPublicTags,
+  PUBLIC_PROJECTS_PAGE_SIZE,
   type PublicProjectCard,
 } from '@/lib/public-projects';
 import {
@@ -41,6 +42,8 @@ export default function HomePage() {
   const { t, locale } = useTranslation();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [projects, setProjects] = useState<PublicProjectCard[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [ownedProjectIds, setOwnedProjectIds] = useState<Set<string>>(new Set());
   const [contractorApplications, setContractorApplications] = useState<
     ContractorApplicationItem[]
@@ -64,6 +67,7 @@ export default function HomePage() {
   const [contractorFilterInitialized, setContractorFilterInitialized] =
     useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -71,28 +75,93 @@ export default function HomePage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
   const lastResultsScrollTop = useRef(0);
+  const loadSeqRef = useRef(0);
+  const loadingMoreRef = useRef(false);
+  const hasMoreRef = useRef(false);
+  const projectsLenRef = useRef(0);
 
-  const loadProjects = useCallback(async (next: HomeProjectFilterState) => {
-    setLoading(true);
+  const buildListFilters = useCallback(
+    (next: HomeProjectFilterState, offset: number) => ({
+      tags: next.tags,
+      statuses: next.statuses,
+      regionSlug: next.regionSlug || undefined,
+      areaSlug: next.areaSlug || undefined,
+      projectTrack: next.projectTrack,
+      propertyTypes: next.propertyTypes,
+      limit: PUBLIC_PROJECTS_PAGE_SIZE,
+      offset,
+    }),
+    [],
+  );
+
+  const loadProjects = useCallback(
+    async (next: HomeProjectFilterState) => {
+      const seq = ++loadSeqRef.current;
+      setLoading(true);
+      setLoadingMore(false);
+      loadingMoreRef.current = false;
+      setError(null);
+      try {
+        const page = await fetchPublicProjects(buildListFilters(next, 0));
+        if (seq !== loadSeqRef.current) return;
+        setProjects(page.items);
+        setTotalCount(page.total);
+        setHasMore(page.hasMore);
+        hasMoreRef.current = page.hasMore;
+        projectsLenRef.current = page.items.length;
+      } catch (err: unknown) {
+        if (seq !== loadSeqRef.current) return;
+        setError(err instanceof Error ? err.message : t('home.loadFailed'));
+        setProjects([]);
+        setTotalCount(0);
+        setHasMore(false);
+        hasMoreRef.current = false;
+        projectsLenRef.current = 0;
+      } finally {
+        if (seq === loadSeqRef.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [buildListFilters, t],
+  );
+
+  const loadMoreProjects = useCallback(async () => {
+    if (loadingMoreRef.current || !hasMoreRef.current || loading) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
     setError(null);
+    const seq = loadSeqRef.current;
+    const offset = projectsLenRef.current;
     try {
-      const list = await fetchPublicProjects({
-        tags: next.tags,
-        statuses: next.statuses,
-        regionSlug: next.regionSlug || undefined,
-        areaSlug: next.areaSlug || undefined,
-        projectTrack: next.projectTrack,
-        propertyTypes: next.propertyTypes,
+      const page = await fetchPublicProjects(buildListFilters(filters, offset));
+      if (seq !== loadSeqRef.current) return;
+      setProjects((prev) => {
+        const seen = new Set(prev.map((item) => item.id));
+        const merged = [
+          ...prev,
+          ...page.items.filter((item) => !seen.has(item.id)),
+        ];
+        projectsLenRef.current = merged.length;
+        return merged;
       });
-      setProjects(list);
+      setTotalCount(page.total);
+      setHasMore(page.hasMore);
+      hasMoreRef.current = page.hasMore;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t('home.loadFailed'));
-      setProjects([]);
+      if (seq !== loadSeqRef.current) return;
+      setError(
+        err instanceof Error ? err.message : t('home.loadMoreFailed'),
+      );
     } finally {
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
     }
-  }, [t]);
+  }, [buildListFilters, filters, loading, t]);
 
   useEffect(() => {
     void (async () => {
@@ -252,6 +321,24 @@ export default function HomePage() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || loading || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMoreProjects();
+        }
+      },
+      // Viewport root works for both desktop (.home-results scroll) and mobile (page scroll).
+      { root: null, rootMargin: '320px 0px', threshold: 0 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loading, hasMore, loadingMore, projects.length, loadMoreProjects]);
+
   const handleAddProject = () => {
     if (me && !canCreateProject(me)) return;
     if (me) {
@@ -336,6 +423,10 @@ export default function HomePage() {
   ]);
 
   const activeFilterCount = countHomeActiveFilters(filters, searchQuery);
+  const displayCount =
+    searchQuery.trim() || filters.ownershipScope === 'mine'
+      ? sortedProjects.length
+      : totalCount;
 
   return (
     <PageShell
@@ -364,8 +455,8 @@ export default function HomePage() {
             </button>
             {!loading && !error && (
               <span className="home-toolbar-count muted">
-                {sortedProjects.length}{' '}
-                {sortedProjects.length === 1
+                {displayCount}{' '}
+                {displayCount === 1
                   ? t('filters.project')
                   : t('filters.projects')}
               </span>
@@ -402,7 +493,7 @@ export default function HomePage() {
               onChange={setFilters}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
-              resultCount={!loading && !error ? sortedProjects.length : undefined}
+              resultCount={!loading && !error ? displayCount : undefined}
               showHiddenFilter={canAddProject}
               showCompletedFilter={Boolean(me)}
               showClientWorkspaceFilters={canAddProject}
@@ -419,7 +510,7 @@ export default function HomePage() {
               </section>
             )}
 
-            {error && (
+            {error && !loadingMore && (
               <section className="card error">
                 <p>{error}</p>
               </section>
@@ -453,38 +544,54 @@ export default function HomePage() {
             )}
 
             {!loading && sortedProjects.length > 0 && (
-              <section className="project-grid" aria-label={t('home.projectsAria')}>
-                {canAddProject && (
-                  <button
-                    type="button"
-                    className="project-tile project-tile-add"
-                    onClick={handleAddProject}
-                  >
-                    <div
-                      className="project-tile-media project-tile-add-media"
-                      aria-hidden
+              <>
+                <section className="project-grid" aria-label={t('home.projectsAria')}>
+                  {canAddProject && (
+                    <button
+                      type="button"
+                      className="project-tile project-tile-add"
+                      onClick={handleAddProject}
                     >
-                      <span className="project-tile-add-icon">+</span>
-                    </div>
-                    <div className="project-tile-body">
-                      <h3 className="project-tile-title">{t('home.addProject')}</h3>
-                      <p className="project-tile-description">
-                        {t('home.addProjectDescription')}
-                      </p>
-                    </div>
-                  </button>
-                )}
-                {sortedProjects.map((project) => (
-                  <ProjectTile
-                    key={project.id}
-                    project={project}
-                    isOwned={ownedProjectIds.has(project.id)}
-                    contractorParticipation={
-                      contractorParticipationByProjectId.get(project.id) ?? null
-                    }
-                  />
-                ))}
-              </section>
+                      <div
+                        className="project-tile-media project-tile-add-media"
+                        aria-hidden
+                      >
+                        <span className="project-tile-add-icon">+</span>
+                      </div>
+                      <div className="project-tile-body">
+                        <h3 className="project-tile-title">{t('home.addProject')}</h3>
+                        <p className="project-tile-description">
+                          {t('home.addProjectDescription')}
+                        </p>
+                      </div>
+                    </button>
+                  )}
+                  {sortedProjects.map((project) => (
+                    <ProjectTile
+                      key={project.id}
+                      project={project}
+                      isOwned={ownedProjectIds.has(project.id)}
+                      contractorParticipation={
+                        contractorParticipationByProjectId.get(project.id) ?? null
+                      }
+                    />
+                  ))}
+                </section>
+                <div
+                  ref={loadMoreSentinelRef}
+                  className="home-load-more"
+                  aria-hidden={!loadingMore}
+                >
+                  {loadingMore && (
+                    <p className="muted home-load-more-label">
+                      {t('home.loadingMoreProjects')}
+                    </p>
+                  )}
+                  {error && loadingMore === false && hasMore && (
+                    <p className="form-error home-load-more-label">{error}</p>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>

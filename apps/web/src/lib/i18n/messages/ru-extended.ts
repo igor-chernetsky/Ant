@@ -50,7 +50,9 @@ export const ruExtended = {
   homePage: {
     addProjectDescription: "Опубликуйте новый проект, чтобы получать предложения подрядчиков.",
     loadingProjects: "Загрузка проектов…",
+    loadingMoreProjects: "Загрузка ещё…",
     loadFailed: "Не удалось загрузить проекты",
+    loadMoreFailed: "Не удалось загрузить ещё проекты",
     emptyNoMatch: "Нет проектов по вашим фильтрам.",
     emptyNoMatchCanAdd: "Нет проектов по вашим фильтрам. Сбросьте теги или добавьте первый проект.",
     projectsAria: "Проекты",

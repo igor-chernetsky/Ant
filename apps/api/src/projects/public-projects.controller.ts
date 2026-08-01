@@ -29,6 +29,8 @@ export class PublicProjectsController {
     @Query('area') areaQuery?: string,
     @Query('track') trackQuery?: string,
     @Query('propertyType') propertyTypeQuery?: string | string[],
+    @Query('limit') limitQuery?: string,
+    @Query('offset') offsetQuery?: string,
   ) {
     const tagSlugs = normalizeTagQuery(tagQuery);
     const statuses = normalizeTagQuery(statusQuery);
@@ -51,6 +53,10 @@ export class PublicProjectsController {
       propertyTypeSlugs,
       locale,
       { isAdmin: Boolean(req.user && hasRole(req.user, 'admin')) },
+      {
+        limit: parseOptionalInt(limitQuery),
+        offset: parseOptionalInt(offsetQuery),
+      },
     );
   }
 
@@ -89,4 +95,10 @@ function normalizeTagQuery(raw?: string | string[]): string[] {
   if (!raw) return [];
   const values = Array.isArray(raw) ? raw : [raw];
   return [...new Set(values.map((s) => s.trim()).filter(Boolean))];
+}
+
+function parseOptionalInt(raw?: string): number | undefined {
+  if (raw == null || raw.trim() === '') return undefined;
+  const value = Number.parseInt(raw, 10);
+  return Number.isFinite(value) ? value : undefined;
 }

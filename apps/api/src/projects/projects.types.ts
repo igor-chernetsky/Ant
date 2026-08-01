@@ -118,6 +118,17 @@ export interface PublicProjectCard {
   estimate: PublicProjectEstimateSummary | null;
 }
 
+export const DISCOVER_PAGE_SIZE = 30;
+export const DISCOVER_PAGE_SIZE_MAX = 50;
+
+export interface PublicProjectListPage {
+  items: PublicProjectCard[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
 export interface ProjectCompletionContext {
   canComplete: boolean;
   contractorName: string | null;

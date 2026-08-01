@@ -1533,6 +1533,20 @@ pre {
 
 .home-results {
   min-width: 0;
+  padding-bottom: 4.5rem;
+}
+
+.home-load-more {
+  min-height: 1.5rem;
+  padding: 1rem 0 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-load-more-label {
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 @media (max-width: 899px) {
@@ -1659,8 +1673,19 @@ pre {
     padding: 1rem 1.25rem 1rem;
   }
 
+  .page-shell--home .home-results {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.15rem;
+    padding-bottom: 6.5rem;
+  }
+
   .page-shell--home.page-shell--home-footer-visible .home-results {
-    padding-bottom: 5.5rem;
+    padding-bottom: 7.5rem;
   }
 
   .page-shell--home .home-layout {
@@ -1700,16 +1725,6 @@ pre {
 
   .page-shell--home .home-sidebar .project-filters--sidebar {
     height: 100%;
-  }
-
-  .page-shell--home .home-results {
-    min-width: 0;
-    min-height: 0;
-    height: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding-right: 0.15rem;
   }
 
   .home-main {

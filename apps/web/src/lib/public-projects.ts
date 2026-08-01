@@ -45,11 +45,23 @@ export interface PublicProjectListFilters {
   areaSlug?: string;
   projectTrack?: ProjectTrack | null;
   propertyTypes?: string[];
+  limit?: number;
+  offset?: number;
+}
+
+export const PUBLIC_PROJECTS_PAGE_SIZE = 30;
+
+export interface PublicProjectListPage {
+  items: PublicProjectCard[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 }
 
 export async function fetchPublicProjects(
   filters: PublicProjectListFilters = {},
-): Promise<PublicProjectCard[]> {
+): Promise<PublicProjectListPage> {
   const tagSlugs = filters.tags ?? [];
   const statuses = filters.statuses ?? [];
   const projectTrack = filters.projectTrack ?? null;
@@ -73,6 +85,11 @@ export async function fetchPublicProjects(
   if (filters.areaSlug?.trim()) {
     params.append('area', filters.areaSlug.trim());
   }
+  params.set(
+    'limit',
+    String(filters.limit ?? PUBLIC_PROJECTS_PAGE_SIZE),
+  );
+  params.set('offset', String(filters.offset ?? 0));
   const qs = params.toString();
   const response = await fetch(
     `/api/public/projects${qs ? `?${qs}` : ''}`,
@@ -89,7 +106,22 @@ export async function fetchPublicProjects(
     throw new Error(body?.message ?? 'Failed to load projects');
   }
 
-  return response.json() as Promise<PublicProjectCard[]>;
+  const data = (await response.json()) as
+    | PublicProjectListPage
+    | PublicProjectCard[];
+
+  // Backward-compatible if an older API still returns a bare array.
+  if (Array.isArray(data)) {
+    return {
+      items: data,
+      total: data.length,
+      limit: data.length,
+      offset: 0,
+      hasMore: false,
+    };
+  }
+
+  return data;
 }
 
 import type { Project } from '@/lib/projects';

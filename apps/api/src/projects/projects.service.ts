@@ -63,6 +63,12 @@ import {
 
   PublicProjectEstimateSummary,
 
+  PublicProjectListPage,
+
+  DISCOVER_PAGE_SIZE,
+
+  DISCOVER_PAGE_SIZE_MAX,
+
   CompleteProjectDto,
 
   UpdateProjectDto,
@@ -294,7 +300,8 @@ export class ProjectsService {
     projectTrack: ProjectTrack | null = null,
     propertyTypeSlugs: string[] = [],
     viewerLocale?: SupportedLocale,
-  ): Promise<PublicProjectCard[]> {
+    pagination?: { limit?: number; offset?: number },
+  ): Promise<PublicProjectListPage> {
     return this.listDiscover(
       null,
       tagSlugs,
@@ -303,6 +310,8 @@ export class ProjectsService {
       projectTrack,
       propertyTypeSlugs,
       viewerLocale,
+      undefined,
+      pagination,
     );
   }
 
@@ -315,7 +324,17 @@ export class ProjectsService {
     propertyTypeSlugs: string[] = [],
     viewerLocale?: SupportedLocale,
     viewerOptions?: { isAdmin?: boolean },
-  ): Promise<PublicProjectCard[]> {
+    pagination?: { limit?: number; offset?: number },
+  ): Promise<PublicProjectListPage> {
+    const { limit, offset } = normalizeDiscoverPagination(pagination);
+    const emptyPage = (): PublicProjectListPage => ({
+      items: [],
+      total: 0,
+      limit,
+      offset,
+      hasMore: false,
+    });
+
     const includesHidden = statuses.includes(DISCOVERY_FILTER_HIDDEN);
     const includesCompleted = statuses.includes(ProjectStatus.completed);
     const statusFilters = statuses.filter(
@@ -326,7 +345,7 @@ export class ProjectsService {
 
     if (includesHidden) {
       if (!userId) {
-        return [];
+        return emptyPage();
       }
       return this.listHiddenForClient(
         userId,
@@ -335,6 +354,7 @@ export class ProjectsService {
         projectTrack,
         propertyTypeSlugs,
         viewerLocale,
+        { limit, offset },
       );
     }
 
@@ -401,7 +421,7 @@ export class ProjectsService {
     if (includesCompleted) {
       if (!userId) {
         if (orClauses.length === 0) {
-          return [];
+          return emptyPage();
         }
       } else {
         orClauses.push({
@@ -416,7 +436,7 @@ export class ProjectsService {
     }
 
     if (orClauses.length === 0) {
-      return [];
+      return emptyPage();
     }
 
     const trackFilter = buildProjectTrackFilter(projectTrack);
@@ -432,20 +452,33 @@ export class ProjectsService {
       propertyTypeFilter,
     );
 
-    const projects = await this.prisma.project.findMany({
-      where,
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        ...this.includeTags(),
-        tender: { select: { status: true, closesAt: true } },
-      },
-    });
+    const [total, projects] = await Promise.all([
+      this.prisma.project.count({ where }),
+      this.prisma.project.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        skip: offset,
+        take: limit,
+        include: {
+          ...this.includeTags(),
+          tender: { select: { status: true, closesAt: true } },
+        },
+      }),
+    ]);
 
-    // Keep discovery cards visible after the applications deadline and after
-    // award. Opening is gated separately (locked for non-parties once awarded).
-    const visibleProjects = projects.filter((project) => !project.isHidden);
+    const items = await this.mapPublicProjectCards(
+      projects,
+      viewerLocale,
+      viewer,
+    );
 
-    return this.mapPublicProjectCards(visibleProjects, viewerLocale, viewer);
+    return {
+      items,
+      total,
+      limit,
+      offset,
+      hasMore: offset + items.length < total,
+    };
   }
 
   private buildDiscoverWhere(
@@ -507,7 +540,12 @@ export class ProjectsService {
     projectTrack: ProjectTrack | null = null,
     propertyTypeSlugs: string[] = [],
     viewerLocale?: SupportedLocale,
-  ): Promise<PublicProjectCard[]> {
+    pagination: { limit: number; offset: number } = {
+      limit: DISCOVER_PAGE_SIZE,
+      offset: 0,
+    },
+  ): Promise<PublicProjectListPage> {
+    const { limit, offset } = pagination;
     const andParts: Prisma.ProjectWhereInput[] = [
       { clientId, isHidden: true },
     ];
@@ -542,14 +580,31 @@ export class ProjectsService {
     const where: Prisma.ProjectWhereInput =
       andParts.length === 1 ? andParts[0] : { AND: andParts };
 
-    const projects = await this.prisma.project.findMany({
-      where,
-      orderBy: { updatedAt: 'desc' },
-      include: this.includeTags(),
-    });
+    const [total, projects] = await Promise.all([
+      this.prisma.project.count({ where }),
+      this.prisma.project.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        skip: offset,
+        take: limit,
+        include: this.includeTags(),
+      }),
+    ]);
 
     const viewer = await this.resolveDiscoverViewer(clientId, false);
-    return this.mapPublicProjectCards(projects, viewerLocale, viewer);
+    const items = await this.mapPublicProjectCards(
+      projects,
+      viewerLocale,
+      viewer,
+    );
+
+    return {
+      items,
+      total,
+      limit,
+      offset,
+      hasMore: offset + items.length < total,
+    };
   }
 
   private async resolveDiscoverViewer(
@@ -1825,4 +1880,21 @@ export class ProjectsService {
 
     return project;
   }
+}
+
+function normalizeDiscoverPagination(pagination?: {
+  limit?: number;
+  offset?: number;
+}): { limit: number; offset: number } {
+  const rawLimit = pagination?.limit ?? DISCOVER_PAGE_SIZE;
+  const limit = Math.min(
+    DISCOVER_PAGE_SIZE_MAX,
+    Math.max(1, Number.isFinite(rawLimit) ? Math.floor(rawLimit) : DISCOVER_PAGE_SIZE),
+  );
+  const rawOffset = pagination?.offset ?? 0;
+  const offset = Math.max(
+    0,
+    Number.isFinite(rawOffset) ? Math.floor(rawOffset) : 0,
+  );
+  return { limit, offset };
 }

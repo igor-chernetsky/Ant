@@ -50,7 +50,9 @@ export const enExtended = {
   homePage: {
     addProjectDescription: "Publish a new project to receive contractor bids.",
     loadingProjects: "Loading projects…",
+    loadingMoreProjects: "Loading more…",
     loadFailed: "Failed to load projects",
+    loadMoreFailed: "Could not load more projects",
     emptyNoMatch: "No projects match your filters yet.",
     emptyNoMatchCanAdd: "No projects match your filters yet. Try clearing tags or add the first project.",
     projectsAria: "Projects",

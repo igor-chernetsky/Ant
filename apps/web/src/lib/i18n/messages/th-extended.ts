@@ -50,7 +50,9 @@ export const thExtended = {
   homePage: {
     addProjectDescription: "เผยแพร่โครงการใหม่เพื่อรับข้อเสนอจากผู้รับเหมา",
     loadingProjects: "กำลังโหลดโครงการ…",
+    loadingMoreProjects: "กำลังโหลดเพิ่ม…",
     loadFailed: "โหลดโครงการไม่สำเร็จ",
+    loadMoreFailed: "โหลดโครงการเพิ่มไม่สำเร็จ",
     emptyNoMatch: "ไม่มีโครงการที่ตรงกับตัวกรองของคุณ",
     emptyNoMatchCanAdd: "ไม่มีโครงการที่ตรงกับตัวกรองของคุณ ลองล้างแท็กหรือเพิ่มโครงการแรก",
     projectsAria: "โครงการ",
