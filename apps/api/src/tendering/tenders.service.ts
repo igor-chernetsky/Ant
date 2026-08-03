@@ -892,6 +892,7 @@ export class TendersService {
 
     const formerSelectedUserId = awardedBid.contractor.userId;
     const companyName = awardedBid.contractor.companyName ?? 'Contractor';
+    const customFileStorageKey = contract.customFileStorageKey;
 
     const updated = await this.prisma.$transaction(async (tx) => {
       await tx.contract.delete({ where: { id: contract.id } });
@@ -933,6 +934,8 @@ export class TendersService {
 
       return nextTender;
     });
+
+    await this.contracts.deleteCustomFileObject(customFileStorageKey);
 
     const participantUserIds = updated.bids
       .filter((bid) => {

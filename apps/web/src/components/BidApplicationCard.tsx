@@ -229,7 +229,7 @@ export function BidApplicationCard({
                 }}
                 onAwardReleased={() => onContractSigned?.()}
               />
-              {contract && (
+              {contract && !contract.hasCustomContract && (
                 <ContractDocumentEditor
                   projectId={projectId}
                   contract={contract}

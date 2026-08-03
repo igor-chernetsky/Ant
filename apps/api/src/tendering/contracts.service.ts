@@ -6,6 +6,7 @@ import {
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import {
   Contract,
   ContractStatus,
@@ -14,6 +15,10 @@ import {
   Project,
   ProjectStatus,
 } from '@prisma/client';
+import {
+  assertCompletedUploadLimits,
+  sanitizeFileName,
+} from '../documents/documents.types';
 import { NotificationsService } from '../notifications/notifications.service';
 import { platformSuccessFeeAmount } from '../notifications/platform-fees';
 import { PrismaService } from '../prisma/prisma.service';
@@ -25,9 +30,15 @@ import {
   sanitizeContractBodyHtml,
   stripContractSignaturesBlock,
 } from './contract-html.sanitize';
-import { ContractResponse } from './contracts.types';
 import {
+  buildCustomContractStorageKey,
+  CUSTOM_CONTRACT_ALLOWED_CONTENT_TYPES,
+  isCustomContractStorageKeyForContract,
+  MAX_CUSTOM_CONTRACT_BYTES,
   normalizeOptionalSignatureDataUrl,
+  type CompleteCustomContractFileDto,
+  type ContractResponse,
+  type PresignCustomContractFileDto,
   type SignContractDto,
   type UpdateContractDocumentDto,
 } from './contracts.types';
@@ -71,6 +82,7 @@ export class ContractsService {
     const clientSigned = Boolean(contract.clientSignedAt);
     const contractorSigned = Boolean(contract.contractorSignedAt);
     const fullySigned = contract.status === ContractStatus.fully_signed;
+    const hasCustomContract = Boolean(contract.customFileStorageKey);
     const canSign =
       project.status === ProjectStatus.awarded &&
       contract.status === ContractStatus.pending_signatures &&
@@ -78,6 +90,7 @@ export class ContractsService {
         (participant.isSelectedContractor && !contractorSigned));
     const canEditDocument =
       !fullySigned &&
+      !hasCustomContract &&
       project.status === ProjectStatus.awarded &&
       (participant.isClient || participant.isSelectedContractor);
 
@@ -91,13 +104,103 @@ export class ContractsService {
       contractorSignedAt: contract.contractorSignedAt?.toISOString() ?? null,
       hasClientSignature: Boolean(contract.clientSignatureDataUrl),
       hasContractorSignature: Boolean(contract.contractorSignatureDataUrl),
-      englishBodyHtml: contract.englishBodyHtml
-        ? stripContractSignaturesBlock(contract.englishBodyHtml)
-        : null,
+      englishBodyHtml: hasCustomContract
+        ? null
+        : contract.englishBodyHtml
+          ? stripContractSignaturesBlock(contract.englishBodyHtml)
+          : null,
+      hasCustomContract,
+      customFile:
+        hasCustomContract &&
+        contract.customFileOriginalName &&
+        contract.customFileContentType &&
+        contract.customFileUploadedAt
+          ? {
+              originalName: contract.customFileOriginalName,
+              contentType: contract.customFileContentType,
+              sizeBytes: contract.customFileSizeBytes,
+              uploadedAt: contract.customFileUploadedAt.toISOString(),
+            }
+          : null,
       canSign,
       canEditDocument,
       fullySigned,
     };
+  }
+
+  private assertEditableContract(contract: Contract, project: Project) {
+    if (contract.status === ContractStatus.fully_signed) {
+      throw new BadRequestException(
+        'Fully signed contracts cannot be edited',
+      );
+    }
+    if (project.status !== ProjectStatus.awarded) {
+      throw new BadRequestException(
+        'Contract document can only be edited while awaiting signatures',
+      );
+    }
+  }
+
+  private assertNoCustomFile(contract: Contract) {
+    if (contract.customFileStorageKey) {
+      throw new BadRequestException(
+        'A custom contract file is in use; the platform document cannot be edited',
+      );
+    }
+  }
+
+  private notifyOtherPartyOfContractChange(
+    participant: ContractParticipant,
+    projectId: string,
+    kind: 'document' | 'custom_file',
+  ) {
+    const { project } = participant;
+    const editorRole = participant.isClient ? 'client' : 'contractor';
+    const contractorUserId =
+      project.tender?.awardedBid?.contractor.userId ?? null;
+    const recipientUserId =
+      editorRole === 'client' ? contractorUserId : project.clientId;
+    const recipientRole =
+      editorRole === 'client' ? 'contractor' : 'client';
+
+    if (!recipientUserId) {
+      return;
+    }
+
+    if (kind === 'custom_file') {
+      this.notifications.dispatch(
+        this.notifications.notifyCustomContractFileUpdated({
+          recipientUserId,
+          recipientRole,
+          editorRole,
+          projectId,
+          projectTitle: project.title,
+        }),
+      );
+      return;
+    }
+
+    this.notifications.dispatch(
+      this.notifications.notifyContractDocumentUpdated({
+        recipientUserId,
+        recipientRole,
+        editorRole,
+        projectId,
+        projectTitle: project.title,
+      }),
+    );
+  }
+
+  /** Best-effort S3 cleanup when award is reverted. */
+  async deleteCustomFileObject(storageKey: string | null | undefined): Promise<void> {
+    if (!storageKey) {
+      return;
+    }
+    try {
+      await this.storage.deleteObject(storageKey);
+    } catch {
+      // Orphaned object is acceptable; DB row is already gone.
+    }
   }
 
   private async loadParticipant(
@@ -155,7 +258,7 @@ export class ContractsService {
       return null;
     }
 
-    if (!contract.englishBodyHtml?.trim()) {
+    if (!contract.englishBodyHtml?.trim() && !contract.customFileStorageKey) {
       contract = await this.ensureEnglishBodyHtml(contract);
     }
 
@@ -213,17 +316,8 @@ export class ContractsService {
       throw new NotFoundException('Contract not found for this project');
     }
 
-    if (contract.status === ContractStatus.fully_signed) {
-      throw new BadRequestException(
-        'Fully signed contracts cannot be edited',
-      );
-    }
-
-    if (project.status !== ProjectStatus.awarded) {
-      throw new BadRequestException(
-        'Contract document can only be edited while awaiting signatures',
-      );
-    }
+    this.assertEditableContract(contract, project);
+    this.assertNoCustomFile(contract);
 
     let sanitized: string;
     try {
@@ -246,25 +340,7 @@ export class ContractsService {
       data: { englishBodyHtml: sanitized },
     });
 
-    const editorRole = participant.isClient ? 'client' : 'contractor';
-    const contractorUserId =
-      project.tender?.awardedBid?.contractor.userId ?? null;
-    const recipientUserId =
-      editorRole === 'client' ? contractorUserId : project.clientId;
-    const recipientRole =
-      editorRole === 'client' ? 'contractor' : 'client';
-
-    if (recipientUserId) {
-      this.notifications.dispatch(
-        this.notifications.notifyContractDocumentUpdated({
-          recipientUserId,
-          recipientRole,
-          editorRole,
-          projectId,
-          projectTitle: project.title,
-        }),
-      );
-    }
+    this.notifyOtherPartyOfContractChange(participant, projectId, 'document');
 
     return this.toResponse(updated, project, participant);
   }
@@ -281,17 +357,8 @@ export class ContractsService {
       throw new NotFoundException('Contract not found for this project');
     }
 
-    if (contract.status === ContractStatus.fully_signed) {
-      throw new BadRequestException(
-        'Fully signed contracts cannot be edited',
-      );
-    }
-
-    if (project.status !== ProjectStatus.awarded) {
-      throw new BadRequestException(
-        'Contract document can only be edited while awaiting signatures',
-      );
-    }
+    this.assertEditableContract(contract, project);
+    this.assertNoCustomFile(contract);
 
     const body = await this.commercialProposal.generateEnglishBodyHtml(
       contract.bidId,
@@ -302,6 +369,176 @@ export class ContractsService {
     });
 
     return this.toResponse(updated, project, participant);
+  }
+
+  async presignCustomFile(
+    userId: string,
+    projectId: string,
+    dto: PresignCustomContractFileDto,
+  ): Promise<{
+    uploadUrl: string;
+    storageKey: string;
+    expiresInSeconds: number;
+  }> {
+    const participant = await this.loadParticipant(userId, projectId);
+    const { project } = participant;
+    const contract = project.contract;
+
+    if (!contract) {
+      throw new NotFoundException('Contract not found for this project');
+    }
+
+    this.assertEditableContract(contract, project);
+
+    const fileName = sanitizeFileName(dto.fileName?.trim() ?? '');
+    if (!fileName) {
+      throw new BadRequestException('fileName is required');
+    }
+
+    const contentType = dto.contentType?.trim().toLowerCase();
+    if (
+      !contentType ||
+      !CUSTOM_CONTRACT_ALLOWED_CONTENT_TYPES.has(contentType)
+    ) {
+      throw new BadRequestException(
+        'Only PDF and DOCX contract files are supported',
+      );
+    }
+
+    if (
+      !Number.isFinite(dto.sizeBytes) ||
+      dto.sizeBytes < 1 ||
+      dto.sizeBytes > MAX_CUSTOM_CONTRACT_BYTES
+    ) {
+      throw new BadRequestException(
+        `File size must be between 1 byte and ${MAX_CUSTOM_CONTRACT_BYTES} bytes`,
+      );
+    }
+
+    const storageKey = buildCustomContractStorageKey(
+      projectId,
+      contract.id,
+      randomUUID(),
+      fileName,
+    );
+
+    const presigned = await this.storage.createPresignedUpload({
+      storageKey,
+      contentType,
+      sizeBytes: dto.sizeBytes,
+    });
+
+    return {
+      uploadUrl: presigned.uploadUrl,
+      storageKey: presigned.storageKey,
+      expiresInSeconds: presigned.expiresInSeconds,
+    };
+  }
+
+  async completeCustomFile(
+    userId: string,
+    projectId: string,
+    dto: CompleteCustomContractFileDto,
+  ): Promise<ContractResponse> {
+    const participant = await this.loadParticipant(userId, projectId);
+    const { project } = participant;
+    const contract = project.contract;
+
+    if (!contract) {
+      throw new NotFoundException('Contract not found for this project');
+    }
+
+    this.assertEditableContract(contract, project);
+
+    const storageKey = dto.storageKey?.trim();
+    if (
+      !storageKey ||
+      !isCustomContractStorageKeyForContract(
+        storageKey,
+        projectId,
+        contract.id,
+      )
+    ) {
+      throw new BadRequestException('Invalid storage key');
+    }
+
+    const originalName = sanitizeFileName(dto.originalName?.trim() ?? '');
+    if (!originalName) {
+      throw new BadRequestException('originalName is required');
+    }
+
+    const declaredContentType = dto.contentType?.trim().toLowerCase();
+    if (
+      !declaredContentType ||
+      !CUSTOM_CONTRACT_ALLOWED_CONTENT_TYPES.has(declaredContentType)
+    ) {
+      throw new BadRequestException(
+        'Only PDF and DOCX contract files are supported',
+      );
+    }
+
+    const { sizeBytes, contentType } =
+      await this.storage.verifyObject(storageKey);
+    assertCompletedUploadLimits({
+      sizeBytes,
+      contentType: contentType ?? declaredContentType,
+      maxBytes: MAX_CUSTOM_CONTRACT_BYTES,
+      allowedContentTypes: CUSTOM_CONTRACT_ALLOWED_CONTENT_TYPES,
+    });
+
+    const previousKey = contract.customFileStorageKey;
+    const updated = await this.prisma.contract.update({
+      where: { id: contract.id },
+      data: {
+        customFileStorageKey: storageKey,
+        customFileOriginalName: originalName,
+        customFileContentType: declaredContentType,
+        customFileSizeBytes: sizeBytes,
+        customFileUploadedByUserId: userId,
+        customFileUploadedAt: new Date(),
+        status: ContractStatus.pending_signatures,
+        clientSignedAt: null,
+        contractorSignedAt: null,
+        clientSignatureDataUrl: null,
+        contractorSignatureDataUrl: null,
+      },
+    });
+
+    if (previousKey && previousKey !== storageKey) {
+      await this.deleteCustomFileObject(previousKey);
+    }
+
+    this.notifyOtherPartyOfContractChange(participant, projectId, 'custom_file');
+
+    return this.toResponse(updated, project, participant);
+  }
+
+  async getCustomFileDownloadUrl(
+    userId: string,
+    projectId: string,
+  ): Promise<{
+    downloadUrl: string;
+    expiresInSeconds: number;
+    originalName: string;
+    contentType: string;
+  }> {
+    const participant = await this.loadParticipant(userId, projectId);
+    const contract = participant.project.contract;
+
+    if (!contract?.customFileStorageKey) {
+      throw new NotFoundException('Custom contract file not found');
+    }
+
+    const presigned = await this.storage.createPresignedDownload(
+      contract.customFileStorageKey,
+    );
+    return {
+      downloadUrl: presigned.downloadUrl,
+      expiresInSeconds: presigned.expiresInSeconds,
+      originalName: contract.customFileOriginalName ?? 'contract',
+      contentType:
+        contract.customFileContentType ?? 'application/octet-stream',
+    };
   }
 
   async ensureEnglishBodyHtml(contract: Contract): Promise<Contract> {

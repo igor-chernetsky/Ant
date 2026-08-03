@@ -2,6 +2,13 @@ import { fetchWithAuth } from './auth-client';
 
 export type ContractStatus = 'pending_signatures' | 'fully_signed';
 
+export interface ContractCustomFile {
+  originalName: string;
+  contentType: string;
+  sizeBytes: number | null;
+  uploadedAt: string;
+}
+
 export interface ProjectContract {
   id: string;
   projectId: string;
@@ -13,10 +20,19 @@ export interface ProjectContract {
   hasClientSignature: boolean;
   hasContractorSignature: boolean;
   englishBodyHtml: string | null;
+  hasCustomContract: boolean;
+  customFile: ContractCustomFile | null;
   canSign: boolean;
   canEditDocument: boolean;
   fullySigned: boolean;
 }
+
+export const MAX_CUSTOM_CONTRACT_BYTES = 25 * 1024 * 1024;
+
+const CUSTOM_CONTRACT_CONTENT_TYPES = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]);
 
 function contractPath(projectId: string, asContractor: boolean): string {
   return asContractor
@@ -102,4 +118,103 @@ export async function regenerateProjectContractDocument(
     await parseError(response, 'Failed to regenerate contract document');
   }
   return response.json() as Promise<ProjectContract>;
+}
+
+export function resolveCustomContractContentType(file: File): string {
+  const typed = file.type?.trim().toLowerCase();
+  if (typed && typed !== 'application/octet-stream') {
+    return typed;
+  }
+  const lower = file.name.toLowerCase();
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.docx')) {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  }
+  return typed || 'application/octet-stream';
+}
+
+export function assertCustomContractFile(file: File): string {
+  if (file.size < 1 || file.size > MAX_CUSTOM_CONTRACT_BYTES) {
+    throw new Error('File exceeds 25 MB limit');
+  }
+  const contentType = resolveCustomContractContentType(file);
+  if (!CUSTOM_CONTRACT_CONTENT_TYPES.has(contentType)) {
+    throw new Error('Only PDF and DOCX files are supported');
+  }
+  return contentType;
+}
+
+export async function uploadCustomContractFile(
+  projectId: string,
+  file: File,
+  options?: { asContractor?: boolean },
+): Promise<ProjectContract> {
+  const asContractor = Boolean(options?.asContractor);
+  const contentType = assertCustomContractFile(file);
+  const base = contractPath(projectId, asContractor);
+
+  const presignResponse = await fetchWithAuth(`${base}/custom-file/presign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType,
+      sizeBytes: file.size,
+    }),
+  });
+  if (!presignResponse.ok) {
+    await parseError(presignResponse, 'Failed to prepare contract upload');
+  }
+  const presigned = (await presignResponse.json()) as {
+    uploadUrl: string;
+    storageKey: string;
+  };
+
+  const putResponse = await fetch(presigned.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': contentType },
+    body: file,
+  });
+  if (!putResponse.ok) {
+    throw new Error('Upload to storage failed');
+  }
+
+  const completeResponse = await fetchWithAuth(`${base}/custom-file/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      storageKey: presigned.storageKey,
+      originalName: file.name,
+      contentType,
+      sizeBytes: file.size,
+    }),
+  });
+  if (!completeResponse.ok) {
+    await parseError(completeResponse, 'Failed to confirm contract upload');
+  }
+  return completeResponse.json() as Promise<ProjectContract>;
+}
+
+export async function downloadCustomContractFile(
+  projectId: string,
+  options?: { asContractor?: boolean },
+): Promise<void> {
+  const asContractor = Boolean(options?.asContractor);
+  const response = await fetchWithAuth(
+    `${contractPath(projectId, asContractor)}/custom-file`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to get contract download link');
+  }
+  const data = (await response.json()) as {
+    downloadUrl: string;
+    originalName: string;
+  };
+  const anchor = document.createElement('a');
+  anchor.href = data.downloadUrl;
+  anchor.download = data.originalName || 'contract';
+  anchor.rel = 'noopener';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
 }

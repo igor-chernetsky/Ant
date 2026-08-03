@@ -65,6 +65,10 @@ export const ru: Messages = {
       contractorCounterOfferTitle: 'Получено встречное предложение',
       contractorBidSelectedTitle: 'Вас выбрали',
       contractTermsUpdatedTitle: 'Условия договора обновлены',
+      contractTermsUpdatedBody:
+        'Условия договора по проекту {project} обновлены. Проверьте и при необходимости подпишите снова.',
+      contractCustomFileUpdatedBody:
+        'Загружен свой файл договора по проекту {project}. Предыдущие подписи сброшены.',
       contractPartySignedTitle: 'Добавлена подпись к договору',
       contractFullySignedTitle: 'Договор полностью подписан',
       genericProjectBody: 'Связано с проектом {project}.',

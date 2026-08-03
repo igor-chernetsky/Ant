@@ -84,6 +84,14 @@ export function formatInAppNotificationBody(
         company: companyName || t('header.contractor'),
         project: projectTitle || t('common.dash'),
       });
+    case 'contract_terms_updated':
+      return payloadString(item.payload, 'changeKind') === 'custom_file'
+        ? t('notifications.kinds.contractCustomFileUpdatedBody', {
+            project: projectTitle || t('common.dash'),
+          })
+        : t('notifications.kinds.contractTermsUpdatedBody', {
+            project: projectTitle || t('common.dash'),
+          });
     default:
       return projectTitle
         ? t('notifications.kinds.genericProjectBody', { project: projectTitle })

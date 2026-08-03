@@ -121,7 +121,7 @@ export function ClientContractPanel({
             }}
           />
 
-          {contract && (
+          {contract && !contract.hasCustomContract && (
             <ContractDocumentEditor
               projectId={projectId}
               contract={contract}

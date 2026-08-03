@@ -682,6 +682,12 @@ model Contract {
   clientSignatureDataUrl   String?        @map("client_signature_data_url") @db.Text
   contractorSignatureDataUrl String?      @map("contractor_signature_data_url") @db.Text
   englishBodyHtml          String?        @map("english_body_html") @db.Text
+  customFileStorageKey       String?      @unique @map("custom_file_storage_key")
+  customFileOriginalName     String?      @map("custom_file_original_name")
+  customFileContentType      String?      @map("custom_file_content_type")
+  customFileSizeBytes        Int?         @map("custom_file_size_bytes")
+  customFileUploadedByUserId String?      @map("custom_file_uploaded_by_user_id")
+  customFileUploadedAt       DateTime?    @map("custom_file_uploaded_at")
   createdAt                DateTime       @default(now()) @map("created_at")
   updatedAt                DateTime       @updatedAt @map("updated_at")
 

@@ -4,7 +4,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
 import { ContractsService } from './contracts.service';
-import type { SignContractDto, UpdateContractDocumentDto } from './contracts.types';
+import type {
+  CompleteCustomContractFileDto,
+  PresignCustomContractFileDto,
+  SignContractDto,
+  UpdateContractDocumentDto,
+} from './contracts.types';
 
 @Controller('v1/projects/:projectId/contract')
 @UseGuards(JwtAuthGuard)
@@ -40,6 +45,36 @@ export class ProjectContractController {
       projectId,
       documentId,
     );
+  }
+
+  @Get('custom-file')
+  async getCustomFile(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contracts.getCustomFileDownloadUrl(user.id, projectId);
+  }
+
+  @Post('custom-file/presign')
+  async presignCustomFile(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: PresignCustomContractFileDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contracts.presignCustomFile(user.id, projectId, body);
+  }
+
+  @Post('custom-file/complete')
+  @HttpCode(200)
+  async completeCustomFile(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: CompleteCustomContractFileDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contracts.completeCustomFile(user.id, projectId, body);
   }
 
   @Patch('document')

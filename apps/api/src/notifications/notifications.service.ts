@@ -790,6 +790,18 @@ export class NotificationsService {
         ? 'emailClientBidActivity'
         : 'emailContractorUpdates';
 
+    await this.createInAppNotification({
+      userId: params.recipientUserId,
+      kind: InAppNotificationKind.contract_terms_updated,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        changeKind: 'document',
+        editorRole: params.editorRole,
+      },
+    });
+
     await this.sendToUser({
       userId: params.recipientUserId,
       prefFlag,
@@ -801,6 +813,46 @@ export class NotificationsService {
       ctaHref: this.projectUrl(params.projectId),
       ctaLabel: 'View project',
       textBody: `${editorLabel} updated the contract document for ${params.projectTitle}.`,
+    });
+  }
+
+  async notifyCustomContractFileUpdated(params: {
+    recipientUserId: string;
+    recipientRole: 'client' | 'contractor';
+    editorRole: 'client' | 'contractor';
+    projectId: string;
+    projectTitle: string;
+  }): Promise<void> {
+    const editorLabel =
+      params.editorRole === 'client' ? 'The client' : 'The contractor';
+    const prefFlag =
+      params.recipientRole === 'client'
+        ? 'emailClientBidActivity'
+        : 'emailContractorUpdates';
+
+    await this.createInAppNotification({
+      userId: params.recipientUserId,
+      kind: InAppNotificationKind.contract_terms_updated,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        changeKind: 'custom_file',
+        editorRole: params.editorRole,
+      },
+    });
+
+    await this.sendToUser({
+      userId: params.recipientUserId,
+      prefFlag,
+      kind: NotificationEmailKind.contract_terms_updated,
+      projectId: params.projectId,
+      subject: `Custom contract file updated — ${params.projectTitle}`,
+      title: 'Custom contract file was uploaded',
+      bodyHtml: `<p>${editorLabel} uploaded a custom contract file for <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Any previous signatures were cleared. Download the file, review it, and sign again when you are ready.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'View project',
+      textBody: `${editorLabel} uploaded a custom contract file for ${params.projectTitle}. Previous signatures were cleared.`,
     });
   }
 

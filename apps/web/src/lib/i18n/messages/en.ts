@@ -64,6 +64,10 @@ export const en = {
       contractorCounterOfferTitle: 'Counter-offer received',
       contractorBidSelectedTitle: 'You were selected',
       contractTermsUpdatedTitle: 'Contract terms updated',
+      contractTermsUpdatedBody:
+        'Contract terms were updated on {project}. Review and sign again if needed.',
+      contractCustomFileUpdatedBody:
+        'A custom contract file was uploaded for {project}. Previous signatures were cleared.',
       contractPartySignedTitle: 'Contract signature added',
       contractFullySignedTitle: 'Contract fully signed',
       genericProjectBody: 'Related to {project}.',

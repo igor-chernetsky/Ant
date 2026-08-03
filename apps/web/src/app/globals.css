@@ -5978,6 +5978,11 @@ select:disabled {
   background: #fff;
 }
 
+.contract-custom-file-name {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
 .contract-signing-actions {
   display: flex;
   flex-wrap: wrap;

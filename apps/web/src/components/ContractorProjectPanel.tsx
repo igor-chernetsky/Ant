@@ -569,7 +569,7 @@ export function ContractorProjectPanel({
             }}
             onAwardReleased={() => void loadParticipation()}
           />
-          {contract && (
+          {contract && !contract.hasCustomContract && (
             <ContractDocumentEditor
               projectId={projectId}
               contract={contract}

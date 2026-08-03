@@ -65,6 +65,10 @@ export const th: Messages = {
       contractorCounterOfferTitle: 'ได้รับข้อเสนอตอบกลับ',
       contractorBidSelectedTitle: 'คุณถูกเลือก',
       contractTermsUpdatedTitle: 'อัปเดตเงื่อนไขสัญญาแล้ว',
+      contractTermsUpdatedBody:
+        'เงื่อนไขสัญญาของ {project} ถูกอัปเดตแล้ว ตรวจสอบและลงนามอีกครั้งหากจำเป็น',
+      contractCustomFileUpdatedBody:
+        'มีการอัปโหลดไฟล์สัญญาสำหรับ {project} ลายเซ็นก่อนหน้าถูกล้างแล้ว',
       contractPartySignedTitle: 'มีการลงนามในสัญญา',
       contractFullySignedTitle: 'ลงนามสัญญาครบแล้ว',
       genericProjectBody: 'เกี่ยวข้องกับ {project}',

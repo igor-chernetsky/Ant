@@ -35,7 +35,12 @@ import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { parseCommercialProposalLocales } from './commercial-proposal.i18n';
 import { ContractsService } from './contracts.service';
-import type { SignContractDto, UpdateContractDocumentDto } from './contracts.types';
+import type {
+  CompleteCustomContractFileDto,
+  PresignCustomContractFileDto,
+  SignContractDto,
+  UpdateContractDocumentDto,
+} from './contracts.types';
 import { ProjectsService } from '../projects/projects.service';
 import { ProjectReviewsService } from '../projects/project-reviews.service';
 
@@ -237,6 +242,36 @@ export class ContractorTenderController {
       projectId,
       documentId,
     );
+  }
+
+  @Get('projects/:projectId/contract/custom-file')
+  async getCustomContractFile(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contracts.getCustomFileDownloadUrl(user.id, projectId);
+  }
+
+  @Post('projects/:projectId/contract/custom-file/presign')
+  async presignCustomContractFile(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: PresignCustomContractFileDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contracts.presignCustomFile(user.id, projectId, body);
+  }
+
+  @Post('projects/:projectId/contract/custom-file/complete')
+  @HttpCode(200)
+  async completeCustomContractFile(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: CompleteCustomContractFileDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.contracts.completeCustomFile(user.id, projectId, body);
   }
 
   @Patch('projects/:projectId/contract/document')

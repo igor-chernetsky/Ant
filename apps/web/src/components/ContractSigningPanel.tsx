@@ -1,9 +1,11 @@
-'use client';
+﻿'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
+  downloadCustomContractFile,
   fetchProjectContract,
   signProjectContract,
+  uploadCustomContractFile,
   type ProjectContract,
 } from '@/lib/contracts';
 import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
@@ -51,6 +53,7 @@ export function ContractSigningPanel({
   const [loading, setLoading] = useState(!contractProp);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const signaturePadRef = useRef<ContractSignaturePadHandle | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const { acknowledgePlatformFees, dialog: feeDialog } = usePlatformFeeNotice();
@@ -100,7 +103,9 @@ export function ContractSigningPanel({
     setBusy(true);
     setError(null);
     try {
-      const signatureDataUrl = signaturePadRef.current?.toDataURL() ?? null;
+      const signatureDataUrl = contract?.hasCustomContract
+        ? null
+        : (signaturePadRef.current?.toDataURL() ?? null);
       const updated = await signProjectContract(projectId, {
         asContractor,
         signatureDataUrl,
@@ -140,6 +145,57 @@ export function ContractSigningPanel({
     }
   };
 
+  const handleCustomFileSelected = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    if (contract?.clientSignedAt || contract?.contractorSignedAt) {
+      const confirmed = await confirm({
+        title: t('confirm.replaceCustomContractTitle'),
+        message: t('confirm.replaceCustomContractMessage'),
+        confirmLabel: t('confirm.replaceCustomContractLabel'),
+      });
+      if (!confirmed) return;
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await uploadCustomContractFile(projectId, file, {
+        asContractor,
+      });
+      setContract(updated);
+      onSigned?.(updated);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('contractPanel.customUploadFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDownloadCustom = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await downloadCustomContractFile(projectId, { asContractor });
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('contractPanel.customDownloadFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <p className="muted contract-signing-loading">
@@ -161,6 +217,8 @@ export function ContractSigningPanel({
         ? 'awaiting_client'
         : 'awaiting_both';
 
+  const hasCustom = Boolean(contract.hasCustomContract);
+
   return (
     <div className="contract-signing-panel">
       {!hideHeading && (
@@ -174,7 +232,9 @@ export function ContractSigningPanel({
 
       {!hideHeading && (
         <p className="muted contract-signing-hint">
-          {t('contractPanel.signingHint')}
+          {hasCustom
+            ? t('contractPanel.customSigningHint')
+            : t('contractPanel.signingHint')}
         </p>
       )}
 
@@ -194,25 +254,49 @@ export function ContractSigningPanel({
         </p>
       )}
 
-      {contract.canSign && (
+      {contract.canSign && !hasCustom && (
         <ContractSignaturePad padRef={signaturePadRef} disabled={busy} />
       )}
 
       <div className="contract-signing-download">
-        <CommercialProposalDownload
-          bidId={bidId}
-          projectId={asContractor ? undefined : projectId}
-          label={
-            contract.fullySigned
-              ? t('commercialProposal.downloadSigned')
-              : t('commercialProposal.downloadDraft')
-          }
-          className="secondary"
-          embedded
-        />
+        {hasCustom ? (
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            aria-busy={busy}
+            onClick={() => void handleDownloadCustom()}
+          >
+            <BusyLabel
+              busy={busy}
+              idle={t('contractPanel.downloadCustomContract')}
+              busyText={t('contractPanel.downloadingCustom')}
+            />
+          </button>
+        ) : (
+          <CommercialProposalDownload
+            bidId={bidId}
+            projectId={asContractor ? undefined : projectId}
+            label={
+              contract.fullySigned
+                ? t('commercialProposal.downloadSigned')
+                : t('commercialProposal.downloadDraft')
+            }
+            className="secondary"
+            embedded
+          />
+        )}
       </div>
 
-      {(contract.canSign || (!contract.fullySigned && !asContractor)) && (
+      {hasCustom && contract.customFile && (
+        <p className="muted contract-custom-file-name">
+          {t('contractPanel.customFileLabel', {
+            name: contract.customFile.originalName,
+          })}
+        </p>
+      )}
+
+      {!contract.fullySigned && (
         <div className="contract-signing-actions">
           {contract.canSign && (
             <button
@@ -229,7 +313,31 @@ export function ContractSigningPanel({
               />
             </button>
           )}
-          {!contract.fullySigned && !asContractor && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className="sr-only"
+            onChange={(event) => void handleCustomFileSelected(event)}
+          />
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            aria-busy={busy}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <BusyLabel
+              busy={busy}
+              idle={
+                hasCustom
+                  ? t('contractPanel.replaceCustomContract')
+                  : t('contractPanel.uploadCustomContract')
+              }
+              busyText={t('contractPanel.uploadingCustom')}
+            />
+          </button>
+          {!asContractor && (
             <button
               type="button"
               className="secondary"
