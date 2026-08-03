@@ -106,15 +106,36 @@ export class EstimatesService {
       currency: record.currency,
       totals: record.totalsJson as EstimateResponse['totals'],
       lines: record.linesJson as EstimateResponse['lines'],
-      confidence: presentEstimateConfidence(record.confidence, {
-        openImprovementQuestions: improvementQuestions.length,
-        refinementAnswerCount: refinementAnswers.length,
-      }),
+      confidence: this.presentStoredConfidence(
+        record.confidence,
+        record.metaJson,
+        refinementAnswers,
+      ),
       disclaimer: record.disclaimer,
       improvementQuestions,
       refinementAnswers,
       createdAt: record.createdAt.toISOString(),
     };
+  }
+
+  /**
+   * Same confidence presentation as project detail / estimate GET —
+   * use for home tiles and other summary cards.
+   */
+  presentStoredConfidence(
+    confidence: number,
+    metaJson: unknown,
+    refinementAnswers: EstimateRefinementAnswer[] = [],
+  ): number {
+    const meta = parseEstimateMeta(metaJson);
+    const improvementQuestions = filterImprovementQuestionsAgainstAnswers(
+      meta.improvementQuestions,
+      refinementAnswers.map((row) => row.question),
+    );
+    return presentEstimateConfidence(confidence, {
+      openImprovementQuestions: improvementQuestions.length,
+      refinementAnswerCount: refinementAnswers.length,
+    });
   }
 
   async getLatestForProject(
