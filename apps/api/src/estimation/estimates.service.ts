@@ -12,7 +12,7 @@ import { buildDesignFeeEstimate } from '../projects/design-fee-estimate';
 import { BallparkEstimateService } from './ballpark-estimate.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { filterImprovementQuestionsAgainstAnswers } from './estimate-scope.utils';
-import { calibrateEstimateConfidence, presentEstimateConfidence } from './estimate-confidence';
+import { adjustEstimateConfidence } from './estimate-confidence';
 import {
   EstimateLine,
   EstimateMeta,
@@ -106,11 +106,7 @@ export class EstimatesService {
       currency: record.currency,
       totals: record.totalsJson as EstimateResponse['totals'],
       lines: record.linesJson as EstimateResponse['lines'],
-      confidence: this.presentStoredConfidence(
-        record.confidence,
-        record.metaJson,
-        refinementAnswers,
-      ),
+      confidence: adjustEstimateConfidence(record.confidence),
       disclaimer: record.disclaimer,
       improvementQuestions,
       refinementAnswers,
@@ -118,24 +114,9 @@ export class EstimatesService {
     };
   }
 
-  /**
-   * Same confidence presentation as project detail / estimate GET —
-   * use for home tiles and other summary cards.
-   */
-  presentStoredConfidence(
-    confidence: number,
-    metaJson: unknown,
-    refinementAnswers: EstimateRefinementAnswer[] = [],
-  ): number {
-    const meta = parseEstimateMeta(metaJson);
-    const improvementQuestions = filterImprovementQuestionsAgainstAnswers(
-      meta.improvementQuestions,
-      refinementAnswers.map((row) => row.question),
-    );
-    return presentEstimateConfidence(confidence, {
-      openImprovementQuestions: improvementQuestions.length,
-      refinementAnswerCount: refinementAnswers.length,
-    });
+  /** Shared with home tiles so confidence matches project detail. */
+  adjustStoredConfidence(confidence: number): number {
+    return adjustEstimateConfidence(confidence);
   }
 
   async getLatestForProject(

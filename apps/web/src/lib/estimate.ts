@@ -47,15 +47,7 @@ export function formatThb(amount: number): string {
 }
 
 export function formatConfidence(confidence: number): string {
-  return `${Math.round(displayEstimateConfidence(confidence) * 100)}%`;
-}
-
-/** Cap legacy optimistic ballpark scores for UI display. */
-export function displayEstimateConfidence(confidence: number): number {
-  const value = Number.isFinite(confidence)
-    ? Math.min(1, Math.max(0, confidence))
-    : 0;
-  return Math.min(value, 0.72);
+  return `${Math.round(Math.min(1, Math.max(0, confidence)) * 100)}%`;
 }
 
 export async function fetchProjectEstimate(

@@ -1069,31 +1069,15 @@ export class ProjectsService {
       return result;
     }
 
-    const [estimates, projects] = await Promise.all([
-      this.prisma.estimate.findMany({
-        where: { projectId: { in: projectIds } },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          projectId: true,
-          confidence: true,
-          totalsJson: true,
-          metaJson: true,
-        },
-      }),
-      this.prisma.project.findMany({
-        where: { id: { in: projectIds } },
-        select: { id: true, estimateRefinementQaJson: true },
-      }),
-    ]);
-
-    const refinementByProject = new Map(
-      projects.map((project) => [
-        project.id,
-        this.estimatesService.refinementAnswersFrom(
-          project.estimateRefinementQaJson,
-        ),
-      ]),
-    );
+    const estimates = await this.prisma.estimate.findMany({
+      where: { projectId: { in: projectIds } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        projectId: true,
+        confidence: true,
+        totalsJson: true,
+      },
+    });
 
     for (const estimate of estimates) {
       if (result.has(estimate.projectId)) continue;
@@ -1121,10 +1105,8 @@ export class ProjectsService {
         maxAmount,
         midAmount,
         currency,
-        confidence: this.estimatesService.presentStoredConfidence(
+        confidence: this.estimatesService.adjustStoredConfidence(
           estimate.confidence,
-          estimate.metaJson,
-          refinementByProject.get(estimate.projectId) ?? [],
         ),
       });
     }

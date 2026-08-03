@@ -25,14 +25,12 @@ import {
   finalizeEstimateLines,
   mergePreviousEstimateLines,
   resolveEstimateAreaSqm,
-  hasReliableEstimateArea,
 } from './estimate-scope.utils';
 import {
   detectEstimateLineShareAnomalies,
   formatEstimateLineShareAnomaliesForPrompt,
   type EstimateLineShareAnomaly,
 } from './estimate-line-anomalies';
-import { calibrateEstimateConfidence } from './estimate-confidence';
 import { isLandscapingOrCivilAmenityNarrative } from '../ai/intake-scope-heuristics';
 
 const DISCLAIMER =
@@ -118,7 +116,7 @@ export class BallparkEstimateService {
 Return JSON: { lines, totals, confidence, disclaimer, improvementQuestions }.
 Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lineMin, lineMax }.
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
-confidence: number 0–1 reflecting how complete and certain the priced scope is. Be conservative: typical first-pass ballparks with incomplete brief data should be 0.35–0.55; with solid area + packages + few open gaps about 0.55–0.68. Never report above 0.72 — this is not a binding quote. If improvementQuestions is non-empty, confidence must stay ≤ 0.60.
+confidence: number 0–1 reflecting how complete and certain the priced scope is.
 improvementQuestions: 0–5 short questions (in ${lang}) that would most improve confidence if answered. Empty array when confidence is already high or nothing material is missing.
 CRITICAL: Do not repeat or rephrase questions already answered in estimateRefinementQa. If a topic+space was already covered (e.g. office finishing, warehouse lighting, plumbing), do not ask again with wording like "exact requirements" or "additional requirements". Prefer a genuinely new gap only; otherwise return [].
 Do NOT invent priced scope for unanswered gaps — put that uncertainty into improvementQuestions and keep confidence lower.
@@ -375,20 +373,11 @@ ${scopeRules}`;
       );
     }
 
-    const confidence = calibrateEstimateConfidence(
-      Math.min(
-        0.65,
-        0.25 +
-          (input.brief.packages?.length ?? 0) * 0.05 +
-          (textLen > 50 ? 0.1 : 0),
-      ),
-      {
-        openImprovementQuestions: 0,
-        packageCount: input.brief.packages?.length ?? 0,
-        descriptionLength: textLen,
-        hasReliableArea: hasReliableEstimateArea(input.brief, narrative),
-        refinementAnswerCount: input.estimateRefinementQa?.length ?? 0,
-      },
+    const confidence = Math.min(
+      0.65,
+      0.25 +
+        (input.brief.packages?.length ?? 0) * 0.05 +
+        (textLen > 50 ? 0.1 : 0),
     );
 
     return {
@@ -496,13 +485,7 @@ ${scopeRules}`;
     return {
       lines,
       totals,
-      confidence: calibrateEstimateConfidence(rawConfidence, {
-        openImprovementQuestions: improvementQuestions.length,
-        packageCount: input.brief.packages?.length ?? 0,
-        descriptionLength: (input.description ?? '').length,
-        hasReliableArea: hasReliableEstimateArea(input.brief, narrative),
-        refinementAnswerCount: input.estimateRefinementQa?.length ?? 0,
-      }),
+      confidence: rawConfidence,
       disclaimer: String(raw.disclaimer ?? DISCLAIMER).slice(0, 2000),
       provider: 'openai',
       improvementQuestions,
