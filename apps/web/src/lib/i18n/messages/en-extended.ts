@@ -764,6 +764,10 @@ export const enExtended = {
     replaceCustomContractMessage:
       "Uploading a new file clears any existing signatures. The other party will be notified and must sign again.",
     replaceCustomContractLabel: "Replace file",
+    regenerateFromCustomTitle: "Restore platform contract?",
+    regenerateFromCustomMessage:
+      "This removes the uploaded contract file and regenerates the draft from commercial proposal terms. Any signatures are cleared.",
+    regenerateFromCustomLabel: "Regenerate from terms",
     releaseAwardTitle: "Return to tender?",
     releaseAwardMessage: "Release the selected contractor before the contract is fully signed? The project will return to the tender phase and other participants will be notified.",
     releaseAwardLabel: "Return to tender",
@@ -1137,6 +1141,7 @@ export const enExtended = {
       "The contract is fully signed. The English document is shown read-only.",
     saveDocument: "Save document",
     regenerateDocument: "Regenerate from terms",
+    regeneratingDocument: "Regenerating…",
     documentSaved: "Document saved.",
     saveDocumentFailed: "Failed to save contract document",
     regenerateFailed: "Failed to regenerate contract document",
@@ -1148,7 +1153,7 @@ export const enExtended = {
     signingTitle: "Contract signing",
     signingHint: "Both parties must sign the contract draft before the project becomes active.",
     customSigningHint:
-      "A custom contract file is in use. Download it, then both parties confirm with Sign contract. Drawn signatures and the document editor are not used.",
+      "A custom contract file is in use. Download it, then both parties confirm with Sign contract. Use Regenerate from terms to restore the platform draft.",
     drawSignatureOptional: "Draw signature (optional)",
     drawSignatureHint: "You can sign with your mouse or finger, or leave blank and confirm with Sign contract only.",
     clearSignature: "Clear",

@@ -358,15 +358,46 @@ export class ContractsService {
     }
 
     this.assertEditableContract(contract, project);
-    this.assertNoCustomFile(contract);
 
     const body = await this.commercialProposal.generateEnglishBodyHtml(
       contract.bidId,
     );
+    const previousCustomKey = contract.customFileStorageKey;
+    const hadCustomFile = Boolean(previousCustomKey);
+
     const updated = await this.prisma.contract.update({
       where: { id: contract.id },
-      data: { englishBodyHtml: body },
+      data: {
+        englishBodyHtml: body,
+        customFileStorageKey: null,
+        customFileOriginalName: null,
+        customFileContentType: null,
+        customFileSizeBytes: null,
+        customFileUploadedByUserId: null,
+        customFileUploadedAt: null,
+        ...(hadCustomFile
+          ? {
+              status: ContractStatus.pending_signatures,
+              clientSignedAt: null,
+              contractorSignedAt: null,
+              clientSignatureDataUrl: null,
+              contractorSignatureDataUrl: null,
+            }
+          : {}),
+      },
     });
+
+    if (previousCustomKey) {
+      await this.deleteCustomFileObject(previousCustomKey);
+    }
+
+    if (hadCustomFile) {
+      this.notifyOtherPartyOfContractChange(
+        participant,
+        projectId,
+        'document',
+      );
+    }
 
     return this.toResponse(updated, project, participant);
   }

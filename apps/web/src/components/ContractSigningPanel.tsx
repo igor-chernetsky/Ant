@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'reac
 import {
   downloadCustomContractFile,
   fetchProjectContract,
+  regenerateProjectContractDocument,
   signProjectContract,
   uploadCustomContractFile,
   type ProjectContract,
@@ -196,6 +197,33 @@ export function ContractSigningPanel({
     }
   };
 
+  const handleRegenerateFromTerms = async () => {
+    const confirmed = await confirm({
+      title: t('confirm.regenerateFromCustomTitle'),
+      message: t('confirm.regenerateFromCustomMessage'),
+      confirmLabel: t('confirm.regenerateFromCustomLabel'),
+    });
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await regenerateProjectContractDocument(projectId, {
+        asContractor,
+      });
+      setContract(updated);
+      onSigned?.(updated);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('contractPanel.regenerateFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <p className="muted contract-signing-loading">
@@ -337,6 +365,21 @@ export function ContractSigningPanel({
               busyText={t('contractPanel.uploadingCustom')}
             />
           </button>
+          {hasCustom && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              aria-busy={busy}
+              onClick={() => void handleRegenerateFromTerms()}
+            >
+              <BusyLabel
+                busy={busy}
+                idle={t('contractPanel.regenerateDocument')}
+                busyText={t('contractPanel.regeneratingDocument')}
+              />
+            </button>
+          )}
           {!asContractor && (
             <button
               type="button"
