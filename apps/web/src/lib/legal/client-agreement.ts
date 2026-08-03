@@ -8,7 +8,7 @@ import type { LegalDocument } from './types';
 
 const en: LegalDocument = {
   title: 'Client Agreement',
-  updatedLabel: 'Last updated: 23 July 2026',
+  updatedLabel: 'Last updated: 3 August 2026',
   intro: `This User Agreement ("Agreement") sets out the terms and conditions governing the use of the online ${LEGAL_PLATFORM_NAME} platform (the "Platform") operated at ${LEGAL_PLATFORM_URL} and constitutes a public offer under the applicable laws.`,
   sections: [
     {
@@ -33,9 +33,10 @@ const en: LegalDocument = {
     {
       title: '3. Use of the Platform',
       paragraphs: [
-        '3.1. The basic functionality of the Platform, including registration, browsing listings, searching for Products and Construction and Design Services, communicating with Sellers and Service Providers, and placing orders or service requests, is provided free of charge unless otherwise stated. The Owner does not charge Users for accessing these basic Platform functions.',
-        '3.2. To place an order, submit a request, or engage a Service Provider, the User must complete the registration process and provide accurate, complete, and up-to-date information.',
-        '3.3. The Owner is not responsible for the quality, safety, legality, availability, pricing, timeliness, performance, licensing, qualifications, delivery, accuracy of descriptions, or any other characteristics of Products or Construction and Design Services offered by Sellers or Service Providers. Any claims, complaints, disputes, warranties, or liabilities arising from the purchase of Products or the provision of Construction and Design Services shall be resolved directly between the User and the relevant Seller or Service Provider.',
+        '3.1. The basic functionality of the Platform, including registration, browsing listings, searching for Products and Construction and Design Services, communicating with Sellers and Service Providers, and placing orders or service requests, is provided free of charge unless otherwise stated. The Owner does not currently charge Users for accessing these basic Platform functions.',
+        '3.2. The Owner reserves the right to introduce, modify, or expand fees, subscriptions, or other charges for the use of the Platform or any of its features in the future. Where such fees are introduced or changed, the Owner will publish the applicable terms on the Platform and/or notify Users in advance. Continued use of the Platform after the effective date of the new or revised fees constitutes acceptance of those fees, subject to any mandatory rights under applicable law.',
+        '3.3. To place an order, submit a request, or engage a Service Provider, the User must complete the registration process and provide accurate, complete, and up-to-date information.',
+        '3.4. The Owner is not responsible for the quality, safety, legality, availability, pricing, timeliness, performance, licensing, qualifications, delivery, accuracy of descriptions, or any other characteristics of Products or Construction and Design Services offered by Sellers or Service Providers. Any claims, complaints, disputes, warranties, or liabilities arising from the purchase of Products or the provision of Construction and Design Services shall be resolved directly between the User and the relevant Seller or Service Provider.',
       ],
     },
     {
@@ -85,7 +86,7 @@ const en: LegalDocument = {
 
 const ru: LegalDocument = {
   title: 'Клиентское соглашение',
-  updatedLabel: 'Обновлено: 23 июля 2026',
+  updatedLabel: 'Обновлено: 3 августа 2026',
   intro: `Настоящее Пользовательское соглашение («Соглашение») определяет условия использования онлайн-платформы ${LEGAL_PLATFORM_NAME} («Платформа»), доступной по адресу ${LEGAL_PLATFORM_URL}, и является публичной офертой в соответствии с применимым правом.`,
   sections: [
     {
@@ -110,9 +111,10 @@ const ru: LegalDocument = {
     {
       title: '3. Использование Платформы',
       paragraphs: [
-        '3.1. Базовая функциональность Платформы предоставляется Пользователям бесплатно, если иное прямо не указано.',
-        '3.2. Для размещения заказа, заявки или привлечения Исполнителя Пользователь обязан пройти регистрацию и предоставить точные, полные и актуальные сведения.',
-        '3.3. Владелец не отвечает за качество, безопасность, законность, цену, сроки, лицензии, квалификацию и иные характеристики Товаров или услуг, предлагаемых Продавцами и Исполнителями. Споры разрешаются напрямую между Пользователем и соответствующим Продавцом или Исполнителем.',
+        '3.1. Базовая функциональность Платформы в настоящее время предоставляется Пользователям бесплатно, если иное прямо не указано.',
+        '3.2. Владелец оставляет за собой право в будущем ввести, изменить или расширить плату, подписки или иные сборы за пользование Платформой либо отдельными её функциями. О введении или изменении такой платы Владелец опубликует соответствующие условия на Платформе и/или уведомит Пользователей заранее. Продолжение использования Платформы после даты вступления новых или изменённых сборов в силу означает согласие с ними, с учётом императивных норм применимого права.',
+        '3.3. Для размещения заказа, заявки или привлечения Исполнителя Пользователь обязан пройти регистрацию и предоставить точные, полные и актуальные сведения.',
+        '3.4. Владелец не отвечает за качество, безопасность, законность, цену, сроки, лицензии, квалификацию и иные характеристики Товаров или услуг, предлагаемых Продавцами и Исполнителями. Споры разрешаются напрямую между Пользователем и соответствующим Продавцом или Исполнителем.',
       ],
     },
     {
@@ -161,7 +163,7 @@ const ru: LegalDocument = {
 
 const th: LegalDocument = {
   title: 'ข้อตกลงลูกค้า',
-  updatedLabel: 'อัปเดตล่าสุด: 23 กรกฎาคม 2026',
+  updatedLabel: 'อัปเดตล่าสุด: 3 สิงหาคม 2026',
   intro: `ข้อตกลงผู้ใช้ฉบับนี้ ("ข้อตกลง") กำหนดเงื่อนไขการใช้แพลตฟอร์มออนไลน์ ${LEGAL_PLATFORM_NAME} ("แพลตฟอร์ม") ที่ ${LEGAL_PLATFORM_URL} และถือเป็นคำเสนอต่อสาธารณะตามกฎหมายที่เกี่ยวข้อง`,
   sections: [
     {
@@ -186,9 +188,10 @@ const th: LegalDocument = {
     {
       title: '3. การใช้แพลตฟอร์ม',
       paragraphs: [
-        '3.1. ฟังก์ชันพื้นฐานของแพลตฟอร์มให้บริการแก่ผู้ใช้โดยไม่คิดค่าใช้จ่าย เว้นแต่ระบุไว้เป็นอย่างอื่น',
-        '3.2. เพื่อสั่งซื้อ ส่งคำขอ หรือว่าจ้างผู้ให้บริการ ผู้ใช้ต้องลงทะเบียนและให้ข้อมูลที่ถูกต้อง ครบถ้วน และเป็นปัจจุบัน',
-        '3.3. เจ้าของไม่รับผิดชอบต่อคุณภาพ ความปลอดภัย ความชอบด้วยกฎหมาย ราคา กำหนดเวลา ใบอนุญาต หรือคุณสมบัติอื่นของสินค้าหรือบริการ ข้อพิพาทให้ระงับระหว่างผู้ใช้กับผู้ขายหรือผู้ให้บริการโดยตรง',
+        '3.1. ฟังก์ชันพื้นฐานของแพลตฟอร์มในขณะนี้ให้บริการแก่ผู้ใช้โดยไม่คิดค่าใช้จ่าย เว้นแต่ระบุไว้เป็นอย่างอื่น',
+        '3.2. เจ้าของสงวนสิทธิ์ที่จะเรียกเก็บ แก้ไข หรือขยายค่าธรรมเนียม การสมัครสมาชิก หรือค่าใช้จ่ายอื่นสำหรับการใช้แพลตฟอร์มหรือฟีเจอร์ใด ๆ ในอนาคต เมื่อมีการเรียกเก็บหรือเปลี่ยนแปลงค่าธรรมเนียมดังกล่าว เจ้าของจะเผยแพร่เงื่อนไขที่เกี่ยวข้องบนแพลตฟอร์มและ/หรือแจ้งผู้ใช้ล่วงหน้า การใช้แพลตฟอร์มต่อไปหลังวันที่มีผลของค่าธรรมเนียมใหม่หรือที่แก้ไขถือเป็นการยอมรับค่าธรรมเนียมนั้น ทั้งนี้ภายใต้สิทธิบังคับตามกฎหมายที่ใช้บังคับ',
+        '3.3. เพื่อสั่งซื้อ ส่งคำขอ หรือว่าจ้างผู้ให้บริการ ผู้ใช้ต้องลงทะเบียนและให้ข้อมูลที่ถูกต้อง ครบถ้วน และเป็นปัจจุบัน',
+        '3.4. เจ้าของไม่รับผิดชอบต่อคุณภาพ ความปลอดภัย ความชอบด้วยกฎหมาย ราคา กำหนดเวลา ใบอนุญาต หรือคุณสมบัติอื่นของสินค้าหรือบริการ ข้อพิพาทให้ระงับระหว่างผู้ใช้กับผู้ขายหรือผู้ให้บริการโดยตรง',
       ],
     },
     {

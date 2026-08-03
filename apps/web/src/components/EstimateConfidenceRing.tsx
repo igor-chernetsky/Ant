@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from '@/components/LocaleProvider';
-import { formatConfidence } from '@/lib/estimate';
+import { formatConfidence, displayEstimateConfidence } from '@/lib/estimate';
 
 interface EstimateConfidenceRingProps {
   confidence: number;
@@ -15,7 +15,7 @@ export function EstimateConfidenceRing({
   showCaption = true,
 }: EstimateConfidenceRingProps) {
   const { t } = useTranslation();
-  const clamped = Math.min(1, Math.max(0, confidence));
+  const clamped = displayEstimateConfidence(confidence);
   const percent = Math.round(clamped * 100);
   const stroke = size < 64 ? 6 : 8;
   const radius = (size - stroke) / 2;

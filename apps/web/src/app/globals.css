@@ -1441,9 +1441,9 @@ pre {
 }
 
 .project-filters-map-slot .project-filters-map {
-  height: 160px;
-  min-height: 140px;
-  max-height: 180px;
+  height: 210px;
+  min-height: 190px;
+  max-height: 230px;
   aspect-ratio: auto;
 }
 

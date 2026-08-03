@@ -164,12 +164,23 @@ export function LocationSearchMap({
         );
       }
 
-      if (nextMarkers.length > 0) {
+      if (areaSlug) {
+        const selected = areas.find((area) => area.slug === areaSlug);
+        if (selected) {
+          map.setCenter({ lat: selected.lat, lng: selected.lng });
+          map.setZoom(14);
+        } else if (nextMarkers.length > 0) {
+          map.fitBounds(bounds, 48);
+        } else if (region) {
+          map.setCenter({ lat: region.lat, lng: region.lng });
+          map.setZoom(11);
+        }
+      } else if (nextMarkers.length > 0) {
         map.fitBounds(bounds, 48);
         google.maps.event.addListenerOnce(map, 'idle', () => {
           const zoom = map.getZoom();
-          if (zoom != null && zoom > 13) {
-            map.setZoom(13);
+          if (zoom != null && zoom > 12) {
+            map.setZoom(12);
           }
         });
       } else if (region) {

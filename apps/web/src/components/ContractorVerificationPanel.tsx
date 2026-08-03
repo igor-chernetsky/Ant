@@ -105,6 +105,11 @@ export function ContractorVerificationPanel({
   };
 
   const handleRequestApproval = async () => {
+    if (!profile.phone?.trim()) {
+      setError(t('verification.phoneRequired'));
+      return;
+    }
+
     const missingList =
       missingRecommendedCategories.length > 0
         ? t('verification.requestApprovalConfirmMissing', {
@@ -150,6 +155,13 @@ export function ContractorVerificationPanel({
         <span className="status-pill status-pill-lg">
           {formatVerificationStatus(profile.verificationStatus)}
         </span>
+      </p>
+      <p className="muted doc-hint">
+        {t('common.phone')}:{' '}
+        {profile.phone?.trim() ? profile.phone : t('common.dash')}
+        {!profile.phone?.trim() && canRequestApproval
+          ? ` — ${t('verification.phoneRequired')}`
+          : ''}
       </p>
 
       {profile.verificationStatus === 'verified' && (

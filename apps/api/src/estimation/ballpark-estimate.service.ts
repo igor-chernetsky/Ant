@@ -25,7 +25,14 @@ import {
   finalizeEstimateLines,
   mergePreviousEstimateLines,
   resolveEstimateAreaSqm,
+  hasReliableEstimateArea,
 } from './estimate-scope.utils';
+import {
+  detectEstimateLineShareAnomalies,
+  formatEstimateLineShareAnomaliesForPrompt,
+  type EstimateLineShareAnomaly,
+} from './estimate-line-anomalies';
+import { calibrateEstimateConfidence } from './estimate-confidence';
 import { isLandscapingOrCivilAmenityNarrative } from '../ai/intake-scope-heuristics';
 
 const DISCLAIMER =
@@ -61,6 +68,8 @@ export class BallparkEstimateService {
     clarificationSummary?: string | null;
     scopeSummary?: string | null;
     estimateRefinementQa?: Array<{ question: string; answer: string }>;
+    /** When true, lines under 1% of total are not treated as anomalies (design). */
+    allowTinyLineShare?: boolean;
   }): Promise<BallparkEstimateResult> {
     if (this.apiKey.length > 0) {
       const ai = await this.generateWithOpenAi(input);
@@ -84,6 +93,9 @@ export class BallparkEstimateService {
     clarificationSummary?: string | null;
     scopeSummary?: string | null;
     estimateRefinementQa?: Array<{ question: string; answer: string }>;
+    allowTinyLineShare?: boolean;
+    anomalyFeedback?: EstimateLineShareAnomaly[];
+    anomalyRetryDone?: boolean;
   }): Promise<BallparkEstimateResult | null> {
     const lang =
       input.locale && isSupportedLocale(input.locale)
@@ -99,11 +111,14 @@ export class BallparkEstimateService {
       previousLines.length > 0,
       { landscapingOrCivilAmenityOnly },
     );
+    const anomalyDirectives = formatEstimateLineShareAnomaliesForPrompt(
+      input.anomalyFeedback ?? [],
+    );
     const system = `You produce ballpark construction cost estimates for Thailand (THB).
 Return JSON: { lines, totals, confidence, disclaimer, improvementQuestions }.
 Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lineMin, lineMax }.
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
-confidence: number 0–1 reflecting how complete and certain the priced scope is.
+confidence: number 0–1 reflecting how complete and certain the priced scope is. Be conservative: typical first-pass ballparks with incomplete brief data should be 0.35–0.55; with solid area + packages + few open gaps about 0.55–0.68. Never report above 0.72 — this is not a binding quote. If improvementQuestions is non-empty, confidence must stay ≤ 0.60.
 improvementQuestions: 0–5 short questions (in ${lang}) that would most improve confidence if answered. Empty array when confidence is already high or nothing material is missing.
 CRITICAL: Do not repeat or rephrase questions already answered in estimateRefinementQa. If a topic+space was already covered (e.g. office finishing, warehouse lighting, plumbing), do not ask again with wording like "exact requirements" or "additional requirements". Prefer a genuinely new gap only; otherwise return [].
 Do NOT invent priced scope for unanswered gaps — put that uncertainty into improvementQuestions and keep confidence lower.
@@ -117,15 +132,34 @@ For sqm trades (structural, roofing, flooring, warehouse HVAC): quantity MUST be
 lineMin/lineMax must equal quantity * unitPriceMin/Max (rounded).
 Obey pricingDirectives and premiumScopeSignals in the user payload — they must change amounts, not only wording.
 When clarificationQa or clarificationSummary is present, treat that as new pricing-relevant scope and revise MEP/network lines upward when they add utilities, lighting, treatment, or connection works.
+Distribution sanity: with 3+ lines no single line should exceed ~70% of the total mid amount; with 5+ lines ~50%; with 10+ lines ~30%. Avoid near-zero lines under ~1% of the total unless they are truly tiny optional extras.
+When distributionAnomalies / REBALANCE directives are present, RECALCULATE amounts so the distribution is realistic — do not only reword descriptions.
 Write description, disclaimer, and improvementQuestions fields in ${lang}.
 Scope rules:
 ${scopeRules}`;
 
+    const userContext = buildEstimateUserContext({
+      ...input,
+      previousLines,
+    });
+    if (anomalyDirectives.length > 0) {
+      userContext.pricingDirectives = [
+        ...(userContext.pricingDirectives ?? []),
+        'REBALANCE: previous estimate had anomalous line shares — recalculate unit rates and quantities.',
+        ...anomalyDirectives,
+      ];
+      (userContext as Record<string, unknown>).distributionAnomalies =
+        input.anomalyFeedback?.map((anomaly) => ({
+          trade: anomaly.trade,
+          kind: anomaly.kind,
+          sharePercent: Math.round(anomaly.share * 1000) / 10,
+          thresholdPercent: Math.round(anomaly.threshold * 1000) / 10,
+          lineCount: anomaly.lineCount,
+        }));
+    }
+
     const user = JSON.stringify({
-      ...buildEstimateUserContext({
-        ...input,
-        previousLines,
-      }),
+      ...userContext,
       regionalCatalog: catalogSummaryForPrompt(),
     });
 
@@ -138,7 +172,7 @@ ${scopeRules}`;
         },
         body: JSON.stringify({
           model: this.model,
-          temperature: 0.15,
+          temperature: input.anomalyRetryDone ? 0.2 : 0.15,
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: system },
@@ -159,10 +193,59 @@ ${scopeRules}`;
       const content = payload.choices?.[0]?.message?.content;
       if (!content) return null;
 
-      return this.normalizeResult(
+      const result = this.normalizeResult(
         JSON.parse(content) as Record<string, unknown>,
         input,
       );
+
+      const anomalies = detectEstimateLineShareAnomalies(result.lines, {
+        allowTinyShare: input.allowTinyLineShare,
+      });
+
+      if (anomalies.length > 0 && !input.anomalyRetryDone) {
+        this.logger.warn(
+          `Estimate line-share anomalies (${anomalies.length}); recalculating once: ${anomalies
+            .map(
+              (a) =>
+                `${a.kind}:${a.trade}@${Math.round(a.share * 100)}%`,
+            )
+            .join(', ')}`,
+        );
+        const retried = await this.generateWithOpenAi({
+          ...input,
+          anomalyFeedback: anomalies,
+          anomalyRetryDone: true,
+          previousLines: result.lines,
+        });
+        if (retried) {
+          const stillBad = detectEstimateLineShareAnomalies(retried.lines, {
+            allowTinyShare: input.allowTinyLineShare,
+          });
+          if (stillBad.length > 0) {
+            this.logger.warn(
+              `Estimate still anomalous after recalculation (${stillBad.length} flags); keeping retry result with lower confidence`,
+            );
+            return {
+              ...retried,
+              confidence: Math.min(retried.confidence, 0.45),
+            };
+          }
+          return retried;
+        }
+        return {
+          ...result,
+          confidence: Math.min(result.confidence, 0.45),
+        };
+      }
+
+      if (anomalies.length > 0) {
+        return {
+          ...result,
+          confidence: Math.min(result.confidence, 0.45),
+        };
+      }
+
+      return result;
     } catch (err) {
       this.logger.warn(
         `Estimate failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -183,6 +266,7 @@ ${scopeRules}`;
     clarificationSummary?: string | null;
     scopeSummary?: string | null;
     estimateRefinementQa?: Array<{ question: string; answer: string }>;
+    allowTinyLineShare?: boolean;
   }): BallparkEstimateResult {
     const narrative = collectEstimateNarrative({
       title: input.title,
@@ -282,11 +366,29 @@ ${scopeRules}`;
 
     const totals = computeTotals(adjustedLines);
     const textLen = (input.description ?? '').length;
-    const confidence = Math.min(
-      0.65,
-      0.25 +
-        (input.brief.packages?.length ?? 0) * 0.05 +
-        (textLen > 50 ? 0.1 : 0),
+    const anomalies = detectEstimateLineShareAnomalies(adjustedLines, {
+      allowTinyShare: input.allowTinyLineShare,
+    });
+    if (anomalies.length > 0) {
+      this.logger.warn(
+        `Fallback estimate has ${anomalies.length} line-share anomalies`,
+      );
+    }
+
+    const confidence = calibrateEstimateConfidence(
+      Math.min(
+        0.65,
+        0.25 +
+          (input.brief.packages?.length ?? 0) * 0.05 +
+          (textLen > 50 ? 0.1 : 0),
+      ),
+      {
+        openImprovementQuestions: 0,
+        packageCount: input.brief.packages?.length ?? 0,
+        descriptionLength: textLen,
+        hasReliableArea: hasReliableEstimateArea(input.brief, narrative),
+        refinementAnswerCount: input.estimateRefinementQa?.length ?? 0,
+      },
     );
 
     return {
@@ -386,13 +488,21 @@ ${scopeRules}`;
       answeredQuestions,
     ).slice(0, 5);
 
+    const rawConfidence =
+      typeof raw.confidence === 'number'
+        ? Math.min(1, Math.max(0, raw.confidence))
+        : 0.5;
+
     return {
       lines,
       totals,
-      confidence:
-        typeof raw.confidence === 'number'
-          ? Math.min(1, Math.max(0, raw.confidence))
-          : 0.5,
+      confidence: calibrateEstimateConfidence(rawConfidence, {
+        openImprovementQuestions: improvementQuestions.length,
+        packageCount: input.brief.packages?.length ?? 0,
+        descriptionLength: (input.description ?? '').length,
+        hasReliableArea: hasReliableEstimateArea(input.brief, narrative),
+        refinementAnswerCount: input.estimateRefinementQa?.length ?? 0,
+      }),
       disclaimer: String(raw.disclaimer ?? DISCLAIMER).slice(0, 2000),
       provider: 'openai',
       improvementQuestions,

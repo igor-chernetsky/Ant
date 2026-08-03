@@ -31,6 +31,7 @@ export const enExtended = {
     you: "You",
     name: "Name",
     company: "Company",
+    phone: "Phone",
     region: "Region",
     status: "Status",
     requested: "Requested",
@@ -273,6 +274,9 @@ export const enExtended = {
     registerTitle: "Register as contractor",
     registerHint: "Tell us what trades you cover. You can update specialties anytime.",
     companyPlaceholder: "Your company",
+    phoneLabel: "Phone",
+    phoneOptionalHint: "Optional. Required when you request verification.",
+    phonePlaceholder: "+66 …",
     loadingLocations: "Loading locations…",
     specialtiesLegend: "Your specialties",
     specialtiesHintOptional: "Optional. Leave empty to see all projects on the home page.",
@@ -632,6 +636,8 @@ export const enExtended = {
       "You are about to submit {count} document(s) for admin approval. Make sure all required documents are uploaded before continuing.",
     requestApprovalConfirmMissing: "Still missing: {categories}.",
     requestApprovalConfirmLabel: "Send for review",
+    phoneRequired:
+      "Add a phone number to your profile before requesting verification.",
     loadDocumentsFailed: "Failed to load documents",
     bannerNoProfileTitle: "Complete your profile to join tenders",
     bannerNoProfileBody:
@@ -944,7 +950,8 @@ export const enExtended = {
     waitingProposals: "{applications} in progress. Waiting for commercial proposals.",
     reviewBids: "Review bids",
     viewCompareBids: "View & compare bids",
-    clarificationPhaseHint: "Contractors are submitting clarification questions. Answer any you are ready to — you do not need to answer all of them before opening the tender.",
+    clarificationPhaseHint:
+      "Contractors are submitting clarification questions. The system ranks them by importance and repeatability to help you answer the most useful ones — this improves project understanding and the estimate. You do not need to answer all of them before opening the tender. Participating contractors go through verification.",
     openTenderForBids: "Open tender for bids",
     publishedWaiting: "Published for bids. Waiting for contractors to start clarification.",
     inviteFromDirectory: "Invite from registry",
@@ -1056,7 +1063,10 @@ export const enExtended = {
     contractor_one: "contractor",
     contractor_other: "contractors",
     questionsTitle: "Contractor clarification questions",
-    activeHint: "Questions from all contractors are merged into one list (duplicates removed when they ask the same thing). Answer one question at a time — you do not need to answer every question. When you open the tender, answered items and file lists are summarized for contractors.",
+    activeHint:
+      "Questions from all contractors are merged into one list. The system ranks them by importance and how often they repeat, so you can answer the most useful ones first — you do not need to answer every question. Your answers help improve project understanding and the estimate. When you open the tender, answered items and file lists are summarized for contractors.",
+    verificationHint:
+      "Contractors and designers on BuilTHAI go through verification before they can fully participate in tenders.",
     noQuestionsYet: "No questions yet. Contractors will submit their lists during clarification.",
     previous: "Previous",
     next: "Next",

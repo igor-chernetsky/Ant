@@ -29,6 +29,7 @@ export interface AdminContractorListItem {
   email: string | null;
   displayName: string | null;
   companyName: string | null;
+  phone: string | null;
   regionCode: string;
   verificationStatus: string;
   verificationRequestedAt: string | null;

@@ -33,6 +33,7 @@ export interface AdminContractorListItem {
   email: string | null;
   displayName: string | null;
   companyName: string | null;
+  phone: string | null;
   regionCode: string;
   verificationStatus: ContractorVerificationStatus;
   verificationRequestedAt: string | null;

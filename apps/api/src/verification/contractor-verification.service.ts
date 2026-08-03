@@ -215,6 +215,12 @@ export class ContractorVerificationService {
       );
     }
 
+    if (!profile.phone?.trim()) {
+      throw new BadRequestException(
+        'Add a phone number to your profile before requesting verification',
+      );
+    }
+
     const updated = await this.prisma.contractorProfile.update({
       where: { id: profile.id },
       data: {

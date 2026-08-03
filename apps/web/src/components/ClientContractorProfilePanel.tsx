@@ -113,6 +113,11 @@ export function ClientContractorProfilePanel({
             {t('bidContractorProfile.verification')}:{' '}
             {formatVerificationStatus(profile.verificationStatus)}
           </span>
+          {profile.phone?.trim() ? (
+            <span>
+              {t('common.phone')}: {profile.phone}
+            </span>
+          ) : null}
           {profile.tagSlugs.length > 0 && (
             <span>
               {t('bidContractorProfile.specialties')}:{' '}

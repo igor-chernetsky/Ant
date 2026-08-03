@@ -120,6 +120,7 @@ export interface ContractorProfile {
   userId: string;
   kind?: 'contractor' | 'designer';
   companyName: string | null;
+  phone: string | null;
   regionCode: string;
   serviceLocations: Array<{ regionSlug: string; areaSlug?: string }>;
   projectTypes: string[];
@@ -546,6 +547,7 @@ export interface BidContractorPortfolioItem {
 export interface BidContractorProfileView {
   contractorId: string;
   companyName: string | null;
+  phone: string | null;
   kind: string;
   regionCode: string;
   serviceLocations: Array<{ regionSlug: string; areaSlug?: string }>;
@@ -644,6 +646,7 @@ export async function fetchContractorProfile(): Promise<ContractorProfile | null
 
 export async function upsertContractorProfile(input: {
   companyName?: string;
+  phone?: string | null;
   regionCode?: string;
   serviceLocations?: Array<{ regionSlug: string; areaSlug?: string }>;
   projectTypes?: string[];

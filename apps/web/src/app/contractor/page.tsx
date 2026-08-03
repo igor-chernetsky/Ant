@@ -51,6 +51,7 @@ export default function ContractorPage() {
     [],
   );
   const [companyName, setCompanyName] = useState('');
+  const [phone, setPhone] = useState('');
   const [locationCatalog, setLocationCatalog] = useState<LocationCatalog | null>(
     null,
   );
@@ -103,6 +104,7 @@ export default function ContractorPage() {
     } else if (me.displayName) {
       setCompanyName(me.displayName);
     }
+    setPhone(prof?.phone ?? '');
     if (prof?.serviceLocations?.length) {
       setServiceLocations(prof.serviceLocations);
     }
@@ -142,12 +144,14 @@ export default function ContractorPage() {
     try {
       const prof = await upsertContractorProfile({
         companyName: companyName.trim() || undefined,
+        phone: phone.trim() || null,
         serviceLocations,
         projectTypes: selectedProjectTypes,
         tagSlugs: selectedTagSlugs,
       });
       setProfile(prof);
       setServiceLocations(prof.serviceLocations);
+      setPhone(prof.phone ?? '');
       setSelectedProjectTypes(prof.projectTypes.filter(isProjectType));
       setSelectedTagSlugs(prof.tagSlugs);
       await refreshSession();
@@ -197,6 +201,17 @@ export default function ContractorPage() {
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             placeholder={t('contractor.companyPlaceholder')}
+          />
+        </label>
+        <label>
+          {t('contractor.phoneLabel')}
+          <span className="muted tag-hint">{t('contractor.phoneOptionalHint')}</span>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder={t('contractor.phonePlaceholder')}
+            autoComplete="tel"
           />
         </label>
         {locationCatalog ? (

@@ -421,6 +421,7 @@ model ContractorProfile {
   user                    User                         @relation("ContractorProfileUser", fields: [userId], references: [id], onDelete: Cascade)
   kind                    SupplyProfileKind            @default(contractor)
   companyName             String?                      @map("company_name")
+  phone                   String?
   regionCode              String                       @default("TH") @map("region_code")
   serviceLocationsJson    Json                         @default("[{\"regionSlug\":\"bangkok\"}]") @map("service_locations_json")
   projectTypes            ProjectType[]                @default([]) @map("project_types")

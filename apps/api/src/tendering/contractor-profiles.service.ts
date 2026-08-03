@@ -45,6 +45,7 @@ export interface ClientContractorPortfolioItem {
 export interface ClientContractorProfileView {
   contractorId: string;
   companyName: string | null;
+  phone: string | null;
   kind: string;
   regionCode: string;
   serviceLocations: ServiceLocation[];
@@ -71,6 +72,7 @@ export class ContractorProfilesService {
       userId: profile.userId,
       kind: profile.kind,
       companyName: profile.companyName,
+      phone: profile.phone,
       regionCode: profile.regionCode,
       serviceLocations,
       projectTypes: profile.projectTypes,
@@ -160,6 +162,8 @@ export class ContractorProfilesService {
     );
 
     const companyName = dto.companyName?.trim() || null;
+    const phone =
+      dto.phone === undefined ? undefined : dto.phone?.trim() || null;
     const kind =
       options?.kind ??
       (dto.kind === 'designer'
@@ -172,6 +176,7 @@ export class ContractorProfilesService {
         userId,
         kind,
         companyName,
+        phone: phone ?? null,
         regionCode: primaryRegion.countryCode,
         serviceLocationsJson:
           serviceLocations as unknown as Prisma.InputJsonValue,
@@ -182,6 +187,7 @@ export class ContractorProfilesService {
       update: {
         kind,
         companyName,
+        ...(phone !== undefined ? { phone } : {}),
         regionCode: primaryRegion.countryCode,
         serviceLocationsJson:
           serviceLocations as unknown as Prisma.InputJsonValue,
@@ -277,6 +283,7 @@ export class ContractorProfilesService {
     return {
       contractorId,
       companyName: profile.companyName,
+      phone: profile.phone,
       kind: profile.kind,
       regionCode: profile.regionCode,
       serviceLocations: this.parseServiceLocations(profile.serviceLocationsJson),

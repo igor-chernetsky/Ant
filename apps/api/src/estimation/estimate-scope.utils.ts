@@ -474,6 +474,38 @@ export function ensureRequestedExtraLines(input: {
   return next;
 }
 
+/** True when GFA comes from brief/intake/narrative rather than the 50 sqm default. */
+export function hasReliableEstimateArea(
+  brief: ProjectBriefV1,
+  narrative: string,
+): boolean {
+  if (typeof brief.property?.areaSqm === 'number' && brief.property.areaSqm > 0) {
+    return true;
+  }
+  if (
+    brief.packages?.some(
+      (pkg) => typeof pkg.areaSqm === 'number' && (pkg.areaSqm ?? 0) > 0,
+    )
+  ) {
+    return true;
+  }
+  if (parseAreaFromDimensions(narrative) || parseExplicitSqm(narrative)) {
+    return true;
+  }
+  const approxAnswer = brief.ai?.intake?.answers?.find(
+    (entry) => entry.questionId === 'approx-area' && !entry.skipped,
+  );
+  if (approxAnswer) {
+    const raw = Array.isArray(approxAnswer.value)
+      ? String(approxAnswer.value[0] ?? '')
+      : String(approxAnswer.value ?? '');
+    if (APPROX_AREA_BUCKET_SQM[raw] || parseExplicitSqm(approxAnswer.customText ?? '')) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Resolve GFA for pricing: brief → WxH dimensions → intake buckets → default. */
 export function resolveEstimateAreaSqm(
   brief: ProjectBriefV1,

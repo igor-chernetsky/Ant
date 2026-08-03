@@ -1105,7 +1105,10 @@ export class ProjectsService {
         maxAmount,
         midAmount,
         currency,
-        confidence: Math.min(1, Math.max(0, estimate.confidence)),
+        confidence: Math.min(
+          0.72,
+          Math.min(1, Math.max(0, estimate.confidence)),
+        ),
       });
     }
 

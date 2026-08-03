@@ -247,6 +247,10 @@ export default function AdminContractorsPage() {
                     <dd>{detail.companyName ?? t('common.dash')}</dd>
                   </div>
                   <div>
+                    <dt>{t('common.phone')}</dt>
+                    <dd>{detail.phone?.trim() ? detail.phone : t('common.dash')}</dd>
+                  </div>
+                  <div>
                     <dt>{t('common.region')}</dt>
                     <dd>{detail.regionCode}</dd>
                   </div>

@@ -74,6 +74,7 @@ export interface ContractorProfileResponse {
   userId: string;
   kind: 'contractor' | 'designer';
   companyName: string | null;
+  phone: string | null;
   regionCode: string;
   serviceLocations: Array<{ regionSlug: string; areaSlug?: string }>;
   projectTypes: ProjectType[];
@@ -87,6 +88,7 @@ export interface ContractorProfileResponse {
 
 export interface UpsertContractorProfileDto {
   companyName?: string;
+  phone?: string | null;
   regionCode?: string;
   serviceLocations?: Array<{ regionSlug: string; areaSlug?: string }>;
   projectTypes?: ProjectType[];

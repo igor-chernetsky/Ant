@@ -12,6 +12,7 @@ import { buildDesignFeeEstimate } from '../projects/design-fee-estimate';
 import { BallparkEstimateService } from './ballpark-estimate.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { filterImprovementQuestionsAgainstAnswers } from './estimate-scope.utils';
+import { calibrateEstimateConfidence, presentEstimateConfidence } from './estimate-confidence';
 import {
   EstimateLine,
   EstimateMeta,
@@ -105,7 +106,10 @@ export class EstimatesService {
       currency: record.currency,
       totals: record.totalsJson as EstimateResponse['totals'],
       lines: record.linesJson as EstimateResponse['lines'],
-      confidence: record.confidence,
+      confidence: presentEstimateConfidence(record.confidence, {
+        openImprovementQuestions: improvementQuestions.length,
+        refinementAnswerCount: refinementAnswers.length,
+      }),
       disclaimer: record.disclaimer,
       improvementQuestions,
       refinementAnswers,
@@ -300,6 +304,7 @@ export class EstimatesService {
       clarificationSummary: project.clarificationSummary,
       scopeSummary: project.scopeSummary,
       estimateRefinementQa,
+      allowTinyLineShare: project.projectType === ProjectType.design,
     });
 
     let lines = result.lines;

@@ -287,6 +287,9 @@ export function ClientClarificationQuestionsPanel({
       <p className="muted client-clarification-hint">
         {t('clarificationClient.activeHint')}
       </p>
+      <p className="muted client-clarification-hint">
+        {t('clarificationClient.verificationHint')}
+      </p>
 
       {questions.length === 0 ? (
         <p className="muted">
