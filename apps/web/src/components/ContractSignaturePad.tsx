@@ -1,6 +1,12 @@
 'use client';
 
-import { useEffect, useRef, type MutableRefObject } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from 'react';
 import SignatureCanvas from 'react-signature-canvas';
 import { useTranslation } from '@/components/LocaleProvider';
 
@@ -21,6 +27,28 @@ export function ContractSignaturePad({
 }: ContractSignaturePadProps) {
   const { t } = useTranslation();
   const canvasRef = useRef<SignatureCanvas | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useLayoutEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+
+    const syncSize = () => {
+      const width = Math.max(1, Math.floor(el.clientWidth));
+      const height = Math.max(1, Math.floor(el.clientHeight));
+      setSize((prev) =>
+        prev.width === width && prev.height === height
+          ? prev
+          : { width, height },
+      );
+    };
+
+    syncSize();
+    const observer = new ResizeObserver(syncSize);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const handle: ContractSignaturePadHandle = {
@@ -59,22 +87,27 @@ export function ContractSignaturePad({
         </button>
       </div>
       <div
+        ref={wrapRef}
         className={`contract-signature-pad-canvas-wrap${
           disabled ? ' contract-signature-pad-canvas-wrap--disabled' : ''
         }`}
       >
-        <SignatureCanvas
-          ref={(instance) => {
-            canvasRef.current = instance;
-          }}
-          penColor="#0f172a"
-          backgroundColor="#ffffff"
-          canvasProps={{
-            className: 'contract-signature-pad-canvas',
-            width: 480,
-            height: 160,
-          }}
-        />
+        {size.width > 0 && size.height > 0 ? (
+          <SignatureCanvas
+            key={`${size.width}x${size.height}`}
+            ref={(instance) => {
+              canvasRef.current = instance;
+            }}
+            penColor="#0f172a"
+            backgroundColor="#ffffff"
+            clearOnResize={false}
+            canvasProps={{
+              className: 'contract-signature-pad-canvas',
+              width: size.width,
+              height: size.height,
+            }}
+          />
+        ) : null}
       </div>
       <p className="muted contract-signature-pad-hint">
         {t('contractPanel.drawSignatureHint')}

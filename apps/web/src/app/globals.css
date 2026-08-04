@@ -5988,6 +5988,18 @@ select:disabled {
   gap: 0.85rem;
 }
 
+.contract-signing-tools {
+  display: grid;
+  gap: 0.85rem;
+  align-items: stretch;
+}
+
+@media (min-width: 900px) {
+  .contract-signing-tools {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  }
+}
+
 .contract-signing-loading {
   display: inline-flex;
   align-items: center;
@@ -5996,8 +6008,10 @@ select:disabled {
 }
 
 .contract-signature-pad {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
+  min-width: 0;
   padding: 0.85rem 1rem;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -6010,6 +6024,7 @@ select:disabled {
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
+  flex: 0 0 auto;
 }
 
 .contract-signature-pad-label {
@@ -6026,11 +6041,24 @@ select:disabled {
 }
 
 .contract-signature-pad-canvas-wrap {
+  flex: 1 1 auto;
+  position: relative;
+  width: 100%;
+  min-height: 180px;
   border: 1px dashed var(--border-strong);
   border-radius: 10px;
   background: #fff;
   overflow: hidden;
-  max-width: 100%;
+}
+
+@media (min-width: 900px) {
+  .contract-signing-tools .contract-signature-pad {
+    height: 100%;
+  }
+
+  .contract-signing-tools .contract-signature-pad-canvas-wrap {
+    min-height: 220px;
+  }
 }
 
 .contract-signature-pad-canvas-wrap--disabled {
@@ -6041,16 +6069,17 @@ select:disabled {
 .contract-signature-pad-canvas {
   display: block;
   width: 100%;
-  max-width: 480px;
-  height: 160px;
+  height: 100%;
   touch-action: none;
   cursor: crosshair;
+  vertical-align: top;
 }
 
 .contract-signature-pad-hint {
   margin: 0;
   font-size: 0.78rem;
   line-height: 1.4;
+  flex: 0 0 auto;
 }
 
 .contract-signing-hint {
@@ -6063,6 +6092,10 @@ select:disabled {
 }
 
 .contract-signing-download {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
   padding: 0.85rem 1rem;
   border: 1px solid var(--border);
   border-radius: 12px;

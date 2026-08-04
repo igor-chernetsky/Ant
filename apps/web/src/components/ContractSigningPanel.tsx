@@ -282,39 +282,54 @@ export function ContractSigningPanel({
         </p>
       )}
 
-      {contract.canSign && !hasCustom && (
-        <ContractSignaturePad padRef={signaturePadRef} disabled={busy} />
-      )}
-
-      <div className="contract-signing-download">
-        {hasCustom ? (
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            aria-busy={busy}
-            onClick={() => void handleDownloadCustom()}
-          >
-            <BusyLabel
-              busy={busy}
-              idle={t('contractPanel.downloadCustomContract')}
-              busyText={t('contractPanel.downloadingCustom')}
+      {contract.canSign && !hasCustom ? (
+        <div className="contract-signing-tools">
+          <ContractSignaturePad padRef={signaturePadRef} disabled={busy} />
+          <div className="contract-signing-download">
+            <CommercialProposalDownload
+              bidId={bidId}
+              projectId={asContractor ? undefined : projectId}
+              label={
+                contract.fullySigned
+                  ? t('commercialProposal.downloadSigned')
+                  : t('commercialProposal.downloadDraft')
+              }
+              className="secondary"
+              embedded
             />
-          </button>
-        ) : (
-          <CommercialProposalDownload
-            bidId={bidId}
-            projectId={asContractor ? undefined : projectId}
-            label={
-              contract.fullySigned
-                ? t('commercialProposal.downloadSigned')
-                : t('commercialProposal.downloadDraft')
-            }
-            className="secondary"
-            embedded
-          />
-        )}
-      </div>
+          </div>
+        </div>
+      ) : (
+        <div className="contract-signing-download">
+          {hasCustom ? (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              aria-busy={busy}
+              onClick={() => void handleDownloadCustom()}
+            >
+              <BusyLabel
+                busy={busy}
+                idle={t('contractPanel.downloadCustomContract')}
+                busyText={t('contractPanel.downloadingCustom')}
+              />
+            </button>
+          ) : (
+            <CommercialProposalDownload
+              bidId={bidId}
+              projectId={asContractor ? undefined : projectId}
+              label={
+                contract.fullySigned
+                  ? t('commercialProposal.downloadSigned')
+                  : t('commercialProposal.downloadDraft')
+              }
+              className="secondary"
+              embedded
+            />
+          )}
+        </div>
+      )}
 
       {hasCustom && contract.customFile && (
         <p className="muted contract-custom-file-name">
