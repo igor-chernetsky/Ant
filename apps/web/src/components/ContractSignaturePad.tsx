@@ -21,6 +21,9 @@ interface ContractSignaturePadProps {
   padRef: MutableRefObject<ContractSignaturePadHandle | null>;
 }
 
+/** Fixed CSS height of `.contract-signature-pad-canvas-wrap` — keep in sync. */
+const CANVAS_HEIGHT_PX = 200;
+
 export function ContractSignaturePad({
   disabled = false,
   padRef,
@@ -28,24 +31,20 @@ export function ContractSignaturePad({
   const { t } = useTranslation();
   const canvasRef = useRef<SignatureCanvas | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [width, setWidth] = useState(0);
 
   useLayoutEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
 
-    const syncSize = () => {
-      const width = Math.max(1, Math.floor(el.clientWidth));
-      const height = Math.max(1, Math.floor(el.clientHeight));
-      setSize((prev) =>
-        prev.width === width && prev.height === height
-          ? prev
-          : { width, height },
-      );
+    const syncWidth = () => {
+      // Use content box width so canvas matches the drawable white area.
+      const next = Math.max(1, Math.floor(el.clientWidth));
+      setWidth((prev) => (prev === next ? prev : next));
     };
 
-    syncSize();
-    const observer = new ResizeObserver(syncSize);
+    syncWidth();
+    const observer = new ResizeObserver(syncWidth);
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
@@ -92,9 +91,9 @@ export function ContractSignaturePad({
           disabled ? ' contract-signature-pad-canvas-wrap--disabled' : ''
         }`}
       >
-        {size.width > 0 && size.height > 0 ? (
+        {width > 0 ? (
           <SignatureCanvas
-            key={`${size.width}x${size.height}`}
+            key={width}
             ref={(instance) => {
               canvasRef.current = instance;
             }}
@@ -103,8 +102,12 @@ export function ContractSignaturePad({
             clearOnResize={false}
             canvasProps={{
               className: 'contract-signature-pad-canvas',
-              width: size.width,
-              height: size.height,
+              width,
+              height: CANVAS_HEIGHT_PX,
+              style: {
+                width: `${width}px`,
+                height: `${CANVAS_HEIGHT_PX}px`,
+              },
             }}
           />
         ) : null}
