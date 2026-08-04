@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { localeLanguageName } from '../localization/locale.utils';
 import { DEFAULT_LOCALE, isSupportedLocale } from '../users/locale.types';
 import { TAG_NO_HALLUCINATION_RULES } from '../projects/project-tag-reconciliation';
+import { PROJECT_TYPE_SELECTION_RULES } from '../projects/project-type-inference';
 import { AmendmentAiResult, AmendmentContext } from './amendment.types';
 
 @Injectable()
@@ -45,12 +46,13 @@ Content rules:
 - Keep factual content from the current brief that the amendment does not cancel.
 - CRITICAL: updatedDescription must preserve the FULL prior project narrative except where this amendment removes or replaces facts. Never replace the whole description with only the amendment text.
 - CRITICAL: updatedSummary must stay a project-level brief, not a single micro-task sentence.
-- updatedDescription: full narrative for contractors (2-6 sentences, or longer if prior text was longer). Explicitly name cost-driving MEP upgrades and newly requested systems (fire suppression, specialty lighting, utility connections, etc.) as required scope when the amendment asks for them.
+- updatedDescription: full narrative for contractors (2-6 sentences, or longer if prior text was longer). Explicitly name cost-driving MEP upgrades and newly requested systems (fire protection, specialty lighting, utility connections, etc.) as required scope when the amendment asks for them.
 - updatedSummary: shorter headline summary (1-3 sentences) that still covers the main works.
-- tagSlugs: subset of allowed tags only. When this amendment requests automatic fire extinguishing / sprinklers, include "fire-suppression". When it removes a system, drop related tags if no longer in scope.
+- tagSlugs: subset of allowed tags only. When this amendment requests fire protection / sprinklers / fire extinguishing, include "fire-suppression". When it removes a system, drop related tags if no longer in scope.
 - confidence: 0-1.
 - Write updatedDescription and updatedSummary in ${language}.
 - Keep ${language} throughout — do not translate existing content into another language.
+${PROJECT_TYPE_SELECTION_RULES}
 ${TAG_NO_HALLUCINATION_RULES}`;
 
     const user = JSON.stringify({

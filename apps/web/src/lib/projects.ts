@@ -171,22 +171,25 @@ export const CLARIFICATION_MODE_OPTIONS: Array<{
   },
 ];
 
-export const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> =
-  [
-    { value: 'renovation', label: 'Renovation' },
-    { value: 'modernization_reconstruction', label: 'Modernization & reconstruction' },
-    { value: 'new_build', label: 'New build' },
-    { value: 'extension', label: 'Extension' },
-    { value: 'commercial_fitout', label: 'Commercial fit-out' },
-    { value: 'design', label: 'Design' },
-    { value: 'repair', label: 'Repair' },
-    { value: 'other', label: 'Other' },
-  ];
-
 export const CONSTRUCTION_PROJECT_TYPE_OPTIONS: Array<{
   value: ProjectType;
   label: string;
-}> = PROJECT_TYPE_OPTIONS.filter((option) => option.value !== 'design');
+}> = [
+  { value: 'new_build', label: 'New Build' },
+  {
+    value: 'modernization_reconstruction',
+    label: 'Modernization & reconstruction',
+  },
+  { value: 'renovation', label: 'Renovation' },
+  { value: 'repair', label: 'Repair' },
+  { value: 'other', label: 'Other' },
+];
+
+export const PROJECT_TYPE_OPTIONS: Array<{ value: ProjectType; label: string }> =
+  [
+    ...CONSTRUCTION_PROJECT_TYPE_OPTIONS,
+    { value: 'design', label: 'Design' },
+  ];
 
 export const PROPERTY_TYPE_OPTIONS: Array<{
   value: PropertyType;

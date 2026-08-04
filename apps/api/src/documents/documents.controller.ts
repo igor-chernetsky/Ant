@@ -12,6 +12,7 @@ import {
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
+import { hasRole } from '../auth/roles.decorator';
 import { UsersService } from '../users/users.service';
 import { DocumentsService } from './documents.service';
 import {
@@ -31,13 +32,25 @@ export class DocumentsController {
     return this.usersService.findOrCreateFromJwt(req.user);
   }
 
+  private viewerOptions(req: Request & { user: JwtPayload }) {
+    return {
+      isAdmin: hasRole(req.user, 'admin'),
+      isContractorRole: hasRole(req.user, 'contractor'),
+      isDesignerRole: hasRole(req.user, 'designer'),
+    };
+  }
+
   @Get()
   async list(
     @Req() req: Request & { user: JwtPayload },
     @Param('projectId') projectId: string,
   ) {
     const user = await this.resolveUser(req);
-    return this.documentsService.listForProject(projectId, user.id);
+    return this.documentsService.listForProject(
+      projectId,
+      user.id,
+      this.viewerOptions(req),
+    );
   }
 
   @Post('presign')
@@ -77,6 +90,7 @@ export class DocumentsController {
       documentId,
       user.id,
       parseDocumentDownloadVariant(variant),
+      this.viewerOptions(req),
     );
   }
 

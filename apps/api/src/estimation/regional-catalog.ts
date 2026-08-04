@@ -119,10 +119,53 @@ export const TH_REGIONAL_CATALOG: RegionalCatalogItem[] = [
   {
     trade: 'fire-suppression',
     label:
-      'Automatic fire suppression / sprinkler system (warehouse & production scale)',
+      'Fire protection / sprinkler system (warehouse & production scale)',
     unit: 'lump',
     priceMinThb: 180000,
     priceMaxThb: 650000,
+  },
+  {
+    trade: 'piling',
+    label: 'Piling / bored piles / micropiles',
+    unit: 'lump',
+    priceMinThb: 80000,
+    priceMaxThb: 450000,
+  },
+  {
+    trade: 'earthwork',
+    label: 'Earthwork / excavation / site grading',
+    unit: 'cum',
+    priceMinThb: 350,
+    priceMaxThb: 1200,
+  },
+  {
+    trade: 'low-voltage',
+    label:
+      'Low-voltage / weak-current (CCTV, access control, data cabling)',
+    unit: 'lump',
+    priceMinThb: 25000,
+    priceMaxThb: 180000,
+  },
+  {
+    trade: 'built-in-furniture',
+    label: 'Built-in furniture / custom cabinets',
+    unit: 'lump',
+    priceMinThb: 40000,
+    priceMaxThb: 350000,
+  },
+  {
+    trade: 'plastering',
+    label: 'Plastering / rendering',
+    unit: 'sqm',
+    priceMinThb: 180,
+    priceMaxThb: 550,
+  },
+  {
+    trade: 'ceilings',
+    label: 'Ceilings / false ceilings / gypsum ceilings',
+    unit: 'sqm',
+    priceMinThb: 450,
+    priceMaxThb: 1400,
   },
   {
     trade: 'other',
@@ -148,8 +191,9 @@ Notes:
 - electrical: lighting fixtures and switchgear push toward mid-high band; specialty / underwater / designer luminaires require upper-band OR a separate electrical lump (often +40k–180k THB), not "free wording" inside a cheap wiring line.
 - plumbing: mains water / sewer utility tie-in is substantially more than a single fixture point — treat connection works near the upper band or as an additional lump.
 - pool water treatment: chlorine-free / UV / ozone / salt systems must be priced explicitly (typically +80k–250k THB lump on plumbing or a dedicated plumbing line). Do not treat them as zero-cost notes.
-- fire-suppression: when the client requests automatic fire extinguishing / sprinklers, add a dedicated fire-suppression line — never only a description note.
-- other: use for explicitly requested systems that are not a catalog trade (e.g. access control, specialized process equipment). Keep a separate priced line — do not remap to finishing.
+- fire-suppression: when the client requests fire protection / sprinklers / extinguishing, add a dedicated fire-suppression line — never only a description note.
+- piling / earthwork / low-voltage / built-in-furniture / plastering / ceilings: use dedicated lines when those trades are in scope.
+- other: use for explicitly requested systems that are not a catalog trade. Keep a separate priced line — do not remap to finishing.
 - hvac: residential split AC = per unit (18–45k). Supply/exhaust / industrial / warehouse ventilation MUST be priced per sqm (about 1,200–3,200 THB/sqm), never as a single 30–45k unit.
 - electrical: prefer ONE consolidated electrical line per project for base wiring/board/lighting. Do not stack duplicate electrical lines. For warehouses / light industrial without heavy process equipment, use ~550–1,600 THB/sqm (lighting, sockets, small boards) — NOT the residential fit-out band (2,200–6,500).
 - structural / roofing: quantity = GFA sqm (resolvedAreaSqm). Never quantity=1 with catalog unit rates as the line total. Building height answers adjust complexity/unit rate only.

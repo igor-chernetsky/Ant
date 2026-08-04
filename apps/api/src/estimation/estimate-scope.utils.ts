@@ -23,10 +23,16 @@ const CORE_SCOPE_TRADES = new Set([
   'flooring',
   'painting',
   'fire-suppression',
+  'piling',
+  'earthwork',
+  'low-voltage',
+  'built-in-furniture',
+  'plastering',
+  'ceilings',
 ]);
 
 export const FIRE_SUPPRESSION_PATTERN =
-  /\b(fire[-\s]?suppress|fire[-\s]?extinguish|sprinkler|пожар(отушен|ной\s*безопас)|автоматическ\w*\s*пожар|ระบบดับเพลิง)\b/i;
+  /\b(fire[-\s]?protect|fire[-\s]?suppress|fire[-\s]?extinguish|sprinkler|пожар(отушен|ной\s*безопас|озащит)|автоматическ\w*\s*пожар|ระบบดับเพลิง|ระบบป้องกันอัคคีภัย)\b/i;
 
 export const INDUSTRIAL_VENTILATION_PATTERN =
   /\b(supply[\s\-/]*exhaust|приточн\w*\s*-?\s*вытяж|приточно-вытяж|industrial\s*ventil|warehouse\s*ventil|вентиляц(ия|ии|ионн)|exhaust\s*ventil|механическ\w*\s*вентиляц)\b/i;
@@ -64,12 +70,6 @@ const REQUESTED_OTHER_SYSTEMS: Array<{
   pattern: RegExp;
   description: string;
 }> = [
-  {
-    id: 'access-control',
-    pattern:
-      /\b(access\s*control|скуд|cctv|видео.?наблюд|security\s*system|охранн\w*\s*систем)\b/i,
-    description: 'Access control / security systems',
-  },
   {
     id: 'fire-alarm',
     pattern:
@@ -164,7 +164,7 @@ export function buildEstimateScopeRules(
       'Quality upgrades mentioned in description, intake answers, or amendments (chlorine-free / UV / ozone / salt treatment; specialty / underwater / designer lights) MUST increase unit prices and/or add dedicated lines. Changing only the line description without changing amounts is incorrect.',
       'Civil / landscaping additions (paths, umbrella footings, concrete pads) and MEP quality upgrades must BOTH move totals — never ignore MEP notes while pricing concrete.',
       'Cover confirmed MEP (electrical, plumbing) whenever wiring, lighting, fixtures, water supply, sanitary, filtration, or utility connection works are in scope.',
-      'When the client (description, amendments, intake) requests a new system — fire suppression/sprinklers, specialty MEP, or other named equipment — ADD a separate priced estimate line. Use trade fire-suppression for automatic fire extinguishing; use trade other for explicitly requested systems that are not a catalog trade. Never only mention them in description text.',
+      'When the client (description, amendments, intake) requests a new system — fire protection/sprinklers, specialty MEP, or other named equipment — ADD a separate priced estimate line. Use trade fire-suppression for fire protection / extinguishing; use trade other for explicitly requested systems that are not a catalog trade. Never only mention them in description text.',
       'Do not remap fire-suppression or other lines into finishing.',
       'Supply/exhaust or industrial/warehouse ventilation must be priced as HVAC per sqm (roughly 1,200–3,200 THB/sqm), not as a single residential AC unit (18–45k).',
       'Prefer a single consolidated electrical line for base wiring/board/lighting; avoid duplicate electrical rows that inflate totals.',
@@ -224,6 +224,34 @@ const TRADE_KEYWORD_MAP: Array<{ pattern: RegExp; trade: string }> = [
     pattern: FIRE_SUPPRESSION_PATTERN,
     trade: 'fire-suppression',
   },
+  {
+    pattern: /\b(pil(e|ing)|bored\s*pile|micropile|свай|เสาเข็ม)\b/i,
+    trade: 'piling',
+  },
+  {
+    pattern:
+      /\b(excavation|earthwork|digging|котлован|земляны|ขุดดิน)\b/i,
+    trade: 'earthwork',
+  },
+  {
+    pattern:
+      /\b(low[-\s]?voltage|weak\s*current|cctv|access\s*control|data\s*cabl|скуд|видео.?наблюд|слаботоч)\b/i,
+    trade: 'low-voltage',
+  },
+  {
+    pattern:
+      /\b(built[-\s]?in\s*furnitur|cabinet|встроенн\w*\s*мебел|ตู้บิ้วอิน)\b/i,
+    trade: 'built-in-furniture',
+  },
+  {
+    pattern: /\b(plaster|render(ing)?|штукатур|ฉาบปูน)\b/i,
+    trade: 'plastering',
+  },
+  {
+    pattern:
+      /\b(ceilings?|false\s*ceiling|suspended\s*ceiling|потолк|ฝ้าเพดาน)\b/i,
+    trade: 'ceilings',
+  },
   { pattern: /\b(roof|roofing|кровл|крыш)\b/i, trade: 'roofing' },
   {
     pattern:
@@ -257,7 +285,7 @@ const TRADE_KEYWORD_MAP: Array<{ pattern: RegExp; trade: string }> = [
     pattern: /\b(landscape|umbrella|зонтик|зонт|благоустрой)\b/i,
     trade: 'landscaping',
   },
-  { pattern: /\b(carpent|joinery|столяр|мебел)\b/i, trade: 'carpentry' },
+  { pattern: /\b(carpent|joinery|столяр)\b/i, trade: 'carpentry' },
   { pattern: /\b(insulat|утеплен|теплоизоляц)\b/i, trade: 'insulation' },
 ];
 

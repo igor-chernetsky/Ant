@@ -14,7 +14,6 @@ import {
   getProjectOpenBlockReason,
   type ProjectOpenBlockReason,
 } from '@/lib/project-open-access';
-import type { ProjectType } from '@/lib/projects';
 import type { PublicProjectCard } from '@/lib/public-projects';
 import type { ContractorApplicationItem } from '@/lib/tendering';
 
@@ -42,6 +41,35 @@ function LockIcon() {
   );
 }
 
+/** Compass / drawing board — Design & Permits */
+function DesignPhaseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden focusable="false">
+      <path
+        fill="currentColor"
+        d="M12 2a1 1 0 0 1 .9.55l1.7 3.45 3.8.55a1 1 0 0 1 .55 1.7l-2.75 2.68.65 3.8a1 1 0 0 1-1.45 1.05L12 14.9l-3.4 1.78a1 1 0 0 1-1.45-1.05l.65-3.8L5.05 8.25a1 1 0 0 1 .55-1.7l3.8-.55L11.1 2.55A1 1 0 0 1 12 2Zm0 3.2L10.85 7.5a1 1 0 0 1-.75.55l-2.55.37 1.85 1.8a1 1 0 0 1 .29.89l-.44 2.55 2.28-1.2a1 1 0 0 1 .94 0l2.28 1.2-.44-2.55a1 1 0 0 1 .29-.89l1.85-1.8-2.55-.37a1 1 0 0 1-.75-.55L12 5.2Z"
+      />
+      <path
+        fill="currentColor"
+        d="M4.5 19.25h15a.75.75 0 0 1 0 1.5h-15a.75.75 0 0 1 0-1.5Z"
+        opacity="0.85"
+      />
+    </svg>
+  );
+}
+
+/** Building blocks — Construction */
+function ConstructionPhaseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden focusable="false">
+      <path
+        fill="currentColor"
+        d="M4 20.25V9.5a.75.75 0 0 1 .75-.75H9V5.75A.75.75 0 0 1 9.75 5h4.5a.75.75 0 0 1 .75.75V8.75h4a.75.75 0 0 1 .75.75v10.75a.75.75 0 0 1-.75.75H4.75a.75.75 0 0 1-.75-.75Zm1.5-.75h13V10.25h-3.5v2.25a.75.75 0 0 1-1.5 0V10.25h-3v9.25h-1.5V10.25H8v9.25H5.5Zm5.5-13.5v2.5h2.5v-2.5h-2.5Z"
+      />
+    </svg>
+  );
+}
+
 export function ProjectTile({
   project,
   isOwned = false,
@@ -50,7 +78,7 @@ export function ProjectTile({
   const router = useRouter();
   const { t } = useTranslation();
   const { me, refreshSession } = useSession();
-  const { formatProjectStatus, formatProjectType, formatParticipationLabel, formatTagLabel } =
+  const { formatProjectStatus, formatParticipationLabel, formatTagLabel } =
     useAppFormatters();
   const [loginOpen, setLoginOpen] = useState(false);
 
@@ -85,7 +113,17 @@ export function ProjectTile({
   const needsSignIn =
     blockReason === 'login_designer' || blockReason === 'login_contractor';
 
-  const className = `project-tile${isOwned ? ' project-tile-owned' : ''}${
+  const isDesignPhase = project.projectType === 'design';
+  const phaseLabel = isDesignPhase
+    ? t('projectTile.phaseDesign')
+    : t('projectTile.phaseConstruction');
+  const phaseAria = isDesignPhase
+    ? t('projectTile.phaseDesignAria')
+    : t('projectTile.phaseConstructionAria');
+
+  const className = `project-tile project-tile--${
+    isDesignPhase ? 'design' : 'construction'
+  }${isOwned ? ' project-tile-owned' : ''}${
     contractorParticipation && !isOwned ? ' project-tile-participating' : ''
   }${!canOpen ? ' project-tile-locked' : ''}${
     needsSignIn ? ' project-tile-locked--signin' : ''
@@ -106,13 +144,22 @@ export function ProjectTile({
           />
         ) : (
           <div className="project-tile-placeholder" aria-hidden>
-            <span>{formatProjectType(project.projectType as ProjectType)}</span>
+            <span>{phaseLabel}</span>
           </div>
         )}
         <span className={`project-tile-status project-tile-status--${statusTone}`}>
           {project.isHidden
             ? t('projectTile.hidden')
             : formatProjectStatus(project.status)}
+        </span>
+        <span
+          className={`project-tile-phase-badge project-tile-phase-badge--${
+            isDesignPhase ? 'design' : 'construction'
+          }`}
+          title={phaseAria}
+          aria-label={phaseAria}
+        >
+          {isDesignPhase ? <DesignPhaseIcon /> : <ConstructionPhaseIcon />}
         </span>
         {!canOpen && (
           <span className="project-tile-lock-badge" aria-hidden>
@@ -142,8 +189,19 @@ export function ProjectTile({
       <div className="project-tile-body">
         <h3 className="project-tile-title">{project.title}</h3>
         <p className="project-tile-meta muted">
-          {formatProjectType(project.projectType as ProjectType)}
-          {project.district ? ` · ${project.district}` : ''}
+          <span
+            className={`project-tile-phase-chip project-tile-phase-chip--${
+              isDesignPhase ? 'design' : 'construction'
+            }`}
+          >
+            {phaseLabel}
+          </span>
+          {project.district ? (
+            <span className="project-tile-meta-district">
+              {' '}
+              · {project.district}
+            </span>
+          ) : null}
         </p>
         {participationLabel && (
           <p className="project-tile-participation muted">{participationLabel}</p>

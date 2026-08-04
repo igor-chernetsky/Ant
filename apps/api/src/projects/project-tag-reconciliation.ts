@@ -48,35 +48,52 @@ export function suggestTagSlugsFromText(text: string): string[] {
       /\bstruct|\bbeam|\bfoundation|\bстроительн|\bконструкц|\bфундамент|\bconcrete|\bбетон/,
       'structural',
     ],
-    // Prefer craft tags for ventilation keywords.
     [/\bhvac|\bair cond|\bac\b|\bкондиц|\bventil|\bвентиляц/, 'hvac'],
     [
-      /\bfire[-\s]?suppress|\bsprinkler|\bfire[-\s]?extinguish|\bпожар(отушен|ной\s*безопас)|автоматическ\w*\s*пожар/,
+      /\bfire[-\s]?protect|\bfire[-\s]?suppress|\bsprinkler|\bfire[-\s]?extinguish|\bпожар(отушен|ной\s*безопас|озащит)|автоматическ\w*\s*пожар|ระบบดับเพลิง|ระบบป้องกันอัคคีภัย/,
       'fire-suppression',
     ],
     [/\bpaint|\bпокраск|\bмаляр/, 'painting'],
     [/\bfloor|\bнапольн/, 'flooring'],
     [/\btile|\bплитк|\bкафель|\bмозаик/, 'tiling'],
-    [/\bcarpent|\bwood|\bcabinet|\bстоляр|\bмебел/, 'carpentry'],
+    [/\bcarpent|\bwoodwork|\bстоляр(?!\w*\s*мебел)/, 'carpentry'],
+    [
+      /\bbuilt[-\s]?in\s*furnitur|\bcabinet|joinery\s*furnitur|\bвстроенн\w*\s*мебел|\bмебел\w*\s*на\s*заказ|\bตู้บิ้วอิน|เฟอร์นิเจอร์บิ้วอิน/,
+      'built-in-furniture',
+    ],
     [/\bgarden|\blandscape|\bзонт|\bumbrella|\bблагоустрой/, 'landscaping'],
     [/\bwindow|\bdoor|\bокон|\bдвер/, 'windows-doors'],
     [/\bconcrete|\bбетон/, 'concrete'],
     [/\bbrick|\bmason|\bкладк/, 'masonry'],
     [/\binsulat|\bутеплен/, 'insulation'],
+    [
+      /\bpil(e|ing)|bored\s*pile|micropile|\bсвай|\bшпунт|เสาเข็ม/,
+      'piling',
+    ],
+    [EXCAVATION_PATTERN, 'earthwork'],
+    [
+      /\blow[-\s]?voltage|\bweak\s*current|\bcctv|\baccess\s*control|\bdata\s*cabl|\bstructured\s*cabl|\bскуд|\bвидео.?наблюд|\bслаботоч|ระบบไฟฟ้าแรงต่ำ|กล้องวงจรปิด/,
+      'low-voltage',
+    ],
+    [
+      /\bplaster|\brender(ing)?|\bштукатур|\bฉาบปูน|โม่ปูน/,
+      'plastering',
+    ],
+    [
+      /\bceilings?|\bfalse\s*ceiling|\bsuspended\s*ceiling|\bgypsum\s*ceiling|\bпотолк|\bгипсокартон\w*\s*потол|ฝ้าเพดาน|เพดาน/,
+      'ceilings',
+    ],
   ];
 
   const slugs = new Set<string>();
   for (const [pattern, slug] of rules) {
-    if (pattern.source.includes('EXCAVATION_PLACEHOLDER')) {
-      continue;
-    }
     if (pattern.test(lower)) {
       slugs.add(slug);
     }
   }
 
   if (EXCAVATION_PATTERN.test(text)) {
-    slugs.add('structural');
+    slugs.add('earthwork');
   }
 
   if (POOL_PATTERN.test(text)) {
@@ -209,7 +226,7 @@ export const TAG_NO_HALLUCINATION_RULES = `Tag and description honesty rules:
 - Do NOT add tag "permits" unless the client confirmed permits/approvals are needed.
 - Tag "design" is appropriate when the client says the contractor prepares working/shop drawings, but that must be ADDITIVE — still keep construction trades.
 - For swimming-pool construction, tagSlugs MUST include structural, plumbing, electrical, and tiling (plus design only if drawings are in contractor scope). Do not leave only demolition and/or design.
-- Do not treat pool excavation / earthworks as demolition unless real strip-out or demolition is stated.
-- When the client requests automatic fire suppression / sprinklers / fire extinguishing, include tag "fire-suppression".
-- tagSlugs must reflect real construction trades in scope. Prefer omitting a speculative tag over guessing.
+- Do not treat pool excavation / earthworks as demolition unless real strip-out or demolition is stated. Prefer tag "earthwork" for excavation/earthworks.
+- When the client requests fire protection / suppression / sprinklers / fire extinguishing, include tag "fire-suppression" (label: Fire protection).
+- Use catalog trade tags only (including piling, earthwork, low-voltage, built-in-furniture, plastering, ceilings when in scope). Prefer omitting a speculative tag over guessing.
 - When revising tags after clarifications, keep still-relevant craft trades; do not replace the whole list with only the newest answer topic (e.g. drawings).`;

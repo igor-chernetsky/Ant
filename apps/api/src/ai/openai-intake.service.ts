@@ -18,6 +18,7 @@ import {
 } from './intake-question.utils';
 import { localeLanguageName } from '../localization/locale.utils';
 import { TAG_NO_HALLUCINATION_RULES } from '../projects/project-tag-reconciliation';
+import { PROJECT_TYPE_SELECTION_RULES } from '../projects/project-type-inference';
 
 @Injectable()
 export class OpenAiIntakeService {
@@ -182,6 +183,7 @@ Rules:
 - Ask at most ONE question in nextQuestion; prompt and options in ${lang}
 - Prefer practical construction questions matched to scope (for landscaping/paths: dimensions, base prep, materials; for pools: depth, pump room; for buildings: area, storeys, materials)
 ${TAG_NO_HALLUCINATION_RULES}
+${PROJECT_TYPE_SELECTION_RULES}
 ${this.buildingSystemsIntakeRules()}
 ${this.documentContextRules()}`;
 
@@ -243,6 +245,7 @@ Rules:
 - improvedDescription: when refining the project description, write clear professional ${lang} (2-5 sentences). Keep the same language as the existing description — do not switch to English or another language
 - Prompt and option labels in nextQuestion must be in ${lang}
 ${TAG_NO_HALLUCINATION_RULES}
+${PROJECT_TYPE_SELECTION_RULES}
 ${this.buildingSystemsIntakeRules()}
 ${this.documentContextRules()}`;
 
@@ -280,6 +283,7 @@ Rules:
 - confidence: 0-1
 - Incorporate uploadedDocuments when present; do not contradict them
 ${TAG_NO_HALLUCINATION_RULES}
+${PROJECT_TYPE_SELECTION_RULES}
 ${this.documentContextRules()}`;
 
     const user = JSON.stringify({

@@ -40,6 +40,10 @@ import {
   DEFAULT_CONSTRUCTION_TYPE_FROM_DESIGN,
   isConvertibleToDesign,
 } from './design-permits.utils';
+import {
+  normalizeConstructionProjectType,
+  suggestProjectTypeFromText,
+} from './project-type-inference';
 
 import {
 
@@ -1204,6 +1208,18 @@ export class ProjectsService {
 
 
 
+    const narrativeForType = [title, dto.description?.trim() ?? '']
+      .filter(Boolean)
+      .join('\n');
+    let projectType = dto.projectType ?? ProjectType.other;
+    if (projectType === ProjectType.design) {
+      // Design track stays design.
+    } else if (narrativeForType.trim()) {
+      projectType = suggestProjectTypeFromText(narrativeForType);
+    } else {
+      projectType = normalizeConstructionProjectType(projectType);
+    }
+
     const project = await this.prisma.project.create({
 
       data: {
@@ -1214,7 +1230,7 @@ export class ProjectsService {
 
         description: dto.description?.trim() || null,
 
-        projectType: dto.projectType ?? ProjectType.other,
+        projectType,
 
         propertyType: dto.propertyType ?? null,
 
@@ -1237,7 +1253,7 @@ export class ProjectsService {
 
           description: dto.description,
 
-          projectType: dto.projectType ?? ProjectType.other,
+          projectType,
 
           propertyType: dto.propertyType ?? null,
 
@@ -1381,6 +1397,17 @@ export class ProjectsService {
     const nextPropertyType =
       dto.propertyType !== undefined ? dto.propertyType : project.propertyType;
 
+    let nextProjectType = project.projectType;
+    if (
+      project.projectType !== ProjectType.design &&
+      dto.description !== undefined
+    ) {
+      const narrative = [nextTitle, nextDescription ?? ''].filter(Boolean).join('\n');
+      nextProjectType = narrative.trim()
+        ? suggestProjectTypeFromText(narrative)
+        : normalizeConstructionProjectType(project.projectType);
+    }
+
     const brief = (project.briefJson as ProjectBriefV1 | null) ?? buildInitialBrief({
       description: nextDescription ?? undefined,
       propertyType: nextPropertyType,
@@ -1396,7 +1423,7 @@ export class ProjectsService {
     const readinessScore = computeReadinessScore({
       title: nextTitle,
       description: nextDescription,
-      projectType: project.projectType,
+      projectType: nextProjectType,
       propertyType: nextPropertyType,
       district: project.district,
       tagCount: project.tags.length,
@@ -1408,6 +1435,7 @@ export class ProjectsService {
       data: {
         title: nextTitle,
         description: nextDescription,
+        projectType: nextProjectType,
         propertyType: nextPropertyType,
         briefJson: brief as unknown as Prisma.InputJsonValue,
         readinessScore,

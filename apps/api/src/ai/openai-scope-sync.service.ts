@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { localeLanguageName } from '../localization/locale.utils';
 import { DEFAULT_LOCALE, isSupportedLocale } from '../users/locale.types';
 import { TAG_NO_HALLUCINATION_RULES } from '../projects/project-tag-reconciliation';
+import { PROJECT_TYPE_SELECTION_RULES } from '../projects/project-type-inference';
 import { ScopeSyncContext, ScopeSyncResult } from '../projects/scope-sync.types';
 
 @Injectable()
@@ -50,6 +51,7 @@ Rules:
 - briefPatches may include constraints, property, timeline, materials when relevant.
 - Write updatedDescription, updatedSummary, and updatedScopeSummary in ${language}.
 - Keep ${language} throughout — do not translate existing Russian/Thai/English content into another language.
+${PROJECT_TYPE_SELECTION_RULES}
 ${TAG_NO_HALLUCINATION_RULES}`;
 
     const user = JSON.stringify({

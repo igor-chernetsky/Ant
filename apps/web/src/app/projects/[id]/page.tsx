@@ -100,9 +100,12 @@ export default function ProjectDetailPage() {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadDocuments = useCallback(
-    async (owner: boolean) => {
+    async (authenticated: boolean) => {
       if (!projectId) return;
-      const list = owner
+      // Invite guests (even if signed in) need the public+invite ACL.
+      const useAuthenticatedList =
+        authenticated && !inviteToken?.trim();
+      const list = useAuthenticatedList
         ? await fetchProjectDocuments(projectId)
         : await fetchPublicProjectDocuments(projectId, {
             inviteToken,
@@ -136,7 +139,7 @@ export default function ProjectDetailPage() {
           await fetchContractorParticipantProject(projectId);
         setProject(participantProject);
         setIsOwner(false);
-        await loadDocuments(false);
+        await loadDocuments(true);
         setPageReady(true);
         return true;
       } catch (err: unknown) {
@@ -173,7 +176,7 @@ export default function ProjectDetailPage() {
           const data = await fetchPublicProject(projectId, { inviteToken });
           setProject(data);
           setIsOwner(false);
-          await loadDocuments(false);
+          await loadDocuments(true);
           setPageReady(true);
           return;
         } catch (adminErr: unknown) {
@@ -193,7 +196,7 @@ export default function ProjectDetailPage() {
         const data = await fetchPublicProject(projectId, { inviteToken });
         setProject(data);
         setIsOwner(false);
-        await loadDocuments(false);
+        await loadDocuments(Boolean(profile));
         setPageReady(true);
       } catch (publicErr: unknown) {
         if (await loadParticipantView()) {
@@ -290,7 +293,9 @@ export default function ProjectDetailPage() {
     if (!projectId) return;
     setError(null);
     try {
-      const { downloadUrl } = isOwner
+      const useAuthenticatedDownload =
+        (isOwner || authState === 'authenticated') && !inviteToken?.trim();
+      const { downloadUrl } = useAuthenticatedDownload
         ? await getDocumentDownloadUrl(projectId, doc.id)
         : await getPublicDocumentDownloadUrl(projectId, doc.id, {
             inviteToken,
@@ -504,7 +509,7 @@ export default function ProjectDetailPage() {
                           key={doc.id}
                           projectId={projectId}
                           document={doc}
-                          publicView={!isOwner}
+                          publicView={authState !== 'authenticated'}
                           scopePackages={packagesByDocumentId.get(doc.id) ?? []}
                           insight={insightByDocumentId.get(doc.id)}
                           showDelete={showDocDelete}

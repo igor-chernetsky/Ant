@@ -127,13 +127,25 @@ export class DocumentsService {
   async listForProject(
     projectId: string,
     userId: string,
+    options?: {
+      isAdmin?: boolean;
+      isContractorRole?: boolean;
+      isDesignerRole?: boolean;
+    },
   ): Promise<DocumentResponse[]> {
-    await this.assertProjectOwner(projectId, userId);
+    const project = await this.assertPublicProjectView(
+      projectId,
+      userId,
+      options,
+    );
+    const isOwner = project.clientId === userId;
 
     const docs = await this.prisma.document.findMany({
       where: {
         projectId,
-        status: { not: DocumentStatus.deleted },
+        status: isOwner
+          ? { not: DocumentStatus.deleted }
+          : DocumentStatus.uploaded,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -320,8 +332,13 @@ export class DocumentsService {
     documentId: string,
     userId: string,
     variant: DocumentDownloadVariant = 'original',
+    options?: {
+      isAdmin?: boolean;
+      isContractorRole?: boolean;
+      isDesignerRole?: boolean;
+    },
   ): Promise<DownloadUrlResponse> {
-    await this.assertProjectOwner(projectId, userId);
+    await this.assertPublicProjectView(projectId, userId, options);
 
     const doc = await this.prisma.document.findFirst({
       where: {
