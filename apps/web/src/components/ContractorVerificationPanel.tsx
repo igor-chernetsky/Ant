@@ -109,6 +109,10 @@ export function ContractorVerificationPanel({
       setError(t('verification.phoneRequired'));
       return;
     }
+    if (!profile.bankName?.trim() || !profile.bankAccount?.trim()) {
+      setError(t('verification.bankRequired'));
+      return;
+    }
 
     const missingList =
       missingRecommendedCategories.length > 0
@@ -161,6 +165,17 @@ export function ContractorVerificationPanel({
         {profile.phone?.trim() ? profile.phone : t('common.dash')}
         {!profile.phone?.trim() && canRequestApproval
           ? ` — ${t('verification.phoneRequired')}`
+          : ''}
+      </p>
+      <p className="muted doc-hint">
+        {t('contractor.bankNameLabel')}:{' '}
+        {profile.bankName?.trim() ? profile.bankName : t('common.dash')}
+        {' · '}
+        {t('contractor.bankAccountLabel')}:{' '}
+        {profile.bankAccount?.trim() ? profile.bankAccount : t('common.dash')}
+        {(!profile.bankName?.trim() || !profile.bankAccount?.trim()) &&
+        canRequestApproval
+          ? ` — ${t('verification.bankRequired')}`
           : ''}
       </p>
 

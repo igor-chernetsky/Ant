@@ -50,6 +50,8 @@ export default function DesignerPage() {
   );
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankAccount, setBankAccount] = useState('');
   const [locationCatalog, setLocationCatalog] = useState<LocationCatalog | null>(
     null,
   );
@@ -103,6 +105,8 @@ export default function DesignerPage() {
       setCompanyName(me.displayName);
     }
     setPhone(prof?.phone ?? '');
+    setBankName(prof?.bankName ?? '');
+    setBankAccount(prof?.bankAccount ?? '');
     if (prof?.serviceLocations?.length) {
       setServiceLocations(prof.serviceLocations);
     }
@@ -143,6 +147,8 @@ export default function DesignerPage() {
       const prof = await upsertContractorProfile({
         companyName: companyName.trim() || undefined,
         phone: phone.trim() || null,
+        bankName: bankName.trim() || null,
+        bankAccount: bankAccount.trim() || null,
         serviceLocations,
         projectTypes: selectedProjectTypes,
         tagSlugs: selectedTagSlugs,
@@ -151,6 +157,8 @@ export default function DesignerPage() {
       setProfile(prof);
       setServiceLocations(prof.serviceLocations);
       setPhone(prof.phone ?? '');
+      setBankName(prof.bankName ?? '');
+      setBankAccount(prof.bankAccount ?? '');
       setSelectedProjectTypes(prof.projectTypes.filter(isProjectType));
       setSelectedTagSlugs(prof.tagSlugs);
       await refreshSession();
@@ -214,6 +222,27 @@ export default function DesignerPage() {
             onChange={(e) => setPhone(e.target.value)}
             placeholder={t('contractor.phonePlaceholder')}
             autoComplete="tel"
+          />
+        </label>
+        <label>
+          {t('contractor.bankNameLabel')}
+          <span className="muted tag-hint">{t('contractor.bankOptionalHint')}</span>
+          <input
+            value={bankName}
+            onChange={(e) => setBankName(e.target.value)}
+            placeholder={t('contractor.bankNamePlaceholder')}
+            autoComplete="organization"
+          />
+        </label>
+        <label>
+          {t('contractor.bankAccountLabel')}
+          <span className="muted tag-hint">{t('contractor.bankOptionalHint')}</span>
+          <input
+            value={bankAccount}
+            onChange={(e) => setBankAccount(e.target.value)}
+            placeholder={t('contractor.bankAccountPlaceholder')}
+            inputMode="numeric"
+            autoComplete="off"
           />
         </label>
         {locationCatalog ? (

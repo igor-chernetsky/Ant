@@ -251,6 +251,20 @@ export default function AdminContractorsPage() {
                     <dd>{detail.phone?.trim() ? detail.phone : t('common.dash')}</dd>
                   </div>
                   <div>
+                    <dt>{t('contractor.bankNameLabel')}</dt>
+                    <dd>
+                      {detail.bankName?.trim() ? detail.bankName : t('common.dash')}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t('contractor.bankAccountLabel')}</dt>
+                    <dd>
+                      {detail.bankAccount?.trim()
+                        ? detail.bankAccount
+                        : t('common.dash')}
+                    </dd>
+                  </div>
+                  <div>
                     <dt>{t('common.region')}</dt>
                     <dd>{detail.regionCode}</dd>
                   </div>

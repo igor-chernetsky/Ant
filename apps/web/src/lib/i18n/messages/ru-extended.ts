@@ -281,6 +281,11 @@ export const ruExtended = {
     phoneLabel: "Телефон",
     phoneOptionalHint: "Необязательно. Нужен при запросе верификации.",
     phonePlaceholder: "+66 …",
+    bankNameLabel: "Банк",
+    bankAccountLabel: "Расчётный счёт",
+    bankOptionalHint: "Необязательно. Нужен при запросе верификации.",
+    bankNamePlaceholder: "Bangkok Bank",
+    bankAccountPlaceholder: "Номер счёта",
     loadingLocations: "Загрузка локаций…",
     specialtiesLegend: "Ваши специализации",
     specialtiesHintOptional: "Необязательно. Оставьте пустым, чтобы видеть все проекты на главной.",
@@ -434,6 +439,16 @@ export const ruExtended = {
   directory: {
     inviteTitle: "Пригласить из реестра",
     inviteLead: "Выберите участников из реестра или укажите email. Они получат ссылку на карточку проекта и смогут посмотреть её без регистрации.",
+    adminInviteTitle: "Отправить приглашения на проект",
+    adminInviteLead:
+      "Пригласите незарегистрированные компании из реестра или укажите email. Зарегистрированные подрядчики и проектировщики скрыты — они уже получают письма о подходящих проектах.",
+    adminInviteCardTitle: "Пригласить из реестра",
+    adminInviteCardLead:
+      "Отправьте этот открытый тендер незарегистрированным подрядчикам или проектировщикам из реестра по email.",
+    adminInviteButton: "Отправить проект",
+    showAllKinds: "Показать все записи реестра",
+    emptyUnregistered:
+      "Нет незарегистрированных компаний в этом списке. Зарегистрированные аккаунты уже получают письма о подходящих проектах.",
     kindContractor: "Подрядчики",
     kindDesigner: "Проектировщики",
     kindSupplier: "Поставщики",
@@ -643,6 +658,8 @@ export const ruExtended = {
     requestApprovalConfirmLabel: "Отправить на проверку",
     phoneRequired:
       "Укажите телефон в профиле перед запросом верификации.",
+    bankRequired:
+      "Укажите банк и расчётный счёт в профиле перед запросом верификации.",
     loadDocumentsFailed: "Не удалось загрузить документы",
     bannerNoProfileTitle: "Заполните профиль, чтобы участвовать в тендерах",
     bannerNoProfileBody:

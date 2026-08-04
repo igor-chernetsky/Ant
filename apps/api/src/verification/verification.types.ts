@@ -30,6 +30,8 @@ export interface AdminContractorListItem {
   displayName: string | null;
   companyName: string | null;
   phone: string | null;
+  bankName: string | null;
+  bankAccount: string | null;
   regionCode: string;
   verificationStatus: string;
   verificationRequestedAt: string | null;

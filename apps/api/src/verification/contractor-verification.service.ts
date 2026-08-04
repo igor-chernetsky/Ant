@@ -221,6 +221,12 @@ export class ContractorVerificationService {
       );
     }
 
+    if (!profile.bankName?.trim() || !profile.bankAccount?.trim()) {
+      throw new BadRequestException(
+        'Add your bank name and settlement account to your profile before requesting verification',
+      );
+    }
+
     const updated = await this.prisma.contractorProfile.update({
       where: { id: profile.id },
       data: {

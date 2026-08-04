@@ -9,7 +9,13 @@ export class DirectoryController {
   constructor(private readonly directory: SupplyDirectoryService) {}
 
   @Get()
-  list(@Query('kind') kind?: SupplyDirectoryKind) {
-    return this.directory.listActive(kind);
+  list(
+    @Query('kind') kind?: SupplyDirectoryKind,
+    @Query('excludeRegistered') excludeRegistered?: string,
+  ) {
+    return this.directory.listActive(kind, {
+      excludeRegistered:
+        excludeRegistered === '1' || excludeRegistered === 'true',
+    });
   }
 }

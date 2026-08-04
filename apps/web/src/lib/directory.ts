@@ -52,8 +52,12 @@ async function readError(response: Response, fallback: string): Promise<string> 
 
 export async function fetchDirectoryEntries(
   kind?: SupplyDirectoryKind,
+  options?: { excludeRegistered?: boolean },
 ): Promise<SupplyDirectoryEntry[]> {
-  const qs = kind ? `?kind=${encodeURIComponent(kind)}` : '';
+  const params = new URLSearchParams();
+  if (kind) params.set('kind', kind);
+  if (options?.excludeRegistered) params.set('excludeRegistered', '1');
+  const qs = params.toString() ? `?${params.toString()}` : '';
   const response = await fetchWithAuth(`/api/directory${qs}`);
   if (!response.ok) {
     throw new Error(await readError(response, 'Failed to load directory'));

@@ -34,6 +34,10 @@ function escapeHtml(value: string): string {
     .replaceAll('"', '&quot;');
 }
 
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 @Injectable()
 export class TenderInvitesService {
   constructor(
@@ -95,17 +99,50 @@ export class TenderInvitesService {
     return true;
   }
 
+  /**
+   * Emails that belong to a registered supply-side account
+   * (contractor/designer profile) — they already get matching-project mail.
+   */
+  async registeredSupplyEmails(emails: string[]): Promise<Set<string>> {
+    const normalized = [
+      ...new Set(emails.map(normalizeEmail).filter((e) => e.includes('@'))),
+    ];
+    if (normalized.length === 0) return new Set();
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        email: { in: normalized, mode: 'insensitive' },
+        contractorProfile: { isNot: null },
+      },
+      select: { email: true },
+    });
+
+    return new Set(
+      users
+        .map((u) => u.email)
+        .filter((e): e is string => Boolean(e))
+        .map(normalizeEmail),
+    );
+  }
+
   async inviteFromDirectory(
-    clientId: string,
+    actorId: string,
     projectId: string,
     dto: InviteDirectoryRecipientsDto,
+    options?: { isAdmin?: boolean },
   ): Promise<TenderInviteResultDto[]> {
-    const entryIds = [...new Set((dto.entryIds ?? []).map((id) => id.trim()).filter(Boolean))];
+    const entryIds = [
+      ...new Set((dto.entryIds ?? []).map((id) => id.trim()).filter(Boolean)),
+    ];
     if (entryIds.length === 0) {
       throw new BadRequestException('Select at least one directory entry');
     }
 
-    const { tender, project } = await this.assertClientCanInvite(clientId, projectId);
+    const { tender, project } = await this.assertCanInvite(
+      actorId,
+      projectId,
+      options?.isAdmin === true,
+    );
 
     const entries = await this.prisma.supplyDirectoryEntry.findMany({
       where: { id: { in: entryIds }, isActive: true },
@@ -114,14 +151,21 @@ export class TenderInvitesService {
       throw new NotFoundException('No active directory entries found');
     }
 
+    const registered = await this.registeredSupplyEmails(
+      entries.map((e) => e.email),
+    );
+
     const results: TenderInviteResultDto[] = [];
     for (const entry of entries) {
+      if (registered.has(normalizeEmail(entry.email))) {
+        continue;
+      }
       results.push(
         await this.createAndSendInvite({
           tenderId: tender.id,
           projectId: project.id,
           projectTitle: project.title,
-          invitedById: clientId,
+          invitedById: actorId,
           kind: entry.kind,
           recipientEmail: entry.email,
           recipientName: entry.contactName ?? entry.companyName,
@@ -129,15 +173,23 @@ export class TenderInvitesService {
         }),
       );
     }
+
+    if (results.length === 0) {
+      throw new BadRequestException(
+        'All selected recipients are already registered on BuilTHAI',
+      );
+    }
+
     return results;
   }
 
   async inviteManual(
-    clientId: string,
+    actorId: string,
     projectId: string,
     dto: InviteManualRecipientDto,
+    options?: { isAdmin?: boolean },
   ): Promise<TenderInviteResultDto> {
-    const email = dto.email?.trim().toLowerCase();
+    const email = normalizeEmail(dto.email ?? '');
     if (!email || !email.includes('@')) {
       throw new BadRequestException('Valid email is required');
     }
@@ -145,13 +197,24 @@ export class TenderInvitesService {
       throw new BadRequestException('Invalid invite kind');
     }
 
-    const { tender, project } = await this.assertClientCanInvite(clientId, projectId);
+    const registered = await this.registeredSupplyEmails([email]);
+    if (registered.has(email)) {
+      throw new BadRequestException(
+        'This email belongs to a registered contractor or designer who already receives project notifications',
+      );
+    }
+
+    const { tender, project } = await this.assertCanInvite(
+      actorId,
+      projectId,
+      options?.isAdmin === true,
+    );
 
     return this.createAndSendInvite({
       tenderId: tender.id,
       projectId: project.id,
       projectTitle: project.title,
-      invitedById: clientId,
+      invitedById: actorId,
       kind: dto.kind,
       recipientEmail: email,
       recipientName: dto.name?.trim() || null,
@@ -165,18 +228,32 @@ export class TenderInvitesService {
       : SupplyDirectoryKind.contractor;
   }
 
-  private async assertClientCanInvite(clientId: string, projectId: string) {
+  private async assertCanInvite(
+    actorId: string,
+    projectId: string,
+    isAdmin: boolean,
+  ) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
-        tender: { select: { id: true, status: true } },
+        tender: { select: { id: true, status: true, awardedBidId: true } },
       },
     });
     if (!project) {
       throw new NotFoundException('Project not found');
     }
-    if (project.clientId !== clientId) {
-      throw new ForbiddenException('Only the project owner can send invites');
+    if (!isAdmin && project.clientId !== actorId) {
+      throw new ForbiddenException(
+        'Only the project owner or an admin can send invites',
+      );
+    }
+    if (
+      project.status === ProjectStatus.awarded ||
+      project.tender?.awardedBidId
+    ) {
+      throw new BadRequestException(
+        'Invites are not available after a contractor has been selected',
+      );
     }
     if (
       (project.status !== ProjectStatus.in_tender &&

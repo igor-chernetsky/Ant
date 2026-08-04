@@ -422,6 +422,8 @@ model ContractorProfile {
   kind                    SupplyProfileKind            @default(contractor)
   companyName             String?                      @map("company_name")
   phone                   String?
+  bankName                String?                      @map("bank_name")
+  bankAccount             String?                      @map("bank_account")
   regionCode              String                       @default("TH") @map("region_code")
   serviceLocationsJson    Json                         @default("[{\"regionSlug\":\"bangkok\"}]") @map("service_locations_json")
   projectTypes            ProjectType[]                @default([]) @map("project_types")

@@ -16,6 +16,7 @@ import { ProjectHero, ProjectHeroSidebar } from '@/components/ProjectHero';
 import { ProjectBriefCard } from '@/components/ProjectBriefCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
+import { InviteFromDirectoryModal } from '@/components/InviteFromDirectoryModal';
 import { ClientContractPanel, isContractProjectStatus } from '@/components/ClientContractPanel';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
@@ -96,6 +97,7 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [adminInviteOpen, setAdminInviteOpen] = useState(false);
   const [pageReady, setPageReady] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
@@ -370,6 +372,9 @@ export default function ProjectDetailPage() {
   const showEstimateTenderDuo = Boolean(
     (isOwner && estimate) || showTender,
   );
+  const showAdminInvite =
+    Boolean(me && isAdminUser(me) && project) &&
+    (project?.status === 'in_tender' || project?.status === 'clarification');
 
   const handleDelete = async () => {
     if (!projectId || !project) return;
@@ -530,6 +535,24 @@ export default function ProjectDetailPage() {
                   project={project}
                   onUpdated={(updated) => setProject(updated)}
                 />
+              )}
+
+              {showAdminInvite && (
+                <section className="card admin-invite-card">
+                  <h2 className="section-title">
+                    {t('directory.adminInviteCardTitle')}
+                  </h2>
+                  <p className="muted">
+                    {t('directory.adminInviteCardLead')}
+                  </p>
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => setAdminInviteOpen(true)}
+                  >
+                    {t('directory.adminInviteButton')}
+                  </button>
+                </section>
               )}
 
               {isOwner && (
@@ -713,6 +736,14 @@ export default function ProjectDetailPage() {
           })();
         }}
       />
+      {adminInviteOpen && project && (
+        <InviteFromDirectoryModal
+          projectId={project.id}
+          projectType={project.projectType}
+          variant="admin"
+          onClose={() => setAdminInviteOpen(false)}
+        />
+      )}
       {confirmDialog}
     </PageShell>
   );

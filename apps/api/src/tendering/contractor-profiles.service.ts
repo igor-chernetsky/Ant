@@ -73,6 +73,8 @@ export class ContractorProfilesService {
       kind: profile.kind,
       companyName: profile.companyName,
       phone: profile.phone,
+      bankName: profile.bankName,
+      bankAccount: profile.bankAccount,
       regionCode: profile.regionCode,
       serviceLocations,
       projectTypes: profile.projectTypes,
@@ -164,6 +166,12 @@ export class ContractorProfilesService {
     const companyName = dto.companyName?.trim() || null;
     const phone =
       dto.phone === undefined ? undefined : dto.phone?.trim() || null;
+    const bankName =
+      dto.bankName === undefined ? undefined : dto.bankName?.trim() || null;
+    const bankAccount =
+      dto.bankAccount === undefined
+        ? undefined
+        : dto.bankAccount?.trim() || null;
     const kind =
       options?.kind ??
       (dto.kind === 'designer'
@@ -177,6 +185,8 @@ export class ContractorProfilesService {
         kind,
         companyName,
         phone: phone ?? null,
+        bankName: bankName ?? null,
+        bankAccount: bankAccount ?? null,
         regionCode: primaryRegion.countryCode,
         serviceLocationsJson:
           serviceLocations as unknown as Prisma.InputJsonValue,
@@ -188,6 +198,8 @@ export class ContractorProfilesService {
         kind,
         companyName,
         ...(phone !== undefined ? { phone } : {}),
+        ...(bankName !== undefined ? { bankName } : {}),
+        ...(bankAccount !== undefined ? { bankAccount } : {}),
         regionCode: primaryRegion.countryCode,
         serviceLocationsJson:
           serviceLocations as unknown as Prisma.InputJsonValue,

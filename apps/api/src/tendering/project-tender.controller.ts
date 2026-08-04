@@ -2,6 +2,7 @@ import { Body, Controller, Get, Header, HttpCode, Param, Patch, Post, Put, Query
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
+import { hasRole } from '../auth/roles.decorator';
 import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import { TenderInvitesService } from '../supply-directory/tender-invites.service';
@@ -128,7 +129,9 @@ export class ProjectTenderController {
     @Body() body: InviteDirectoryRecipientsDto,
   ) {
     const user = await this.resolveUser(req);
-    return this.tenderInvites.inviteFromDirectory(user.id, projectId, body);
+    return this.tenderInvites.inviteFromDirectory(user.id, projectId, body, {
+      isAdmin: hasRole(req.user, 'admin'),
+    });
   }
 
   @Post('invites/manual')
@@ -138,7 +141,9 @@ export class ProjectTenderController {
     @Body() body: InviteManualRecipientDto,
   ) {
     const user = await this.resolveUser(req);
-    return this.tenderInvites.inviteManual(user.id, projectId, body);
+    return this.tenderInvites.inviteManual(user.id, projectId, body, {
+      isAdmin: hasRole(req.user, 'admin'),
+    });
   }
 
   @Get('clarification-questions')

@@ -16,6 +16,8 @@ interface InviteFromDirectoryModalProps {
   projectId: string;
   projectType?: string | null;
   onClose: () => void;
+  /** Admin send-project invites: show-all toggle + unregistered-only list. */
+  variant?: 'client' | 'admin';
 }
 
 const KINDS: SupplyDirectoryKind[] = ['contractor', 'designer', 'supplier'];
@@ -24,11 +26,13 @@ export function InviteFromDirectoryModal({
   projectId,
   projectType,
   onClose,
+  variant = 'client',
 }: InviteFromDirectoryModalProps) {
   const { t } = useTranslation();
-  const [kind, setKind] = useState<SupplyDirectoryKind>(() =>
-    suggestedDirectoryKind(projectType),
-  );
+  const isAdmin = variant === 'admin';
+  const suggestedKind = suggestedDirectoryKind(projectType);
+  const [kind, setKind] = useState<SupplyDirectoryKind>(suggestedKind);
+  const [showAllKinds, setShowAllKinds] = useState(false);
   const [entries, setEntries] = useState<SupplyDirectoryEntry[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [manualEmail, setManualEmail] = useState('');
@@ -47,7 +51,14 @@ export function InviteFromDirectoryModal({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    void fetchDirectoryEntries(kind)
+    const listKind = isAdmin
+      ? showAllKinds
+        ? undefined
+        : suggestedKind
+      : kind;
+    void fetchDirectoryEntries(listKind, {
+      excludeRegistered: true,
+    })
       .then((list) => {
         if (!cancelled) {
           setEntries(list);
@@ -68,7 +79,7 @@ export function InviteFromDirectoryModal({
     return () => {
       cancelled = true;
     };
-  }, [kind, t]);
+  }, [kind, showAllKinds, isAdmin, suggestedKind, t]);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -132,7 +143,7 @@ export function InviteFromDirectoryModal({
       const result = await inviteManualRecipientToTender(projectId, {
         email,
         name: manualName.trim() || undefined,
-        kind,
+        kind: isAdmin ? suggestedKind : kind,
       });
       setSuccess(
         result.emailSent
@@ -168,7 +179,11 @@ export function InviteFromDirectoryModal({
       >
         <div className="publish-tender-modal-chrome">
           <div className="modal-header">
-            <h2 id="invite-directory-title">{t('directory.inviteTitle')}</h2>
+            <h2 id="invite-directory-title">
+              {isAdmin
+                ? t('directory.adminInviteTitle')
+                : t('directory.inviteTitle')}
+            </h2>
             <button
               type="button"
               className="icon-button"
@@ -180,26 +195,42 @@ export function InviteFromDirectoryModal({
             </button>
           </div>
           <p className="muted modal-subtitle publish-tender-modal-subtitle">
-            {t('directory.inviteLead')}
+            {isAdmin
+              ? t('directory.adminInviteLead')
+              : t('directory.inviteLead')}
           </p>
         </div>
 
         <div className="publish-tender-modal-body modal-form">
-          <div className="directory-kind-tabs" role="tablist">
-            {KINDS.map((k) => (
-              <button
-                key={k}
-                type="button"
-                role="tab"
-                aria-selected={kind === k}
-                className={kind === k ? 'primary' : 'secondary'}
-                onClick={() => setKind(k)}
+          {isAdmin && (
+            <label className="directory-show-all">
+              <input
+                type="checkbox"
+                checked={showAllKinds}
+                onChange={(e) => setShowAllKinds(e.target.checked)}
                 disabled={busy}
-              >
-                {kindLabel[k]}
-              </button>
-            ))}
-          </div>
+              />
+              <span>{t('directory.showAllKinds')}</span>
+            </label>
+          )}
+
+          {!isAdmin && (
+            <div className="directory-kind-tabs" role="tablist">
+              {KINDS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="tab"
+                  aria-selected={kind === k}
+                  className={kind === k ? 'primary' : 'secondary'}
+                  onClick={() => setKind(k)}
+                  disabled={busy}
+                >
+                  {kindLabel[k]}
+                </button>
+              ))}
+            </div>
+          )}
 
           {error && <p className="error">{error}</p>}
           {success && <p className="muted">{success}</p>}
@@ -207,7 +238,11 @@ export function InviteFromDirectoryModal({
           {loading ? (
             <p className="muted">{t('directory.loading')}</p>
           ) : entries.length === 0 ? (
-            <p className="muted">{t('directory.empty')}</p>
+            <p className="muted">
+              {isAdmin
+                ? t('directory.emptyUnregistered')
+                : t('directory.empty')}
+            </p>
           ) : (
             <ul className="directory-invite-list">
               {entries.map((entry) => (
@@ -222,6 +257,9 @@ export function InviteFromDirectoryModal({
                     <span>
                       <strong>{entry.companyName}</strong>
                       <span className="muted directory-invite-meta">
+                        {isAdmin && showAllKinds
+                          ? `${kindLabel[entry.kind]} · `
+                          : ''}
                         {entry.contactName ? `${entry.contactName} · ` : ''}
                         {entry.email}
                         {entry.regionSlug ? ` · ${entry.regionSlug}` : ''}

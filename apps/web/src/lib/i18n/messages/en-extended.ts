@@ -281,6 +281,11 @@ export const enExtended = {
     phoneLabel: "Phone",
     phoneOptionalHint: "Optional. Required when you request verification.",
     phonePlaceholder: "+66 …",
+    bankNameLabel: "Bank name",
+    bankAccountLabel: "Settlement account",
+    bankOptionalHint: "Optional. Required when you request verification.",
+    bankNamePlaceholder: "Bangkok Bank",
+    bankAccountPlaceholder: "Account number",
     loadingLocations: "Loading locations…",
     specialtiesLegend: "Your specialties",
     specialtiesHintOptional: "Optional. Leave empty to see all projects on the home page.",
@@ -433,6 +438,16 @@ export const enExtended = {
   directory: {
     inviteTitle: "Invite from registry",
     inviteLead: "Select people from the registry or enter an email. They receive a link to the project card and can view it without registering.",
+    adminInviteTitle: "Send project invitations",
+    adminInviteLead:
+      "Invite unregistered companies from the registry, or enter an email. Registered contractors and designers are hidden — they already receive matching-project emails.",
+    adminInviteCardTitle: "Invite from registry",
+    adminInviteCardLead:
+      "Send this open tender to unregistered contractors or designers from the registry by email.",
+    adminInviteButton: "Send project",
+    showAllKinds: "Show all registry entries",
+    emptyUnregistered:
+      "No unregistered companies in this list. Registered accounts already get matching-project emails.",
     kindContractor: "Contractors",
     kindDesigner: "Designers",
     kindSupplier: "Suppliers",
@@ -642,6 +657,8 @@ export const enExtended = {
     requestApprovalConfirmLabel: "Send for review",
     phoneRequired:
       "Add a phone number to your profile before requesting verification.",
+    bankRequired:
+      "Add your bank name and settlement account to your profile before requesting verification.",
     loadDocumentsFailed: "Failed to load documents",
     bannerNoProfileTitle: "Complete your profile to join tenders",
     bannerNoProfileBody:

@@ -279,6 +279,11 @@ export const thExtended = {
     phoneLabel: "โทรศัพท์",
     phoneOptionalHint: "ไม่บังคับ จำเป็นเมื่อขอการยืนยันตัวตน",
     phonePlaceholder: "+66 …",
+    bankNameLabel: "ธนาคาร",
+    bankAccountLabel: "เลขบัญชี",
+    bankOptionalHint: "ไม่บังคับ จำเป็นเมื่อขอการยืนยันตัวตน",
+    bankNamePlaceholder: "Bangkok Bank",
+    bankAccountPlaceholder: "หมายเลขบัญชี",
     loadingLocations: "กำลังโหลดพื้นที่…",
     specialtiesLegend: "ความเชี่ยวชาญของคุณ",
     specialtiesHintOptional: "ไม่บังคับ ปล่อยว่างเพื่อดูโครงการทั้งหมดในหน้าแรก",
@@ -431,6 +436,16 @@ export const thExtended = {
   directory: {
     inviteTitle: "เชิญจากทะเบียน",
     inviteLead: "เลือกรายชื่อจากทะเบียนหรือใส่อีเมล พวกเขาจะได้รับลิงก์การ์ดโครงการและดูได้โดยไม่ต้องลงทะเบียน",
+    adminInviteTitle: "ส่งคำเชิญโครงการ",
+    adminInviteLead:
+      "เชิญบริษัทที่ยังไม่ได้ลงทะเบียนจากทะเบียน หรือใส่อีเมล ผู้รับเหมาและผู้ออกแบบที่ลงทะเบียนแล้วจะถูกซ่อน — พวกเขาได้รับอีเมลโครงการที่ตรงอยู่แล้ว",
+    adminInviteCardTitle: "เชิญจากทะเบียน",
+    adminInviteCardLead:
+      "ส่งการประมูลที่เปิดอยู่นี้ไปยังผู้รับเหมาหรือผู้ออกแบบที่ยังไม่ได้ลงทะเบียนจากทะเบียนทางอีเมล",
+    adminInviteButton: "ส่งโครงการ",
+    showAllKinds: "แสดงรายการทะเบียนทั้งหมด",
+    emptyUnregistered:
+      "ไม่มีบริษัทที่ยังไม่ได้ลงทะเบียนในรายการนี้ บัญชีที่ลงทะเบียนแล้วได้รับอีเมลโครงการที่ตรงอยู่แล้ว",
     kindContractor: "ผู้รับเหมา",
     kindDesigner: "ผู้ออกแบบ",
     kindSupplier: "ซัพพลายเออร์",
@@ -640,6 +655,8 @@ export const thExtended = {
     requestApprovalConfirmLabel: "ส่งเพื่อตรวจสอบ",
     phoneRequired:
       "กรอกเบอร์โทรในโปรไฟล์ก่อนขอการยืนยันตัวตน",
+    bankRequired:
+      "กรอกชื่อธนาคารและเลขบัญชีในโปรไฟล์ก่อนขอการยืนยันตัวตน",
     loadDocumentsFailed: "โหลดเอกสารไม่สำเร็จ",
     bannerNoProfileTitle: "กรอกโปรไฟล์เพื่อเข้าร่วมการประมูล",
     bannerNoProfileBody:

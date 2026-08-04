@@ -40,7 +40,10 @@ export class SupplyDirectoryService {
     return entries.map((e) => this.toDto(e));
   }
 
-  async listActive(kind?: SupplyDirectoryKind): Promise<SupplyDirectoryEntryDto[]> {
+  async listActive(
+    kind?: SupplyDirectoryKind,
+    options?: { excludeRegistered?: boolean },
+  ): Promise<SupplyDirectoryEntryDto[]> {
     const entries = await this.prisma.supplyDirectoryEntry.findMany({
       where: {
         isActive: true,
@@ -48,7 +51,28 @@ export class SupplyDirectoryService {
       },
       orderBy: [{ kind: 'asc' }, { sortOrder: 'asc' }, { companyName: 'asc' }],
     });
-    return entries.map((e) => this.toDto(e));
+
+    if (!options?.excludeRegistered || entries.length === 0) {
+      return entries.map((e) => this.toDto(e));
+    }
+
+    const emails = entries.map((e) => e.email.trim().toLowerCase());
+    const registeredUsers = await this.prisma.user.findMany({
+      where: {
+        email: { in: emails, mode: 'insensitive' },
+        contractorProfile: { isNot: null },
+      },
+      select: { email: true },
+    });
+    const registered = new Set(
+      registeredUsers
+        .map((u) => u.email?.trim().toLowerCase())
+        .filter((e): e is string => Boolean(e)),
+    );
+
+    return entries
+      .filter((e) => !registered.has(e.email.trim().toLowerCase()))
+      .map((e) => this.toDto(e));
   }
 
   async getById(id: string): Promise<SupplyDirectoryEntryDto> {
