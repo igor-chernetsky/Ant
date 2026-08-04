@@ -8612,13 +8612,117 @@ select:disabled {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.25rem;
   cursor: pointer;
   font-size: 0.95rem;
 }
 
+.invite-directory-modal .directory-show-all {
+  display: inline-flex;
+  grid-template-columns: none;
+  gap: 0.5rem;
+  align-items: center;
+  width: fit-content;
+}
+
 .admin-invite-card .primary {
   margin-top: 0.75rem;
+}
+
+.directory-invite-table-wrap {
+  width: 100%;
+  max-width: none;
+  margin: 0 -0.15rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: auto;
+  max-height: min(42vh, 360px);
+  background: color-mix(in srgb, var(--glass-bg-dense, #fff) 88%, #fff);
+}
+
+.directory-invite-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.9rem;
+}
+
+.directory-invite-table th:nth-child(2),
+.directory-invite-table td:nth-child(2) {
+  width: 28%;
+}
+
+.directory-invite-table th:nth-child(4),
+.directory-invite-table td:nth-child(4) {
+  width: 28%;
+}
+
+.directory-invite-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #64748b);
+  background: color-mix(in srgb, var(--accent-muted, #e8eef8) 70%, #fff);
+  border-bottom: 1px solid var(--border);
+}
+
+.directory-invite-table tbody td {
+  padding: 0.7rem 0.75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory-invite-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.directory-invite-table tbody tr {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.directory-invite-table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent-muted, #dbeafe) 55%, transparent);
+}
+
+.directory-invite-table tbody tr.directory-invite-row--selected {
+  background: color-mix(in srgb, var(--accent-muted, #bfdbfe) 80%, #fff);
+}
+
+.directory-invite-col-check {
+  width: 2.75rem;
+  text-align: center;
+}
+
+.directory-invite-table .directory-invite-col-check {
+  white-space: nowrap;
+}
+
+.directory-invite-table input[type='checkbox'] {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.directory-invite-company {
+  font-weight: 650;
+  color: var(--text);
+}
+
+.directory-invite-email {
+  font-variant-numeric: tabular-nums;
 }
 
 .directory-invite-row {
@@ -8646,7 +8750,35 @@ select:disabled {
 }
 
 .invite-directory-modal {
-  max-width: 720px;
+  width: min(960px, calc(100vw - 2rem));
+  max-width: min(960px, calc(100vw - 2rem));
+}
+
+.invite-directory-modal.publish-tender-modal {
+  width: min(960px, calc(100vw - 2rem));
+  max-width: min(960px, calc(100vw - 2rem));
+}
+
+.invite-directory-modal .publish-tender-modal-body {
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.invite-directory-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.invite-directory-modal-body .directory-manual-invite h3 {
+  margin: 0 0 0.55rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.invite-directory-modal-body .directory-manual-invite input {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .guest-invite-notice {
@@ -8665,6 +8797,20 @@ select:disabled {
 @media (max-width: 640px) {
   .directory-manual-invite .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .invite-directory-modal.publish-tender-modal {
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+  }
+
+  .directory-invite-table {
+    font-size: 0.82rem;
+  }
+
+  .directory-invite-table thead th,
+  .directory-invite-table tbody td {
+    padding: 0.55rem 0.5rem;
   }
 }
 

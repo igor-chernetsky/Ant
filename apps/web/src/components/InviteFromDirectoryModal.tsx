@@ -201,7 +201,7 @@ export function InviteFromDirectoryModal({
           </p>
         </div>
 
-        <div className="publish-tender-modal-body modal-form">
+        <div className="publish-tender-modal-body invite-directory-modal-body">
           {isAdmin && (
             <label className="directory-show-all">
               <input
@@ -244,31 +244,71 @@ export function InviteFromDirectoryModal({
                 : t('directory.empty')}
             </p>
           ) : (
-            <ul className="directory-invite-list">
-              {entries.map((entry) => (
-                <li key={entry.id}>
-                  <label className="directory-invite-row">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(entry.id)}
-                      onChange={() => toggle(entry.id)}
-                      disabled={busy}
-                    />
-                    <span>
-                      <strong>{entry.companyName}</strong>
-                      <span className="muted directory-invite-meta">
-                        {isAdmin && showAllKinds
-                          ? `${kindLabel[entry.kind]} · `
-                          : ''}
-                        {entry.contactName ? `${entry.contactName} · ` : ''}
-                        {entry.email}
-                        {entry.regionSlug ? ` · ${entry.regionSlug}` : ''}
+            <div className="directory-invite-table-wrap">
+              <table className="directory-invite-table">
+                <thead>
+                  <tr>
+                    <th scope="col" className="directory-invite-col-check">
+                      <span className="sr-only">
+                        {t('directory.selectColumn')}
                       </span>
-                    </span>
-                  </label>
-                </li>
-              ))}
-            </ul>
+                    </th>
+                    <th scope="col">{t('directory.companyColumn')}</th>
+                    <th scope="col">{t('directory.contactColumn')}</th>
+                    <th scope="col">{t('directory.emailColumn')}</th>
+                    {isAdmin && showAllKinds ? (
+                      <th scope="col">{t('directory.kindColumn')}</th>
+                    ) : null}
+                    <th scope="col">{t('directory.regionColumn')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.map((entry) => (
+                    <tr
+                      key={entry.id}
+                      className={
+                        selected.has(entry.id)
+                          ? 'directory-invite-row--selected'
+                          : undefined
+                      }
+                      onClick={() => {
+                        if (!busy) toggle(entry.id);
+                      }}
+                    >
+                      <td className="directory-invite-col-check">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(entry.id)}
+                          onChange={() => toggle(entry.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          disabled={busy}
+                          aria-label={entry.companyName}
+                        />
+                      </td>
+                      <td>
+                        <span className="directory-invite-company">
+                          {entry.companyName}
+                        </span>
+                      </td>
+                      <td className="muted">
+                        {entry.contactName?.trim() || t('common.dash')}
+                      </td>
+                      <td>
+                        <span className="directory-invite-email">
+                          {entry.email}
+                        </span>
+                      </td>
+                      {isAdmin && showAllKinds ? (
+                        <td className="muted">{kindLabel[entry.kind]}</td>
+                      ) : null}
+                      <td className="muted">
+                        {entry.regionSlug || t('common.dash')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           <div className="directory-manual-invite">

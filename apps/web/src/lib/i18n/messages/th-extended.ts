@@ -444,6 +444,12 @@ export const thExtended = {
       "ส่งการประมูลที่เปิดอยู่นี้ไปยังผู้รับเหมาหรือผู้ออกแบบที่ยังไม่ได้ลงทะเบียนจากทะเบียนทางอีเมล",
     adminInviteButton: "ส่งโครงการ",
     showAllKinds: "แสดงรายการทะเบียนทั้งหมด",
+    selectColumn: "เลือก",
+    companyColumn: "บริษัท",
+    contactColumn: "ผู้ติดต่อ",
+    emailColumn: "อีเมล",
+    kindColumn: "ประเภท",
+    regionColumn: "ภูมิภาค",
     emptyUnregistered:
       "ไม่มีบริษัทที่ยังไม่ได้ลงทะเบียนในรายการนี้ บัญชีที่ลงทะเบียนแล้วได้รับอีเมลโครงการที่ตรงอยู่แล้ว",
     kindContractor: "ผู้รับเหมา",

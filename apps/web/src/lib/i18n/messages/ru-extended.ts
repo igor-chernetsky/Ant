@@ -447,6 +447,12 @@ export const ruExtended = {
       "Отправьте этот открытый тендер незарегистрированным подрядчикам или проектировщикам из реестра по email.",
     adminInviteButton: "Отправить проект",
     showAllKinds: "Показать все записи реестра",
+    selectColumn: "Выбор",
+    companyColumn: "Компания",
+    contactColumn: "Контакт",
+    emailColumn: "Email",
+    kindColumn: "Тип",
+    regionColumn: "Регион",
     emptyUnregistered:
       "Нет незарегистрированных компаний в этом списке. Зарегистрированные аккаунты уже получают письма о подходящих проектах.",
     kindContractor: "Подрядчики",

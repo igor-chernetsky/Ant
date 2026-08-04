@@ -446,6 +446,12 @@ export const enExtended = {
       "Send this open tender to unregistered contractors or designers from the registry by email.",
     adminInviteButton: "Send project",
     showAllKinds: "Show all registry entries",
+    selectColumn: "Select",
+    companyColumn: "Company",
+    contactColumn: "Contact",
+    emailColumn: "Email",
+    kindColumn: "Type",
+    regionColumn: "Region",
     emptyUnregistered:
       "No unregistered companies in this list. Registered accounts already get matching-project emails.",
     kindContractor: "Contractors",
