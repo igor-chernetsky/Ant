@@ -1068,26 +1068,26 @@ pre {
 
 .project-tile--design {
   box-shadow:
-    inset 3px 0 0 0 rgba(59, 130, 246, 0.85),
+    inset 3px 0 0 0 rgba(14, 165, 233, 0.9),
     var(--shadow-glass);
 }
 
 .project-tile--construction {
   box-shadow:
-    inset 3px 0 0 0 rgba(180, 120, 60, 0.88),
+    inset 3px 0 0 0 rgba(30, 64, 175, 0.92),
     var(--shadow-glass);
 }
 
 .project-tile--design.project-tile-owned {
   box-shadow:
-    inset 3px 0 0 0 rgba(59, 130, 246, 0.85),
+    inset 3px 0 0 0 rgba(14, 165, 233, 0.9),
     0 0 0 1px rgba(37, 99, 235, 0.15),
     var(--shadow-glass);
 }
 
 .project-tile--construction.project-tile-owned {
   box-shadow:
-    inset 3px 0 0 0 rgba(180, 120, 60, 0.88),
+    inset 3px 0 0 0 rgba(30, 64, 175, 0.92),
     0 0 0 1px rgba(37, 99, 235, 0.15),
     var(--shadow-glass);
 }
@@ -1167,14 +1167,14 @@ pre {
 
 .project-tile--design:hover {
   box-shadow:
-    inset 3px 0 0 0 rgba(59, 130, 246, 0.9),
+    inset 3px 0 0 0 rgba(14, 165, 233, 0.95),
     var(--shadow-glass),
     0 12px 28px rgba(37, 99, 235, 0.12);
 }
 
 .project-tile--construction:hover {
   box-shadow:
-    inset 3px 0 0 0 rgba(180, 120, 60, 0.92),
+    inset 3px 0 0 0 rgba(30, 64, 175, 0.95),
     var(--shadow-glass),
     0 12px 28px rgba(37, 99, 235, 0.12);
 }
@@ -1290,13 +1290,13 @@ pre {
 }
 
 .project-tile-phase-badge--design {
-  background: rgba(239, 246, 255, 0.94);
-  color: #1d4ed8;
+  background: rgba(240, 249, 255, 0.95);
+  color: #0369a1;
 }
 
 .project-tile-phase-badge--construction {
-  background: rgba(255, 247, 237, 0.94);
-  color: #9a3412;
+  background: rgba(239, 246, 255, 0.95);
+  color: #1e3a8a;
 }
 
 .project-tile-phase-chip {
@@ -1313,13 +1313,13 @@ pre {
 }
 
 .project-tile-phase-chip--design {
-  background: rgba(219, 234, 254, 0.9);
-  color: #1d4ed8;
+  background: rgba(224, 242, 254, 0.95);
+  color: #0369a1;
 }
 
 .project-tile-phase-chip--construction {
-  background: rgba(254, 243, 199, 0.95);
-  color: #9a3412;
+  background: rgba(219, 234, 254, 0.95);
+  color: #1e3a8a;
 }
 
 .project-tile-meta-district {
