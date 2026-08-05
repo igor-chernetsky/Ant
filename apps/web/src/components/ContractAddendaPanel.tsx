@@ -873,21 +873,26 @@ export function ContractAddendaPanel({
                 <div className="field addenda-create-file-field">
                   <span>{t('addenda.file')}</span>
                   <div className="addenda-create-file-row">
-                    <label className="secondary file-input-button">
+                    <input
+                      ref={createFileRef}
+                      type="file"
+                      accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      disabled={createBusy}
+                      hidden
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null;
+                        setCreateFileName(file?.name ?? null);
+                        setCreateError(null);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={createBusy}
+                      onClick={() => createFileRef.current?.click()}
+                    >
                       {t('addenda.chooseFile')}
-                      <input
-                        ref={createFileRef}
-                        type="file"
-                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                        disabled={createBusy}
-                        hidden
-                        onChange={(event) => {
-                          const file = event.target.files?.[0] ?? null;
-                          setCreateFileName(file?.name ?? null);
-                          setCreateError(null);
-                        }}
-                      />
-                    </label>
+                    </button>
                     <span className="muted addenda-create-file-name">
                       {createFileName ?? t('addenda.noFileChosen')}
                     </span>
