@@ -980,15 +980,7 @@ export function ContractAddendaPanel({
 
               {createError && <p className="form-error">{createError}</p>}
 
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={createBusy}
-                  onClick={() => setCreateOpen(false)}
-                >
-                  {t('common.cancel')}
-                </button>
+              <div className="row addenda-create-actions">
                 <button type="submit" className="primary" disabled={createBusy}>
                   <BusyLabel
                     busy={createBusy}
@@ -999,6 +991,14 @@ export function ContractAddendaPanel({
                         : t('addenda.creating')
                     }
                   />
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={createBusy}
+                  onClick={() => setCreateOpen(false)}
+                >
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>
