@@ -634,6 +634,7 @@ export function ContractAddendaPanel({
   const [createLocale, setCreateLocale] = useState<Locale>(locale);
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createFileName, setCreateFileName] = useState<string | null>(null);
   const createFileRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -668,6 +669,10 @@ export function ContractAddendaPanel({
     setTitle('');
     setDescription('');
     setCreateMode('text');
+    setCreateFileName(null);
+    if (createFileRef.current) {
+      createFileRef.current.value = '';
+    }
   };
 
   const handleCreateSubmit = async (event: FormEvent) => {
@@ -781,29 +786,46 @@ export function ContractAddendaPanel({
               </button>
             </div>
             <form className="modal-form" onSubmit={(e) => void handleCreateSubmit(e)}>
-              <p className="muted">{t('addenda.createHint')}</p>
+              <p className="muted modal-subtitle">{t('addenda.createHint')}</p>
 
-              <div className="addenda-create-mode" role="radiogroup">
-                <label className="addenda-create-mode-option">
-                  <input
-                    type="radio"
-                    name="addendum-mode"
-                    checked={createMode === 'text'}
+              <div className="clarification-mode-field">
+                <span className="clarification-mode-label">
+                  {t('addenda.createModeLabel')}
+                </span>
+                <div
+                  className="clarification-mode-switch"
+                  role="radiogroup"
+                  aria-label={t('addenda.createModeLabel')}
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={createMode === 'text'}
+                    className={`clarification-mode-switch-btn${
+                      createMode === 'text'
+                        ? ' clarification-mode-switch-btn--active'
+                        : ''
+                    }`}
                     disabled={createBusy}
-                    onChange={() => setCreateMode('text')}
-                  />
-                  {t('addenda.modeText')}
-                </label>
-                <label className="addenda-create-mode-option">
-                  <input
-                    type="radio"
-                    name="addendum-mode"
-                    checked={createMode === 'file'}
+                    onClick={() => setCreateMode('text')}
+                  >
+                    {t('addenda.modeText')}
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={createMode === 'file'}
+                    className={`clarification-mode-switch-btn${
+                      createMode === 'file'
+                        ? ' clarification-mode-switch-btn--active'
+                        : ''
+                    }`}
                     disabled={createBusy}
-                    onChange={() => setCreateMode('file')}
-                  />
-                  {t('addenda.modeFile')}
-                </label>
+                    onClick={() => setCreateMode('file')}
+                  >
+                    {t('addenda.modeFile')}
+                  </button>
+                </div>
               </div>
 
               <label className="field">
@@ -848,16 +870,29 @@ export function ContractAddendaPanel({
                   </label>
                 </>
               ) : (
-                <label className="field">
+                <div className="field addenda-create-file-field">
                   <span>{t('addenda.file')}</span>
-                  <input
-                    ref={createFileRef}
-                    type="file"
-                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    disabled={createBusy}
-                    required
-                  />
-                </label>
+                  <div className="addenda-create-file-row">
+                    <label className="secondary file-input-button">
+                      {t('addenda.chooseFile')}
+                      <input
+                        ref={createFileRef}
+                        type="file"
+                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        disabled={createBusy}
+                        hidden
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          setCreateFileName(file?.name ?? null);
+                          setCreateError(null);
+                        }}
+                      />
+                    </label>
+                    <span className="muted addenda-create-file-name">
+                      {createFileName ?? t('addenda.noFileChosen')}
+                    </span>
+                  </div>
+                </div>
               )}
 
               {createError && <p className="form-error">{createError}</p>}
