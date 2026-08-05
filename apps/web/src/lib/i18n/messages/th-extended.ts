@@ -1289,7 +1289,8 @@ export const thExtended = {
     attachmentDeleteFailed: "ลบไฟล์แนบไม่สำเร็จ",
     downloadPackage: "ดาวน์โหลดข้อตกลง",
     includeAttachments: "รวมไฟล์แนบใน ZIP ({count})",
-    delete: "ลบข้อตกลงเพิ่มเติม",
+    actionsTitle: "การดำเนินการ",
+    delete: "ลบ",
     deleteFailed: "ลบข้อตกลงเพิ่มเติมไม่สำเร็จ",
     confirmDeleteTitle: "ลบข้อตกลงเพิ่มเติม?",
     confirmDeleteMessage:

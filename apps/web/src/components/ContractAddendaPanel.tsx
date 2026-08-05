@@ -428,37 +428,53 @@ function AddendumItem({
   return (
     <details className="contract-secondary-details addendum-item" open>
       <summary className="contract-secondary-details-summary addendum-item-summary">
-        <span>{addendum.title}</span>
-        <span className="muted addendum-item-status">
-          {statusLabel(addendum, t)}
-        </span>
+        <span className="addendum-item-title">{addendum.title}</span>
+        <span className="addendum-item-status">{statusLabel(addendum, t)}</span>
       </summary>
-      <div className="contract-secondary-details-body">
-        <p className="muted addendum-signing-order">
-          {t('addenda.signingOrderHint')}
-        </p>
-        <div className="addendum-parties muted">
-          <span>
-            {t('contractPanel.partyContractor')}:{' '}
-            {addendum.contractorSignedAt
-              ? t('contractPanel.signedAt', {
-                  date: formatDateTime(addendum.contractorSignedAt),
-                })
-              : t('contractPanel.awaiting')}
-          </span>
-          <span>
-            {t('contractPanel.partyClient')}:{' '}
-            {addendum.clientSignedAt
-              ? t('contractPanel.signedAt', {
-                  date: formatDateTime(addendum.clientSignedAt),
-                })
-              : t('contractPanel.awaiting')}
-          </span>
+      <div className="contract-secondary-details-body addendum-item-body">
+        <div className="addendum-meta">
+          <p className="muted addendum-signing-order">
+            {t('addenda.signingOrderHint')}
+          </p>
+          <div className="addendum-parties" aria-label={t('addenda.title')}>
+            <div
+              className={`addendum-party${
+                addendum.contractorSignedAt ? ' addendum-party--signed' : ''
+              }`}
+            >
+              <span className="addendum-party-role">
+                {t('contractPanel.partyContractor')}
+              </span>
+              <span className="muted">
+                {addendum.contractorSignedAt
+                  ? t('contractPanel.signedAt', {
+                      date: formatDateTime(addendum.contractorSignedAt),
+                    })
+                  : t('contractPanel.awaiting')}
+              </span>
+            </div>
+            <div
+              className={`addendum-party${
+                addendum.clientSignedAt ? ' addendum-party--signed' : ''
+              }`}
+            >
+              <span className="addendum-party-role">
+                {t('contractPanel.partyClient')}
+              </span>
+              <span className="muted">
+                {addendum.clientSignedAt
+                  ? t('contractPanel.signedAt', {
+                      date: formatDateTime(addendum.clientSignedAt),
+                    })
+                  : t('contractPanel.awaiting')}
+              </span>
+            </div>
+          </div>
         </div>
 
         {addendum.hasCustomFile && file ? (
           <div className="addendum-custom-preview">
-            <p className="muted">
+            <p className="muted addendum-custom-file-name">
               {t('addenda.customFileLabel', { name: file.originalName })}
             </p>
             {canPreviewPdf ? (
@@ -472,20 +488,6 @@ function AddendumItem({
             ) : (
               <p className="muted">{t('addenda.previewLegacyDocx')}</p>
             )}
-            <div className="contract-custom-preview-actions">
-              <button
-                type="button"
-                className="secondary"
-                disabled={busy}
-                onClick={() => void handleDownload()}
-              >
-                <BusyLabel
-                  busy={busy}
-                  idle={t('addenda.downloadPackage')}
-                  busyText={t('addenda.downloading')}
-                />
-              </button>
-            </div>
           </div>
         ) : (
           <AddendumEditor
@@ -496,20 +498,47 @@ function AddendumItem({
           />
         )}
 
-        <div className="addendum-attachments">
-          <h4 className="addendum-attachments-title">
-            {t('addenda.attachmentsTitle')}
-          </h4>
-          <p className="muted">{t('addenda.attachmentsHint')}</p>
+        <section className="addendum-attachments" aria-label={t('addenda.attachmentsTitle')}>
+          <div className="addendum-attachments-header">
+            <div>
+              <h4 className="addendum-attachments-title">
+                {t('addenda.attachmentsTitle')}
+              </h4>
+              <p className="muted addendum-attachments-hint">
+                {t('addenda.attachmentsHint')}
+              </p>
+            </div>
+            {addendum.canManageAttachments && (
+              <>
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                  hidden
+                  onChange={(e) => void handleAttachmentSelected(e)}
+                />
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => attachmentInputRef.current?.click()}
+                >
+                  {t('addenda.addAttachment')}
+                </button>
+              </>
+            )}
+          </div>
           {uploadedAttachments.length === 0 ? (
-            <p className="muted">{t('addenda.attachmentsEmpty')}</p>
+            <p className="muted addendum-attachments-empty">
+              {t('addenda.attachmentsEmpty')}
+            </p>
           ) : (
             <ul className="addendum-attachments-list">
               {uploadedAttachments.map((item) => (
                 <li key={item.id} className="addendum-attachments-item">
                   <button
                     type="button"
-                    className="text-link"
+                    className="text-link addendum-attachments-name"
                     disabled={busy}
                     onClick={() =>
                       void downloadAddendumAttachment(
@@ -531,7 +560,7 @@ function AddendumItem({
                   {addendum.canManageAttachments && (
                     <button
                       type="button"
-                      className="secondary"
+                      className="text-link addendum-attachments-remove"
                       disabled={busy}
                       onClick={() => void handleDeleteAttachment(item.id)}
                     >
@@ -542,113 +571,120 @@ function AddendumItem({
               ))}
             </ul>
           )}
-          {addendum.canManageAttachments && (
-            <div className="addendum-file-actions">
-              <input
-                ref={attachmentInputRef}
-                type="file"
-                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
-                hidden
-                onChange={(e) => void handleAttachmentSelected(e)}
-              />
+        </section>
+
+        <div
+          className={`addendum-tools${
+            addendum.canSign ? ' addendum-tools--with-pad' : ''
+          }`}
+        >
+          {addendum.canSign && (
+            <ContractSignaturePad padRef={signaturePadRef} disabled={busy} />
+          )}
+
+          <div className="addendum-actions-card">
+            <h4 className="addendum-actions-card-title">
+              {t('addenda.actionsTitle')}
+            </h4>
+
+            {uploadedAttachments.length > 0 && (
+              <label className="addendum-include-attachments">
+                <input
+                  type="checkbox"
+                  checked={withAttachments}
+                  disabled={busy}
+                  onChange={(e) => setWithAttachments(e.target.checked)}
+                />
+                <span>
+                  {t('addenda.includeAttachments', {
+                    count: String(uploadedAttachments.length),
+                  })}
+                </span>
+              </label>
+            )}
+
+            <div className="addendum-actions">
               <button
                 type="button"
-                className="secondary"
+                className={addendum.canSign ? 'primary' : 'secondary'}
                 disabled={busy}
-                onClick={() => attachmentInputRef.current?.click()}
+                onClick={() =>
+                  addendum.canSign
+                    ? void handleSign()
+                    : void handleDownload()
+                }
               >
-                {t('addenda.addAttachment')}
+                <BusyLabel
+                  busy={busy}
+                  idle={
+                    addendum.canSign
+                      ? t('addenda.sign')
+                      : t('addenda.downloadPackage')
+                  }
+                  busyText={
+                    addendum.canSign
+                      ? t('addenda.signing')
+                      : t('addenda.downloading')
+                  }
+                />
               </button>
+
+              {addendum.canSign && (
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => void handleDownload()}
+                >
+                  <BusyLabel
+                    busy={busy}
+                    idle={t('addenda.downloadPackage')}
+                    busyText={t('addenda.downloading')}
+                  />
+                </button>
+              )}
+
+              {addendum.canReplaceFile && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    hidden
+                    onChange={(e) => void handleFileSelected(e)}
+                  />
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {addendum.hasCustomFile
+                      ? t('addenda.replaceFile')
+                      : t('addenda.uploadFile')}
+                  </button>
+                </>
+              )}
+
+              {addendum.canDelete && (
+                <button
+                  type="button"
+                  className="secondary addendum-actions-delete"
+                  disabled={busy}
+                  onClick={() => void handleDeleteAddendum()}
+                >
+                  {t('addenda.delete')}
+                </button>
+              )}
             </div>
-          )}
+
+            {addendum.fullySigned && (
+              <p className="muted addendum-fully-signed-note">
+                {t('addenda.fullySignedNote')}
+              </p>
+            )}
+          </div>
         </div>
-
-        <div className="addendum-download-block">
-          {uploadedAttachments.length > 0 && (
-            <label className="commercial-proposal-download-option">
-              <input
-                type="checkbox"
-                checked={withAttachments}
-                disabled={busy}
-                onChange={(e) => setWithAttachments(e.target.checked)}
-              />
-              <span>
-                {t('addenda.includeAttachments', {
-                  count: String(uploadedAttachments.length),
-                })}
-              </span>
-            </label>
-          )}
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={() => void handleDownload()}
-          >
-            <BusyLabel
-              busy={busy}
-              idle={t('addenda.downloadPackage')}
-              busyText={t('addenda.downloading')}
-            />
-          </button>
-        </div>
-
-        {addendum.canReplaceFile && (
-          <div className="addendum-file-actions">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              hidden
-              onChange={(e) => void handleFileSelected(e)}
-            />
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {addendum.hasCustomFile
-                ? t('addenda.replaceFile')
-                : t('addenda.uploadFile')}
-            </button>
-          </div>
-        )}
-
-        {addendum.canSign && (
-          <div className="addendum-sign-block">
-            <ContractSignaturePad padRef={signaturePadRef} disabled={busy} />
-            <button
-              type="button"
-              className="primary"
-              disabled={busy}
-              onClick={() => void handleSign()}
-            >
-              <BusyLabel
-                busy={busy}
-                idle={t('addenda.sign')}
-                busyText={t('addenda.signing')}
-              />
-            </button>
-          </div>
-        )}
-
-        {addendum.canDelete && (
-          <div className="addendum-file-actions">
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => void handleDeleteAddendum()}
-            >
-              {t('addenda.delete')}
-            </button>
-          </div>
-        )}
-
-        {addendum.fullySigned && (
-          <p className="muted">{t('addenda.fullySignedNote')}</p>
-        )}
 
         {error && <p className="form-error">{error}</p>}
         {confirmDialog}
