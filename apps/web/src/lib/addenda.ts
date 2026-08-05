@@ -46,6 +46,7 @@ export interface ContractAddendum {
   canEditDocument: boolean;
   canReplaceFile: boolean;
   canManageAttachments: boolean;
+  canDelete: boolean;
   canSign: boolean;
   fullySigned: boolean;
   createdAt: string;
@@ -93,6 +94,20 @@ export async function listContractAddenda(
     await parseError(response, 'Failed to load additional agreements');
   }
   return response.json() as Promise<ContractAddendum[]>;
+}
+
+export async function deleteContractAddendum(
+  projectId: string,
+  addendumId: string,
+  options?: { asContractor?: boolean },
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `${addendaBase(projectId, Boolean(options?.asContractor))}/${encodeURIComponent(addendumId)}`,
+    { method: 'DELETE' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to delete additional agreement');
+  }
 }
 
 export async function createAddendumFromText(

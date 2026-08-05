@@ -1291,6 +1291,12 @@ export const enExtended = {
     attachmentDeleteFailed: "Failed to remove attachment",
     downloadPackage: "Download agreement",
     includeAttachments: "Include attachments in ZIP ({count})",
+    delete: "Delete additional agreement",
+    deleteFailed: "Failed to delete additional agreement",
+    confirmDeleteTitle: "Delete additional agreement?",
+    confirmDeleteMessage:
+      "Delete “{title}”? Attachments will be removed. This cannot be undone.",
+    confirmDeleteLabel: "Delete",
   },
   contractSigning: {
     headline: {

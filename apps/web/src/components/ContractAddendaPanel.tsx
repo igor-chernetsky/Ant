@@ -26,6 +26,7 @@ import {
   createAddendumFromFile,
   createAddendumFromText,
   deleteAddendumAttachment,
+  deleteContractAddendum,
   downloadAddendumAttachment,
   downloadContractAddendum,
   listContractAddenda,
@@ -246,11 +247,13 @@ function AddendumItem({
   addendum,
   asContractor,
   onUpdated,
+  onDeleted,
 }: {
   projectId: string;
   addendum: ContractAddendum;
   asContractor: boolean;
   onUpdated: (row: ContractAddendum) => void;
+  onDeleted: (addendumId: string) => void;
 }) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
@@ -393,6 +396,29 @@ function AddendumItem({
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : t('addenda.attachmentDeleteFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteAddendum = async () => {
+    if (!addendum.canDelete) return;
+    const confirmed = await confirm({
+      title: t('addenda.confirmDeleteTitle'),
+      message: t('addenda.confirmDeleteMessage', { title: addendum.title }),
+      confirmLabel: t('addenda.confirmDeleteLabel'),
+    });
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteContractAddendum(projectId, addendum.id, { asContractor });
+      onDeleted(addendum.id);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('addenda.deleteFailed'),
       );
     } finally {
       setBusy(false);
@@ -607,6 +633,19 @@ function AddendumItem({
           </div>
         )}
 
+        {addendum.canDelete && (
+          <div className="addendum-file-actions">
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => void handleDeleteAddendum()}
+            >
+              {t('addenda.delete')}
+            </button>
+          </div>
+        )}
+
         {addendum.fullySigned && (
           <p className="muted">{t('addenda.fullySignedNote')}</p>
         )}
@@ -749,6 +788,9 @@ export function ContractAddendaPanel({
                 setItems((prev) =>
                   prev.map((row) => (row.id === updated.id ? updated : row)),
                 );
+              }}
+              onDeleted={(addendumId) => {
+                setItems((prev) => prev.filter((row) => row.id !== addendumId));
               }}
             />
           ))}

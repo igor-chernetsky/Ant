@@ -184,6 +184,9 @@ export class ContractAddendaService {
     const canManageAttachments =
       !fullySigned &&
       (participant.isClient || participant.isSelectedContractor);
+    const canDelete =
+      !fullySigned &&
+      (participant.isClient || participant.isSelectedContractor);
     const attachments = (row.attachments ?? [])
       .filter((item) => item.status !== DocumentStatus.deleted)
       .map((item) => this.mapAttachment(item));
@@ -220,6 +223,7 @@ export class ContractAddendaService {
       canEditDocument,
       canReplaceFile,
       canManageAttachments,
+      canDelete,
       canSign,
       fullySigned,
       createdAt: row.createdAt.toISOString(),
@@ -914,6 +918,41 @@ export class ContractAddendaService {
       data: { status: DocumentStatus.deleted },
     });
     await this.storage.deleteObject(attachment.storageKey).catch(() => undefined);
+  }
+
+  async delete(
+    userId: string,
+    projectId: string,
+    addendumId: string,
+  ): Promise<void> {
+    const participant = await this.loadParticipant(userId, projectId);
+    const row = await this.prisma.contractAddendum.findFirst({
+      where: { id: addendumId, contractId: participant.contractId },
+      include: {
+        attachments: {
+          where: { status: { not: DocumentStatus.deleted } },
+        },
+      },
+    });
+    if (!row) throw new NotFoundException('Additional agreement not found');
+    if (row.status === ContractAddendumStatus.fully_signed) {
+      throw new BadRequestException(
+        'Fully signed additional agreements cannot be deleted',
+      );
+    }
+
+    const storageKeys = [
+      row.customFileStorageKey,
+      ...(row.attachments ?? []).map((item) => item.storageKey),
+    ].filter((key): key is string => Boolean(key));
+
+    await this.prisma.contractAddendum.delete({ where: { id: row.id } });
+
+    await Promise.all(
+      storageKeys.map((key) =>
+        this.storage.deleteObject(key).catch(() => undefined),
+      ),
+    );
   }
 
   async getAttachmentDownloadUrl(

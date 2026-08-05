@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -80,6 +81,18 @@ export class ProjectContractAddendaController {
   ) {
     const user = await this.resolveUser(req);
     return this.addenda.get(user.id, projectId, addendumId);
+  }
+
+  @Delete(':addendumId')
+  @HttpCode(200)
+  async remove(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('addendumId') addendumId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    await this.addenda.delete(user.id, projectId, addendumId);
+    return { ok: true };
   }
 
   @Post('from-text')

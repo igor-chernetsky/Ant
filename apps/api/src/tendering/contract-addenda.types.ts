@@ -56,6 +56,8 @@ export interface ContractAddendumResponse {
   canReplaceFile: boolean;
   /** Add/remove annex files while unsigned. */
   canManageAttachments: boolean;
+  /** Delete the addendum while not fully signed. */
+  canDelete: boolean;
   /** Contractor must sign before client. */
   canSign: boolean;
   fullySigned: boolean;

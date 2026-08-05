@@ -1292,6 +1292,12 @@ export const ruExtended = {
     attachmentDeleteFailed: "Не удалось удалить приложение",
     downloadPackage: "Скачать соглашение",
     includeAttachments: "Включить приложения в ZIP ({count})",
+    delete: "Удалить допсоглашение",
+    deleteFailed: "Не удалось удалить допсоглашение",
+    confirmDeleteTitle: "Удалить допсоглашение?",
+    confirmDeleteMessage:
+      "Удалить «{title}»? Приложения будут удалены. Это нельзя отменить.",
+    confirmDeleteLabel: "Удалить",
   },
   contractSigning: {
     headline: {
