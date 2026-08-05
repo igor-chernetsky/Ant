@@ -70,6 +70,15 @@ export const en = {
         'A custom contract file was uploaded for {project}. Previous signatures were cleared.',
       contractPartySignedTitle: 'Contract signature added',
       contractFullySignedTitle: 'Contract fully signed',
+      contractAddendumCreatedTitle: 'Additional agreement created',
+      contractAddendumCreatedBody:
+        '“{addendum}” was created on {project}. The contractor signs first.',
+      contractAddendumPartySignedTitle: 'Additional agreement signed',
+      contractAddendumPartySignedBody:
+        'A party signed “{addendum}” on {project}.',
+      contractAddendumFullySignedTitle: 'Additional agreement fully signed',
+      contractAddendumFullySignedBody:
+        '“{addendum}” is fully signed on {project}.',
       genericProjectBody: 'Related to {project}.',
     },
   },

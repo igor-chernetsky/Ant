@@ -8,6 +8,7 @@ import { IntakeFallbackService } from './intake-fallback.service';
 import { OpenAiAmendmentService } from './openai-amendment.service';
 import { OpenAiBidAnalysisService } from './openai-bid-analysis.service';
 import { OpenAiClarificationService } from './openai-clarification.service';
+import { OpenAiContractAddendumService } from './openai-contract-addendum.service';
 import { OpenAiDocumentService } from './openai-document.service';
 import { OpenAiIntakeService } from './openai-intake.service';
 import { OpenAiScopeSyncService } from './openai-scope-sync.service';
@@ -26,6 +27,7 @@ import { PdfTextService } from '../pdf/pdf-text.service';
     OpenAiDocumentService,
     DocumentAnalysisService,
     OpenAiClarificationService,
+    OpenAiContractAddendumService,
     OpenAiScopeSyncService,
     ScopeSyncFallbackService,
     PdfTextService,
@@ -39,6 +41,7 @@ import { PdfTextService } from '../pdf/pdf-text.service';
     BidAnalysisFallbackService,
     DocumentAnalysisService,
     OpenAiClarificationService,
+    OpenAiContractAddendumService,
     OpenAiScopeSyncService,
     ScopeSyncFallbackService,
     PdfTextService,

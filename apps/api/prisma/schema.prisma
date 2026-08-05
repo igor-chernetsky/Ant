@@ -42,6 +42,11 @@ enum ContractStatus {
   fully_signed
 }
 
+enum ContractAddendumStatus {
+  pending_signatures
+  fully_signed
+}
+
 enum ProjectType {
   renovation
   new_build
@@ -173,6 +178,8 @@ model User {
   notificationEmailLogs   NotificationEmailLog[]
   inAppNotifications      InAppNotification[]
   tenderInvitesSent       TenderInvite[]
+  contractAddendaCreated  ContractAddendum[] @relation("ContractAddendumCreatedBy")
+  contractAddendumAttachments ContractAddendumAttachment[]
 
   @@map("users")
 }
@@ -204,6 +211,9 @@ enum NotificationEmailKind {
   contractor_tender_opened
   contract_party_signed
   contract_fully_signed
+  contract_addendum_created
+  contract_addendum_party_signed
+  contract_addendum_fully_signed
   contract_terms_updated
   tender_resumed
   client_contractor_withdrew_award
@@ -237,6 +247,9 @@ enum InAppNotificationKind {
   contract_terms_updated
   contract_party_signed
   contract_fully_signed
+  contract_addendum_created
+  contract_addendum_party_signed
+  contract_addendum_fully_signed
 }
 
 model InAppNotification {
@@ -320,6 +333,7 @@ model Project {
   contractorReview ContractorProjectReview?
   reviewAttachments ProjectReviewAttachment[]
   contract        Contract?
+  contractAddenda ContractAddendum[]
   contentTranslations ContentTranslation[]
   tenderInvites   TenderInvite[]
 
@@ -692,8 +706,60 @@ model Contract {
   customFileUploadedAt       DateTime?    @map("custom_file_uploaded_at")
   createdAt                DateTime       @default(now()) @map("created_at")
   updatedAt                DateTime       @updatedAt @map("updated_at")
+  addenda                  ContractAddendum[]
 
   @@map("contracts")
+}
+
+model ContractAddendum {
+  id                         String                 @id @default(uuid())
+  contractId                 String                 @map("contract_id")
+  contract                   Contract               @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  projectId                  String                 @map("project_id")
+  project                    Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdById                String                 @map("created_by_id")
+  createdBy                  User                   @relation("ContractAddendumCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  title                      String
+  sourceDescription          String?                @map("source_description") @db.Text
+  englishBodyHtml            String?                @map("english_body_html") @db.Text
+  /// Locale of the TipTap/AI body (en | ru | th). Column name kept for TipTap parity with Contract.
+  bodyLocale                 String                 @default("en") @map("body_locale")
+  status                     ContractAddendumStatus @default(pending_signatures)
+  contractorSignedAt         DateTime?              @map("contractor_signed_at")
+  clientSignedAt             DateTime?              @map("client_signed_at")
+  contractorSignatureDataUrl String?                @map("contractor_signature_data_url") @db.Text
+  clientSignatureDataUrl     String?                @map("client_signature_data_url") @db.Text
+  customFileStorageKey       String?                @unique @map("custom_file_storage_key")
+  customFileOriginalName     String?                @map("custom_file_original_name")
+  customFileContentType      String?                @map("custom_file_content_type")
+  customFileSizeBytes        Int?                   @map("custom_file_size_bytes")
+  customFileUploadedByUserId String?                @map("custom_file_uploaded_by_user_id")
+  customFileUploadedAt       DateTime?              @map("custom_file_uploaded_at")
+  createdAt                  DateTime               @default(now()) @map("created_at")
+  updatedAt                  DateTime               @updatedAt @map("updated_at")
+  attachments                ContractAddendumAttachment[]
+
+  @@index([contractId])
+  @@index([projectId])
+  @@map("contract_addenda")
+}
+
+model ContractAddendumAttachment {
+  id           String            @id @default(uuid())
+  addendumId   String            @map("addendum_id")
+  addendum     ContractAddendum  @relation(fields: [addendumId], references: [id], onDelete: Cascade)
+  uploaderId   String            @map("uploader_id")
+  uploader     User              @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  originalName String            @map("original_name")
+  contentType  String            @map("content_type")
+  sizeBytes    Int?              @map("size_bytes")
+  storageKey   String            @unique @map("storage_key")
+  status       DocumentStatus    @default(pending)
+  createdAt    DateTime          @default(now()) @map("created_at")
+  uploadedAt   DateTime?         @map("uploaded_at")
+
+  @@index([addendumId])
+  @@map("contract_addendum_attachments")
 }
 
 model SupplyDirectoryEntry {

@@ -11,7 +11,10 @@ export type InAppNotificationKind =
   | 'contractor_bid_selected'
   | 'contract_terms_updated'
   | 'contract_party_signed'
-  | 'contract_fully_signed';
+  | 'contract_fully_signed'
+  | 'contract_addendum_created'
+  | 'contract_addendum_party_signed'
+  | 'contract_addendum_fully_signed';
 
 export interface InAppNotification {
   id: string;

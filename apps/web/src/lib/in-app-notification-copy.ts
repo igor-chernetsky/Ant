@@ -36,6 +36,12 @@ export function formatInAppNotificationTitle(
       return t('notifications.kinds.contractPartySignedTitle');
     case 'contract_fully_signed':
       return t('notifications.kinds.contractFullySignedTitle');
+    case 'contract_addendum_created':
+      return t('notifications.kinds.contractAddendumCreatedTitle');
+    case 'contract_addendum_party_signed':
+      return t('notifications.kinds.contractAddendumPartySignedTitle');
+    case 'contract_addendum_fully_signed':
+      return t('notifications.kinds.contractAddendumFullySignedTitle');
     default:
       return t('notifications.title');
   }
@@ -92,6 +98,24 @@ export function formatInAppNotificationBody(
         : t('notifications.kinds.contractTermsUpdatedBody', {
             project: projectTitle || t('common.dash'),
           });
+    case 'contract_addendum_created':
+      return t('notifications.kinds.contractAddendumCreatedBody', {
+        project: projectTitle || t('common.dash'),
+        addendum:
+          payloadString(item.payload, 'addendumTitle') || t('common.dash'),
+      });
+    case 'contract_addendum_party_signed':
+      return t('notifications.kinds.contractAddendumPartySignedBody', {
+        project: projectTitle || t('common.dash'),
+        addendum:
+          payloadString(item.payload, 'addendumTitle') || t('common.dash'),
+      });
+    case 'contract_addendum_fully_signed':
+      return t('notifications.kinds.contractAddendumFullySignedBody', {
+        project: projectTitle || t('common.dash'),
+        addendum:
+          payloadString(item.payload, 'addendumTitle') || t('common.dash'),
+      });
     default:
       return projectTitle
         ? t('notifications.kinds.genericProjectBody', { project: projectTitle })

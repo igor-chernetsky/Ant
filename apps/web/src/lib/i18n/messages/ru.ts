@@ -71,6 +71,15 @@ export const ru: Messages = {
         'Загружен свой файл договора по проекту {project}. Предыдущие подписи сброшены.',
       contractPartySignedTitle: 'Добавлена подпись к договору',
       contractFullySignedTitle: 'Договор полностью подписан',
+      contractAddendumCreatedTitle: 'Создано дополнительное соглашение',
+      contractAddendumCreatedBody:
+        '«{addendum}» создано по проекту {project}. Сначала подписывает подрядчик.',
+      contractAddendumPartySignedTitle: 'Подпись по допсоглашению',
+      contractAddendumPartySignedBody:
+        'Сторона подписала «{addendum}» по проекту {project}.',
+      contractAddendumFullySignedTitle: 'Допсоглашение полностью подписано',
+      contractAddendumFullySignedBody:
+        '«{addendum}» полностью подписано по проекту {project}.',
       genericProjectBody: 'Связано с проектом {project}.',
     },
   },

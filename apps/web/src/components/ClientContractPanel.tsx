@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
+import { ContractAddendaPanel } from '@/components/ContractAddendaPanel';
 import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
 import { CustomContractPreview } from '@/components/CustomContractPreview';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
@@ -135,6 +136,11 @@ export function ClientContractPanel({
               contract={contract}
             />
           )}
+
+          <ContractAddendaPanel
+            projectId={projectId}
+            enabled={Boolean(contract?.fullySigned)}
+          />
 
           {showWinnerChat && me?.id && (
             <div className="tender-subsection client-contract-chat">

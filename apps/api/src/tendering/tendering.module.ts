@@ -24,11 +24,13 @@ import { DefaultCostBreakdownService } from './default-cost-breakdown.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { ContractsService } from './contracts.service';
+import { ContractAddendaService } from './contract-addenda.service';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 import { DocxToPdfService } from '../pdf/docx-to-pdf.service';
 import { ContractorPortfolioController } from './contractor-portfolio.controller';
 import { ContractorPortfolioService } from './contractor-portfolio.service';
 import { PublicContractorsController } from './public-contractors.controller';
+import { ProjectContractAddendaController } from './project-contract-addenda.controller';
 
 @Module({
   imports: [
@@ -46,6 +48,7 @@ import { PublicContractorsController } from './public-contractors.controller';
   controllers: [
     ProjectTenderController,
     ProjectContractController,
+    ProjectContractAddendaController,
     ContractorTenderController,
     ContractorPortfolioController,
     PublicContractorsController,
@@ -60,6 +63,7 @@ import { PublicContractorsController } from './public-contractors.controller';
     TenderAutoCloseService,
     CommercialProposalService,
     ContractsService,
+    ContractAddendaService,
     HtmlToPdfService,
     DocxToPdfService,
     TenderClarificationsService,

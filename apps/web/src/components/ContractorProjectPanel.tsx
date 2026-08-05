@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
+import { ContractAddendaPanel } from '@/components/ContractAddendaPanel';
 import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
 import { CustomContractPreview } from '@/components/CustomContractPreview';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
@@ -585,6 +586,11 @@ export function ContractorProjectPanel({
               asContractor
             />
           )}
+          <ContractAddendaPanel
+            projectId={projectId}
+            asContractor
+            enabled={Boolean(contract?.fullySigned)}
+          />
           {participation.canWithdrawFromAward && (
             <div className="participation-actions">
               <p className="muted participation-actions-hint">

@@ -694,6 +694,144 @@ export class NotificationsService {
     ]);
   }
 
+  async notifyContractAddendumCreated(params: {
+    recipientUserId: string;
+    projectId: string;
+    projectTitle: string;
+    addendumTitle: string;
+    addendumId: string;
+    createdByIsClient: boolean;
+  }): Promise<void> {
+    const creatorLabel = params.createdByIsClient
+      ? 'The client'
+      : 'The contractor';
+    const isClientRecipient = !params.createdByIsClient;
+    const href = this.projectPath(params.projectId);
+
+    await this.createInAppNotification({
+      userId: params.recipientUserId,
+      kind: InAppNotificationKind.contract_addendum_created,
+      href,
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        addendumTitle: params.addendumTitle,
+      },
+    });
+
+    await this.sendToUser({
+      userId: params.recipientUserId,
+      prefFlag: isClientRecipient
+        ? 'emailClientBidActivity'
+        : 'emailContractorUpdates',
+      kind: NotificationEmailKind.contract_addendum_created,
+      projectId: params.projectId,
+      subject: `Additional agreement — ${params.projectTitle}`,
+      title: 'New additional agreement',
+      bodyHtml: `<p>${creatorLabel} created an additional agreement <strong>${escapeHtml(params.addendumTitle)}</strong> for <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>The contractor must sign first, then the client.</p>`,
+      ctaHref: isClientRecipient
+        ? this.bidsUrl(params.projectId)
+        : this.projectUrl(params.projectId),
+      ctaLabel: 'Review agreement',
+      textBody: `${creatorLabel} created additional agreement "${params.addendumTitle}" for ${params.projectTitle}.`,
+    });
+  }
+
+  async notifyContractAddendumPartySigned(params: {
+    recipientUserId: string;
+    signerRole: 'client' | 'contractor';
+    projectId: string;
+    projectTitle: string;
+    addendumTitle: string;
+  }): Promise<void> {
+    const signerLabel =
+      params.signerRole === 'client' ? 'The client' : 'The contractor';
+    const isClientRecipient = params.signerRole === 'contractor';
+
+    await this.createInAppNotification({
+      userId: params.recipientUserId,
+      kind: InAppNotificationKind.contract_addendum_party_signed,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        addendumTitle: params.addendumTitle,
+      },
+    });
+
+    await this.sendToUser({
+      userId: params.recipientUserId,
+      prefFlag: isClientRecipient
+        ? 'emailClientBidActivity'
+        : 'emailContractorUpdates',
+      kind: NotificationEmailKind.contract_addendum_party_signed,
+      projectId: params.projectId,
+      subject: `Additional agreement signed — ${params.projectTitle}`,
+      title: 'Your signature is needed',
+      bodyHtml: `<p>${signerLabel} signed additional agreement <strong>${escapeHtml(params.addendumTitle)}</strong> for <strong>${escapeHtml(params.projectTitle)}</strong>.</p>`,
+      ctaHref: isClientRecipient
+        ? this.bidsUrl(params.projectId)
+        : this.projectUrl(params.projectId),
+      ctaLabel: 'Sign agreement',
+      textBody: `${signerLabel} signed "${params.addendumTitle}" for ${params.projectTitle}.`,
+    });
+  }
+
+  async notifyContractAddendumFullySigned(params: {
+    clientUserId: string;
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+    addendumTitle: string;
+  }): Promise<void> {
+    const payload = {
+      projectId: params.projectId,
+      subject: `Additional agreement active — ${params.projectTitle}`,
+      title: 'Additional agreement fully signed',
+      bodyHtml: `<p>Both parties signed <strong>${escapeHtml(params.addendumTitle)}</strong> for <strong>${escapeHtml(params.projectTitle)}</strong>.</p>`,
+      textBody: `Additional agreement "${params.addendumTitle}" is fully signed for ${params.projectTitle}.`,
+    };
+
+    await Promise.all([
+      this.createInAppNotification({
+        userId: params.clientUserId,
+        kind: InAppNotificationKind.contract_addendum_fully_signed,
+        href: this.projectPath(params.projectId),
+        projectId: params.projectId,
+        payload: {
+          projectTitle: params.projectTitle,
+          addendumTitle: params.addendumTitle,
+        },
+      }),
+      this.createInAppNotification({
+        userId: params.contractorUserId,
+        kind: InAppNotificationKind.contract_addendum_fully_signed,
+        href: this.projectPath(params.projectId),
+        projectId: params.projectId,
+        payload: {
+          projectTitle: params.projectTitle,
+          addendumTitle: params.addendumTitle,
+        },
+      }),
+      this.sendToUser({
+        userId: params.clientUserId,
+        prefFlag: 'emailClientBidActivity',
+        kind: NotificationEmailKind.contract_addendum_fully_signed,
+        ...payload,
+        ctaHref: this.bidsUrl(params.projectId),
+        ctaLabel: 'View project',
+      }),
+      this.sendToUser({
+        userId: params.contractorUserId,
+        prefFlag: 'emailContractorUpdates',
+        kind: NotificationEmailKind.contract_addendum_fully_signed,
+        ...payload,
+        ctaHref: this.projectUrl(params.projectId),
+        ctaLabel: 'Open project',
+      }),
+    ]);
+  }
+
   /**
    * Ops email: ask admin to invoice the contractor for the full 2% platform fee.
    * Recipients come from admin Settings (contract-signed notify list).

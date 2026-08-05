@@ -71,6 +71,15 @@ export const th: Messages = {
         'มีการอัปโหลดไฟล์สัญญาสำหรับ {project} ลายเซ็นก่อนหน้าถูกล้างแล้ว',
       contractPartySignedTitle: 'มีการลงนามในสัญญา',
       contractFullySignedTitle: 'ลงนามสัญญาครบแล้ว',
+      contractAddendumCreatedTitle: 'สร้างข้อตกลงเพิ่มเติมแล้ว',
+      contractAddendumCreatedBody:
+        'สร้าง “{addendum}” ใน {project} แล้ว ผู้รับเหมาต้องลงนามก่อน',
+      contractAddendumPartySignedTitle: 'มีการลงนามข้อตกลงเพิ่มเติม',
+      contractAddendumPartySignedBody:
+        'มีฝ่ายหนึ่งลงนาม “{addendum}” ใน {project}',
+      contractAddendumFullySignedTitle: 'ลงนามข้อตกลงเพิ่มเติมครบแล้ว',
+      contractAddendumFullySignedBody:
+        '“{addendum}” ลงนามครบแล้วใน {project}',
       genericProjectBody: 'เกี่ยวข้องกับ {project}',
     },
   },

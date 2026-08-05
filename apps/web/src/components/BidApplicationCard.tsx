@@ -7,6 +7,7 @@ import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
 import { BidChat } from '@/components/BidChat';
 import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
 import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
+import { ContractAddendaPanel } from '@/components/ContractAddendaPanel';
 import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
 import { CustomContractPreview } from '@/components/CustomContractPreview';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
@@ -243,6 +244,10 @@ export function BidApplicationCard({
                   contract={contract}
                 />
               )}
+              <ContractAddendaPanel
+                projectId={projectId}
+                enabled={Boolean(contract?.fullySigned)}
+              />
             </div>
           )}
 
