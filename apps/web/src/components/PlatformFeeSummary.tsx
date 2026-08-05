@@ -22,14 +22,6 @@ export function PlatformFeeSummary({
   const { t, locale } = useTranslation();
   const quote = buildPlatformFeeQuote({ contractAmount, currency });
 
-  const accessLocal =
-    quote.accessFeeInCurrency != null
-      ? formatPlatformMoney(
-          quote.accessFeeInCurrency,
-          quote.currency,
-          locale,
-        )
-      : null;
   const remaining =
     quote.successFeeRemaining != null
       ? formatPlatformMoney(
@@ -64,7 +56,11 @@ export function PlatformFeeSummary({
         <li>
           {t('platformFees.summaryAccess', {
             usd: formatUsd(quote.accessFeeUsd, locale),
-            local: accessLocal ?? formatUsd(quote.accessFeeUsd, locale),
+            local: formatPlatformMoney(
+              quote.dueNowListed,
+              quote.currency,
+              locale,
+            ),
           })}
         </li>
         <li>

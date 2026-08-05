@@ -783,7 +783,10 @@ export class TendersService {
 
       await tx.project.update({
         where: { id: projectId },
-        data: { status: ProjectStatus.awarded },
+        data: {
+          status: ProjectStatus.awarded,
+          platformFeePaid: false,
+        },
       });
 
       await this.contracts.createForAwardedBid(tx, projectId, bidId);
@@ -929,7 +932,10 @@ export class TendersService {
 
       await tx.project.update({
         where: { id: projectId },
-        data: { status: ProjectStatus.in_tender },
+        data: {
+          status: ProjectStatus.in_tender,
+          platformFeePaid: false,
+        },
       });
 
       return nextTender;

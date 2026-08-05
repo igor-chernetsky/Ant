@@ -180,6 +180,8 @@ model User {
   tenderInvitesSent       TenderInvite[]
   contractAddendaCreated  ContractAddendum[] @relation("ContractAddendumCreatedBy")
   contractAddendumAttachments ContractAddendumAttachment[]
+  signatureRequestsCreated ContractSignatureRequest[] @relation("SignatureRequestRequestedBy")
+  signatureRequestsReviewed ContractSignatureRequest[] @relation("SignatureRequestReviewedBy")
 
   @@map("users")
 }
@@ -221,6 +223,9 @@ enum NotificationEmailKind {
   contractor_award_released
   contractor_verification_approved
   contractor_verification_rejected
+  admin_signature_request_created
+  contractor_signature_request_approved
+  contractor_signature_request_rejected
 }
 
 model NotificationEmailLog {
@@ -250,6 +255,15 @@ enum InAppNotificationKind {
   contract_addendum_created
   contract_addendum_party_signed
   contract_addendum_fully_signed
+  admin_signature_request_created
+  contractor_signature_request_approved
+  contractor_signature_request_rejected
+}
+
+enum ContractSignatureRequestStatus {
+  pending
+  approved
+  rejected
 }
 
 model InAppNotification {
@@ -332,10 +346,13 @@ model Project {
   amendments     ProjectAmendment[]
   contractorReview ContractorProjectReview?
   reviewAttachments ProjectReviewAttachment[]
+  /// Set when admin approves a contractor signature/fee request. Persists if signatures are later cleared.
+  platformFeePaid Boolean @default(false) @map("platform_fee_paid")
   contract        Contract?
   contractAddenda ContractAddendum[]
   contentTranslations ContentTranslation[]
   tenderInvites   TenderInvite[]
+  signatureRequests ContractSignatureRequest[]
 
   @@index([clientId])
   @@index([clientId, isHidden])
@@ -454,6 +471,7 @@ model ContractorProfile {
   verificationDocuments   ContractorVerificationDocument[]
   portfolioItems          ContractorPortfolioItem[]
   projectReviews          ContractorProjectReview[]
+  signatureRequests       ContractSignatureRequest[]
 
   @@index([regionCode])
   @@index([verificationStatus])
@@ -707,8 +725,43 @@ model Contract {
   createdAt                DateTime       @default(now()) @map("created_at")
   updatedAt                DateTime       @updatedAt @map("updated_at")
   addenda                  ContractAddendum[]
+  signatureRequests        ContractSignatureRequest[]
 
   @@map("contracts")
+}
+
+model ContractSignatureRequest {
+  id              String                         @id @default(uuid())
+  projectId       String                         @map("project_id")
+  project         Project                        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contractId      String                         @map("contract_id")
+  contract        Contract                       @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contractorId    String                         @map("contractor_id")
+  contractor      ContractorProfile              @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+  requestedById   String                         @map("requested_by_id")
+  requestedBy     User                           @relation("SignatureRequestRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  status          ContractSignatureRequestStatus @default(pending)
+  contractAmount  Decimal?                       @map("contract_amount") @db.Decimal(14, 2)
+  currency        String                         @default("THB")
+  accessFeeUsd    Decimal                        @map("access_fee_usd") @db.Decimal(10, 2)
+  dueNowListed    Decimal?                       @map("due_now_listed") @db.Decimal(14, 2)
+  dueNowPayable   Decimal                        @default(0) @map("due_now_payable") @db.Decimal(14, 2)
+  successFeeGross Decimal?                       @map("success_fee_gross") @db.Decimal(14, 2)
+  trialActive     Boolean                        @default(true) @map("trial_active")
+  bankName        String?                        @map("bank_name")
+  bankAccount     String?                        @map("bank_account")
+  companyName     String?                        @map("company_name")
+  rejectionReason String?                        @map("rejection_reason") @db.Text
+  reviewedById    String?                        @map("reviewed_by_id")
+  reviewedBy      User?                          @relation("SignatureRequestReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt      DateTime?                      @map("reviewed_at")
+  createdAt       DateTime                       @default(now()) @map("created_at")
+  updatedAt       DateTime                       @updatedAt @map("updated_at")
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([projectId, status])
+  @@index([contractorId])
+  @@map("contract_signature_requests")
 }
 
 model ContractAddendum {

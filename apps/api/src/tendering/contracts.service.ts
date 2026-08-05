@@ -80,11 +80,11 @@ export class ContractsService {
     private readonly commercialProposal: CommercialProposalService,
   ) {}
 
-  private toResponse(
+  private async toResponse(
     contract: Contract,
     project: Project,
     participant: Pick<ContractParticipant, 'isClient' | 'isSelectedContractor'>,
-  ): ContractResponse {
+  ): Promise<ContractResponse> {
     const clientSigned = Boolean(contract.clientSignedAt);
     const contractorSigned = Boolean(contract.contractorSignedAt);
     const fullySigned = contract.status === ContractStatus.fully_signed;
@@ -99,6 +99,41 @@ export class ContractsService {
       !hasCustomContract &&
       project.status === ProjectStatus.awarded &&
       (participant.isClient || participant.isSelectedContractor);
+
+    let signatureAuth: ContractResponse['signatureAuth'] = null;
+    if (participant.isSelectedContractor) {
+      const awardedProfile = await this.prisma.contractorProfile.findFirst({
+        where: { bids: { some: { id: contract.bidId } } },
+        select: { bankName: true, bankAccount: true },
+      });
+      const latestRequest =
+        await this.prisma.contractSignatureRequest.findFirst({
+          where: { projectId: project.id },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            status: true,
+            rejectionReason: true,
+            createdAt: true,
+            reviewedAt: true,
+          },
+        });
+      const bankName = awardedProfile?.bankName?.trim() || '';
+      const bankAccount = awardedProfile?.bankAccount?.trim() || '';
+      signatureAuth = {
+        platformFeePaid: Boolean(project.platformFeePaid),
+        hasBankDetails: Boolean(bankName && bankAccount),
+        latestRequest: latestRequest
+          ? {
+              id: latestRequest.id,
+              status: latestRequest.status,
+              rejectionReason: latestRequest.rejectionReason,
+              createdAt: latestRequest.createdAt.toISOString(),
+              reviewedAt: latestRequest.reviewedAt?.toISOString() ?? null,
+            }
+          : null,
+      };
+    }
 
     return {
       id: contract.id,
@@ -133,6 +168,7 @@ export class ContractsService {
       canSign,
       canEditDocument,
       fullySigned,
+      signatureAuth,
     };
   }
 
@@ -270,7 +306,7 @@ export class ContractsService {
       contract = await this.ensureEnglishBodyHtml(contract);
     }
 
-    return this.toResponse(contract, participant.project, participant);
+    return await this.toResponse(contract, participant.project, participant);
   }
 
   async getContractorDocumentDownloadUrl(
@@ -340,7 +376,7 @@ export class ContractsService {
 
     const previousBody = (contract.englishBodyHtml ?? '').trim();
     if (previousBody === sanitized) {
-      return this.toResponse(contract, project, participant);
+      return await this.toResponse(contract, project, participant);
     }
 
     const updated = await this.prisma.contract.update({
@@ -350,7 +386,7 @@ export class ContractsService {
 
     this.notifyOtherPartyOfContractChange(participant, projectId, 'document');
 
-    return this.toResponse(updated, project, participant);
+    return await this.toResponse(updated, project, participant);
   }
 
   async regenerateDocument(
@@ -407,7 +443,7 @@ export class ContractsService {
       );
     }
 
-    return this.toResponse(updated, project, participant);
+    return await this.toResponse(updated, project, participant);
   }
 
   async presignCustomFile(
@@ -591,7 +627,7 @@ export class ContractsService {
 
     this.notifyOtherPartyOfContractChange(participant, projectId, 'custom_file');
 
-    return this.toResponse(updated, project, participant);
+    return await this.toResponse(updated, project, participant);
   }
 
   async getCustomFileDownloadUrl(
@@ -654,7 +690,7 @@ export class ContractsService {
     }
 
     if (contract.status === ContractStatus.fully_signed) {
-      return this.toResponse(contract, project, participant);
+      return await this.toResponse(contract, project, participant);
     }
 
     if (project.status !== ProjectStatus.awarded) {
@@ -669,6 +705,12 @@ export class ContractsService {
 
     if (isSelectedContractor && contract.contractorSignedAt) {
       throw new BadRequestException('You have already signed this contract');
+    }
+
+    if (isSelectedContractor && !project.platformFeePaid) {
+      throw new ForbiddenException(
+        'Signature authorization is required before signing. Submit a request from the contract page.',
+      );
     }
 
     let signatureDataUrl: string | null = null;
@@ -723,7 +765,7 @@ export class ContractsService {
       where: { id: projectId },
     });
 
-    const response = this.toResponse(updated, refreshedProject, participant);
+    const response = await this.toResponse(updated, refreshedProject, participant);
 
     if (updated.status === ContractStatus.fully_signed) {
       const awardedBid = project.tender?.awardedBid ?? null;

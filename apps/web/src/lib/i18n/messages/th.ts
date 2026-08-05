@@ -22,6 +22,7 @@ export const th: Messages = {
     admin: 'ผู้ดูแล',
     contractors: 'ผู้รับเหมา',
     supplyRegistry: 'ทะเบียน',
+    signatureRequests: 'คำขอลงนาม',
     settings: 'การตั้งค่า',
     contractor: 'ผู้รับเหมา',
     designer: 'ผู้ออกแบบ',
@@ -80,6 +81,15 @@ export const th: Messages = {
       contractAddendumFullySignedTitle: 'ลงนามข้อตกลงเพิ่มเติมครบแล้ว',
       contractAddendumFullySignedBody:
         '“{addendum}” ลงนามครบแล้วใน {project}',
+      adminSignatureRequestCreatedTitle: 'คำขออนุญาตลงนาม',
+      adminSignatureRequestCreatedBody:
+        '{company} ขออนุญาตลงนามใน {project}',
+      contractorSignatureRequestApprovedTitle: 'อนุญาตให้ลงนามแล้ว',
+      contractorSignatureRequestApprovedBody:
+        'คุณสามารถลงนามสัญญาใน {project} ได้แล้ว',
+      contractorSignatureRequestRejectedTitle: 'คำขอลงนามถูกปฏิเสธ',
+      contractorSignatureRequestRejectedBody:
+        'คำขออนุญาตสำหรับ {project} ถูกปฏิเสธ',
       genericProjectBody: 'เกี่ยวข้องกับ {project}',
     },
   },

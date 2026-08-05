@@ -61,7 +61,7 @@ const en: LegalDocument = {
       title: '8. Fees',
       paragraphs: [
         'Platform fees for closed deals are paid by the contractor, not by the client (project owner). Clients may use the core Service without platform fees until premium services are enabled.',
-        'The listed fee model is: (a) a platform access fee of USD 100 (or the local-currency equivalent at an indicative rate shown in the Service), which is disclosed when the contractor signs and is credited toward the success fee; and (b) a success fee of 2% of the awarded contract amount, reduced by the access-fee credit. Any remaining success fee is due within one calendar month after contract signing, typically after the contractor receives the client’s advance payment under the construction contract.',
+        'The listed fee model is: (a) a signing fee of USD 20 (or 2% of the awarded contract amount if lower), which is disclosed when the contractor requests authorization to sign and is credited toward the success fee; and (b) a success fee of 2% of the awarded contract amount, reduced by the signing-fee credit. Any remaining success fee is due within one calendar month after contract signing, typically after the contractor receives the client’s advance payment under the construction contract.',
         'During a trial or promotional period, BuilTHAI may apply a 100% discount so that listed fees are shown for transparency while the amount payable to BuilTHAI is USD 0. Trial discounts do not waive the client’s separate payment obligations to contractors under the construction contract.',
         'Fees, discounts, and tax treatment are disclosed in the Service before the contractor confirms signing steps that reference them. Actual charge collection may require BuilTHAI to operate through a registered legal entity and payment provider; until then, fee screens may be informational only.',
       ],
@@ -173,7 +173,7 @@ const ru: LegalDocument = {
       title: '8. Платежи и сборы',
       paragraphs: [
         'Сборы платформы по закрытым сделкам оплачивает подрядчик, а не заказчик (владелец проекта). Заказчики могут пользоваться основным функционалом Сервиса без платформенных сборов до подключения премиум-услуг.',
-        'Модель сборов: (a) platform access fee — 100 USD (или эквивалент в местной валюте по индикативному курсу в Сервисе), раскрывается при подписании подрядчиком и засчитывается в success fee; (b) success fee — 2% от суммы выбранного договора за вычетом access fee. Остаток success fee подлежит оплате в течение одного календарного месяца после подписания, обычно после получения аванса от заказчика.',
+        'Модель сборов: (a) сбор за подписание — 20 USD (или 2% от суммы выбранного договора, если меньше), раскрывается при запросе авторизации подписи и засчитывается в success fee; (b) success fee — 2% от суммы выбранного договора за вычетом сбора за подписание. Остаток success fee подлежит оплате в течение одного календарного месяца после подписания, обычно после получения аванса от заказчика.',
         'В триальном или промо-периоде BuilTHAI может применять скидку 100%: указанные суммы показываются для прозрачности, а к оплате BuilTHAI — 0 USD. Скидка платформы не отменяет обязательства заказчика по оплате подрядчику по строительному договору.',
         'Сборы, скидки и налоги раскрываются в Сервисе до подтверждения шагов подписания подрядчиком. Фактическое списание может потребовать юрлица и платёжного провайдера; до этого экраны сборов могут быть информационными.',
       ],
@@ -285,7 +285,7 @@ const th: LegalDocument = {
       title: '8. ค่าธรรมเนียม',
       paragraphs: [
         'ค่าธรรมเนียมแพลตฟอร์มสำหรับดีลที่ปิดแล้วชำระโดยผู้รับเหมา ไม่ใช่ลูกค้า (เจ้าของโครงการ) ลูกค้าสามารถใช้ฟีเจอร์หลักของบริการโดยไม่มีค่าธรรมเนียมแพลตฟอร์มจนกว่าจะเปิดใช้บริการพรีเมียม',
-        'โครงสร้างค่าธรรมเนียม: (a) platform access fee 100 USD (หรือเทียบเท่าสกุลเงินท้องถิ่นตามอัตราโดยประมาณในบริการ) ซึ่งแสดงเมื่อผู้รับเหมาลงนามและนำไปหักกับ success fee และ (b) success fee 2% ของยอดสัญญาที่ได้รับเลือก หักด้วย access fee ยอด success fee ที่เหลือครบกำหนดภายในหนึ่งเดือนปฏิทินหลังลงนาม โดยปกติหลังผู้รับเหมาได้รับเงินล่วงหน้าจากลูกค้า',
+        'โครงสร้างค่าธรรมเนียม: (a) ค่าธรรมเนียมลงนาม 20 USD (หรือ 2% ของยอดสัญญาที่ได้รับเลือกหากน้อยกว่า) ซึ่งแสดงเมื่อผู้รับเหมาขออนุญาตลงนามและนำไปหักกับ success fee และ (b) success fee 2% ของยอดสัญญาที่ได้รับเลือก หักด้วยค่าธรรมเนียมลงนาม ยอด success fee ที่เหลือครบกำหนดภายในหนึ่งเดือนปฏิทินหลังลงนาม โดยปกติหลังผู้รับเหมาได้รับเงินล่วงหน้าจากลูกค้า',
         'ในช่วงทดลองใช้หรือโปรโมชัน BuilTHAI อาจให้ส่วนลด 100% โดยแสดงยอดตามราคาเพื่อความโปร่งใส แต่ยอดที่ต้องชำระให้ BuilTHAI เป็น 0 USD ส่วนลดแพลตฟอร์มไม่ได้ยกเลิกภาระการชำระเงินของลูกค้าต่อผู้รับเหมาตามสัญญาจ้างก่อสร้าง',
         'ค่าธรรมเนียม ส่วนลด และภาษีจะแสดงในบริการก่อนที่ผู้รับเหมายืนยันขั้นตอนลงนาม การเรียกเก็บจริงอาจต้องมีนิติบุคคลและผู้ให้บริการชำระเงิน จนกว่าจะพร้อม หน้าจอค่าธรรมเนียมอาจเป็นข้อมูลอย่างเดียว',
       ],

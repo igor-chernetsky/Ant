@@ -42,6 +42,12 @@ export function formatInAppNotificationTitle(
       return t('notifications.kinds.contractAddendumPartySignedTitle');
     case 'contract_addendum_fully_signed':
       return t('notifications.kinds.contractAddendumFullySignedTitle');
+    case 'admin_signature_request_created':
+      return t('notifications.kinds.adminSignatureRequestCreatedTitle');
+    case 'contractor_signature_request_approved':
+      return t('notifications.kinds.contractorSignatureRequestApprovedTitle');
+    case 'contractor_signature_request_rejected':
+      return t('notifications.kinds.contractorSignatureRequestRejectedTitle');
     default:
       return t('notifications.title');
   }
@@ -115,6 +121,19 @@ export function formatInAppNotificationBody(
         project: projectTitle || t('common.dash'),
         addendum:
           payloadString(item.payload, 'addendumTitle') || t('common.dash'),
+      });
+    case 'admin_signature_request_created':
+      return t('notifications.kinds.adminSignatureRequestCreatedBody', {
+        company: companyName || t('header.contractor'),
+        project: projectTitle || t('common.dash'),
+      });
+    case 'contractor_signature_request_approved':
+      return t('notifications.kinds.contractorSignatureRequestApprovedBody', {
+        project: projectTitle || t('common.dash'),
+      });
+    case 'contractor_signature_request_rejected':
+      return t('notifications.kinds.contractorSignatureRequestRejectedBody', {
+        project: projectTitle || t('common.dash'),
       });
     default:
       return projectTitle

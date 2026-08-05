@@ -204,47 +204,53 @@ export default function DesignerPage() {
 
   const renderProfileForm = () => (
     <div className="portal-profile-form">
+      <div className="portal-profile-contact">
+        <div className="form-row">
+          <label>
+            {t('account.companyName')}
+            <input
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder={t('contractor.companyPlaceholder')}
+            />
+          </label>
+          <label>
+            {t('contractor.phoneLabel')}
+            <span className="muted tag-hint">{t('contractor.phoneOptionalHint')}</span>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder={t('contractor.phonePlaceholder')}
+              autoComplete="tel"
+            />
+          </label>
+        </div>
+        <div className="form-row">
+          <label>
+            {t('contractor.bankNameLabel')}
+            <span className="muted tag-hint">{t('contractor.bankOptionalHint')}</span>
+            <input
+              value={bankName}
+              onChange={(e) => setBankName(e.target.value)}
+              placeholder={t('contractor.bankNamePlaceholder')}
+              autoComplete="organization"
+            />
+          </label>
+          <label>
+            {t('contractor.bankAccountLabel')}
+            <span className="muted tag-hint">{t('contractor.bankOptionalHint')}</span>
+            <input
+              value={bankAccount}
+              onChange={(e) => setBankAccount(e.target.value)}
+              placeholder={t('contractor.bankAccountPlaceholder')}
+              inputMode="numeric"
+              autoComplete="off"
+            />
+          </label>
+        </div>
+      </div>
       <div className="portal-profile-col">
-        <label>
-          {t('account.companyName')}
-          <input
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            placeholder={t('contractor.companyPlaceholder')}
-          />
-        </label>
-        <label>
-          {t('contractor.phoneLabel')}
-          <span className="muted tag-hint">{t('contractor.phoneOptionalHint')}</span>
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder={t('contractor.phonePlaceholder')}
-            autoComplete="tel"
-          />
-        </label>
-        <label>
-          {t('contractor.bankNameLabel')}
-          <span className="muted tag-hint">{t('contractor.bankOptionalHint')}</span>
-          <input
-            value={bankName}
-            onChange={(e) => setBankName(e.target.value)}
-            placeholder={t('contractor.bankNamePlaceholder')}
-            autoComplete="organization"
-          />
-        </label>
-        <label>
-          {t('contractor.bankAccountLabel')}
-          <span className="muted tag-hint">{t('contractor.bankOptionalHint')}</span>
-          <input
-            value={bankAccount}
-            onChange={(e) => setBankAccount(e.target.value)}
-            placeholder={t('contractor.bankAccountPlaceholder')}
-            inputMode="numeric"
-            autoComplete="off"
-          />
-        </label>
         {locationCatalog ? (
           <ServiceLocationEditor
             catalog={locationCatalog}

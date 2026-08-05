@@ -31,6 +31,8 @@ import { ContractorPortfolioController } from './contractor-portfolio.controller
 import { ContractorPortfolioService } from './contractor-portfolio.service';
 import { PublicContractorsController } from './public-contractors.controller';
 import { ProjectContractAddendaController } from './project-contract-addenda.controller';
+import { SignatureRequestsService } from './signature-requests.service';
+import { AdminSignatureRequestsController } from './admin-signature-requests.controller';
 
 @Module({
   imports: [
@@ -52,6 +54,7 @@ import { ProjectContractAddendaController } from './project-contract-addenda.con
     ContractorTenderController,
     ContractorPortfolioController,
     PublicContractorsController,
+    AdminSignatureRequestsController,
   ],
   providers: [
     TendersService,
@@ -64,6 +67,7 @@ import { ProjectContractAddendaController } from './project-contract-addenda.con
     CommercialProposalService,
     ContractsService,
     ContractAddendaService,
+    SignatureRequestsService,
     HtmlToPdfService,
     DocxToPdfService,
     TenderClarificationsService,

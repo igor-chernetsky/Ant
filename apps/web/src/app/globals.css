@@ -3788,6 +3788,13 @@ pre {
   min-width: 0;
 }
 
+.page-shell--portal .portal-profile-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
 .page-shell--portal .portal-profile-form input:not([type='checkbox']):not(
     [type='radio']
   ):not([type='file']),
@@ -3821,6 +3828,10 @@ pre {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 1.15rem;
     align-items: start;
+  }
+
+  .page-shell--portal .portal-profile-contact {
+    grid-column: 1 / -1;
   }
 }
 

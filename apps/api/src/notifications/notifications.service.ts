@@ -1326,6 +1326,153 @@ export class NotificationsService {
     );
   }
 
+  /**
+   * Admin ops: new contractor signature / fee authorization request.
+   * Email → contract-signed notify list; in-app → users whose email is on that list.
+   */
+  async notifyAdminSignatureRequestCreated(params: {
+    requestId: string;
+    projectId: string;
+    projectTitle: string;
+    companyName: string | null;
+    contractorEmail: string | null;
+    bankName: string | null;
+    bankAccount: string | null;
+    currency: string;
+    contractAmount: number | null;
+    dueNowListed: number | null;
+    dueNowPayable: number;
+    trialActive: boolean;
+  }): Promise<void> {
+    const company =
+      params.companyName?.trim() || 'Contractor (name not set)';
+    const currency = (params.currency || 'THB').toUpperCase();
+    const amountLabel =
+      params.contractAmount != null
+        ? `${params.contractAmount.toLocaleString('en-US')} ${currency}`
+        : 'not available';
+    const dueListed =
+      params.dueNowListed != null
+        ? `${params.dueNowListed.toLocaleString('en-US')} ${currency}`
+        : 'not available';
+    const duePayable = params.trialActive
+      ? `0 ${currency} (trial)`
+      : `${params.dueNowPayable.toLocaleString('en-US')} ${currency}`;
+    const adminHref = `/admin/signature-requests`;
+    const adminUrl = `${this.appUrl()}${adminHref}`;
+
+    const recipients =
+      await this.platformSettings.resolveContractSignedNotifyEmails();
+    if (recipients.length > 0 && this.mail.isConfigured()) {
+      const title = 'Signature authorization request';
+      const bodyHtml = [
+        `<p>The contractor requested authorization to sign the contract for <strong>${escapeHtml(params.projectTitle)}</strong>.</p>`,
+        `<ul>`,
+        `<li><strong>Contractor:</strong> ${escapeHtml(company)}</li>`,
+        `<li><strong>Email:</strong> ${escapeHtml(params.contractorEmail?.trim() || 'not available')}</li>`,
+        `<li><strong>Bank:</strong> ${escapeHtml(params.bankName?.trim() || '—')} / ${escapeHtml(params.bankAccount?.trim() || '—')}</li>`,
+        `<li><strong>Contract amount:</strong> ${escapeHtml(amountLabel)}</li>`,
+        `<li><strong>Listed due now:</strong> ${escapeHtml(dueListed)}</li>`,
+        `<li><strong>Payable now:</strong> ${escapeHtml(duePayable)}</li>`,
+        `</ul>`,
+        `<p>Review and approve or reject in Admin → Signature requests.</p>`,
+      ].join('');
+      const html = this.wrapEmail(title, bodyHtml, adminUrl, 'Open signature requests');
+      await this.mail.send({
+        to: recipients,
+        subject: `Signature request — ${params.projectTitle}`,
+        html,
+        text: [
+          title,
+          `Project: ${params.projectTitle}`,
+          `Contractor: ${company}`,
+          `Bank: ${params.bankName ?? '—'} / ${params.bankAccount ?? '—'}`,
+          `Due now: ${dueListed} (payable ${duePayable})`,
+          adminUrl,
+        ].join('\n'),
+      });
+    }
+
+    if (recipients.length > 0) {
+      const adminUsers = await this.prisma.user.findMany({
+        where: {
+          email: {
+            in: recipients,
+            mode: 'insensitive',
+          },
+        },
+        select: { id: true },
+      });
+      await Promise.all(
+        adminUsers.map((user) =>
+          this.createInAppNotification({
+            userId: user.id,
+            kind: InAppNotificationKind.admin_signature_request_created,
+            href: adminHref,
+            projectId: params.projectId,
+            payload: {
+              projectTitle: params.projectTitle,
+              companyName: company,
+              requestId: params.requestId,
+            },
+          }),
+        ),
+      );
+    }
+  }
+
+  async notifyContractorSignatureRequestDecision(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+    approved: boolean;
+    rejectionReason?: string | null;
+  }): Promise<void> {
+    const kind = params.approved
+      ? InAppNotificationKind.contractor_signature_request_approved
+      : InAppNotificationKind.contractor_signature_request_rejected;
+    const emailKind = params.approved
+      ? NotificationEmailKind.contractor_signature_request_approved
+      : NotificationEmailKind.contractor_signature_request_rejected;
+
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        rejectionReason: params.rejectionReason?.trim() || null,
+      },
+    });
+
+    const reason = params.rejectionReason?.trim();
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: emailKind,
+      projectId: params.projectId,
+      subject: params.approved
+        ? `Signature authorized — ${params.projectTitle}`
+        : `Signature request rejected — ${params.projectTitle}`,
+      title: params.approved
+        ? 'You can sign the contract'
+        : 'Signature request was rejected',
+      bodyHtml: params.approved
+        ? `<p>Your signature authorization for <strong>${escapeHtml(params.projectTitle)}</strong> was approved. Open the project and sign the contract.</p>`
+        : `<p>Your signature authorization for <strong>${escapeHtml(params.projectTitle)}</strong> was rejected.</p>${
+            reason
+              ? `<p><strong>Reason:</strong> ${escapeHtml(reason)}</p>`
+              : ''
+          }<p>Update your details if needed and submit a new request.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'Open project',
+      textBody: params.approved
+        ? `Signature authorized for ${params.projectTitle}. You can sign the contract.`
+        : `Signature request rejected for ${params.projectTitle}.${reason ? ` Reason: ${reason}` : ''}`,
+    });
+  }
+
   dispatch(promise: Promise<void>): void {
     void promise.catch((error) => {
       this.logger.warn('Notification dispatch failed', error);

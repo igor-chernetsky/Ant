@@ -43,6 +43,7 @@ import type {
 } from './contracts.types';
 import { ProjectsService } from '../projects/projects.service';
 import { ProjectReviewsService } from '../projects/project-reviews.service';
+import { SignatureRequestsService } from './signature-requests.service';
 
 @Controller('v1/contractor')
 @UseGuards(JwtAuthGuard)
@@ -58,6 +59,7 @@ export class ContractorTenderController {
     private readonly projectsService: ProjectsService,
     private readonly projectReviews: ProjectReviewsService,
     private readonly contracts: ContractsService,
+    private readonly signatureRequests: SignatureRequestsService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
@@ -304,6 +306,16 @@ export class ContractorTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.contracts.signForProject(user.id, projectId, body ?? {});
+  }
+
+  @Post('projects/:projectId/contract/signature-request')
+  @HttpCode(200)
+  async createSignatureRequest(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.signatureRequests.createForProject(user.id, projectId);
   }
 
   @Get('projects/:projectId/clarification-attachments')

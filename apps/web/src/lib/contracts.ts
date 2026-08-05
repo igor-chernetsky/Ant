@@ -2,6 +2,20 @@ import { fetchWithAuth } from './auth-client';
 
 export type ContractStatus = 'pending_signatures' | 'fully_signed';
 
+export type SignatureRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface ContractSignatureAuth {
+  platformFeePaid: boolean;
+  hasBankDetails: boolean;
+  latestRequest: {
+    id: string;
+    status: SignatureRequestStatus;
+    rejectionReason: string | null;
+    createdAt: string;
+    reviewedAt: string | null;
+  } | null;
+}
+
 export interface ContractCustomFile {
   originalName: string;
   contentType: string;
@@ -27,6 +41,7 @@ export interface ProjectContract {
   canSign: boolean;
   canEditDocument: boolean;
   fullySigned: boolean;
+  signatureAuth: ContractSignatureAuth | null;
 }
 
 export const MAX_CUSTOM_CONTRACT_BYTES = 25 * 1024 * 1024;

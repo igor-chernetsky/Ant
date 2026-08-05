@@ -564,6 +564,7 @@ export function ContractorProjectPanel({
             asContractor
             bidAmount={myBid.amount}
             currency="THB"
+            profileHref={portalHref}
             contract={contract}
             onSigned={(updated) => {
               setContract(updated);

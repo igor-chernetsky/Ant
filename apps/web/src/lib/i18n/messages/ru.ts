@@ -22,6 +22,7 @@ export const ru: Messages = {
     admin: 'Админ',
     contractors: 'Подрядчики',
     supplyRegistry: 'Реестр',
+    signatureRequests: 'Запросы на подпись',
     settings: 'Настройки',
     contractor: 'Подрядчик',
     designer: 'Проектировщик',
@@ -80,6 +81,15 @@ export const ru: Messages = {
       contractAddendumFullySignedTitle: 'Допсоглашение полностью подписано',
       contractAddendumFullySignedBody:
         '«{addendum}» полностью подписано по проекту {project}.',
+      adminSignatureRequestCreatedTitle: 'Запрос на авторизацию подписи',
+      adminSignatureRequestCreatedBody:
+        '{company} запросил авторизацию подписи по проекту {project}.',
+      contractorSignatureRequestApprovedTitle: 'Подписание разрешено',
+      contractorSignatureRequestApprovedBody:
+        'Вы можете подписать договор по проекту {project}.',
+      contractorSignatureRequestRejectedTitle: 'Запрос на подпись отклонён',
+      contractorSignatureRequestRejectedBody:
+        'Ваш запрос на авторизацию по проекту {project} отклонён.',
       genericProjectBody: 'Связано с проектом {project}.',
     },
   },

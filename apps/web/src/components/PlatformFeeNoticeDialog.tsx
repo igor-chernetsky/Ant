@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
@@ -8,18 +9,32 @@ import {
   type PlatformFeeQuote,
 } from '@/lib/platform-fees';
 
+export type PlatformFeeDialogMode =
+  | 'request'
+  | 'pending'
+  | 'bank_required'
+  | 'request_sent';
+
 export interface PlatformFeeNoticeDialogProps {
   isOpen: boolean;
+  mode: PlatformFeeDialogMode;
   quote: PlatformFeeQuote | null;
   busy?: boolean;
+  error?: string | null;
+  rejectionReason?: string | null;
+  profileHref?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 export function PlatformFeeNoticeDialog({
   isOpen,
+  mode,
   quote,
   busy = false,
+  error = null,
+  rejectionReason = null,
+  profileHref = '/contractor',
   onConfirm,
   onCancel,
 }: PlatformFeeNoticeDialogProps) {
@@ -36,21 +51,101 @@ export function PlatformFeeNoticeDialog({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen, busy, onCancel]);
 
-  if (!isOpen || !quote) {
+  if (!isOpen) {
     return null;
   }
 
-  const title = t('platformFees.signTitle');
-  const intro = t('platformFees.signIntro');
+  if (mode === 'bank_required') {
+    return (
+      <div
+        className="modal-backdrop confirm-dialog-backdrop"
+        role="presentation"
+        onClick={(event) => {
+          if (!busy && event.target === event.currentTarget) {
+            onCancel();
+          }
+        }}
+      >
+        <div
+          className="modal confirm-dialog platform-fee-dialog"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="platform-fee-dialog-title"
+        >
+          <div className="confirm-dialog-body">
+            <h2 id="platform-fee-dialog-title" className="confirm-dialog-title">
+              {t('platformFees.bankRequiredTitle')}
+            </h2>
+            <p className="confirm-dialog-message">
+              {t('platformFees.bankRequiredMessage')}
+            </p>
+          </div>
+          <div className="confirm-dialog-actions">
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={onCancel}
+            >
+              {t('common.cancel')}
+            </button>
+            <Link href={profileHref} className="primary">
+              {t('platformFees.goToProfile')}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const accessLocal =
-    quote.accessFeeInCurrency != null
-      ? formatPlatformMoney(
-          quote.accessFeeInCurrency,
-          quote.currency,
-          locale,
-        )
-      : null;
+  if (mode === 'pending' || mode === 'request_sent') {
+    return (
+      <div
+        className="modal-backdrop confirm-dialog-backdrop"
+        role="presentation"
+        onClick={(event) => {
+          if (!busy && event.target === event.currentTarget) {
+            onCancel();
+          }
+        }}
+      >
+        <div
+          className="modal confirm-dialog platform-fee-dialog"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="platform-fee-dialog-title"
+        >
+          <div className="confirm-dialog-body">
+            <h2 id="platform-fee-dialog-title" className="confirm-dialog-title">
+              {mode === 'request_sent'
+                ? t('platformFees.requestSentTitle')
+                : t('platformFees.pendingTitle')}
+            </h2>
+            <p className="confirm-dialog-message">
+              {mode === 'request_sent'
+                ? t('platformFees.requestSentMessage')
+                : t('platformFees.pendingMessage')}
+            </p>
+          </div>
+          <div className="confirm-dialog-actions">
+            <button type="button" className="primary" onClick={onCancel}>
+              {t('common.close')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!quote) {
+    return null;
+  }
+
+  const dueListed = formatPlatformMoney(
+    quote.dueNowListed,
+    quote.currency,
+    locale,
+  );
   const successGross =
     quote.successFeeGross != null
       ? formatPlatformMoney(quote.successFeeGross, quote.currency, locale)
@@ -87,7 +182,7 @@ export function PlatformFeeNoticeDialog({
       >
         <div className="confirm-dialog-body">
           <h2 id="platform-fee-dialog-title" className="confirm-dialog-title">
-            {title}
+            {t('platformFees.signTitle')}
           </h2>
           {quote.trialActive && (
             <p className="platform-fee-trial-badge">
@@ -97,15 +192,22 @@ export function PlatformFeeNoticeDialog({
             </p>
           )}
           <p id="platform-fee-dialog-intro" className="confirm-dialog-message">
-            {intro}
+            {t('platformFees.signIntro')}
           </p>
+          {rejectionReason ? (
+            <p className="confirm-dialog-message platform-fee-rejection">
+              {t('platformFees.rejectionNote', { reason: rejectionReason })}
+            </p>
+          ) : null}
 
           <dl className="platform-fee-breakdown">
             <div>
               <dt>{t('platformFees.accessFeeLabel')}</dt>
               <dd>
-                {formatUsd(quote.accessFeeUsd, locale)}
-                {accessLocal ? ` ≈ ${accessLocal}` : ''}
+                {t('platformFees.accessFeeValue', {
+                  usd: formatUsd(quote.accessFeeUsd, locale),
+                  due: dueListed,
+                })}
               </dd>
             </div>
             <div>
@@ -130,16 +232,14 @@ export function PlatformFeeNoticeDialog({
               <dd>
                 {quote.trialActive
                   ? t('platformFees.dueNowTrial', {
-                      listed:
-                        accessLocal ??
-                        formatUsd(quote.accessFeeUsd, locale),
+                      listed: dueListed,
                       payable: formatPlatformMoney(
                         0,
                         quote.currency,
                         locale,
                       ),
                     })
-                  : accessLocal ?? formatUsd(quote.accessFeeUsd, locale)}
+                  : dueListed}
               </dd>
             </div>
           </dl>
@@ -155,8 +255,13 @@ export function PlatformFeeNoticeDialog({
             </p>
           )}
           <p className="muted platform-fee-footnote">
-            {t('platformFees.payerNote')}
+            {t('platformFees.requestNote')}
           </p>
+          {error ? (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          ) : null}
         </div>
 
         <div className="confirm-dialog-actions">
@@ -176,9 +281,7 @@ export function PlatformFeeNoticeDialog({
           >
             {busy
               ? t('common.pleaseWait')
-              : quote.trialActive
-                ? t('platformFees.continueTrial')
-                : t('platformFees.continuePaid')}
+              : t('platformFees.submitRequest')}
           </button>
         </div>
       </div>

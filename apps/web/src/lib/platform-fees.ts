@@ -2,15 +2,15 @@
  * Contractor platform fees (trial: listed amounts, 100% discount, nothing charged).
  *
  * Model:
- * - Platform access fee: USD 100 (credited toward success fee) — disclosed when the
- *   contractor signs the contract.
+ * - Platform access / signing fee: USD 20 (or 2% of contract if 2% is lower),
+ *   credited toward the success fee — disclosed before the contractor signs.
  * - Success fee: 2% of the awarded contract amount, minus the access-fee credit,
  *   due within one calendar month (typically after the contractor receives the
  *   client’s advance payment).
  * - Clients use the core platform for free until premium services are enabled.
  */
 
-export const PLATFORM_ACCESS_FEE_USD = 100;
+export const PLATFORM_ACCESS_FEE_USD = 20;
 export const PLATFORM_SUCCESS_FEE_RATE = 0.02;
 export const PLATFORM_FEES_TRIAL_ACTIVE = true;
 export const PLATFORM_FEES_TRIAL_DISCOUNT_PERCENT = 100;
@@ -26,11 +26,12 @@ export interface PlatformFeeQuote {
   currency: string;
   accessFeeUsd: number;
   accessFeeInCurrency: number | null;
+  /** Due now listed = min($20 access fee, 2% success fee) when both known. */
+  dueNowListed: number;
+  dueNowPayable: number;
   successFeeGross: number | null;
   accessFeeCredit: number | null;
   successFeeRemaining: number | null;
-  dueNowListed: number;
-  dueNowPayable: number;
   dueLaterListed: number | null;
   dueLaterPayable: number;
   trialActive: boolean;
@@ -70,17 +71,19 @@ export function buildPlatformFeeQuote(input: {
       ? Math.round(contractAmount * PLATFORM_SUCCESS_FEE_RATE * 100) / 100
       : null;
 
-  const accessFeeCredit =
-    successFeeGross != null && accessInCurrency != null
-      ? Math.min(accessInCurrency, successFeeGross)
-      : accessInCurrency;
+  const listedCap = accessInCurrency ?? PLATFORM_ACCESS_FEE_USD;
+  const dueNowListed =
+    successFeeGross != null
+      ? Math.min(listedCap, successFeeGross)
+      : listedCap;
+
+  const accessFeeCredit = dueNowListed;
 
   const successFeeRemaining =
-    successFeeGross != null && accessFeeCredit != null
+    successFeeGross != null
       ? Math.max(0, Math.round((successFeeGross - accessFeeCredit) * 100) / 100)
       : null;
 
-  const dueNowListed = accessInCurrency ?? PLATFORM_ACCESS_FEE_USD;
   const dueLaterListed = successFeeRemaining;
 
   return {

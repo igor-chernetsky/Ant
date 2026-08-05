@@ -29,6 +29,20 @@ export interface ContractCustomFileMeta {
   uploadedAt: string;
 }
 
+export type SignatureRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface ContractSignatureAuth {
+  platformFeePaid: boolean;
+  hasBankDetails: boolean;
+  latestRequest: {
+    id: string;
+    status: SignatureRequestStatus;
+    rejectionReason: string | null;
+    createdAt: string;
+    reviewedAt: string | null;
+  } | null;
+}
+
 export interface ContractResponse {
   id: string;
   projectId: string;
@@ -47,6 +61,8 @@ export interface ContractResponse {
   canSign: boolean;
   canEditDocument: boolean;
   fullySigned: boolean;
+  /** Present for the awarded contractor; omitted/null for the client. */
+  signatureAuth: ContractSignatureAuth | null;
 }
 
 /** PDF and DOCX only for party-uploaded contract files. */

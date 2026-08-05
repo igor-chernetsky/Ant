@@ -21,6 +21,7 @@ export const en = {
     admin: 'Admin',
     contractors: 'Contractors',
     supplyRegistry: 'Supply registry',
+    signatureRequests: 'Signature requests',
     settings: 'Settings',
     contractor: 'Contractor',
     designer: 'Designer',
@@ -79,6 +80,15 @@ export const en = {
       contractAddendumFullySignedTitle: 'Additional agreement fully signed',
       contractAddendumFullySignedBody:
         '“{addendum}” is fully signed on {project}.',
+      adminSignatureRequestCreatedTitle: 'Signature authorization request',
+      adminSignatureRequestCreatedBody:
+        '{company} requested authorization to sign on {project}.',
+      contractorSignatureRequestApprovedTitle: 'Signature authorized',
+      contractorSignatureRequestApprovedBody:
+        'You can sign the contract on {project}.',
+      contractorSignatureRequestRejectedTitle: 'Signature request rejected',
+      contractorSignatureRequestRejectedBody:
+        'Your authorization request for {project} was rejected.',
       genericProjectBody: 'Related to {project}.',
     },
   },

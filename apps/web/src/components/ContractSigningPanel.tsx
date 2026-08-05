@@ -33,6 +33,8 @@ interface ContractSigningPanelProps {
   /** Awarded bid amount — used to show listed platform fees for the contractor. */
   bidAmount?: number | string | null;
   currency?: string | null;
+  /** Profile page for bank details (contractor or designer portal). */
+  profileHref?: string;
   onSigned?: (contract: ProjectContract) => void;
   onAwardReleased?: () => void;
 }
@@ -45,6 +47,7 @@ export function ContractSigningPanel({
   contract: contractProp = null,
   bidAmount = null,
   currency = 'THB',
+  profileHref = '/contractor',
   onSigned,
   onAwardReleased,
 }: ContractSigningPanelProps) {
@@ -57,7 +60,7 @@ export function ContractSigningPanel({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const signaturePadRef = useRef<ContractSignaturePadHandle | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
-  const { acknowledgePlatformFees, dialog: feeDialog } = usePlatformFeeNotice();
+  const { ensureSignAuthorized, dialog: feeDialog } = usePlatformFeeNotice();
 
   const loadContract = useCallback(async () => {
     setLoading(true);
@@ -86,12 +89,19 @@ export function ContractSigningPanel({
 
   const handleSign = async () => {
     if (asContractor) {
-      const feesOk = await acknowledgePlatformFees({
-        step: 'sign',
+      const authResult = await ensureSignAuthorized({
+        projectId,
+        signatureAuth: contract?.signatureAuth,
         contractAmount: bidAmount,
         currency,
+        profileHref,
       });
-      if (!feesOk) return;
+      if (authResult !== 'ready_to_sign') {
+        if (authResult === 'request_sent') {
+          await loadContract();
+        }
+        return;
+      }
     }
 
     const confirmed = await confirm({
