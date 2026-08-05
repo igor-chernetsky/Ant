@@ -1190,15 +1190,23 @@ export const ruExtended = {
     signingHint: "Обе стороны должны подписать черновик договора перед началом работ.",
     customSigningHint:
       "Используется загруженный файл договора. Посмотрите превью или скачайте файл, при желании нарисуйте подпись, затем обе стороны подтверждают кнопкой «Подписать договор». «Пересобрать из условий» вернёт черновик платформы.",
+    actionsTitle: "Действия с договором",
     customPreviewToggle: "Превью загруженного договора",
     customPreviewHint:
-      "Только просмотр загруженного PDF. Редактирование для кастомных файлов недоступно.",
-    customPreviewDocxHint:
-      "DOCX нельзя показать в браузере. Скачайте файл, чтобы ознакомиться.",
-    customPreviewDocxBody:
-      "Откройте скачанный DOCX в Word или другом редакторе перед подписанием.",
+      "Только просмотр загруженного PDF. DOCX при загрузке автоматически конвертируется в PDF. Редактирование для кастомных файлов недоступно.",
+    customPreviewLegacyDocxHint:
+      "Этот старый DOCX нельзя показать в браузере. Загрузите файл снова для конвертации в PDF или скачайте для просмотра.",
+    customPreviewLegacyDocxBody:
+      "Скачайте DOCX или замените файл, чтобы получить PDF-превью.",
     customPreviewFrameTitle: "Превью PDF договора",
     openCustomPreviewTab: "Открыть в новой вкладке",
+    customSignaturesTitle: "Подписи",
+    customSignaturesHint:
+      "Поля для подписей сторон. Нарисованная подпись появится здесь после «Подписать договор».",
+    signaturePending: "Подпись ожидается",
+    signatureAckOnly: "Подписано без нарисованной подписи",
+    clientSignatureAlt: "Подпись клиента",
+    contractorSignatureAlt: "Подпись подрядчика",
     drawSignatureOptional: "Нарисовать подпись (необязательно)",
     drawSignatureHint: "Можно подписать мышкой или пальцем — или оставить пустым и подтвердить только кнопкой «Подписать договор».",
     clearSignature: "Очистить",
@@ -1206,7 +1214,7 @@ export const ruExtended = {
     signing: "Подписание…",
     uploadCustomContract: "Загрузить договор (PDF/DOCX)",
     replaceCustomContract: "Заменить файл договора",
-    uploadingCustom: "Загрузка…",
+    uploadingCustom: "Загрузка и конвертация…",
     downloadCustomContract: "Скачать договор",
     downloadingCustom: "Скачивание…",
     customFileLabel: "Свой договор: {name}",

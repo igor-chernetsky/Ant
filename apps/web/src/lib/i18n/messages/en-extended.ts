@@ -1189,15 +1189,23 @@ export const enExtended = {
     signingHint: "Both parties must sign the contract draft before the project becomes active.",
     customSigningHint:
       "A custom contract file is in use. Preview or download it below, draw an optional signature, then both parties confirm with Sign contract. Use Regenerate from terms to restore the platform draft.",
+    actionsTitle: "Contract actions",
     customPreviewToggle: "Custom contract preview",
     customPreviewHint:
-      "Read-only preview of the uploaded PDF. Editing is not available for custom files.",
-    customPreviewDocxHint:
-      "DOCX files cannot be previewed in the browser. Download the file to review it.",
-    customPreviewDocxBody:
-      "Open the downloaded DOCX in Word or another editor to review before signing.",
+      "Read-only preview of the uploaded PDF. DOCX uploads are converted to PDF automatically. Editing is not available for custom files.",
+    customPreviewLegacyDocxHint:
+      "This older DOCX upload cannot be previewed in the browser. Re-upload it to convert to PDF, or download to review.",
+    customPreviewLegacyDocxBody:
+      "Download the DOCX, or replace the file to generate a PDF preview.",
     customPreviewFrameTitle: "Custom contract PDF preview",
     openCustomPreviewTab: "Open in new tab",
+    customSignaturesTitle: "Signatures",
+    customSignaturesHint:
+      "Signature boxes for both parties. Drawn signatures appear here after Sign contract.",
+    signaturePending: "Signature pending",
+    signatureAckOnly: "Signed without a drawn signature",
+    clientSignatureAlt: "Client signature",
+    contractorSignatureAlt: "Contractor signature",
     drawSignatureOptional: "Draw signature (optional)",
     drawSignatureHint: "You can sign with your mouse or finger, or leave blank and confirm with Sign contract only.",
     clearSignature: "Clear",
@@ -1205,7 +1213,7 @@ export const enExtended = {
     signing: "Signing…",
     uploadCustomContract: "Upload contract (PDF/DOCX)",
     replaceCustomContract: "Replace contract file",
-    uploadingCustom: "Uploading…",
+    uploadingCustom: "Uploading & converting…",
     downloadCustomContract: "Download contract",
     downloadingCustom: "Downloading…",
     customFileLabel: "Custom contract: {name}",

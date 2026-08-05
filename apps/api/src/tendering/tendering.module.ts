@@ -25,6 +25,7 @@ import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { ContractsService } from './contracts.service';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
+import { DocxToPdfService } from '../pdf/docx-to-pdf.service';
 import { ContractorPortfolioController } from './contractor-portfolio.controller';
 import { ContractorPortfolioService } from './contractor-portfolio.service';
 import { PublicContractorsController } from './public-contractors.controller';
@@ -60,6 +61,7 @@ import { PublicContractorsController } from './public-contractors.controller';
     CommercialProposalService,
     ContractsService,
     HtmlToPdfService,
+    DocxToPdfService,
     TenderClarificationsService,
     DefaultCostBreakdownService,
     ContractorPortfolioService,

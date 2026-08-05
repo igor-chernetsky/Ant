@@ -1187,15 +1187,23 @@ export const thExtended = {
     signingHint: "ทั้งสองฝ่ายต้องลงนามร่างสัญญาก่อนโครงการจะเริ่ม",
     customSigningHint:
       "กำลังใช้ไฟล์สัญญาที่อัปโหลด ดูตัวอย่างหรือดาวน์โหลด วาดลายเซ็นได้ถ้าต้องการ แล้วทั้งสองฝ่ายยืนยันด้วยปุ่มลงนามสัญญา ใช้ «สร้างใหม่จากเงื่อนไข» เพื่อคืนร่างของแพลตฟอร์ม",
+    actionsTitle: "การจัดการสัญญา",
     customPreviewToggle: "ตัวอย่างสัญญาที่อัปโหลด",
     customPreviewHint:
-      "ดู PDF ที่อัปโหลดแบบอ่านอย่างเดียว แก้ไขไฟล์กำหนดเองไม่ได้",
-    customPreviewDocxHint:
-      "ไฟล์ DOCX แสดงตัวอย่างในเบราว์เซอร์ไม่ได้ กรุณาดาวน์โหลดเพื่อตรวจสอบ",
-    customPreviewDocxBody:
-      "เปิดไฟล์ DOCX ที่ดาวน์โหลดใน Word หรือโปรแกรมอื่นก่อนลงนาม",
+      "ดู PDF ที่อัปโหลดแบบอ่านอย่างเดียว ไฟล์ DOCX จะถูกแปลงเป็น PDF อัตโนมัติตอนอัปโหลด แก้ไขไฟล์กำหนดเองไม่ได้",
+    customPreviewLegacyDocxHint:
+      "ไฟล์ DOCX เก่านี้แสดงตัวอย่างในเบราว์เซอร์ไม่ได้ อัปโหลดใหม่เพื่อแปลงเป็น PDF หรือดาวน์โหลดเพื่อตรวจสอบ",
+    customPreviewLegacyDocxBody:
+      "ดาวน์โหลด DOCX หรือแทนที่ไฟล์เพื่อสร้างตัวอย่าง PDF",
     customPreviewFrameTitle: "ตัวอย่างสัญญา PDF",
     openCustomPreviewTab: "เปิดในแท็บใหม่",
+    customSignaturesTitle: "ลายเซ็น",
+    customSignaturesHint:
+      "ช่องลายเซ็นของทั้งสองฝ่าย ลายเซ็นที่วาดจะแสดงที่นี่หลังกดลงนามสัญญา",
+    signaturePending: "รอลายเซ็น",
+    signatureAckOnly: "ลงนามแล้วโดยไม่วาดลายเซ็น",
+    clientSignatureAlt: "ลายเซ็นลูกค้า",
+    contractorSignatureAlt: "ลายเซ็นผู้รับเหมา",
     drawSignatureOptional: "วาดลายเซ็น (ไม่บังคับ)",
     drawSignatureHint: "วาดด้วยเมาส์หรือนิ้วได้ หรือเว้นว่างแล้วกดลงนามสัญญาอย่างเดียว",
     clearSignature: "ล้าง",
@@ -1203,7 +1211,7 @@ export const thExtended = {
     signing: "กำลังลงนาม…",
     uploadCustomContract: "อัปโหลดสัญญา (PDF/DOCX)",
     replaceCustomContract: "แทนที่ไฟล์สัญญา",
-    uploadingCustom: "กำลังอัปโหลด…",
+    uploadingCustom: "กำลังอัปโหลดและแปลง…",
     downloadCustomContract: "ดาวน์โหลดสัญญา",
     downloadingCustom: "กำลังดาวน์โหลด…",
     customFileLabel: "สัญญาที่อัปโหลด: {name}",

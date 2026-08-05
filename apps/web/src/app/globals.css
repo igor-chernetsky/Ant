@@ -5995,7 +5995,7 @@ select:disabled {
 }
 
 @media (min-width: 900px) {
-  .contract-signing-tools {
+  .contract-signing-tools--with-pad {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
@@ -6082,6 +6082,48 @@ select:disabled {
 
 .contract-signing-meta {
   margin: 0;
+}
+
+.contract-signing-actions-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.contract-signing-actions-card-header {
+  flex: 0 0 auto;
+}
+
+.contract-signing-actions-card-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.contract-signing-actions-card-download {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.contract-signing-actions-card-download .commercial-proposal-download--embedded {
+  height: 100%;
+}
+
+.contract-signing-actions-card .contract-signing-actions {
+  margin-top: auto;
+}
+
+.contract-signing-actions-card .contract-signing-complete {
+  margin-top: auto;
+  margin-bottom: 0;
 }
 
 .contract-signing-download {
@@ -6235,6 +6277,84 @@ select:disabled {
   align-items: center;
   gap: 0.75rem 1rem;
   margin-top: 0.85rem;
+}
+
+.contract-custom-signatures {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.contract-custom-signatures-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.contract-custom-signatures-hint {
+  margin: 0 0 0.85rem;
+  font-size: 0.82rem;
+}
+
+.contract-custom-signatures-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+  .contract-custom-signatures-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.contract-custom-signature-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.contract-custom-signature-slot-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.contract-custom-signature-slot-pad {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  padding: 0.5rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.contract-custom-signature-slot--signed .contract-custom-signature-slot-pad {
+  border-style: solid;
+  background: #fff;
+}
+
+.contract-custom-signature-image {
+  display: block;
+  max-width: 100%;
+  max-height: 96px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.contract-custom-signature-empty {
+  font-size: 0.82rem;
+  text-align: center;
+  padding: 0.5rem;
 }
 
 .contract-document-toolbar {

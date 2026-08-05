@@ -6,6 +6,7 @@ import {
   downloadCustomContractFile,
   type ProjectContract,
 } from '@/lib/contracts';
+import { formatDateTime } from '@/lib/projects';
 import { useState } from 'react';
 
 interface CustomContractPreviewProps {
@@ -20,6 +21,55 @@ function isPdfContentType(contentType: string | null | undefined): boolean {
 
 function isPdfFileName(name: string | null | undefined): boolean {
   return (name ?? '').toLowerCase().endsWith('.pdf');
+}
+
+function SignatureSlot({
+  roleLabel,
+  signedAt,
+  signatureDataUrl,
+  awaitingLabel,
+  signedAtLabel,
+  emptyLabel,
+  imageAlt,
+}: {
+  roleLabel: string;
+  signedAt: string | null;
+  signatureDataUrl: string | null;
+  awaitingLabel: string;
+  signedAtLabel: string;
+  emptyLabel: string;
+  imageAlt: string;
+}) {
+  const showImage = Boolean(signedAt && signatureDataUrl);
+
+  return (
+    <div
+      className={`contract-custom-signature-slot${
+        signedAt ? ' contract-custom-signature-slot--signed' : ''
+      }`}
+    >
+      <div className="contract-custom-signature-slot-head">
+        <strong>{roleLabel}</strong>
+        <span className="muted">
+          {signedAt ? signedAtLabel : awaitingLabel}
+        </span>
+      </div>
+      <div className="contract-custom-signature-slot-pad">
+        {showImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={signatureDataUrl!}
+            alt={imageAlt}
+            className="contract-custom-signature-image"
+          />
+        ) : (
+          <span className="muted contract-custom-signature-empty">
+            {emptyLabel}
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function CustomContractPreview({
@@ -68,7 +118,7 @@ export function CustomContractPreview({
         <p className="muted contract-document-editor-hint">
           {canPreviewPdf
             ? t('contractPanel.customPreviewHint')
-            : t('contractPanel.customPreviewDocxHint')}
+            : t('contractPanel.customPreviewLegacyDocxHint')}
         </p>
         <p className="muted contract-custom-preview-meta">
           {t('contractPanel.customFileLabel', { name: file.originalName })}
@@ -84,7 +134,7 @@ export function CustomContractPreview({
           </div>
         ) : (
           <div className="contract-custom-preview-fallback">
-            <p className="muted">{t('contractPanel.customPreviewDocxBody')}</p>
+            <p className="muted">{t('contractPanel.customPreviewLegacyDocxBody')}</p>
             <button
               type="button"
               className="secondary"
@@ -100,6 +150,58 @@ export function CustomContractPreview({
             </button>
           </div>
         )}
+
+        <section
+          className="contract-custom-signatures"
+          aria-label={t('contractPanel.customSignaturesTitle')}
+        >
+          <h3 className="contract-custom-signatures-title">
+            {t('contractPanel.customSignaturesTitle')}
+          </h3>
+          <p className="muted contract-custom-signatures-hint">
+            {t('contractPanel.customSignaturesHint')}
+          </p>
+          <div className="contract-custom-signatures-grid">
+            <SignatureSlot
+              roleLabel={t('contractPanel.partyClient')}
+              signedAt={contract.clientSignedAt}
+              signatureDataUrl={contract.clientSignatureDataUrl ?? null}
+              awaitingLabel={t('contractPanel.awaiting')}
+              signedAtLabel={
+                contract.clientSignedAt
+                  ? t('contractPanel.signedAt', {
+                      date: formatDateTime(contract.clientSignedAt),
+                    })
+                  : ''
+              }
+              emptyLabel={
+                contract.clientSignedAt
+                  ? t('contractPanel.signatureAckOnly')
+                  : t('contractPanel.signaturePending')
+              }
+              imageAlt={t('contractPanel.clientSignatureAlt')}
+            />
+            <SignatureSlot
+              roleLabel={t('contractPanel.partyContractor')}
+              signedAt={contract.contractorSignedAt}
+              signatureDataUrl={contract.contractorSignatureDataUrl ?? null}
+              awaitingLabel={t('contractPanel.awaiting')}
+              signedAtLabel={
+                contract.contractorSignedAt
+                  ? t('contractPanel.signedAt', {
+                      date: formatDateTime(contract.contractorSignedAt),
+                    })
+                  : ''
+              }
+              emptyLabel={
+                contract.contractorSignedAt
+                  ? t('contractPanel.signatureAckOnly')
+                  : t('contractPanel.signaturePending')
+              }
+              imageAlt={t('contractPanel.contractorSignatureAlt')}
+            />
+          </div>
+        </section>
 
         {canPreviewPdf && (
           <div className="contract-custom-preview-actions">

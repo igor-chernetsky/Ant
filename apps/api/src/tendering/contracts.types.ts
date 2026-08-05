@@ -39,6 +39,8 @@ export interface ContractResponse {
   contractorSignedAt: string | null;
   hasClientSignature: boolean;
   hasContractorSignature: boolean;
+  clientSignatureDataUrl: string | null;
+  contractorSignatureDataUrl: string | null;
   englishBodyHtml: string | null;
   hasCustomContract: boolean;
   customFile: ContractCustomFileMeta | null;

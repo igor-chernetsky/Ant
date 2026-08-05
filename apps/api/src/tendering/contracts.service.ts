@@ -42,6 +42,11 @@ import {
   type SignContractDto,
   type UpdateContractDocumentDto,
 } from './contracts.types';
+import { DocxToPdfService } from '../pdf/docx-to-pdf.service';
+
+const DOCX_CONTENT_TYPE =
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const PDF_CONTENT_TYPE = 'application/pdf';
 
 type ContractParticipant = {
   project: Project & {
@@ -70,6 +75,7 @@ export class ContractsService {
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
+    private readonly docxToPdf: DocxToPdfService,
     @Inject(forwardRef(() => CommercialProposalService))
     private readonly commercialProposal: CommercialProposalService,
   ) {}
@@ -104,6 +110,8 @@ export class ContractsService {
       contractorSignedAt: contract.contractorSignedAt?.toISOString() ?? null,
       hasClientSignature: Boolean(contract.clientSignatureDataUrl),
       hasContractorSignature: Boolean(contract.contractorSignatureDataUrl),
+      clientSignatureDataUrl: contract.clientSignatureDataUrl,
+      contractorSignatureDataUrl: contract.contractorSignatureDataUrl,
       englishBodyHtml: hasCustomContract
         ? null
         : contract.englishBodyHtml
@@ -517,14 +525,51 @@ export class ContractsService {
       allowedContentTypes: CUSTOM_CONTRACT_ALLOWED_CONTENT_TYPES,
     });
 
+    let finalStorageKey = storageKey;
+    let finalContentType = declaredContentType;
+    let finalOriginalName = originalName;
+    let finalSizeBytes = sizeBytes;
+    const keysToDelete: string[] = [];
+
+    if (declaredContentType === DOCX_CONTENT_TYPE) {
+      const docxBuffer = await this.storage.getObjectBuffer(storageKey);
+      const pdfBuffer = await this.docxToPdf.convert(docxBuffer);
+      if (pdfBuffer.length > MAX_CUSTOM_CONTRACT_BYTES) {
+        throw new BadRequestException(
+          'Converted PDF exceeds the 25 MB upload limit',
+        );
+      }
+
+      const pdfName = sanitizeFileName(
+        originalName.replace(/\.docx$/i, '.pdf') || 'contract.pdf',
+      );
+      const pdfKey = buildCustomContractStorageKey(
+        projectId,
+        contract.id,
+        randomUUID(),
+        pdfName.endsWith('.pdf') ? pdfName : `${pdfName}.pdf`,
+      );
+      await this.storage.putObject({
+        storageKey: pdfKey,
+        body: pdfBuffer,
+        contentType: PDF_CONTENT_TYPE,
+      });
+
+      keysToDelete.push(storageKey);
+      finalStorageKey = pdfKey;
+      finalContentType = PDF_CONTENT_TYPE;
+      finalOriginalName = pdfName.endsWith('.pdf') ? pdfName : `${pdfName}.pdf`;
+      finalSizeBytes = pdfBuffer.length;
+    }
+
     const previousKey = contract.customFileStorageKey;
     const updated = await this.prisma.contract.update({
       where: { id: contract.id },
       data: {
-        customFileStorageKey: storageKey,
-        customFileOriginalName: originalName,
-        customFileContentType: declaredContentType,
-        customFileSizeBytes: sizeBytes,
+        customFileStorageKey: finalStorageKey,
+        customFileOriginalName: finalOriginalName,
+        customFileContentType: finalContentType,
+        customFileSizeBytes: finalSizeBytes,
         customFileUploadedByUserId: userId,
         customFileUploadedAt: new Date(),
         status: ContractStatus.pending_signatures,
@@ -535,8 +580,13 @@ export class ContractsService {
       },
     });
 
-    if (previousKey && previousKey !== storageKey) {
-      await this.deleteCustomFileObject(previousKey);
+    if (previousKey && previousKey !== finalStorageKey) {
+      keysToDelete.push(previousKey);
+    }
+    for (const key of keysToDelete) {
+      if (key !== finalStorageKey) {
+        await this.deleteCustomFileObject(key);
+      }
     }
 
     this.notifyOtherPartyOfContractChange(participant, projectId, 'custom_file');
