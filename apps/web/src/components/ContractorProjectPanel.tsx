@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
 import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
+import { CustomContractPreview } from '@/components/CustomContractPreview';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidOfferSummary } from '@/components/BidOfferSummary';
@@ -575,6 +576,13 @@ export function ContractorProjectPanel({
               contract={contract}
               asContractor
               onSaved={setContract}
+            />
+          )}
+          {contract?.hasCustomContract && (
+            <CustomContractPreview
+              projectId={projectId}
+              contract={contract}
+              asContractor
             />
           )}
           {participation.canWithdrawFromAward && (

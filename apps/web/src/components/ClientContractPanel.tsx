@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
 import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
+import { CustomContractPreview } from '@/components/CustomContractPreview';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPill';
 import { useSession } from '@/components/SessionProvider';
@@ -126,6 +127,12 @@ export function ClientContractPanel({
               projectId={projectId}
               contract={contract}
               onSaved={setContract}
+            />
+          )}
+          {contract?.hasCustomContract && (
+            <CustomContractPreview
+              projectId={projectId}
+              contract={contract}
             />
           )}
 

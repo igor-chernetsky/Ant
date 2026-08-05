@@ -1188,7 +1188,16 @@ export const enExtended = {
     signingTitle: "Contract signing",
     signingHint: "Both parties must sign the contract draft before the project becomes active.",
     customSigningHint:
-      "A custom contract file is in use. Download it, then both parties confirm with Sign contract. Use Regenerate from terms to restore the platform draft.",
+      "A custom contract file is in use. Preview or download it below, draw an optional signature, then both parties confirm with Sign contract. Use Regenerate from terms to restore the platform draft.",
+    customPreviewToggle: "Custom contract preview",
+    customPreviewHint:
+      "Read-only preview of the uploaded PDF. Editing is not available for custom files.",
+    customPreviewDocxHint:
+      "DOCX files cannot be previewed in the browser. Download the file to review it.",
+    customPreviewDocxBody:
+      "Open the downloaded DOCX in Word or another editor to review before signing.",
+    customPreviewFrameTitle: "Custom contract PDF preview",
+    openCustomPreviewTab: "Open in new tab",
     drawSignatureOptional: "Draw signature (optional)",
     drawSignatureHint: "You can sign with your mouse or finger, or leave blank and confirm with Sign contract only.",
     clearSignature: "Clear",

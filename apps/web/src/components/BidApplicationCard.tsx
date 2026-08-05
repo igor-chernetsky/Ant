@@ -8,6 +8,7 @@ import { BidChat } from '@/components/BidChat';
 import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
 import { ClientCounterOfferPanel } from '@/components/ClientCounterOfferPanel';
 import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
+import { CustomContractPreview } from '@/components/CustomContractPreview';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
 import { ClientContractorProfilePanel } from '@/components/ClientContractorProfilePanel';
@@ -234,6 +235,12 @@ export function BidApplicationCard({
                   projectId={projectId}
                   contract={contract}
                   onSaved={setContract}
+                />
+              )}
+              {contract?.hasCustomContract && (
+                <CustomContractPreview
+                  projectId={projectId}
+                  contract={contract}
                 />
               )}
             </div>
