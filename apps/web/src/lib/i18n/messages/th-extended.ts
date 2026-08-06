@@ -697,6 +697,7 @@ export const thExtended = {
     bannerCreateProfile: "สร้างโปรไฟล์",
     bannerCompleteVerification: "ดำเนินการยืนยัน",
     bannerOpenPortal: "เปิดพอร์ทัล",
+    bannerDismiss: "ปิดสำหรับเซสชันนี้",
   },
   portfolio: {
     title: "ผลงาน",

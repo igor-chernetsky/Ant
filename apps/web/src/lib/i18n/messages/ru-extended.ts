@@ -700,6 +700,7 @@ export const ruExtended = {
     bannerCreateProfile: "Создать профиль",
     bannerCompleteVerification: "Пройти верификацию",
     bannerOpenPortal: "Открыть портал",
+    bannerDismiss: "Скрыть до конца сессии",
   },
   portfolio: {
     title: "Портфолио",

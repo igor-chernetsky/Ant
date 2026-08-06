@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useSession } from '@/components/SessionProvider';
@@ -11,40 +10,45 @@ import {
   type ContractorProfile,
 } from '@/lib/tendering';
 
-type BannerPhase =
-  | 'no_profile'
-  | 'pending'
-  | 'rejected'
-  | 'awaiting_review';
+type BannerPhase = 'no_profile' | 'rejected';
 
-function resolvePhase(
-  profile: ContractorProfile | null,
-): BannerPhase | null {
+function resolvePhase(profile: ContractorProfile | null): BannerPhase | null {
   if (!profile) return 'no_profile';
-  switch (profile.verificationStatus) {
-    case 'verified':
-      return null;
-    case 'awaiting_review':
-      return 'awaiting_review';
-    case 'rejected':
-      return 'rejected';
-    case 'pending':
-    default:
-      return 'pending';
+  if (profile.verificationStatus === 'rejected') return 'rejected';
+  return null;
+}
+
+function dismissStorageKey(userId: string, phase: BannerPhase): string {
+  return `builthai:home-verification-banner:${userId}:${phase}`;
+}
+
+function isDismissed(userId: string, phase: BannerPhase): boolean {
+  try {
+    return sessionStorage.getItem(dismissStorageKey(userId, phase)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function persistDismiss(userId: string, phase: BannerPhase): void {
+  try {
+    sessionStorage.setItem(dismissStorageKey(userId, phase), '1');
+  } catch {
+    // Private mode / blocked storage — still hide in-memory for this mount.
   }
 }
 
 /**
- * Persistent reminder for contractors/designers until admin verification.
- * Shown on every page while supply-side onboarding is incomplete.
+ * Home-only reminder for contractors/designers who still need to create a
+ * profile or re-submit after rejection. Dismissible for the browser session.
  */
 export function SupplyVerificationBanner() {
   const { t } = useTranslation();
-  const pathname = usePathname();
   const { me, ready } = useSession();
   const [profile, setProfile] = useState<ContractorProfile | null | undefined>(
     undefined,
   );
+  const [dismissed, setDismissed] = useState(false);
 
   const isDesigner = isDesignerUser(me);
   const portalHref = isDesigner ? '/designer' : '/contractor';
@@ -64,7 +68,7 @@ export function SupplyVerificationBanner() {
 
   useEffect(() => {
     void loadProfile();
-  }, [loadProfile, pathname]);
+  }, [loadProfile]);
 
   useEffect(() => {
     const onFocus = () => {
@@ -74,7 +78,11 @@ export function SupplyVerificationBanner() {
     return () => window.removeEventListener('focus', onFocus);
   }, [loadProfile]);
 
-  if (!ready || !isSupplySideUser(me) || profile === undefined) {
+  useEffect(() => {
+    setDismissed(false);
+  }, [me?.id]);
+
+  if (!ready || !me || !isSupplySideUser(me) || profile === undefined) {
     return null;
   }
 
@@ -83,52 +91,92 @@ export function SupplyVerificationBanner() {
     return null;
   }
 
+  if (dismissed || isDismissed(me.id, phase)) {
+    return null;
+  }
+
   const titleKey =
     phase === 'no_profile'
       ? 'verification.bannerNoProfileTitle'
-      : phase === 'pending'
-        ? 'verification.bannerPendingTitle'
-        : phase === 'rejected'
-          ? 'verification.bannerRejectedTitle'
-          : 'verification.bannerAwaitingTitle';
-
+      : 'verification.bannerRejectedTitle';
   const bodyKey =
     phase === 'no_profile'
       ? 'verification.bannerNoProfileBody'
-      : phase === 'pending'
-        ? 'verification.bannerPendingBody'
-        : phase === 'rejected'
-          ? 'verification.bannerRejectedBody'
-          : 'verification.bannerAwaitingBody';
-
+      : 'verification.bannerRejectedBody';
   const ctaKey =
-    phase === 'awaiting_review'
-      ? 'verification.bannerOpenPortal'
-      : phase === 'no_profile'
-        ? 'verification.bannerCreateProfile'
-        : 'verification.bannerCompleteVerification';
+    phase === 'no_profile'
+      ? 'verification.bannerCreateProfile'
+      : 'verification.bannerCompleteVerification';
 
-  const onPortalPage =
-    pathname === portalHref || pathname.startsWith(`${portalHref}/`);
+  const handleDismiss = () => {
+    persistDismiss(me.id, phase);
+    setDismissed(true);
+  };
 
   return (
     <aside
-      className={`supply-verification-banner supply-verification-banner--${phase}`}
+      className={`home-verification-banner home-verification-banner--${phase}`}
       role="status"
       aria-live="polite"
     >
-      <div className="supply-verification-banner-inner content-container">
-        <div className="supply-verification-banner-copy">
-          <strong className="supply-verification-banner-title">
+      <div className="home-verification-banner-inner">
+        <span className="home-verification-banner-icon" aria-hidden>
+          <svg
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {phase === 'rejected' ? (
+              <>
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v5" />
+                <path d="M12 16h.01" />
+              </>
+            ) : (
+              <>
+                <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" />
+                <path d="M9.5 12.5l1.8 1.8 3.7-3.8" />
+              </>
+            )}
+          </svg>
+        </span>
+
+        <div className="home-verification-banner-copy">
+          <strong className="home-verification-banner-title">
             {t(titleKey)}
           </strong>
-          <p className="supply-verification-banner-text">{t(bodyKey)}</p>
+          <p className="home-verification-banner-text">{t(bodyKey)}</p>
         </div>
-        {!onPortalPage && (
-          <Link href={portalHref} className="primary supply-verification-banner-cta">
+
+        <div className="home-verification-banner-actions">
+          <Link href={portalHref} className="primary home-verification-banner-cta">
             {t(ctaKey)}
           </Link>
-        )}
+          <button
+            type="button"
+            className="home-verification-banner-dismiss"
+            onClick={handleDismiss}
+            aria-label={t('verification.bannerDismiss')}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden
+            >
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </div>
       </div>
     </aside>
   );

@@ -699,6 +699,7 @@ export const enExtended = {
     bannerCreateProfile: "Create profile",
     bannerCompleteVerification: "Complete verification",
     bannerOpenPortal: "Open portal",
+    bannerDismiss: "Dismiss for this session",
   },
   portfolio: {
     title: "Portfolio",

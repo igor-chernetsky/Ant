@@ -36,6 +36,8 @@ import {
   type LocationCatalog,
 } from '@/lib/locations';
 import { HELP_TIP_IDS } from '@/lib/help-tips';
+import { AntSpinner } from '@/components/AntSpinner';
+import { SupplyVerificationBanner } from '@/components/SupplyVerificationBanner';
 
 export default function HomePage() {
   const router = useRouter();
@@ -438,6 +440,8 @@ export default function HomePage() {
         onSignOut={handleLogout}
       />
 
+      <SupplyVerificationBanner />
+
       <main className="home-main main-content">
         <div className={`home-layout${filtersOpen ? ' home-layout--filters-open' : ''}`}>
           <div className="home-toolbar">
@@ -505,9 +509,12 @@ export default function HomePage() {
 
           <div className="home-results" ref={resultsRef}>
             {loading && (
-              <section className="card">
-                <p className="muted">{t('home.loadingProjects')}</p>
-              </section>
+              <div className="home-loading home-loading--initial" role="status">
+                <AntSpinner size="lg" label={t('home.loadingProjects')} />
+                <span className="muted home-loading-label">
+                  {t('home.loadingProjects')}
+                </span>
+              </div>
             )}
 
             {error && !loadingMore && (
@@ -583,9 +590,15 @@ export default function HomePage() {
                   aria-hidden={!loadingMore}
                 >
                   {loadingMore && (
-                    <p className="muted home-load-more-label">
-                      {t('home.loadingMoreProjects')}
-                    </p>
+                    <div className="home-loading home-loading--more" role="status">
+                      <AntSpinner
+                        size="md"
+                        label={t('home.loadingMoreProjects')}
+                      />
+                      <span className="muted home-loading-label">
+                        {t('home.loadingMoreProjects')}
+                      </span>
+                    </div>
                   )}
                   {error && loadingMore === false && hasMore && (
                     <p className="form-error home-load-more-label">{error}</p>
