@@ -431,6 +431,7 @@ export async function downloadContractAddendum(
     asContractor?: boolean;
     withAttachments?: boolean;
     formats?: CustomFileDownloadFormat[];
+    includeSignatures?: boolean;
   },
 ): Promise<void> {
   const params = new URLSearchParams();
@@ -439,6 +440,9 @@ export async function downloadContractAddendum(
   }
   if (options?.formats?.length) {
     params.set('formats', options.formats.join(','));
+  }
+  if (options?.includeSignatures) {
+    params.set('includeSignatures', '1');
   }
   const query = params.toString() ? `?${params.toString()}` : '';
   const response = await fetchWithAuth(
@@ -455,7 +459,15 @@ export async function downloadContractAddendum(
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = fileName;
+  anchor.target = '_blank';
+  anchor.rel = 'noopener noreferrer';
+  const isPdf =
+    blob.type === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
+  if (!isPdf) {
+    anchor.download = fileName;
+  }
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

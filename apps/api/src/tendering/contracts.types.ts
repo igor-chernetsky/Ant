@@ -38,7 +38,9 @@ export interface ContractCustomFileMeta {
 export type CustomContractDownloadFormat = 'pdf' | 'docx';
 
 export interface DownloadCustomContractDto {
-  formats: CustomContractDownloadFormat[];
+  formats?: CustomContractDownloadFormat[];
+  /** When true, append a signature block to the PDF (ignored for DOCX). */
+  includeSignatures?: boolean;
 }
 
 export type SignatureRequestStatus = 'pending' | 'approved' | 'rejected';

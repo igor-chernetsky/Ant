@@ -260,6 +260,7 @@ function AddendumItem({
   const [downloadFormats, setDownloadFormats] = useState<
     CustomFileDownloadFormat[]
   >(['pdf', 'docx']);
+  const [includeSignatures, setIncludeSignatures] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const signaturePadRef = useRef<ContractSignaturePadHandle | null>(null);
@@ -339,10 +340,17 @@ function AddendumItem({
     setBusy(true);
     setError(null);
     try {
+      const selectedFormats = bothFormats ? downloadFormats : undefined;
+      const downloadingPdf =
+        !selectedFormats || selectedFormats.includes('pdf');
       await downloadContractAddendum(projectId, addendum.id, {
         asContractor,
         withAttachments: withAttachments && uploadedAttachments.length > 0,
-        formats: bothFormats ? downloadFormats : undefined,
+        formats: selectedFormats,
+        includeSignatures:
+          Boolean(addendum.hasCustomFile && canPreviewPdf) &&
+          includeSignatures &&
+          downloadingPdf,
       });
     } catch (err: unknown) {
       setError(
@@ -471,6 +479,17 @@ function AddendumItem({
               </span>
             </div>
           </div>
+          {addendum.hasCustomFile && canPreviewPdf && (
+            <label className="contract-include-signatures">
+              <input
+                type="checkbox"
+                checked={includeSignatures}
+                disabled={busy}
+                onChange={(e) => setIncludeSignatures(e.target.checked)}
+              />
+              <span>{t('contractPanel.includeSignaturesInPdf')}</span>
+            </label>
+          )}
         </div>
 
         {addendum.hasCustomFile && file ? (

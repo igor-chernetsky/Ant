@@ -1258,6 +1258,7 @@ export const ruExtended = {
     replaceCustomContract: "Заменить файл договора",
     uploadingCustom: "Загрузка и конвертация…",
     downloadCustomContract: "Скачать договор",
+    includeSignaturesInPdf: "Включить блок подписей при скачивании (только PDF)",
     downloadingCustom: "Скачивание…",
     downloadFormatsLabel: "Форматы для скачивания",
     downloadDocxHint:

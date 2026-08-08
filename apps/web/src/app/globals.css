@@ -6932,6 +6932,26 @@ select:disabled {
   }
 }
 
+.contract-include-signatures {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.contract-include-signatures input {
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.addendum-meta .contract-include-signatures {
+  margin-top: 0.65rem;
+}
+
 .contract-custom-signature-slot {
   display: flex;
   flex-direction: column;

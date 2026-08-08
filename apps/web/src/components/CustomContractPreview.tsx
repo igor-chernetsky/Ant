@@ -80,6 +80,7 @@ export function CustomContractPreview({
     'pdf',
     'docx',
   ]);
+  const [includeSignatures, setIncludeSignatures] = useState(false);
 
   const file = contract.customFile;
   if (!contract.hasCustomContract || !file) {
@@ -94,21 +95,16 @@ export function CustomContractPreview({
     : `/api/projects/${encodeURIComponent(projectId)}/contract/custom-file/preview`;
 
   const handleDownload = async () => {
-    const pdfOnly =
-      canPreviewPdf &&
-      (!bothFormats ||
-        (formats.length === 1 && formats[0] === 'pdf'));
-    if (pdfOnly) {
-      window.open(previewSrc, '_blank', 'noopener,noreferrer');
-      return;
-    }
-
     setBusy(true);
     setError(null);
     try {
+      const selectedFormats = bothFormats ? formats : undefined;
+      const downloadingPdf =
+        !selectedFormats || selectedFormats.includes('pdf');
       await downloadCustomContractFile(projectId, {
         asContractor,
-        formats: bothFormats ? formats : undefined,
+        formats: selectedFormats,
+        includeSignatures: includeSignatures && downloadingPdf,
       });
     } catch (err: unknown) {
       setError(
@@ -213,6 +209,17 @@ export function CustomContractPreview({
               imageAlt={t('contractPanel.contractorSignatureAlt')}
             />
           </div>
+          {canPreviewPdf && (
+            <label className="contract-include-signatures">
+              <input
+                type="checkbox"
+                checked={includeSignatures}
+                disabled={busy}
+                onChange={(e) => setIncludeSignatures(e.target.checked)}
+              />
+              <span>{t('contractPanel.includeSignaturesInPdf')}</span>
+            </label>
+          )}
         </section>
 
         {canPreviewPdf && (

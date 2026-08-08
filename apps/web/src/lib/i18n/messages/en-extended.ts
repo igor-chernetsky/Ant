@@ -1257,6 +1257,7 @@ export const enExtended = {
     replaceCustomContract: "Replace contract file",
     uploadingCustom: "Uploading & converting…",
     downloadCustomContract: "Download contract",
+    includeSignaturesInPdf: "Include signature block in download (PDF only)",
     downloadingCustom: "Downloading…",
     downloadFormatsLabel: "Download formats",
     downloadDocxHint:

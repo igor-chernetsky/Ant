@@ -203,6 +203,7 @@ export function ContractSigningPanel({
       await downloadCustomContractFile(projectId, {
         asContractor,
         formats: both ? downloadFormats : undefined,
+        includeSignatures: false,
       });
     } catch (err: unknown) {
       setError(

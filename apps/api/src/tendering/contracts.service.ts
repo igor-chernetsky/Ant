@@ -49,6 +49,7 @@ import {
   mapDualCustomFileMeta,
   normalizeDownloadFormats,
 } from './custom-contract-files.util';
+import { stampCustomPdfSignatures } from './custom-pdf-signatures.stamp';
 
 const DOCX_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -56,6 +57,7 @@ const PDF_CONTENT_TYPE = 'application/pdf';
 
 type ContractParticipant = {
   project: Project & {
+    client?: { displayName: string | null; email: string | null } | null;
     tender: {
       currency: string;
       awardedBid: {
@@ -251,6 +253,9 @@ export class ContractsService {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
+        client: {
+          select: { displayName: true, email: true },
+        },
         tender: {
           include: {
             awardedBid: {
@@ -721,17 +726,39 @@ export class ContractsService {
       }
     }
 
+    const includeSignatures = dto.includeSignatures === true;
+    const client = participant.project.client;
+    const contractor = participant.project.tender?.awardedBid?.contractor;
+
     const entries: Array<{ name: string; buffer: Buffer }> = [];
     for (const format of formats) {
       if (format === 'pdf') {
         if (!contract.customFileStorageKey) {
           throw new NotFoundException('PDF file not found');
         }
+        let buffer = await this.storage.getObjectBuffer(
+          contract.customFileStorageKey,
+        );
+        if (includeSignatures) {
+          buffer = await stampCustomPdfSignatures({
+            pdfBuffer: buffer,
+            left: {
+              label: 'Client',
+              orgName: client?.displayName || client?.email || null,
+              signedAt: contract.clientSignedAt,
+              signatureDataUrl: contract.clientSignatureDataUrl,
+            },
+            right: {
+              label: 'Contractor',
+              orgName: contractor?.companyName || null,
+              signedAt: contract.contractorSignedAt,
+              signatureDataUrl: contract.contractorSignatureDataUrl,
+            },
+          });
+        }
         entries.push({
           name: meta.pdfOriginalName || 'contract.pdf',
-          buffer: await this.storage.getObjectBuffer(
-            contract.customFileStorageKey,
-          ),
+          buffer,
         });
       } else {
         const key =

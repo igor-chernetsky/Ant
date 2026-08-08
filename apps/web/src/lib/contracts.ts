@@ -239,6 +239,7 @@ export async function downloadCustomContractFile(
   options?: {
     asContractor?: boolean;
     formats?: CustomFileDownloadFormat[];
+    includeSignatures?: boolean;
   },
 ): Promise<void> {
   const asContractor = Boolean(options?.asContractor);
@@ -246,11 +247,13 @@ export async function downloadCustomContractFile(
     (item): item is CustomFileDownloadFormat =>
       item === 'pdf' || item === 'docx',
   );
+  const includeSignatures = options?.includeSignatures === true;
   const needsFormatDownload =
     Boolean(formats?.includes('docx')) || (formats?.length ?? 0) > 1;
+  // Stamped PDFs must go through the POST download path (not the raw file URL).
+  const usePostDownload = needsFormatDownload || includeSignatures;
 
-  // PDF-only stays on the legacy presigned GET path.
-  if (!needsFormatDownload) {
+  if (!usePostDownload) {
     const response = await fetchWithAuth(
       `${contractPath(projectId, asContractor)}/custom-file`,
     );
@@ -276,7 +279,10 @@ export async function downloadCustomContractFile(
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ formats }),
+      body: JSON.stringify({
+        formats: formats?.length ? formats : ['pdf'],
+        includeSignatures,
+      }),
     },
   );
   if (!response.ok) {
@@ -296,9 +302,17 @@ export async function downloadCustomContractFile(
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = fileName;
+  anchor.target = '_blank';
+  anchor.rel = 'noopener noreferrer';
+  const isPdf =
+    blob.type === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
+  if (!isPdf) {
+    anchor.download = fileName;
+  }
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 function parseContentDispositionFilename(

@@ -55,11 +55,14 @@ export class ProjectContractAddendaController {
     @Param('addendumId') addendumId: string,
     @Query('withAttachments') withAttachments: string | undefined,
     @Query('formats') formatsQuery: string | string[] | undefined,
+    @Query('includeSignatures') includeSignaturesQuery: string | undefined,
     @Res() res: Response,
   ) {
     const user = await this.resolveUser(req);
     const includeAttachments =
       withAttachments === '1' || withAttachments === 'true';
+    const includeSignatures =
+      includeSignaturesQuery === '1' || includeSignaturesQuery === 'true';
     const formats = Array.isArray(formatsQuery)
       ? formatsQuery
       : typeof formatsQuery === 'string'
@@ -69,7 +72,11 @@ export class ProjectContractAddendaController {
       user.id,
       projectId,
       addendumId,
-      { withAttachments: includeAttachments, formats },
+      {
+        withAttachments: includeAttachments,
+        formats,
+        includeSignatures,
+      },
     );
     res.setHeader('Content-Type', contentType);
     res.setHeader(

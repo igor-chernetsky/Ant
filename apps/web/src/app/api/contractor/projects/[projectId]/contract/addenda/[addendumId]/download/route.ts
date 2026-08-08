@@ -17,6 +17,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
   if (formats) {
     params.set('formats', formats);
   }
+  const includeSignatures = url.searchParams.get('includeSignatures');
+  if (includeSignatures) {
+    params.set('includeSignatures', includeSignatures);
+  }
   const query = params.toString() ? `?${params.toString()}` : '';
   return proxyBackendJson(
     `/v1/projects/${encodeURIComponent(projectId)}/contract/addenda/${encodeURIComponent(addendumId)}/download${query}`,

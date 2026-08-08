@@ -1255,6 +1255,7 @@ export const thExtended = {
     replaceCustomContract: "แทนที่ไฟล์สัญญา",
     uploadingCustom: "กำลังอัปโหลดและแปลง…",
     downloadCustomContract: "ดาวน์โหลดสัญญา",
+    includeSignaturesInPdf: "ใส่บล็อกลายเซ็นตอนดาวน์โหลด (เฉพาะ PDF)",
     downloadingCustom: "กำลังดาวน์โหลด…",
     downloadFormatsLabel: "รูปแบบที่ต้องการดาวน์โหลด",
     downloadDocxHint:

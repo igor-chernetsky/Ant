@@ -53,6 +53,7 @@ import {
   mapDualCustomFileMeta,
   normalizeDownloadFormats,
 } from './custom-contract-files.util';
+import { stampCustomPdfSignatures } from './custom-pdf-signatures.stamp';
 
 const DOCX_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -1017,6 +1018,7 @@ export class ContractAddendaService {
     options: {
       withAttachments: boolean;
       formats?: unknown;
+      includeSignatures?: boolean;
     },
   ): Promise<{ buffer: Buffer; fileName: string; contentType: string }> {
     const participant = await this.loadParticipant(userId, projectId);
@@ -1037,7 +1039,16 @@ export class ContractAddendaService {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')
         .slice(0, 40) || 'addendum';
-    const mainEntries = await this.buildMainDocumentEntries(row, options.formats);
+
+    const parties =
+      options.includeSignatures === true
+        ? await this.loadSignaturePartyNames(projectId)
+        : null;
+
+    const mainEntries = await this.buildMainDocumentEntries(row, options.formats, {
+      includeSignatures: options.includeSignatures === true,
+      parties,
+    });
     const attachments = row.attachments ?? [];
     const includeAttachments =
       options.withAttachments && attachments.length > 0;
@@ -1077,7 +1088,7 @@ export class ContractAddendaService {
             buffer,
           });
         } catch {
-          // Skip missing objects
+          // Skip missing attachment objects rather than failing the whole zip.
         }
       }
     }
@@ -1093,9 +1104,43 @@ export class ContractAddendaService {
     };
   }
 
+  private async loadSignaturePartyNames(projectId: string): Promise<{
+    clientName: string | null;
+    contractorName: string | null;
+  }> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        client: { select: { displayName: true, email: true } },
+        tender: {
+          select: {
+            awardedBid: {
+              select: {
+                contractor: { select: { companyName: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    return {
+      clientName:
+        project?.client.displayName || project?.client.email || null,
+      contractorName:
+        project?.tender?.awardedBid?.contractor.companyName ?? null,
+    };
+  }
+
   private async buildMainDocumentEntries(
     row: ContractAddendum,
     formatsRaw?: unknown,
+    stamp?: {
+      includeSignatures: boolean;
+      parties: {
+        clientName: string | null;
+        contractorName: string | null;
+      } | null;
+    },
   ): Promise<
     Array<{ name: string; buffer: Buffer; contentType: string }>
   > {
@@ -1147,11 +1192,29 @@ export class ContractAddendaService {
         if (!row.customFileStorageKey) {
           throw new NotFoundException('PDF file not found');
         }
+        let buffer = await this.storage.getObjectBuffer(row.customFileStorageKey);
+        if (stamp?.includeSignatures) {
+          buffer = await stampCustomPdfSignatures({
+            pdfBuffer: buffer,
+            left: {
+              label: 'Client',
+              orgName: stamp.parties?.clientName ?? null,
+              signedAt: row.clientSignedAt,
+              signatureDataUrl: row.clientSignatureDataUrl,
+            },
+            right: {
+              label: 'Contractor',
+              orgName: stamp.parties?.contractorName ?? null,
+              signedAt: row.contractorSignedAt,
+              signatureDataUrl: row.contractorSignatureDataUrl,
+            },
+          });
+        }
         entries.push({
           name: sanitizeZipEntryName(
             meta.pdfOriginalName || 'addendum.pdf',
           ),
-          buffer: await this.storage.getObjectBuffer(row.customFileStorageKey),
+          buffer,
           contentType: PDF_CONTENT_TYPE,
         });
       } else {
