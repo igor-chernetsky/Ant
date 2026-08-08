@@ -2,6 +2,7 @@ import { fetchWithAuth } from './auth-client';
 import {
   assertCustomContractFile,
   MAX_CUSTOM_CONTRACT_BYTES,
+  type CustomFileDownloadFormat,
 } from './contracts';
 import { MAX_UPLOAD_BYTES } from './documents';
 import type { Locale } from './i18n';
@@ -13,6 +14,10 @@ export interface ContractAddendumCustomFile {
   contentType: string;
   sizeBytes: number | null;
   uploadedAt: string;
+  hasPdf?: boolean;
+  hasDocx?: boolean;
+  pdfOriginalName?: string | null;
+  docxOriginalName?: string | null;
 }
 
 export interface ContractAddendumAttachment {
@@ -422,11 +427,18 @@ export async function downloadAddendumAttachment(
 export async function downloadContractAddendum(
   projectId: string,
   addendumId: string,
-  options?: { asContractor?: boolean; withAttachments?: boolean },
+  options?: {
+    asContractor?: boolean;
+    withAttachments?: boolean;
+    formats?: CustomFileDownloadFormat[];
+  },
 ): Promise<void> {
   const params = new URLSearchParams();
   if (options?.withAttachments) {
     params.set('withAttachments', '1');
+  }
+  if (options?.formats?.length) {
+    params.set('formats', options.formats.join(','));
   }
   const query = params.toString() ? `?${params.toString()}` : '';
   const response = await fetchWithAuth(

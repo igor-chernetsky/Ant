@@ -1251,6 +1251,9 @@ export const ruExtended = {
     uploadingCustom: "Загрузка и конвертация…",
     downloadCustomContract: "Скачать договор",
     downloadingCustom: "Скачивание…",
+    downloadFormatsLabel: "Форматы для скачивания",
+    downloadDocxHint:
+      "Выберите DOCX, если нужно отредактировать договор в Word и загрузить снова.",
     customFileLabel: "Свой договор: {name}",
     customUploadFailed: "Не удалось загрузить файл договора",
     customDownloadFailed: "Не удалось скачать файл договора",

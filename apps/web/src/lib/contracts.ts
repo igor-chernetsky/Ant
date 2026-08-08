@@ -21,6 +21,28 @@ export interface ContractCustomFile {
   contentType: string;
   sizeBytes: number | null;
   uploadedAt: string;
+  hasPdf?: boolean;
+  hasDocx?: boolean;
+  pdfOriginalName?: string | null;
+  docxOriginalName?: string | null;
+}
+
+export type CustomFileDownloadFormat = 'pdf' | 'docx';
+
+export function customFileHasBothFormats(
+  file: Pick<ContractCustomFile, 'hasPdf' | 'hasDocx'> | null | undefined,
+): boolean {
+  return Boolean(file?.hasPdf && file?.hasDocx);
+}
+
+export function customFileCanPreviewPdf(
+  file: Pick<ContractCustomFile, 'hasPdf' | 'contentType' | 'originalName'> | null | undefined,
+): boolean {
+  if (!file) return false;
+  if (typeof file.hasPdf === 'boolean') return file.hasPdf;
+  const contentType = (file.contentType ?? '').toLowerCase();
+  const name = (file.originalName ?? '').toLowerCase();
+  return contentType.includes('pdf') || name.endsWith('.pdf');
 }
 
 export interface ProjectContract {
@@ -214,24 +236,83 @@ export async function uploadCustomContractFile(
 
 export async function downloadCustomContractFile(
   projectId: string,
-  options?: { asContractor?: boolean },
+  options?: {
+    asContractor?: boolean;
+    formats?: CustomFileDownloadFormat[];
+  },
 ): Promise<void> {
   const asContractor = Boolean(options?.asContractor);
+  const formats = options?.formats?.filter(
+    (item): item is CustomFileDownloadFormat =>
+      item === 'pdf' || item === 'docx',
+  );
+  const needsFormatDownload =
+    Boolean(formats?.includes('docx')) || (formats?.length ?? 0) > 1;
+
+  // PDF-only stays on the legacy presigned GET path.
+  if (!needsFormatDownload) {
+    const response = await fetchWithAuth(
+      `${contractPath(projectId, asContractor)}/custom-file`,
+    );
+    if (!response.ok) {
+      await parseError(response, 'Failed to get contract download link');
+    }
+    const data = (await response.json()) as {
+      downloadUrl: string;
+      originalName: string;
+    };
+    const anchor = document.createElement('a');
+    anchor.href = data.downloadUrl;
+    anchor.download = data.originalName || 'contract';
+    anchor.rel = 'noopener';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    return;
+  }
+
   const response = await fetchWithAuth(
-    `${contractPath(projectId, asContractor)}/custom-file`,
+    `${contractPath(projectId, asContractor)}/custom-file/download`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ formats }),
+    },
   );
   if (!response.ok) {
-    await parseError(response, 'Failed to get contract download link');
+    await parseError(response, 'Failed to download custom contract');
   }
-  const data = (await response.json()) as {
-    downloadUrl: string;
-    originalName: string;
-  };
+
+  const blob = await response.blob();
+  const fileName =
+    parseContentDispositionFilename(
+      response.headers.get('content-disposition'),
+    ) ??
+    (formats && formats.length > 1
+      ? 'contract-files.zip'
+      : formats?.[0] === 'docx'
+        ? 'contract.docx'
+        : 'contract.pdf');
+  const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
-  anchor.href = data.downloadUrl;
-  anchor.download = data.originalName || 'contract';
-  anchor.rel = 'noopener';
-  document.body.appendChild(anchor);
+  anchor.href = url;
+  anchor.download = fileName;
   anchor.click();
-  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function parseContentDispositionFilename(
+  header: string | null,
+): string | null {
+  if (!header) return null;
+  const utfMatch = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (utfMatch?.[1]) {
+    try {
+      return decodeURIComponent(utfMatch[1].trim());
+    } catch {
+      return utfMatch[1].trim();
+    }
+  }
+  const plainMatch = /filename="?([^";]+)"?/i.exec(header);
+  return plainMatch?.[1]?.trim() ?? null;
 }

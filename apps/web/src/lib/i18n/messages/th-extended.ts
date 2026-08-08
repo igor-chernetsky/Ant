@@ -1248,6 +1248,9 @@ export const thExtended = {
     uploadingCustom: "กำลังอัปโหลดและแปลง…",
     downloadCustomContract: "ดาวน์โหลดสัญญา",
     downloadingCustom: "กำลังดาวน์โหลด…",
+    downloadFormatsLabel: "รูปแบบที่ต้องการดาวน์โหลด",
+    downloadDocxHint:
+      "เลือก DOCX หากต้องการแก้ไขสัญญาใน Word แล้วอัปโหลดใหม่",
     customFileLabel: "สัญญาที่อัปโหลด: {name}",
     customUploadFailed: "อัปโหลดไฟล์สัญญาไม่สำเร็จ",
     customDownloadFailed: "ดาวน์โหลดไฟล์สัญญาไม่สำเร็จ",

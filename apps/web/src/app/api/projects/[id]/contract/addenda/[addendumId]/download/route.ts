@@ -11,6 +11,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
   if (withAttachments) {
     params.set('withAttachments', withAttachments);
   }
+  const formats = url.searchParams.get('formats');
+  if (formats) {
+    params.set('formats', formats);
+  }
   const query = params.toString() ? `?${params.toString()}` : '';
   return proxyBackendJson(
     `/v1/projects/${encodeURIComponent(id)}/contract/addenda/${encodeURIComponent(addendumId)}/download${query}`,

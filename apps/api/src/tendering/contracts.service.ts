@@ -38,11 +38,17 @@ import {
   normalizeOptionalSignatureDataUrl,
   type CompleteCustomContractFileDto,
   type ContractResponse,
+  type DownloadCustomContractDto,
   type PresignCustomContractFileDto,
   type SignContractDto,
   type UpdateContractDocumentDto,
 } from './contracts.types';
 import { DocxToPdfService } from '../pdf/docx-to-pdf.service';
+import {
+  buildZipBuffer,
+  mapDualCustomFileMeta,
+  normalizeDownloadFormats,
+} from './custom-contract-files.util';
 
 const DOCX_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -88,7 +94,9 @@ export class ContractsService {
     const clientSigned = Boolean(contract.clientSignedAt);
     const contractorSigned = Boolean(contract.contractorSignedAt);
     const fullySigned = contract.status === ContractStatus.fully_signed;
-    const hasCustomContract = Boolean(contract.customFileStorageKey);
+    const hasCustomContract = Boolean(
+      contract.customFileStorageKey || contract.sourceDocxStorageKey,
+    );
     const canSign =
       project.status === ProjectStatus.awarded &&
       contract.status === ContractStatus.pending_signatures &&
@@ -153,18 +161,7 @@ export class ContractsService {
           ? stripContractSignaturesBlock(contract.englishBodyHtml)
           : null,
       hasCustomContract,
-      customFile:
-        hasCustomContract &&
-        contract.customFileOriginalName &&
-        contract.customFileContentType &&
-        contract.customFileUploadedAt
-          ? {
-              originalName: contract.customFileOriginalName,
-              contentType: contract.customFileContentType,
-              sizeBytes: contract.customFileSizeBytes,
-              uploadedAt: contract.customFileUploadedAt.toISOString(),
-            }
-          : null,
+      customFile: mapDualCustomFileMeta(contract),
       canSign,
       canEditDocument,
       fullySigned,
@@ -186,7 +183,7 @@ export class ContractsService {
   }
 
   private assertNoCustomFile(contract: Contract) {
-    if (contract.customFileStorageKey) {
+    if (contract.customFileStorageKey || contract.sourceDocxStorageKey) {
       throw new BadRequestException(
         'A custom contract file is in use; the platform document cannot be edited',
       );
@@ -407,7 +404,8 @@ export class ContractsService {
       contract.bidId,
     );
     const previousCustomKey = contract.customFileStorageKey;
-    const hadCustomFile = Boolean(previousCustomKey);
+    const previousDocxKey = contract.sourceDocxStorageKey;
+    const hadCustomFile = Boolean(previousCustomKey || previousDocxKey);
 
     const updated = await this.prisma.contract.update({
       where: { id: contract.id },
@@ -419,6 +417,9 @@ export class ContractsService {
         customFileSizeBytes: null,
         customFileUploadedByUserId: null,
         customFileUploadedAt: null,
+        sourceDocxStorageKey: null,
+        sourceDocxOriginalName: null,
+        sourceDocxSizeBytes: null,
         ...(hadCustomFile
           ? {
               status: ContractStatus.pending_signatures,
@@ -433,6 +434,9 @@ export class ContractsService {
 
     if (previousCustomKey) {
       await this.deleteCustomFileObject(previousCustomKey);
+    }
+    if (previousDocxKey) {
+      await this.deleteCustomFileObject(previousDocxKey);
     }
 
     if (hadCustomFile) {
@@ -565,6 +569,9 @@ export class ContractsService {
     let finalContentType = declaredContentType;
     let finalOriginalName = originalName;
     let finalSizeBytes = sizeBytes;
+    let sourceDocxStorageKey: string | null = null;
+    let sourceDocxOriginalName: string | null = null;
+    let sourceDocxSizeBytes: number | null = null;
     const keysToDelete: string[] = [];
 
     if (declaredContentType === DOCX_CONTENT_TYPE) {
@@ -591,7 +598,10 @@ export class ContractsService {
         contentType: PDF_CONTENT_TYPE,
       });
 
-      keysToDelete.push(storageKey);
+      // Keep uploaded DOCX as editable source; PDF is for preview.
+      sourceDocxStorageKey = storageKey;
+      sourceDocxOriginalName = originalName;
+      sourceDocxSizeBytes = sizeBytes;
       finalStorageKey = pdfKey;
       finalContentType = PDF_CONTENT_TYPE;
       finalOriginalName = pdfName.endsWith('.pdf') ? pdfName : `${pdfName}.pdf`;
@@ -599,6 +609,7 @@ export class ContractsService {
     }
 
     const previousKey = contract.customFileStorageKey;
+    const previousDocxKey = contract.sourceDocxStorageKey;
     const updated = await this.prisma.contract.update({
       where: { id: contract.id },
       data: {
@@ -608,6 +619,9 @@ export class ContractsService {
         customFileSizeBytes: finalSizeBytes,
         customFileUploadedByUserId: userId,
         customFileUploadedAt: new Date(),
+        sourceDocxStorageKey,
+        sourceDocxOriginalName,
+        sourceDocxSizeBytes,
         status: ContractStatus.pending_signatures,
         clientSignedAt: null,
         contractorSignedAt: null,
@@ -619,8 +633,15 @@ export class ContractsService {
     if (previousKey && previousKey !== finalStorageKey) {
       keysToDelete.push(previousKey);
     }
+    if (
+      previousDocxKey &&
+      previousDocxKey !== sourceDocxStorageKey &&
+      previousDocxKey !== finalStorageKey
+    ) {
+      keysToDelete.push(previousDocxKey);
+    }
     for (const key of keysToDelete) {
-      if (key !== finalStorageKey) {
+      if (key !== finalStorageKey && key !== sourceDocxStorageKey) {
         await this.deleteCustomFileObject(key);
       }
     }
@@ -630,6 +651,9 @@ export class ContractsService {
     return await this.toResponse(updated, project, participant);
   }
 
+  /**
+   * Presigned URL for the preview file (PDF when available).
+   */
   async getCustomFileDownloadUrl(
     userId: string,
     projectId: string,
@@ -642,19 +666,102 @@ export class ContractsService {
     const participant = await this.loadParticipant(userId, projectId);
     const contract = participant.project.contract;
 
-    if (!contract?.customFileStorageKey) {
+    if (!contract?.customFileStorageKey && !contract?.sourceDocxStorageKey) {
       throw new NotFoundException('Custom contract file not found');
     }
 
-    const presigned = await this.storage.createPresignedDownload(
-      contract.customFileStorageKey,
-    );
+    const storageKey =
+      contract.customFileStorageKey ?? contract.sourceDocxStorageKey!;
+    const originalName = contract.customFileStorageKey
+      ? (contract.customFileOriginalName ?? 'contract.pdf')
+      : (contract.sourceDocxOriginalName ?? 'contract.docx');
+    const contentType = contract.customFileStorageKey
+      ? (contract.customFileContentType ?? PDF_CONTENT_TYPE)
+      : DOCX_CONTENT_TYPE;
+
+    const presigned = await this.storage.createPresignedDownload(storageKey);
     return {
       downloadUrl: presigned.downloadUrl,
       expiresInSeconds: presigned.expiresInSeconds,
-      originalName: contract.customFileOriginalName ?? 'contract',
-      contentType:
-        contract.customFileContentType ?? 'application/octet-stream',
+      originalName,
+      contentType,
+    };
+  }
+
+  async downloadCustomFile(
+    userId: string,
+    projectId: string,
+    dto: DownloadCustomContractDto,
+  ): Promise<{
+    buffer: Buffer;
+    fileName: string;
+    contentType: string;
+  }> {
+    const participant = await this.loadParticipant(userId, projectId);
+    const contract = participant.project.contract;
+    if (!contract) {
+      throw new NotFoundException('Contract not found for this project');
+    }
+
+    const meta = mapDualCustomFileMeta(contract);
+    if (!meta) {
+      throw new NotFoundException('Custom contract file not found');
+    }
+
+    const formats = normalizeDownloadFormats(dto.formats);
+    if (formats.length === 0) {
+      throw new BadRequestException('Select at least one format: pdf or docx');
+    }
+    for (const format of formats) {
+      if (format === 'pdf' && !meta.hasPdf) {
+        throw new BadRequestException('PDF is not available for this contract');
+      }
+      if (format === 'docx' && !meta.hasDocx) {
+        throw new BadRequestException('DOCX is not available for this contract');
+      }
+    }
+
+    const entries: Array<{ name: string; buffer: Buffer }> = [];
+    for (const format of formats) {
+      if (format === 'pdf') {
+        if (!contract.customFileStorageKey) {
+          throw new NotFoundException('PDF file not found');
+        }
+        entries.push({
+          name: meta.pdfOriginalName || 'contract.pdf',
+          buffer: await this.storage.getObjectBuffer(
+            contract.customFileStorageKey,
+          ),
+        });
+      } else {
+        const key =
+          contract.sourceDocxStorageKey ??
+          (meta.hasDocx ? contract.customFileStorageKey : null);
+        if (!key) {
+          throw new NotFoundException('DOCX file not found');
+        }
+        entries.push({
+          name: meta.docxOriginalName || 'contract.docx',
+          buffer: await this.storage.getObjectBuffer(key),
+        });
+      }
+    }
+
+    if (entries.length === 1) {
+      const only = entries[0]!;
+      const isPdf = only.name.toLowerCase().endsWith('.pdf');
+      return {
+        buffer: only.buffer,
+        fileName: only.name,
+        contentType: isPdf ? PDF_CONTENT_TYPE : DOCX_CONTENT_TYPE,
+      };
+    }
+
+    const zip = await buildZipBuffer(entries);
+    return {
+      buffer: zip,
+      fileName: 'contract-files.zip',
+      contentType: 'application/zip',
     };
   }
 

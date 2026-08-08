@@ -15,6 +15,7 @@ import {
   type FormEvent,
 } from 'react';
 import { BusyLabel } from '@/components/AntSpinner';
+import { CustomFileFormatPicker } from '@/components/CustomFileFormatPicker';
 import {
   ContractSignaturePad,
   type ContractSignaturePadHandle,
@@ -38,6 +39,11 @@ import {
   type ContractAddendum,
 } from '@/lib/addenda';
 import {
+  customFileCanPreviewPdf,
+  customFileHasBothFormats,
+  type CustomFileDownloadFormat,
+} from '@/lib/contracts';
+import {
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
   type Locale,
@@ -52,14 +58,6 @@ interface ContractAddendaPanelProps {
 }
 
 type CreateMode = 'text' | 'file';
-
-function isPdfContentType(contentType: string | null | undefined): boolean {
-  return (contentType ?? '').toLowerCase().includes('pdf');
-}
-
-function isPdfFileName(name: string | null | undefined): boolean {
-  return (name ?? '').toLowerCase().endsWith('.pdf');
-}
 
 function statusLabel(
   addendum: ContractAddendum,
@@ -259,6 +257,9 @@ function AddendumItem({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [withAttachments, setWithAttachments] = useState(true);
+  const [downloadFormats, setDownloadFormats] = useState<
+    CustomFileDownloadFormat[]
+  >(['pdf', 'docx']);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const signaturePadRef = useRef<ContractSignaturePadHandle | null>(null);
@@ -268,9 +269,8 @@ function AddendumItem({
   const uploadedAttachments = (addendum.attachments ?? []).filter(
     (item) => item.status === 'uploaded',
   );
-  const canPreviewPdf =
-    Boolean(file) &&
-    (isPdfContentType(file?.contentType) || isPdfFileName(file?.originalName));
+  const canPreviewPdf = customFileCanPreviewPdf(file);
+  const bothFormats = customFileHasBothFormats(file);
   const previewSrc = addendumCustomFilePreviewPath(
     projectId,
     addendum.id,
@@ -342,6 +342,7 @@ function AddendumItem({
       await downloadContractAddendum(projectId, addendum.id, {
         asContractor,
         withAttachments: withAttachments && uploadedAttachments.length > 0,
+        formats: bothFormats ? downloadFormats : undefined,
       });
     } catch (err: unknown) {
       setError(
@@ -603,11 +604,24 @@ function AddendumItem({
               </label>
             )}
 
+            <CustomFileFormatPicker
+              hasPdf={Boolean(file?.hasPdf)}
+              hasDocx={Boolean(file?.hasDocx)}
+              formats={downloadFormats}
+              onChange={setDownloadFormats}
+              disabled={busy}
+            />
+
             <div className="addendum-actions">
               <button
                 type="button"
                 className={addendum.canSign ? 'primary' : 'secondary'}
-                disabled={busy}
+                disabled={
+                  busy ||
+                  (!addendum.canSign &&
+                    bothFormats &&
+                    downloadFormats.length === 0)
+                }
                 onClick={() =>
                   addendum.canSign
                     ? void handleSign()
@@ -633,7 +647,9 @@ function AddendumItem({
                 <button
                   type="button"
                   className="secondary"
-                  disabled={busy}
+                  disabled={
+                    busy || (bothFormats && downloadFormats.length === 0)
+                  }
                   onClick={() => void handleDownload()}
                 >
                   <BusyLabel

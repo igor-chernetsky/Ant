@@ -21,6 +21,10 @@ export interface ContractAddendumCustomFileMeta {
   contentType: string;
   sizeBytes: number | null;
   uploadedAt: string;
+  hasPdf: boolean;
+  hasDocx: boolean;
+  pdfOriginalName: string | null;
+  docxOriginalName: string | null;
 }
 
 export interface ContractAddendumAttachmentResponse {

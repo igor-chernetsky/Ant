@@ -1,11 +1,23 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
-import { Request } from 'express';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
 import { ContractsService } from './contracts.service';
 import type {
   CompleteCustomContractFileDto,
+  DownloadCustomContractDto,
   PresignCustomContractFileDto,
   SignContractDto,
   UpdateContractDocumentDto,
@@ -54,6 +66,25 @@ export class ProjectContractController {
   ) {
     const user = await this.resolveUser(req);
     return this.contracts.getCustomFileDownloadUrl(user.id, projectId);
+  }
+
+  @Post('custom-file/download')
+  @HttpCode(200)
+  async downloadCustomFile(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: DownloadCustomContractDto,
+    @Res() res: Response,
+  ) {
+    const user = await this.resolveUser(req);
+    const { buffer, fileName, contentType } =
+      await this.contracts.downloadCustomFile(user.id, projectId, body ?? {});
+    res.setHeader('Content-Type', contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName.replace(/"/g, '')}"`,
+    );
+    res.send(buffer);
   }
 
   @Post('custom-file/presign')

@@ -1250,6 +1250,9 @@ export const enExtended = {
     uploadingCustom: "Uploading & converting…",
     downloadCustomContract: "Download contract",
     downloadingCustom: "Downloading…",
+    downloadFormatsLabel: "Download formats",
+    downloadDocxHint:
+      "Choose DOCX if you want to edit the contract in Word, then re-upload.",
     customFileLabel: "Custom contract: {name}",
     customUploadFailed: "Failed to upload custom contract",
     customDownloadFailed: "Failed to download custom contract",

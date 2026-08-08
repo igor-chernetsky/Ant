@@ -486,8 +486,10 @@ body {
   overflow: auto;
   border: 1px solid var(--border-strong);
   border-radius: 12px;
-  background: var(--surface);
-  box-shadow: var(--shadow-glass);
+  background: #fff;
+  box-shadow:
+    0 10px 28px rgba(15, 23, 42, 0.14),
+    0 2px 8px rgba(15, 23, 42, 0.06);
 }
 
 .header-notifications-panel-header {
@@ -536,7 +538,7 @@ body {
 }
 
 .header-notifications-item.is-unread {
-  background: color-mix(in srgb, var(--accent-soft) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-soft) 55%, #fff);
 }
 
 .header-notifications-item-title {
@@ -6626,6 +6628,56 @@ select:disabled {
   align-items: center;
   gap: 0.75rem 1rem;
   margin-top: 0.85rem;
+}
+
+.custom-file-format-picker {
+  flex: 1 1 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.custom-file-format-picker legend {
+  padding: 0;
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.custom-file-format-picker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  align-items: center;
+}
+
+.custom-file-format-picker-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.3;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.custom-file-format-picker-hint {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.contract-signing-custom-download {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+  width: 100%;
 }
 
 .contract-custom-signatures {

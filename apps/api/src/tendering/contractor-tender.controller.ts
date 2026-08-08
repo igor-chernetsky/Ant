@@ -37,6 +37,7 @@ import { parseCommercialProposalLocales } from './commercial-proposal.i18n';
 import { ContractsService } from './contracts.service';
 import type {
   CompleteCustomContractFileDto,
+  DownloadCustomContractDto,
   PresignCustomContractFileDto,
   SignContractDto,
   UpdateContractDocumentDto,
@@ -253,6 +254,25 @@ export class ContractorTenderController {
   ) {
     const user = await this.resolveUser(req);
     return this.contracts.getCustomFileDownloadUrl(user.id, projectId);
+  }
+
+  @Post('projects/:projectId/contract/custom-file/download')
+  @HttpCode(200)
+  async downloadCustomContractFile(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: DownloadCustomContractDto,
+    @Res() res: Response,
+  ) {
+    const user = await this.resolveUser(req);
+    const { buffer, fileName, contentType } =
+      await this.contracts.downloadCustomFile(user.id, projectId, body ?? {});
+    res.setHeader('Content-Type', contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName.replace(/"/g, '')}"`,
+    );
+    res.send(buffer);
   }
 
   @Post('projects/:projectId/contract/custom-file/presign')

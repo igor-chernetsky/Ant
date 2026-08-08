@@ -2,14 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
+  customFileHasBothFormats,
   downloadCustomContractFile,
   fetchProjectContract,
   regenerateProjectContractDocument,
   signProjectContract,
   uploadCustomContractFile,
+  type CustomFileDownloadFormat,
   type ProjectContract,
 } from '@/lib/contracts';
 import { CommercialProposalDownload } from '@/components/CommercialProposalDownload';
+import { CustomFileFormatPicker } from '@/components/CustomFileFormatPicker';
 import { AntSpinner, BusyLabel } from '@/components/AntSpinner';
 import {
   ContractSignaturePad,
@@ -57,6 +60,9 @@ export function ContractSigningPanel({
   const [loading, setLoading] = useState(!contractProp);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadFormats, setDownloadFormats] = useState<
+    CustomFileDownloadFormat[]
+  >(['pdf', 'docx']);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const signaturePadRef = useRef<ContractSignaturePadHandle | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
@@ -193,7 +199,11 @@ export function ContractSigningPanel({
     setBusy(true);
     setError(null);
     try {
-      await downloadCustomContractFile(projectId, { asContractor });
+      const both = customFileHasBothFormats(contract?.customFile);
+      await downloadCustomContractFile(projectId, {
+        asContractor,
+        formats: both ? downloadFormats : undefined,
+      });
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -254,22 +264,32 @@ export function ContractSigningPanel({
         : 'awaiting_both';
 
   const hasCustom = Boolean(contract.hasCustomContract);
+  const bothCustomFormats = customFileHasBothFormats(contract.customFile);
   const showPad = contract.canSign;
 
   const downloadBlock = hasCustom ? (
-    <button
-      type="button"
-      className="secondary"
-      disabled={busy}
-      aria-busy={busy}
-      onClick={() => void handleDownloadCustom()}
-    >
-      <BusyLabel
-        busy={busy}
-        idle={t('contractPanel.downloadCustomContract')}
-        busyText={t('contractPanel.downloadingCustom')}
+    <div className="contract-signing-custom-download">
+      <CustomFileFormatPicker
+        hasPdf={Boolean(contract.customFile?.hasPdf)}
+        hasDocx={Boolean(contract.customFile?.hasDocx)}
+        formats={downloadFormats}
+        onChange={setDownloadFormats}
+        disabled={busy}
       />
-    </button>
+      <button
+        type="button"
+        className="secondary"
+        disabled={busy || (bothCustomFormats && downloadFormats.length === 0)}
+        aria-busy={busy}
+        onClick={() => void handleDownloadCustom()}
+      >
+        <BusyLabel
+          busy={busy}
+          idle={t('contractPanel.downloadCustomContract')}
+          busyText={t('contractPanel.downloadingCustom')}
+        />
+      </button>
+    </div>
   ) : (
     <CommercialProposalDownload
       bidId={bidId}

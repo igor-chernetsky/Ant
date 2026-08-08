@@ -2,8 +2,12 @@
 
 import { useTranslation } from '@/components/LocaleProvider';
 import { BusyLabel } from '@/components/AntSpinner';
+import { CustomFileFormatPicker } from '@/components/CustomFileFormatPicker';
 import {
+  customFileCanPreviewPdf,
+  customFileHasBothFormats,
   downloadCustomContractFile,
+  type CustomFileDownloadFormat,
   type ProjectContract,
 } from '@/lib/contracts';
 import { formatDateTime } from '@/lib/projects';
@@ -13,14 +17,6 @@ interface CustomContractPreviewProps {
   projectId: string;
   contract: ProjectContract;
   asContractor?: boolean;
-}
-
-function isPdfContentType(contentType: string | null | undefined): boolean {
-  return (contentType ?? '').toLowerCase().includes('pdf');
-}
-
-function isPdfFileName(name: string | null | undefined): boolean {
-  return (name ?? '').toLowerCase().endsWith('.pdf');
 }
 
 function SignatureSlot({
@@ -80,14 +76,18 @@ export function CustomContractPreview({
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [formats, setFormats] = useState<CustomFileDownloadFormat[]>([
+    'pdf',
+    'docx',
+  ]);
 
   const file = contract.customFile;
   if (!contract.hasCustomContract || !file) {
     return null;
   }
 
-  const canPreviewPdf =
-    isPdfContentType(file.contentType) || isPdfFileName(file.originalName);
+  const canPreviewPdf = customFileCanPreviewPdf(file);
+  const bothFormats = customFileHasBothFormats(file);
 
   const previewSrc = asContractor
     ? `/api/contractor/projects/${encodeURIComponent(projectId)}/contract/custom-file/preview`
@@ -97,7 +97,10 @@ export function CustomContractPreview({
     setBusy(true);
     setError(null);
     try {
-      await downloadCustomContractFile(projectId, { asContractor });
+      await downloadCustomContractFile(projectId, {
+        asContractor,
+        formats: bothFormats ? formats : undefined,
+      });
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -205,10 +208,17 @@ export function CustomContractPreview({
 
         {canPreviewPdf && (
           <div className="contract-custom-preview-actions">
+            <CustomFileFormatPicker
+              hasPdf={Boolean(file.hasPdf)}
+              hasDocx={Boolean(file.hasDocx)}
+              formats={formats}
+              onChange={setFormats}
+              disabled={busy}
+            />
             <button
               type="button"
               className="secondary"
-              disabled={busy}
+              disabled={busy || (bothFormats && formats.length === 0)}
               aria-busy={busy}
               onClick={() => void handleDownload()}
             >

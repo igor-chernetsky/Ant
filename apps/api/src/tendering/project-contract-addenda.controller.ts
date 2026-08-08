@@ -54,16 +54,22 @@ export class ProjectContractAddendaController {
     @Param('projectId') projectId: string,
     @Param('addendumId') addendumId: string,
     @Query('withAttachments') withAttachments: string | undefined,
+    @Query('formats') formatsQuery: string | string[] | undefined,
     @Res() res: Response,
   ) {
     const user = await this.resolveUser(req);
     const includeAttachments =
       withAttachments === '1' || withAttachments === 'true';
+    const formats = Array.isArray(formatsQuery)
+      ? formatsQuery
+      : typeof formatsQuery === 'string'
+        ? formatsQuery.split(/[,\s]+/)
+        : undefined;
     const { buffer, fileName, contentType } = await this.addenda.renderDownload(
       user.id,
       projectId,
       addendumId,
-      { withAttachments: includeAttachments },
+      { withAttachments: includeAttachments, formats },
     );
     res.setHeader('Content-Type', contentType);
     res.setHeader(

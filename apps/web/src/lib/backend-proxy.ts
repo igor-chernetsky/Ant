@@ -237,7 +237,9 @@ export async function proxyBackendJson(
   if (
     contentType.includes('application/pdf') ||
     contentType.includes('application/zip') ||
-    contentType.includes('application/octet-stream')
+    contentType.includes('application/octet-stream') ||
+    contentType.includes('wordprocessingml') ||
+    contentType.includes('msword')
   ) {
     const buffer = await backendResponse.arrayBuffer();
     const response = new NextResponse(buffer, {

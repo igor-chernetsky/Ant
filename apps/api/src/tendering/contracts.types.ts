@@ -23,10 +23,22 @@ export interface CompleteCustomContractFileDto {
 }
 
 export interface ContractCustomFileMeta {
+  /** Display name (prefer original upload name; DOCX name when both exist). */
   originalName: string;
+  /** Preview / primary file content type (PDF when available). */
   contentType: string;
   sizeBytes: number | null;
   uploadedAt: string;
+  hasPdf: boolean;
+  hasDocx: boolean;
+  pdfOriginalName: string | null;
+  docxOriginalName: string | null;
+}
+
+export type CustomContractDownloadFormat = 'pdf' | 'docx';
+
+export interface DownloadCustomContractDto {
+  formats: CustomContractDownloadFormat[];
 }
 
 export type SignatureRequestStatus = 'pending' | 'approved' | 'rejected';

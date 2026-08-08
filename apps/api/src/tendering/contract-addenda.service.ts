@@ -49,6 +49,10 @@ import {
   SignAddendumDto,
   UpdateAddendumDocumentDto,
 } from './contract-addenda.types';
+import {
+  mapDualCustomFileMeta,
+  normalizeDownloadFormats,
+} from './custom-contract-files.util';
 
 const DOCX_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -167,7 +171,8 @@ export class ContractAddendaService {
     participant: Pick<Participant, 'isClient' | 'isSelectedContractor'>,
   ): ContractAddendumResponse {
     const fullySigned = row.status === ContractAddendumStatus.fully_signed;
-    const hasCustomFile = Boolean(row.customFileStorageKey);
+    const customFile = mapDualCustomFileMeta(row);
+    const hasCustomFile = Boolean(customFile);
     const canSign =
       !fullySigned &&
       ((participant.isSelectedContractor && !row.contractorSignedAt) ||
@@ -207,18 +212,7 @@ export class ContractAddendaService {
       contractorSignatureDataUrl: row.contractorSignatureDataUrl,
       clientSignatureDataUrl: row.clientSignatureDataUrl,
       hasCustomFile,
-      customFile:
-        hasCustomFile &&
-        row.customFileOriginalName &&
-        row.customFileContentType &&
-        row.customFileUploadedAt
-          ? {
-              originalName: row.customFileOriginalName,
-              contentType: row.customFileContentType,
-              sizeBytes: row.customFileSizeBytes,
-              uploadedAt: row.customFileUploadedAt.toISOString(),
-            }
-          : null,
+      customFile,
       attachments,
       canEditDocument,
       canReplaceFile,
@@ -405,6 +399,9 @@ export class ContractAddendaService {
       originalName,
       contentType,
       sizeBytes,
+      sourceDocxStorageKey,
+      sourceDocxOriginalName,
+      sourceDocxSizeBytes,
     } = await this.finalizeUploadedFile({
       projectId,
       addendumId,
@@ -425,6 +422,9 @@ export class ContractAddendaService {
         customFileSizeBytes: sizeBytes,
         customFileUploadedByUserId: userId,
         customFileUploadedAt: new Date(),
+        sourceDocxStorageKey,
+        sourceDocxOriginalName,
+        sourceDocxSizeBytes,
         status: ContractAddendumStatus.pending_signatures,
       },
       include: {
@@ -493,7 +493,7 @@ export class ContractAddendaService {
       addendumId,
       'document',
     );
-    if (row.customFileStorageKey) {
+    if (row.customFileStorageKey || row.sourceDocxStorageKey) {
       throw new BadRequestException(
         'A custom file is in use; the platform document cannot be edited',
       );
@@ -550,6 +550,7 @@ export class ContractAddendaService {
     html = sanitizeContractBodyHtml(html);
 
     const previousKey = row.customFileStorageKey;
+    const previousDocxKey = row.sourceDocxStorageKey;
     const updated = await this.prisma.contractAddendum.update({
       where: { id: row.id },
       data: {
@@ -561,6 +562,9 @@ export class ContractAddendaService {
         customFileSizeBytes: null,
         customFileUploadedByUserId: null,
         customFileUploadedAt: null,
+        sourceDocxStorageKey: null,
+        sourceDocxOriginalName: null,
+        sourceDocxSizeBytes: null,
         contractorSignedAt: null,
         clientSignedAt: null,
         contractorSignatureDataUrl: null,
@@ -574,8 +578,10 @@ export class ContractAddendaService {
         },
       },
     });
-    if (previousKey) {
-      await this.storage.deleteObject(previousKey).catch(() => undefined);
+    for (const key of [previousKey, previousDocxKey]) {
+      if (key) {
+        await this.storage.deleteObject(key).catch(() => undefined);
+      }
     }
     return this.toResponse(updated, participant);
   }
@@ -633,6 +639,7 @@ export class ContractAddendaService {
       dto,
     });
     const previousKey = row.customFileStorageKey;
+    const previousDocxKey = row.sourceDocxStorageKey;
     const updated = await this.prisma.contractAddendum.update({
       where: { id: row.id },
       data: {
@@ -643,6 +650,9 @@ export class ContractAddendaService {
         customFileSizeBytes: finalized.sizeBytes,
         customFileUploadedByUserId: userId,
         customFileUploadedAt: new Date(),
+        sourceDocxStorageKey: finalized.sourceDocxStorageKey,
+        sourceDocxOriginalName: finalized.sourceDocxOriginalName,
+        sourceDocxSizeBytes: finalized.sourceDocxSizeBytes,
         contractorSignedAt: null,
         clientSignedAt: null,
         contractorSignatureDataUrl: null,
@@ -656,8 +666,16 @@ export class ContractAddendaService {
         },
       },
     });
-    if (previousKey && previousKey !== finalized.storageKey) {
-      await this.storage.deleteObject(previousKey).catch(() => undefined);
+    const keep = new Set(
+      [
+        finalized.storageKey,
+        finalized.sourceDocxStorageKey,
+      ].filter((key): key is string => Boolean(key)),
+    );
+    for (const key of [previousKey, previousDocxKey]) {
+      if (key && !keep.has(key)) {
+        await this.storage.deleteObject(key).catch(() => undefined);
+      }
     }
     return this.toResponse(updated, participant);
   }
@@ -671,17 +689,23 @@ export class ContractAddendaService {
     const row = await this.prisma.contractAddendum.findFirst({
       where: { id: addendumId, contractId: participant.contractId },
     });
-    if (!row?.customFileStorageKey) {
+    if (!row?.customFileStorageKey && !row?.sourceDocxStorageKey) {
       throw new NotFoundException('Custom addendum file not found');
     }
-    const presigned = await this.storage.createPresignedDownload(
-      row.customFileStorageKey,
-    );
+    const storageKey =
+      row.customFileStorageKey ?? row.sourceDocxStorageKey!;
+    const originalName = row.customFileStorageKey
+      ? (row.customFileOriginalName ?? 'addendum.pdf')
+      : (row.sourceDocxOriginalName ?? 'addendum.docx');
+    const contentType = row.customFileStorageKey
+      ? (row.customFileContentType ?? PDF_CONTENT_TYPE)
+      : DOCX_CONTENT_TYPE;
+    const presigned = await this.storage.createPresignedDownload(storageKey);
     return {
       downloadUrl: presigned.downloadUrl,
       expiresInSeconds: presigned.expiresInSeconds,
-      originalName: row.customFileOriginalName ?? 'addendum',
-      contentType: row.customFileContentType ?? 'application/octet-stream',
+      originalName,
+      contentType,
     };
   }
 
@@ -943,6 +967,7 @@ export class ContractAddendaService {
 
     const storageKeys = [
       row.customFileStorageKey,
+      row.sourceDocxStorageKey,
       ...(row.attachments ?? []).map((item) => item.storageKey),
     ].filter((key): key is string => Boolean(key));
 
@@ -989,7 +1014,10 @@ export class ContractAddendaService {
     userId: string,
     projectId: string,
     addendumId: string,
-    options: { withAttachments: boolean },
+    options: {
+      withAttachments: boolean;
+      formats?: unknown;
+    },
   ): Promise<{ buffer: Buffer; fileName: string; contentType: string }> {
     const participant = await this.loadParticipant(userId, projectId);
     const row = await this.prisma.contractAddendum.findFirst({
@@ -1009,86 +1037,140 @@ export class ContractAddendaService {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')
         .slice(0, 40) || 'addendum';
-    const mainDoc = await this.buildMainDocumentBuffer(row);
+    const mainEntries = await this.buildMainDocumentEntries(row, options.formats);
     const attachments = row.attachments ?? [];
     const includeAttachments =
       options.withAttachments && attachments.length > 0;
 
-    if (!includeAttachments) {
+    if (!includeAttachments && mainEntries.length === 1) {
+      const only = mainEntries[0]!;
       return {
-        buffer: mainDoc.buffer,
-        fileName: mainDoc.fileName || `${slug}.pdf`,
-        contentType: mainDoc.contentType,
+        buffer: only.buffer,
+        fileName: only.name || `${slug}.pdf`,
+        contentType: only.contentType,
       };
     }
 
-    if (!this.storage.isConfigured()) {
+    if (!this.storage.isConfigured() && includeAttachments) {
       throw new ServiceUnavailableException(
         'File storage is not configured. Cannot bundle attachments.',
       );
     }
 
     const usedNames = new Set<string>();
-    const entries: ZipEntry[] = [
-      {
-        name: uniqueZipName(mainDoc.fileName || `${slug}.pdf`, usedNames),
-        buffer: mainDoc.buffer,
-      },
-    ];
+    const entries: ZipEntry[] = mainEntries.map((entry) => ({
+      name: uniqueZipName(entry.name || `${slug}.pdf`, usedNames),
+      buffer: entry.buffer,
+    }));
 
-    for (const attachment of attachments) {
-      try {
-        const buffer = await this.storage.getObjectBuffer(attachment.storageKey);
-        entries.push({
-          name: uniqueZipName(
-            `attachments/${sanitizeZipEntryName(attachment.originalName)}`,
-            usedNames,
-          ),
-          buffer,
-        });
-      } catch {
-        // Skip missing objects
+    if (includeAttachments) {
+      for (const attachment of attachments) {
+        try {
+          const buffer = await this.storage.getObjectBuffer(
+            attachment.storageKey,
+          );
+          entries.push({
+            name: uniqueZipName(
+              `attachments/${sanitizeZipEntryName(attachment.originalName)}`,
+              usedNames,
+            ),
+            buffer,
+          });
+        } catch {
+          // Skip missing objects
+        }
       }
     }
 
     const zip = await buildZipBuffer(entries);
     return {
       buffer: zip,
-      fileName: `${slug}-with-attachments.zip`,
+      fileName:
+        includeAttachments
+          ? `${slug}-with-attachments.zip`
+          : `${slug}-files.zip`,
       contentType: 'application/zip',
     };
   }
 
-  private async buildMainDocumentBuffer(row: ContractAddendum): Promise<{
-    buffer: Buffer;
-    fileName: string;
-    contentType: string;
-  }> {
-    if (row.customFileStorageKey) {
-      const buffer = await this.storage.getObjectBuffer(row.customFileStorageKey);
-      const originalName = row.customFileOriginalName || 'addendum.pdf';
-      return {
-        buffer,
-        fileName: sanitizeZipEntryName(originalName),
-        contentType: row.customFileContentType || 'application/octet-stream',
-      };
+  private async buildMainDocumentEntries(
+    row: ContractAddendum,
+    formatsRaw?: unknown,
+  ): Promise<
+    Array<{ name: string; buffer: Buffer; contentType: string }>
+  > {
+    const meta = mapDualCustomFileMeta(row);
+    if (!meta) {
+      if (!row.englishBodyHtml?.trim()) {
+        throw new BadRequestException(
+          'Additional agreement has no document body',
+        );
+      }
+      const html = wrapAddendumHtmlForPdf(row.title, row.englishBodyHtml);
+      const pdf = await this.htmlToPdf.render(html);
+      const slug =
+        row.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .slice(0, 40) || 'addendum';
+      return [
+        {
+          buffer: pdf,
+          name: `${slug}.pdf`,
+          contentType: PDF_CONTENT_TYPE,
+        },
+      ];
     }
-    if (!row.englishBodyHtml?.trim()) {
-      throw new BadRequestException('Additional agreement has no document body');
+
+    let formats = normalizeDownloadFormats(formatsRaw);
+    if (formats.length === 0) {
+      // PDF-only (or legacy) downloads stay one-click: default to available PDF.
+      if (meta.hasPdf) formats = ['pdf'];
+      else if (meta.hasDocx) formats = ['docx'];
     }
-    const html = wrapAddendumHtmlForPdf(row.title, row.englishBodyHtml);
-    const pdf = await this.htmlToPdf.render(html);
-    const slug =
-      row.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '')
-        .slice(0, 40) || 'addendum';
-    return {
-      buffer: pdf,
-      fileName: `${slug}.pdf`,
-      contentType: 'application/pdf',
-    };
+    for (const format of formats) {
+      if (format === 'pdf' && !meta.hasPdf) {
+        throw new BadRequestException('PDF is not available for this addendum');
+      }
+      if (format === 'docx' && !meta.hasDocx) {
+        throw new BadRequestException(
+          'DOCX is not available for this addendum',
+        );
+      }
+    }
+
+    const entries: Array<{ name: string; buffer: Buffer; contentType: string }> =
+      [];
+    for (const format of formats) {
+      if (format === 'pdf') {
+        if (!row.customFileStorageKey) {
+          throw new NotFoundException('PDF file not found');
+        }
+        entries.push({
+          name: sanitizeZipEntryName(
+            meta.pdfOriginalName || 'addendum.pdf',
+          ),
+          buffer: await this.storage.getObjectBuffer(row.customFileStorageKey),
+          contentType: PDF_CONTENT_TYPE,
+        });
+      } else {
+        const key =
+          row.sourceDocxStorageKey ??
+          (meta.hasDocx ? row.customFileStorageKey : null);
+        if (!key) {
+          throw new NotFoundException('DOCX file not found');
+        }
+        entries.push({
+          name: sanitizeZipEntryName(
+            meta.docxOriginalName || 'addendum.docx',
+          ),
+          buffer: await this.storage.getObjectBuffer(key),
+          contentType: DOCX_CONTENT_TYPE,
+        });
+      }
+    }
+    return entries;
   }
 
   private async requireEditableAddendum(
@@ -1117,6 +1199,9 @@ export class ContractAddendaService {
     originalName: string;
     contentType: string;
     sizeBytes: number;
+    sourceDocxStorageKey: string | null;
+    sourceDocxOriginalName: string | null;
+    sourceDocxSizeBytes: number | null;
   }> {
     const storageKey = params.dto.storageKey?.trim();
     if (
@@ -1152,6 +1237,9 @@ export class ContractAddendaService {
         originalName,
         contentType: declaredContentType,
         sizeBytes,
+        sourceDocxStorageKey: null,
+        sourceDocxOriginalName: null,
+        sourceDocxSizeBytes: null,
       };
     }
 
@@ -1176,12 +1264,14 @@ export class ContractAddendaService {
       body: pdfBuffer,
       contentType: PDF_CONTENT_TYPE,
     });
-    await this.storage.deleteObject(storageKey).catch(() => undefined);
     return {
       storageKey: pdfKey,
       originalName: pdfName.endsWith('.pdf') ? pdfName : `${pdfName}.pdf`,
       contentType: PDF_CONTENT_TYPE,
       sizeBytes: pdfBuffer.length,
+      sourceDocxStorageKey: storageKey,
+      sourceDocxOriginalName: originalName,
+      sourceDocxSizeBytes: sizeBytes,
     };
   }
 

@@ -722,6 +722,10 @@ model Contract {
   customFileSizeBytes        Int?         @map("custom_file_size_bytes")
   customFileUploadedByUserId String?      @map("custom_file_uploaded_by_user_id")
   customFileUploadedAt       DateTime?    @map("custom_file_uploaded_at")
+  /// Original DOCX kept when the party uploaded DOCX (PDF is stored in customFile* for preview).
+  sourceDocxStorageKey       String?      @unique @map("source_docx_storage_key")
+  sourceDocxOriginalName     String?      @map("source_docx_original_name")
+  sourceDocxSizeBytes        Int?         @map("source_docx_size_bytes")
   createdAt                DateTime       @default(now()) @map("created_at")
   updatedAt                DateTime       @updatedAt @map("updated_at")
   addenda                  ContractAddendum[]
@@ -788,6 +792,10 @@ model ContractAddendum {
   customFileSizeBytes        Int?                   @map("custom_file_size_bytes")
   customFileUploadedByUserId String?                @map("custom_file_uploaded_by_user_id")
   customFileUploadedAt       DateTime?              @map("custom_file_uploaded_at")
+  /// Original DOCX kept when the party uploaded DOCX (PDF is stored in customFile* for preview).
+  sourceDocxStorageKey       String?                @unique @map("source_docx_storage_key")
+  sourceDocxOriginalName     String?                @map("source_docx_original_name")
+  sourceDocxSizeBytes        Int?                   @map("source_docx_size_bytes")
   createdAt                  DateTime               @default(now()) @map("created_at")
   updatedAt                  DateTime               @updatedAt @map("updated_at")
   attachments                ContractAddendumAttachment[]
