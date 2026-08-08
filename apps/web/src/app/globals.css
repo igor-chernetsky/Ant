@@ -1049,19 +1049,16 @@ pre {
 
 .project-tile {
   --tile-phase: #64748b;
-  --tile-phase-soft: rgba(100, 116, 139, 0.12);
-  --tile-phase-border: rgba(100, 116, 139, 0.28);
-  --tile-phase-wash: linear-gradient(
-    165deg,
-    rgba(248, 250, 252, 0.95) 0%,
-    rgba(241, 245, 249, 0.72) 100%
-  );
+  --tile-phase-soft: rgba(100, 116, 139, 0.1);
+  --tile-phase-border: rgba(148, 163, 184, 0.45);
+  --tile-phase-wash: #fff;
+  --tile-phase-mark: none;
   display: flex;
   flex-direction: column;
   text-align: left;
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
-  border: 1.5px solid var(--tile-phase-border);
+  border: 1px solid var(--tile-phase-border);
   border-radius: 16px;
   overflow: hidden;
   text-decoration: none;
@@ -1069,54 +1066,52 @@ pre {
   padding: 0;
   font: inherit;
   cursor: pointer;
-  box-shadow:
-    inset 6px 0 0 0 var(--tile-phase),
-    var(--shadow-glass);
+  box-shadow: var(--shadow-glass);
   transition:
     box-shadow 0.2s ease,
     transform 0.2s ease,
     border-color 0.2s ease;
 }
 
+/* Design: cool cyan-slate near site blues — blueprint feel */
 .project-tile--design {
-  --tile-phase: #0e7490;
-  --tile-phase-soft: rgba(14, 116, 144, 0.14);
-  --tile-phase-border: rgba(8, 145, 178, 0.38);
+  --tile-phase: #0369a1;
+  --tile-phase-soft: rgba(3, 105, 161, 0.08);
+  --tile-phase-border: rgba(14, 116, 144, 0.28);
   --tile-phase-wash: linear-gradient(
-    165deg,
-    #ecfeff 0%,
-    #f0fdfa 55%,
-    #f8fafc 100%
+    180deg,
+    rgba(240, 249, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.88) 100%
   );
+  --tile-phase-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' fill='none' stroke='%230368a1' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='48' cy='48' r='22'/%3E%3Cpath d='M48 26v44M26 48h44'/%3E%3Cpath d='M63 63l34 34'/%3E%3Cpath d='M88 102h20M98 92v20'/%3E%3Cpath d='M78 18h28M92 18v14' opacity='.7'/%3E%3Cpath d='M18 78h24M18 86h18M18 94h20' opacity='.65'/%3E%3C/svg%3E");
   background: var(--tile-phase-wash);
 }
 
+/* Construction: muted steel — fits site palette */
 .project-tile--construction {
-  --tile-phase: #c2410c;
-  --tile-phase-soft: rgba(194, 65, 12, 0.12);
-  --tile-phase-border: rgba(234, 88, 12, 0.36);
+  --tile-phase: #475569;
+  --tile-phase-soft: rgba(71, 85, 105, 0.09);
+  --tile-phase-border: rgba(100, 116, 139, 0.34);
   --tile-phase-wash: linear-gradient(
-    165deg,
-    #fff7ed 0%,
-    #ffedd5 52%,
-    #fafaf9 100%
+    180deg,
+    rgba(248, 250, 252, 0.96) 0%,
+    rgba(255, 255, 255, 0.9) 100%
   );
+  --tile-phase-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' fill='none' stroke='%23475569' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 78h28v16H18zM50 78h28v16H50zM82 78h20v16H82z'/%3E%3Cpath d='M34 58h28v16H34zM66 58h28v16H66z'/%3E%3Cpath d='M18 98h84'/%3E%3Cpath d='M86 22l8 28M82 50h24'/%3E%3Cpath d='M90 22c4-8 14-8 18 0'/%3E%3Cpath d='M24 30h20l4 10H28z' opacity='.75'/%3E%3Cpath d='M34 40v18' opacity='.75'/%3E%3C/svg%3E");
   background: var(--tile-phase-wash);
 }
 
 .project-tile--design.project-tile-owned {
-  border-color: rgba(8, 145, 178, 0.55);
+  border-color: rgba(3, 105, 161, 0.4);
   box-shadow:
-    inset 6px 0 0 0 var(--tile-phase),
-    0 0 0 1px rgba(14, 116, 144, 0.18),
+    0 0 0 1px rgba(3, 105, 161, 0.1),
     var(--shadow-glass);
 }
 
 .project-tile--construction.project-tile-owned {
-  border-color: rgba(234, 88, 12, 0.5);
+  border-color: rgba(71, 85, 105, 0.42);
   box-shadow:
-    inset 6px 0 0 0 var(--tile-phase),
-    0 0 0 1px rgba(194, 65, 12, 0.16),
+    0 0 0 1px rgba(71, 85, 105, 0.1),
     var(--shadow-glass);
 }
 
@@ -1134,9 +1129,7 @@ pre {
   transform: none;
   opacity: 0.72;
   border-color: var(--tile-phase-border);
-  box-shadow:
-    inset 6px 0 0 0 var(--tile-phase),
-    var(--shadow-glass);
+  box-shadow: var(--shadow-glass);
 }
 
 .project-tile-lock-badge {
@@ -1181,26 +1174,23 @@ pre {
 }
 
 .project-tile:hover {
-  border-color: color-mix(in srgb, var(--tile-phase) 55%, var(--tile-phase-border));
+  border-color: color-mix(in srgb, var(--tile-phase) 42%, var(--tile-phase-border));
   box-shadow:
-    inset 6px 0 0 0 var(--tile-phase),
     var(--shadow-glass),
-    0 12px 28px color-mix(in srgb, var(--tile-phase) 18%, transparent);
+    0 12px 28px color-mix(in srgb, var(--tile-phase) 12%, transparent);
   transform: translateY(-2px);
 }
 
 .project-tile--design:hover {
   box-shadow:
-    inset 6px 0 0 0 var(--tile-phase),
     var(--shadow-glass),
-    0 12px 28px rgba(14, 116, 144, 0.16);
+    0 12px 28px rgba(3, 105, 161, 0.12);
 }
 
 .project-tile--construction:hover {
   box-shadow:
-    inset 6px 0 0 0 var(--tile-phase),
     var(--shadow-glass),
-    0 12px 28px rgba(194, 65, 12, 0.16);
+    0 12px 28px rgba(71, 85, 105, 0.12);
 }
 
 .project-tile-media {
@@ -1210,49 +1200,47 @@ pre {
   overflow: hidden;
 }
 
+/* Blueprint grid */
 .project-tile--design .project-tile-media {
   background:
-    linear-gradient(180deg, rgba(236, 254, 255, 0.35), rgba(15, 23, 42, 0.04)),
+    linear-gradient(180deg, rgba(239, 246, 255, 0.55), rgba(255, 255, 255, 0.2)),
     repeating-linear-gradient(
       0deg,
       transparent,
-      transparent 11px,
-      rgba(14, 116, 144, 0.07) 11px,
-      rgba(14, 116, 144, 0.07) 12px
+      transparent 14px,
+      rgba(3, 105, 161, 0.05) 14px,
+      rgba(3, 105, 161, 0.05) 15px
     ),
     repeating-linear-gradient(
       90deg,
       transparent,
-      transparent 11px,
-      rgba(14, 116, 144, 0.05) 11px,
-      rgba(14, 116, 144, 0.05) 12px
+      transparent 14px,
+      rgba(3, 105, 161, 0.04) 14px,
+      rgba(3, 105, 161, 0.04) 15px
     ),
-    #ecfeff;
+    #f0f9ff;
 }
 
+/* Soft masonry / brick bond */
 .project-tile--construction .project-tile-media {
   background:
-    linear-gradient(145deg, rgba(255, 247, 237, 0.5), rgba(124, 45, 18, 0.08)),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.65), rgba(255, 255, 255, 0.25)),
     repeating-linear-gradient(
-      -32deg,
-      transparent,
-      transparent 10px,
-      rgba(194, 65, 12, 0.06) 10px,
-      rgba(194, 65, 12, 0.06) 11px
+      0deg,
+      transparent 0 18px,
+      rgba(71, 85, 105, 0.07) 18px 19px
     ),
-    #fff7ed;
-}
-
-.project-tile-media::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 5px;
-  background: var(--tile-phase);
-  opacity: 0.85;
-  pointer-events: none;
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 28px,
+      rgba(71, 85, 105, 0.06) 28px 29px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 14px,
+      rgba(71, 85, 105, 0.025) 14px 15px
+    ),
+    #f8fafc;
 }
 
 .project-tile-image {
@@ -1281,17 +1269,50 @@ pre {
 
 .project-tile-placeholder-icon {
   display: inline-flex;
-  opacity: 0.88;
+  opacity: 0.72;
 }
 
 .project-tile-placeholder-icon svg {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
 }
 
 .project-tile-placeholder-label {
   max-width: 14rem;
   line-height: 1.3;
+  opacity: 0.9;
+}
+
+.project-tile-body {
+  position: relative;
+  padding: 1rem 1.1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  flex: 1;
+  isolation: isolate;
+}
+
+/* Quiet tool watermark behind description */
+.project-tile-body::before {
+  content: "";
+  position: absolute;
+  right: -0.15rem;
+  bottom: -0.2rem;
+  width: 7.5rem;
+  height: 7.5rem;
+  background-image: var(--tile-phase-mark);
+  background-repeat: no-repeat;
+  background-position: right bottom;
+  background-size: contain;
+  opacity: 0.075;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.project-tile-body > * {
+  position: relative;
+  z-index: 1;
 }
 
 .project-tile-status {
@@ -1393,15 +1414,15 @@ pre {
 }
 
 .project-tile-phase-chip--design {
-  background: rgba(207, 250, 254, 0.95);
-  border-color: rgba(14, 116, 144, 0.28);
-  color: #0e7490;
+  background: rgba(224, 242, 254, 0.92);
+  border-color: rgba(3, 105, 161, 0.22);
+  color: #0369a1;
 }
 
 .project-tile-phase-chip--construction {
-  background: rgba(255, 237, 213, 0.95);
-  border-color: rgba(194, 65, 12, 0.28);
-  color: #c2410c;
+  background: rgba(241, 245, 249, 0.95);
+  border-color: rgba(71, 85, 105, 0.22);
+  color: #475569;
 }
 
 .project-tile-meta-district {
@@ -1443,14 +1464,6 @@ pre {
   top: 2.4rem;
 }
 
-.project-tile-body {
-  padding: 1rem 1.1rem 1.15rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  flex: 1;
-}
-
 .project-tile-add {
   padding: 0;
   text-align: left;
@@ -1477,9 +1490,6 @@ pre {
   background: linear-gradient(135deg, #dbeafe, #eff6ff);
 }
 
-.project-tile-add .project-tile-media::after {
-  display: none;
-}
 
 .project-tile-add-icon {
   font-size: 3rem;
@@ -1522,21 +1532,21 @@ pre {
 }
 
 .project-tile--design .project-tile-estimate {
-  border-color: rgba(14, 116, 144, 0.22);
-  background: rgba(236, 254, 255, 0.78);
+  border-color: rgba(3, 105, 161, 0.18);
+  background: rgba(239, 246, 255, 0.72);
 }
 
 .project-tile--design .project-tile-estimate-label {
-  color: #0e7490;
+  color: #0369a1;
 }
 
 .project-tile--construction .project-tile-estimate {
-  border-color: rgba(194, 65, 12, 0.2);
-  background: rgba(255, 247, 237, 0.85);
+  border-color: rgba(71, 85, 105, 0.16);
+  background: rgba(248, 250, 252, 0.85);
 }
 
 .project-tile--construction .project-tile-estimate-label {
-  color: #c2410c;
+  color: #475569;
 }
 
 .project-tile-estimate-main {
