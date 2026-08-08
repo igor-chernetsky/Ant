@@ -144,22 +144,16 @@ export function ProjectTile({
           />
         ) : (
           <div className="project-tile-placeholder" aria-hidden>
-            <span>{phaseLabel}</span>
+            <span className="project-tile-placeholder-icon">
+              {isDesignPhase ? <DesignPhaseIcon /> : <ConstructionPhaseIcon />}
+            </span>
+            <span className="project-tile-placeholder-label">{phaseLabel}</span>
           </div>
         )}
         <span className={`project-tile-status project-tile-status--${statusTone}`}>
           {project.isHidden
             ? t('projectTile.hidden')
             : formatProjectStatus(project.status)}
-        </span>
-        <span
-          className={`project-tile-phase-badge project-tile-phase-badge--${
-            isDesignPhase ? 'design' : 'construction'
-          }`}
-          title={phaseAria}
-          aria-label={phaseAria}
-        >
-          {isDesignPhase ? <DesignPhaseIcon /> : <ConstructionPhaseIcon />}
         </span>
         {!canOpen && (
           <span className="project-tile-lock-badge" aria-hidden>
@@ -193,7 +187,12 @@ export function ProjectTile({
             className={`project-tile-phase-chip project-tile-phase-chip--${
               isDesignPhase ? 'design' : 'construction'
             }`}
+            title={phaseAria}
+            aria-label={phaseAria}
           >
+            <span className="project-tile-phase-chip-icon" aria-hidden>
+              {isDesignPhase ? <DesignPhaseIcon /> : <ConstructionPhaseIcon />}
+            </span>
             {phaseLabel}
           </span>
           {project.district ? (
