@@ -8,7 +8,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
-import { formatThb } from '@/lib/estimate';
+import { formatThb, isLowEstimateConfidence } from '@/lib/estimate';
 import {
   canOpenProjectDetail,
   getProjectOpenBlockReason,
@@ -208,21 +208,28 @@ export function ProjectTile({
         )}
         {excerpt && <p className="project-tile-description">{excerpt}</p>}
         {isOwned && project.estimate && (
-          <div className="project-tile-estimate">
-            <div className="project-tile-estimate-main">
-              <p className="project-tile-estimate-label">
-                {t('projectTile.ballpark')}
-              </p>
-              <p className="project-tile-estimate-range">
-                {formatThb(project.estimate.minAmount)} –{' '}
-                {formatThb(project.estimate.maxAmount)}
-              </p>
+          <div className="project-tile-estimate-block">
+            <div className="project-tile-estimate">
+              <div className="project-tile-estimate-main">
+                <p className="project-tile-estimate-label">
+                  {t('projectTile.ballpark')}
+                </p>
+                <p className="project-tile-estimate-range">
+                  {formatThb(project.estimate.minAmount)} –{' '}
+                  {formatThb(project.estimate.maxAmount)}
+                </p>
+              </div>
+              <EstimateConfidenceRing
+                confidence={project.estimate.confidence}
+                size={56}
+                showCaption={false}
+              />
             </div>
-            <EstimateConfidenceRing
-              confidence={project.estimate.confidence}
-              size={56}
-              showCaption={false}
-            />
+            {isLowEstimateConfidence(project.estimate.confidence) && (
+              <p className="project-tile-estimate-low-confidence" role="status">
+                {t('estimateSection.lowConfidenceHint')}
+              </p>
+            )}
           </div>
         )}
         {project.tags.length > 0 && (

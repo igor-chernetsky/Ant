@@ -447,6 +447,7 @@ export class DocumentsService {
     });
 
     await this.removeDocumentFromBrief(projectId, documentId);
+    await this.documentAnalysis.refreshAfterDocumentRemoved(projectId);
   }
 
   scheduleThumbnailGeneration(
@@ -544,10 +545,12 @@ export class DocumentsService {
     const packages = (brief.packages ?? []).filter(
       (pkg) => pkg.sourceDocumentId !== documentId,
     );
+    // Recompute from remaining insights only — do not keep the deleted
+    // document's confidence when nothing is left.
     const confidence =
       documentInsights.length > 0
         ? Math.max(...documentInsights.map((insight) => insight.confidence))
-        : (brief.ai?.confidence ?? 0);
+        : 0;
 
     const hasBlueprint = await this.prisma.document.count({
       where: {

@@ -9,7 +9,7 @@ import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
 import { useSession } from '@/components/SessionProvider';
 import { useTranslation } from '@/components/LocaleProvider';
-import { canCreateProject, isContractorUser } from '@/lib/session';
+import { canCreateProject, isSupplySideUser } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
 import {
   countHomeActiveFilters,
@@ -35,9 +35,21 @@ import {
   fetchLocationCatalog,
   type LocationCatalog,
 } from '@/lib/locations';
+import { canOpenProjectDetail } from '@/lib/project-open-access';
 import { HELP_TIP_IDS } from '@/lib/help-tips';
 import { AntSpinner } from '@/components/AntSpinner';
 import { SupplyVerificationBanner } from '@/components/SupplyVerificationBanner';
+
+const EMPTY_HOME_FILTERS: HomeProjectFilterState = {
+  tags: [],
+  statuses: [],
+  regionSlug: '',
+  areaSlug: '',
+  projectTrack: null,
+  propertyTypes: [],
+  ownershipScope: 'all',
+  onlyAvailable: false,
+};
 
 export default function HomePage() {
   const router = useRouter();
@@ -55,15 +67,7 @@ export default function HomePage() {
   );
   const [locationCatalog, setLocationCatalog] =
     useState<LocationCatalog | null>(null);
-  const [filters, setFilters] = useState<HomeProjectFilterState>({
-    tags: [],
-    statuses: [],
-    regionSlug: '',
-    areaSlug: '',
-    projectTrack: null,
-    propertyTypes: [],
-    ownershipScope: 'all',
-  });
+  const [filters, setFilters] = useState<HomeProjectFilterState>(EMPTY_HOME_FILTERS);
   const [searchQuery, setSearchQuery] = useState('');
   const [contractorTagSlugs, setContractorTagSlugs] = useState<string[]>([]);
   const [contractorFilterInitialized, setContractorFilterInitialized] =
@@ -196,19 +200,11 @@ export default function HomePage() {
     if (!me) {
       setContractorFilterInitialized(false);
       setContractorTagSlugs([]);
-      setFilters({
-        tags: [],
-        statuses: [],
-        regionSlug: '',
-        areaSlug: '',
-        projectTrack: null,
-        propertyTypes: [],
-        ownershipScope: 'all',
-      });
+      setFilters({ ...EMPTY_HOME_FILTERS });
       return;
     }
 
-    if (!isContractorUser(me)) {
+    if (!isSupplySideUser(me)) {
       setContractorTagSlugs([]);
       return;
     }
@@ -250,7 +246,7 @@ export default function HomePage() {
         } else {
           setOwnedProjectIds(new Set());
         }
-        if (isContractorUser(me)) {
+        if (isSupplySideUser(me)) {
           tasks.push(
             fetchContractorApplications().then((apps) => {
               setContractorApplications(apps);
@@ -394,6 +390,21 @@ export default function HomePage() {
         ) {
           return null;
         }
+        if (filters.onlyAvailable) {
+          const participation =
+            contractorParticipationByProjectId.get(project.id) ?? null;
+          const isAwardedContractor =
+            participation?.bidStatus === 'selected' ||
+            Boolean(participation?.isActiveProject);
+          const canOpen =
+            canOpenProjectDetail(project.status, {
+              me,
+              isOwned: Boolean(me && ownedProjectIds.has(project.id)),
+              isAwardedContractor,
+              projectType: project.projectType,
+            }) || project.canOpenDetail === true;
+          if (!canOpen) return null;
+        }
         const match = matchRank(project);
         if (match == null) return null;
         return { project, match, ownership: ownershipRank(project) };
@@ -419,6 +430,7 @@ export default function HomePage() {
     projects,
     searchQuery,
     filters.ownershipScope,
+    filters.onlyAvailable,
     me,
     ownedProjectIds,
     contractorParticipationByProjectId,
@@ -426,7 +438,9 @@ export default function HomePage() {
 
   const activeFilterCount = countHomeActiveFilters(filters, searchQuery);
   const displayCount =
-    searchQuery.trim() || filters.ownershipScope === 'mine'
+    searchQuery.trim() ||
+    filters.ownershipScope === 'mine' ||
+    filters.onlyAvailable
       ? sortedProjects.length
       : totalCount;
 
@@ -501,8 +515,9 @@ export default function HomePage() {
               showHiddenFilter={canAddProject}
               showCompletedFilter={Boolean(me)}
               showClientWorkspaceFilters={canAddProject}
+              showOnlyAvailableToggle={isSupplySideUser(me)}
               contractorTagSlugs={
-                isContractorUser(me) ? contractorTagSlugs : undefined
+                isSupplySideUser(me) ? contractorTagSlugs : undefined
               }
             />
           </aside>

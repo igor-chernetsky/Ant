@@ -50,6 +50,13 @@ export function formatConfidence(confidence: number): string {
   return `${Math.round(Math.min(1, Math.max(0, confidence)) * 100)}%`;
 }
 
+/** Below this threshold the ballpark is too rough — nudge the client toward a tender. */
+export const LOW_ESTIMATE_CONFIDENCE_THRESHOLD = 0.6;
+
+export function isLowEstimateConfidence(confidence: number): boolean {
+  return Math.min(1, Math.max(0, confidence)) < LOW_ESTIMATE_CONFIDENCE_THRESHOLD;
+}
+
 export async function fetchProjectEstimate(
   projectId: string,
 ): Promise<BallparkEstimate | null> {

@@ -95,6 +95,7 @@ export const ruExtended = {
     ownershipScopeAria: "Все проекты или только мои",
     allProjects: "Все проекты",
     myProjects: "Мои проекты",
+    onlyAvailableProjects: "Только доступные проекты",
     allTrades: "Все виды работ",
     myTrades: "Мои виды работ",
     openFilters: "Фильтры",
@@ -978,12 +979,18 @@ export const ruExtended = {
     refineTitle: "Ответьте, чтобы повысить уверенность сметы",
     refineHint:
       "Необязательные ответы помогают пересчитать ориентир. Подтверждённый объём сохраняется; неотвеченные пробелы остаются вопросами.",
+    refineBoostHint:
+      "Чтобы повысить оценку, ответьте на дополнительные вопросы ниже.",
+    scrollToRefineQuestions: "Ответить на вопросы, чтобы улучшить оценку",
     answerPlaceholder: "Ваш ответ",
     recalculate: "Пересчитать смету",
     refining: "Пересчёт…",
     refineNeedAnswer: "Ответьте хотя бы на один вопрос для пересчёта.",
     refineFailed: "Не удалось пересчитать смету",
     answeredTitle: "Предыдущие ответы",
+    lowConfidenceTitle: "Очень приблизительная оценка",
+    lowConfidenceHint:
+      "Уверенность ниже 60%. Считайте эту сумму лишь ориентиром — создайте тендер, чтобы получить реальные оценки от исполнителей.",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",

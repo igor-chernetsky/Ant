@@ -1510,6 +1510,30 @@ pre {
   margin-bottom: 0;
 }
 
+.project-filters-available-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 88%, var(--accent) 12%);
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.project-filters-available-toggle input {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.12rem;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
 .project-filters-map-slot {
   flex: 0 0 auto;
   margin-top: 0.65rem;
@@ -4964,6 +4988,67 @@ pre {
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 0.75rem;
+}
+
+.estimate-low-confidence-notice {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%);
+  border: 1px solid #fed7aa;
+  border-left: 4px solid #ea580c;
+}
+
+.estimate-low-confidence-notice-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #c2410c;
+}
+
+.estimate-low-confidence-notice-text {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #9a3412;
+}
+
+.estimate-low-confidence-scroll {
+  margin-top: 0.75rem;
+}
+
+.estimate-refinement--low-confidence {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff7ed 0%, #fffbeb 100%);
+  border: 1px solid #fed7aa;
+  border-left: 4px solid #ea580c;
+  scroll-margin-top: 1.25rem;
+}
+
+.estimate-refine-boost-hint {
+  margin: 0 0 0.55rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  font-weight: 600;
+  color: #c2410c;
+}
+
+.project-tile-estimate-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
+.project-tile-estimate-low-confidence {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #c2410c;
 }
 
 .estimate-header-main {

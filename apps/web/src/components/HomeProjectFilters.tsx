@@ -50,6 +50,10 @@ export interface HomeProjectFilterState {
   propertyTypes: PropertyTypeFilterSlug[];
   /** Client home: all public projects vs only projects owned by the user. */
   ownershipScope: 'all' | 'mine';
+  /**
+   * Supply-side only: when true, hide locked cards the user cannot open.
+   */
+  onlyAvailable: boolean;
 }
 
 interface HomeProjectFiltersProps {
@@ -64,6 +68,8 @@ interface HomeProjectFiltersProps {
   showCompletedFilter?: boolean;
   /** Show pre-tender statuses (intake / estimate) for the creating client. */
   showClientWorkspaceFilters?: boolean;
+  /** Contractors / designers: toggle to hide locked project cards. */
+  showOnlyAvailableToggle?: boolean;
   /**
    * When set (including `[]`), shows All trades / My trades presets for contractors.
    * Omit for guests and clients.
@@ -83,6 +89,7 @@ function countActiveFilters(
   if (filters.projectTrack) count += 1;
   count += filters.propertyTypes.length;
   if (filters.ownershipScope === 'mine') count += 1;
+  if (filters.onlyAvailable) count += 1;
   if (searchQuery.trim()) count += 1;
   return count;
 }
@@ -105,6 +112,7 @@ export function HomeProjectFilters({
   showHiddenFilter = false,
   showCompletedFilter = false,
   showClientWorkspaceFilters = false,
+  showOnlyAvailableToggle = false,
   contractorTagSlugs,
 }: HomeProjectFiltersProps) {
   const { t } = useTranslation();
@@ -197,6 +205,7 @@ export function HomeProjectFilters({
       projectTrack: null,
       propertyTypes: [],
       ownershipScope: 'all',
+      onlyAvailable: false,
     });
     onSearchChange('');
   };
@@ -209,6 +218,14 @@ export function HomeProjectFilters({
       key: 'ownership-mine',
       label: t('filters.myProjects'),
       onRemove: () => update({ ownershipScope: 'all' }),
+    });
+  }
+
+  if (filters.onlyAvailable) {
+    activePills.push({
+      key: 'only-available',
+      label: t('filters.onlyAvailableProjects'),
+      onRemove: () => update({ onlyAvailable: false }),
     });
   }
 
@@ -322,6 +339,17 @@ export function HomeProjectFilters({
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
+
+        {showOnlyAvailableToggle && (
+          <label className="project-filters-available-toggle">
+            <input
+              type="checkbox"
+              checked={filters.onlyAvailable}
+              onChange={(e) => update({ onlyAvailable: e.target.checked })}
+            />
+            <span>{t('filters.onlyAvailableProjects')}</span>
+          </label>
+        )}
 
         <div className="project-filters-location-panel">
           <div className="project-filters-status-section">

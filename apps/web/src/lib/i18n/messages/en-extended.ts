@@ -95,6 +95,7 @@ export const enExtended = {
     ownershipScopeAria: "All projects or my projects",
     allProjects: "All projects",
     myProjects: "My projects",
+    onlyAvailableProjects: "Show only available projects",
     allTrades: "All trades",
     myTrades: "My trades",
     openFilters: "Filters",
@@ -977,12 +978,18 @@ export const enExtended = {
     refineTitle: "Answer to improve estimate confidence",
     refineHint:
       "Optional answers help recalculate the ballpark. Confirmed scope is kept; unanswered gaps stay as questions.",
+    refineBoostHint:
+      "To improve this estimate, answer the additional questions below.",
+    scrollToRefineQuestions: "Answer questions to improve estimate",
     answerPlaceholder: "Your answer",
     recalculate: "Recalculate estimate",
     refining: "Recalculating…",
     refineNeedAnswer: "Answer at least one question to recalculate.",
     refineFailed: "Could not recalculate the estimate",
     answeredTitle: "Previous answers",
+    lowConfidenceTitle: "Very approximate estimate",
+    lowConfidenceHint:
+      "Confidence is under 60%. Treat this ballpark as a rough guide only — create a tender to get real prices from contractors.",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",

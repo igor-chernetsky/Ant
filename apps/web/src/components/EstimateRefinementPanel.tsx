@@ -3,12 +3,15 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
+  isLowEstimateConfidence,
   refineProjectEstimate,
   type BallparkEstimate,
 } from '@/lib/estimate';
 import type { Project } from '@/lib/projects';
 
 const REFINE_STATUSES = new Set(['ready_for_estimate', 'estimated']);
+
+export const ESTIMATE_REFINE_SECTION_ID = 'estimate-refine-section';
 
 interface EstimateRefinementPanelProps {
   project: Project;
@@ -25,6 +28,8 @@ export function EstimateRefinementPanel({
   const questions = estimate.improvementQuestions ?? [];
   const history = estimate.refinementAnswers ?? [];
   const canRefine = REFINE_STATUSES.has(project.status) && questions.length > 0;
+  const highlightLowConfidence =
+    canRefine && isLowEstimateConfidence(estimate.confidence);
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -73,10 +78,20 @@ export function EstimateRefinementPanel({
   }
 
   return (
-    <div className="estimate-refinement">
+    <div
+      id={ESTIMATE_REFINE_SECTION_ID}
+      className={`estimate-refinement${
+        highlightLowConfidence ? ' estimate-refinement--low-confidence' : ''
+      }`}
+    >
       {canRefine && (
         <details className="estimate-refine-details" open>
           <summary>{t('estimateSection.refineTitle')}</summary>
+          {highlightLowConfidence && (
+            <p className="estimate-refine-boost-hint" role="status">
+              {t('estimateSection.refineBoostHint')}
+            </p>
+          )}
           <p className="muted estimate-refine-hint">
             {t('estimateSection.refineHint')}
           </p>

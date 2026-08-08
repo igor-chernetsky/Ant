@@ -95,6 +95,7 @@ export const thExtended = {
     ownershipScopeAria: "โครงการทั้งหมดหรือโครงการของฉัน",
     allProjects: "โครงการทั้งหมด",
     myProjects: "โครงการของฉัน",
+    onlyAvailableProjects: "แสดงเฉพาะโครงการที่เข้าถึงได้",
     allTrades: "งานทั้งหมด",
     myTrades: "งานของฉัน",
     openFilters: "ตัวกรอง",
@@ -975,12 +976,18 @@ export const thExtended = {
     refineTitle: "ตอบเพื่อเพิ่มความมั่นใจของประมาณการ",
     refineHint:
       "คำตอบเพิ่มเติมช่วยคำนวณใหม่ได้ ขอบเขตที่ยืนยันแล้วจะถูกเก็บไว้ ส่วนที่ยังไม่ตอบจะยังเป็นคำถาม",
+    refineBoostHint:
+      "เพื่อปรับปรุงประมาณการนี้ ให้ตอบคำถามเพิ่มเติมด้านล่าง",
+    scrollToRefineQuestions: "ตอบคำถามเพื่อปรับปรุงประมาณการ",
     answerPlaceholder: "คำตอบของคุณ",
     recalculate: "คำนวณประมาณการใหม่",
     refining: "กำลังคำนวณใหม่…",
     refineNeedAnswer: "ตอบอย่างน้อยหนึ่งคำถามเพื่อคำนวณใหม่",
     refineFailed: "คำนวณประมาณการใหม่ไม่สำเร็จ",
     answeredTitle: "คำตอบก่อนหน้า",
+    lowConfidenceTitle: "ประมาณการคร่าวมาก",
+    lowConfidenceHint:
+      "ความมั่นใจต่ำกว่า 60% ตัวเลขนี้เป็นเพียงแนวทางคร่าวๆ — สร้างการประมูลเพื่อดูราคาจริงจากผู้รับเหมา",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",

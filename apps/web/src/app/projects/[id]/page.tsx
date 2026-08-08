@@ -7,7 +7,10 @@ import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { DocumentTile, OrphanScopePackages } from '@/components/DocumentTile';
 import { ClientAmendments } from '@/components/ClientAmendments';
-import { EstimateRefinementPanel } from '@/components/EstimateRefinementPanel';
+import {
+  EstimateRefinementPanel,
+  ESTIMATE_REFINE_SECTION_ID,
+} from '@/components/EstimateRefinementPanel';
 import { EstimateConfidenceRing } from '@/components/EstimateConfidenceRing';
 import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
@@ -34,7 +37,7 @@ import {
   type DocumentCategory,
   type ProjectDocument,
 } from '@/lib/documents';
-import { formatThb } from '@/lib/estimate';
+import { formatThb, isLowEstimateConfidence } from '@/lib/estimate';
 import type { BallparkEstimate } from '@/lib/estimate';
 import { isIntakeActive } from '@/lib/intake';
 import { isSessionExpiredError } from '@/lib/auth-client';
@@ -586,6 +589,41 @@ export default function ProjectDetailPage() {
                           confidence={estimate.confidence}
                         />
                       </div>
+                      {isLowEstimateConfidence(estimate.confidence) && (
+                        <aside
+                          className="estimate-low-confidence-notice"
+                          role="status"
+                        >
+                          <p className="estimate-low-confidence-notice-title">
+                            {t('estimateSection.lowConfidenceTitle')}
+                          </p>
+                          <p className="estimate-low-confidence-notice-text">
+                            {t('estimateSection.lowConfidenceHint')}
+                          </p>
+                          {(estimate.improvementQuestions?.length ?? 0) > 0 &&
+                            (project.status === 'ready_for_estimate' ||
+                              project.status === 'estimated') && (
+                              <button
+                                type="button"
+                                className="secondary estimate-low-confidence-scroll"
+                                onClick={() => {
+                                  const el = document.getElementById(
+                                    ESTIMATE_REFINE_SECTION_ID,
+                                  );
+                                  if (!el) return;
+                                  el.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start',
+                                  });
+                                  const details = el.querySelector('details');
+                                  if (details) details.open = true;
+                                }}
+                              >
+                                {t('estimateSection.scrollToRefineQuestions')}
+                              </button>
+                            )}
+                        </aside>
+                      )}
                       <EstimateRefinementPanel
                         project={project}
                         estimate={estimate}

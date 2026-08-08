@@ -212,6 +212,47 @@ export class DocumentAnalysisService {
     return result;
   }
 
+  /**
+   * After a document is deleted and stripped from the brief, refresh the
+   * ballpark estimate the same way upload analysis does. Without this, stale
+   * packages/confidence from the removed file keep driving the estimate.
+   */
+  async refreshAfterDocumentRemoved(projectId: string): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, status: true },
+    });
+    if (!project) return;
+
+    const hasEstimate = await this.prisma.estimate.findFirst({
+      where: { projectId },
+      select: { id: true },
+    });
+    const shouldRefreshEstimate =
+      Boolean(hasEstimate) ||
+      project.status === ProjectStatus.estimated ||
+      project.status === ProjectStatus.ready_for_estimate ||
+      project.status === ProjectStatus.intake ||
+      project.status === ProjectStatus.clarification ||
+      project.status === ProjectStatus.in_tender;
+
+    if (!shouldRefreshEstimate) {
+      this.projectLocalization.scheduleWarmProjectTranslations(projectId);
+      return;
+    }
+
+    try {
+      await this.estimatesService.generateAndStore(projectId);
+    } catch (err) {
+      this.logger.warn(
+        `Estimate refresh after document removal failed for ${projectId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      this.projectLocalization.scheduleWarmProjectTranslations(projectId);
+    }
+  }
+
   private async analyzeTextDocument(input: {
     doc: { storageKey: string; originalName: string; category: string; contentType: string };
     projectTitle: string;
