@@ -2627,16 +2627,23 @@ pre {
   background: rgba(26, 35, 50, 0.45);
   backdrop-filter: blur(4px);
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   padding: 1rem;
   z-index: 100;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal {
   width: 100%;
   max-width: 480px;
+  max-height: calc(100dvh - 2rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: var(--glass-bg-dense);
   backdrop-filter: blur(24px) saturate(1.1);
   border: 1px solid var(--glass-border);
@@ -2645,6 +2652,12 @@ pre {
   box-shadow:
     var(--shadow-glass),
     0 24px 48px rgba(15, 35, 60, 0.18);
+}
+
+@supports not (height: 100dvh) {
+  .modal {
+    max-height: calc(100vh - 2rem);
+  }
 }
 
 .confirm-dialog {
@@ -3325,6 +3338,18 @@ pre {
   font-size: 0.9rem;
   line-height: 1.4;
   color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .create-project-modal {
+    max-height: calc(100dvh - 1rem);
+  }
+
+  @supports not (height: 100dvh) {
+    .create-project-modal {
+      max-height: calc(100vh - 1rem);
+    }
+  }
 }
 
 .project-hero-linked {

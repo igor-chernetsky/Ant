@@ -161,7 +161,7 @@ export function CreateProjectModal({
       }}
     >
       <div
-        className="modal"
+        className="modal create-project-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-project-title"
