@@ -1052,7 +1052,7 @@ pre {
   --tile-phase-soft: rgba(100, 116, 139, 0.1);
   --tile-phase-border: rgba(148, 163, 184, 0.45);
   --tile-phase-wash: #fff;
-  --tile-phase-mark: none;
+  --tile-phase-bg: none;
   display: flex;
   flex-direction: column;
   text-align: left;
@@ -1083,7 +1083,7 @@ pre {
     rgba(240, 249, 255, 0.92) 0%,
     rgba(255, 255, 255, 0.88) 100%
   );
-  --tile-phase-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' fill='none' stroke='%230368a1' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='48' cy='48' r='22'/%3E%3Cpath d='M48 26v44M26 48h44'/%3E%3Cpath d='M63 63l34 34'/%3E%3Cpath d='M88 102h20M98 92v20'/%3E%3Cpath d='M78 18h28M92 18v14' opacity='.7'/%3E%3Cpath d='M18 78h24M18 86h18M18 94h20' opacity='.65'/%3E%3C/svg%3E");
+  --tile-phase-bg: url("/project-tiles/bg-design.webp");
   background: var(--tile-phase-wash);
 }
 
@@ -1097,7 +1097,7 @@ pre {
     rgba(248, 250, 252, 0.96) 0%,
     rgba(255, 255, 255, 0.9) 100%
   );
-  --tile-phase-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120' fill='none' stroke='%23475569' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 78h28v16H18zM50 78h28v16H50zM82 78h20v16H82z'/%3E%3Cpath d='M34 58h28v16H34zM66 58h28v16H66z'/%3E%3Cpath d='M18 98h84'/%3E%3Cpath d='M86 22l8 28M82 50h24'/%3E%3Cpath d='M90 22c4-8 14-8 18 0'/%3E%3Cpath d='M24 30h20l4 10H28z' opacity='.75'/%3E%3Cpath d='M34 40v18' opacity='.75'/%3E%3C/svg%3E");
+  --tile-phase-bg: url("/project-tiles/bg-construction.webp");
   background: var(--tile-phase-wash);
 }
 
@@ -1200,47 +1200,20 @@ pre {
   overflow: hidden;
 }
 
-/* Blueprint grid */
-.project-tile--design .project-tile-media {
-  background:
-    linear-gradient(180deg, rgba(239, 246, 255, 0.55), rgba(255, 255, 255, 0.2)),
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 14px,
-      rgba(3, 105, 161, 0.05) 14px,
-      rgba(3, 105, 161, 0.05) 15px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 14px,
-      rgba(3, 105, 161, 0.04) 14px,
-      rgba(3, 105, 161, 0.04) 15px
-    ),
-    #f0f9ff;
+/* Design / construction media: generated wallpaper when no cover photo */
+.project-tile--design .project-tile-media,
+.project-tile--construction .project-tile-media {
+  background-color: #f8fafc;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08)),
+    var(--tile-phase-bg);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
-/* Soft masonry / brick bond */
-.project-tile--construction .project-tile-media {
-  background:
-    linear-gradient(180deg, rgba(248, 250, 252, 0.65), rgba(255, 255, 255, 0.25)),
-    repeating-linear-gradient(
-      0deg,
-      transparent 0 18px,
-      rgba(71, 85, 105, 0.07) 18px 19px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent 0 28px,
-      rgba(71, 85, 105, 0.06) 28px 29px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent 0 14px,
-      rgba(71, 85, 105, 0.025) 14px 15px
-    ),
-    #f8fafc;
+.project-tile--design .project-tile-media {
+  background-color: #f0f9ff;
 }
 
 .project-tile-image {
@@ -1265,6 +1238,11 @@ pre {
   letter-spacing: 0.05em;
   padding: 1rem;
   text-align: center;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.12) 100%
+  );
 }
 
 .project-tile-placeholder-icon {
@@ -1293,21 +1271,37 @@ pre {
   isolation: isolate;
 }
 
-/* Quiet tool watermark behind description */
+/* Soft generated wallpaper behind card copy */
 .project-tile-body::before {
   content: "";
   position: absolute;
-  right: -0.15rem;
-  bottom: -0.2rem;
-  width: 7.5rem;
-  height: 7.5rem;
-  background-image: var(--tile-phase-mark);
+  inset: 0;
+  background-image: var(--tile-phase-bg);
   background-repeat: no-repeat;
   background-position: right bottom;
-  background-size: contain;
-  opacity: 0.075;
+  background-size: cover;
+  opacity: 0.34;
   pointer-events: none;
   z-index: 0;
+  -webkit-mask-image: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 28%,
+    rgba(0, 0, 0, 0.55) 62%,
+    #000 100%
+  );
+  mask-image: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 28%,
+    rgba(0, 0, 0, 0.55) 62%,
+    #000 100%
+  );
+}
+
+.project-tile--design .project-tile-body::before,
+.project-tile--construction .project-tile-body::before {
+  opacity: 0.4;
 }
 
 .project-tile-body > * {
