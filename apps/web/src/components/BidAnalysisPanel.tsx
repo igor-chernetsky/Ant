@@ -14,6 +14,8 @@ interface BidAnalysisPanelProps {
   /** Changes when bid amounts/terms update — triggers analysis state refresh. */
   bidsRevision?: string;
   onAnalysisUpdated?: () => void;
+  /** Fired whenever analysis state is loaded, refreshed, or cleared. */
+  onAnalysisStateChange?: (state: BidAnalysisState | null) => void;
 }
 
 export function BidAnalysisPanel({
@@ -21,6 +23,7 @@ export function BidAnalysisPanel({
   submittedBidCount,
   bidsRevision = '',
   onAnalysisUpdated,
+  onAnalysisStateChange,
 }: BidAnalysisPanelProps) {
   const { t } = useTranslation();
   const [state, setState] = useState<BidAnalysisState | null>(null);
@@ -39,16 +42,18 @@ export function BidAnalysisPanel({
       try {
         const data = await fetchBidAnalysis(projectId);
         setState(data);
+        onAnalysisStateChange?.(data);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : t('bidAnalysis.loadFailed'));
         setState(null);
+        onAnalysisStateChange?.(null);
       } finally {
         if (!silent) {
           setLoading(false);
         }
       }
     },
-    [projectId, t],
+    [projectId, t, onAnalysisStateChange],
   );
 
   useEffect(() => {
@@ -62,6 +67,7 @@ export function BidAnalysisPanel({
     try {
       const data = await runBidAnalysis(projectId);
       setState(data);
+      onAnalysisStateChange?.(data);
       onAnalysisUpdated?.();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('bidAnalysis.analyzeFailed'));

@@ -63,6 +63,10 @@ export function BidApplicationCard({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [contract, setContract] = useState<ProjectContract | null>(null);
   const isOpen = expanded;
+
+  useEffect(() => {
+    setExpanded(defaultExpanded);
+  }, [defaultExpanded]);
   const amount = bid.amount != null ? Number(bid.amount) : null;
   const delta =
     amount != null && ballparkMid && ballparkMid > 0

@@ -21,6 +21,7 @@ import {
   isComparableProposalBid,
   selectProjectBid,
   type Bid,
+  type BidAnalysisState,
   type Tender,
 } from '@/lib/tendering';
 import { tenderHasStaleEmptyResponses } from '@/lib/directory-invite-suggest';
@@ -41,7 +42,15 @@ export default function ProjectBidsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [recommendedBidId, setRecommendedBidId] = useState<string | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+
+  const handleAnalysisStateChange = useCallback(
+    (state: BidAnalysisState | null) => {
+      setRecommendedBidId(state?.analysis?.recommendedBidId ?? null);
+    },
+    [],
+  );
 
   const loadData = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -142,6 +151,11 @@ export default function ProjectBidsPage() {
     () => (tender ? tender.bids.filter(isComparableProposalBid) : []),
     [tender],
   );
+
+  const expandAiRecommendedOnly =
+    !tenderAwarded &&
+    Boolean(recommendedBidId) &&
+    displayBids.length > 1;
 
   const bidsRevision = useMemo(() => {
     if (!tender) {
@@ -295,6 +309,7 @@ export default function ProjectBidsPage() {
                             : comparableBids.length
                         }
                         bidsRevision={bidsRevision}
+                        onAnalysisStateChange={handleAnalysisStateChange}
                       />
                       <BidsCompareTable
                         bids={comparableBids}
@@ -324,7 +339,11 @@ export default function ProjectBidsPage() {
                               projectId={projectId}
                               onSelect={handleSelectBid}
                               defaultExpanded={
-                                !tenderAwarded || bid.status === 'selected'
+                                tenderAwarded
+                                  ? bid.status === 'selected'
+                                  : expandAiRecommendedOnly
+                                    ? bid.id === recommendedBidId
+                                    : true
                               }
                               clientCounterOffer={{
                                 projectId,
