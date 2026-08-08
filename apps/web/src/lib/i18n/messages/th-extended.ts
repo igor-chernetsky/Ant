@@ -1205,6 +1205,8 @@ export const thExtended = {
   contractPanel: {
     title: "สัญญา",
     hint: "ตรวจสอบร่างสัญญาและลงนามเพื่อเปิดใช้งานโครงการ",
+    activeHint:
+      "โครงการกำลังดำเนินการ คุณยังสามารถเปิดดูใบสมัครก่อนหน้าและเปรียบเทียบข้อเสนอได้",
     viewApplications: "ดูใบสมัคร",
     loading: "กำลังโหลดสัญญา…",
     commercialProposalToggle: "เงื่อนไขข้อเสนอเชิงพาณิชย์",

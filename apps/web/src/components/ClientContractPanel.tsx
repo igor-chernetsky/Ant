@@ -92,14 +92,23 @@ export function ClientContractPanel({
   return (
     <section className="card client-contract-card">
       <div className="client-contract-header">
-        <h2 className="section-title">{t('contractPanel.title')}</h2>
-        {contract && <ContractSigningStatusPill contract={contract} />}
+        <div className="client-contract-heading">
+          <h2 className="section-title">{t('contractPanel.title')}</h2>
+          {contract && <ContractSigningStatusPill contract={contract} />}
+        </div>
+        <div className="client-contract-header-actions">
+          <Link
+            href={`/projects/${projectId}/bids`}
+            className="primary tender-summary-cta"
+          >
+            {t('tenderCard.reviewBids')}
+          </Link>
+        </div>
       </div>
       <p className="muted client-contract-hint">
-        {t('contractPanel.hint')}{' '}
-        <Link href={`/projects/${projectId}/bids`} className="text-link">
-          {t('contractPanel.viewApplications')}
-        </Link>
+        {project.status === 'active'
+          ? t('contractPanel.activeHint')
+          : t('contractPanel.hint')}
       </p>
 
       {loading ? (

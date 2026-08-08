@@ -1207,6 +1207,8 @@ export const enExtended = {
   contractPanel: {
     title: "Contract",
     hint: "Review the contract draft and sign to activate the project.",
+    activeHint:
+      "The project is active. You can still open past applications and compare bids.",
     viewApplications: "View applications",
     loading: "Loading contract…",
     commercialProposalToggle: "Commercial proposal terms",

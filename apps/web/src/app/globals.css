@@ -7115,6 +7115,21 @@ select:disabled {
   margin-bottom: 0.35rem;
 }
 
+.client-contract-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+  min-width: 0;
+}
+
+.client-contract-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .client-contract-header .section-title {
   margin: 0;
 }
