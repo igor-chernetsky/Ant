@@ -1242,7 +1242,6 @@ export const ruExtended = {
     customPreviewLegacyDocxBody:
       "Скачайте DOCX или замените файл, чтобы получить PDF-превью.",
     customPreviewFrameTitle: "Превью PDF договора",
-    openCustomPreviewTab: "Открыть в новой вкладке",
     customSignaturesTitle: "Подписи",
     customSignaturesHint:
       "Поля для подписей сторон. Нарисованная подпись появится здесь после «Подписать договор».",

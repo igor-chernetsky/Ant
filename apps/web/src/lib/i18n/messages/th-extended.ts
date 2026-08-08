@@ -1239,7 +1239,6 @@ export const thExtended = {
     customPreviewLegacyDocxBody:
       "ดาวน์โหลด DOCX หรือแทนที่ไฟล์เพื่อสร้างตัวอย่าง PDF",
     customPreviewFrameTitle: "ตัวอย่างสัญญา PDF",
-    openCustomPreviewTab: "เปิดในแท็บใหม่",
     customSignaturesTitle: "ลายเซ็น",
     customSignaturesHint:
       "ช่องลายเซ็นของทั้งสองฝ่าย ลายเซ็นที่วาดจะแสดงที่นี่หลังกดลงนามสัญญา",

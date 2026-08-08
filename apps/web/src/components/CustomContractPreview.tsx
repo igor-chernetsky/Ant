@@ -94,6 +94,15 @@ export function CustomContractPreview({
     : `/api/projects/${encodeURIComponent(projectId)}/contract/custom-file/preview`;
 
   const handleDownload = async () => {
+    const pdfOnly =
+      canPreviewPdf &&
+      (!bothFormats ||
+        (formats.length === 1 && formats[0] === 'pdf'));
+    if (pdfOnly) {
+      window.open(previewSrc, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
@@ -228,14 +237,6 @@ export function CustomContractPreview({
                 busyText={t('contractPanel.downloadingCustom')}
               />
             </button>
-            <a
-              className="text-link"
-              href={previewSrc}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('contractPanel.openCustomPreviewTab')}
-            </a>
           </div>
         )}
 

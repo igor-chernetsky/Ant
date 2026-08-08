@@ -263,8 +263,8 @@ export async function downloadCustomContractFile(
     };
     const anchor = document.createElement('a');
     anchor.href = data.downloadUrl;
-    anchor.download = data.originalName || 'contract';
-    anchor.rel = 'noopener';
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();

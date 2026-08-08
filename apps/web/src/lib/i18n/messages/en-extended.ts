@@ -1241,7 +1241,6 @@ export const enExtended = {
     customPreviewLegacyDocxBody:
       "Download the DOCX, or replace the file to generate a PDF preview.",
     customPreviewFrameTitle: "Custom contract PDF preview",
-    openCustomPreviewTab: "Open in new tab",
     customSignaturesTitle: "Signatures",
     customSignaturesHint:
       "Signature boxes for both parties. Drawn signatures appear here after Sign contract.",
