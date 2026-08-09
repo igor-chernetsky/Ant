@@ -12,7 +12,7 @@ function trimOrigin(value: string | undefined): string | null {
 
 /** Canonical site URL (custom domain). */
 const siteUrl =
-  trimOrigin(process.env.NEXT_PUBLIC_APP_URL) || 'https://buildthai.com';
+  trimOrigin(process.env.NEXT_PUBLIC_APP_URL) || 'https://www.builthai.com';
 
 /**
  * Origin used for og/twitter images. Prefer an origin that actually serves
