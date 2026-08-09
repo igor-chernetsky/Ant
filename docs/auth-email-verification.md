@@ -22,26 +22,29 @@ Auto-repair on login **does not** bypass email verification.
 
 Keycloak Admin → **Realm settings** → **Email**
 
-| Field | Example (AWS SES) |
-|-------|-------------------|
-| Host | `email-smtp.eu-central-1.amazonaws.com` |
+| Field | Example (Resend) |
+|-------|------------------|
+| Host | `smtp.resend.com` |
 | Port | `587` |
-| From | `noreply@yourdomain.com` |
+| From | `noreply@buildthai.com` |
 | From display name | `BuilTHAI` |
 | Enable SSL | off |
 | Enable StartTLS | on |
 | Authentication | on |
-| Username | SES SMTP username |
-| Password | SES SMTP password |
+| Username | `resend` |
+| Password | Resend API key (`re_…`) |
 
 Click **Save**, then **Test connection**.
 
-### AWS SES quick path
+### Resend quick path
 
-1. Verify domain or sender email in SES.
-2. Create SMTP credentials (SES console → SMTP settings).
-3. Ensure production access if sending to arbitrary addresses.
-4. Use the regional SMTP endpoint for your bucket/API region.
+1. [Resend](https://resend.com) → **Domains** → Add `buildthai.com`.
+2. Add the DNS records Resend shows (DKIM / SPF / optionally DMARC) in Porkbun.
+3. Wait until the domain is **Verified**.
+4. **API Keys** → create a key; use it as `SMTP_PASSWORD` (username is always `resend`).
+5. Set `SMTP_FROM` to an address on that domain, e.g. `noreply@buildthai.com`.
+
+Same SMTP vars are used by the Nest API (notifications) and the Next.js BFF (signup verification email).
 
 ---
 
@@ -49,8 +52,9 @@ Click **Save**, then **Test connection**.
 
 | Variable | Purpose |
 |----------|---------|
-| `NEXT_PUBLIC_APP_URL` | Redirect after email verification, e.g. `https://ant-eta-seven.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | Redirect after email verification, e.g. `https://buildthai.com` |
 | `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD` | Already required for signup |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | Resend SMTP (see above) |
 | `SKIP_EMAIL_VERIFICATION` | Set to `true` **only** in local dev without SMTP |
 
 Add to Vercel project settings and redeploy.
@@ -73,10 +77,10 @@ Users are created with `emailVerified: true` and signed in immediately (old beha
 
 | Symptom | Fix |
 |---------|-----|
-| Signup: *verification email could not be sent* | Configure Keycloak SMTP; test connection in Admin |
+| Signup: *verification email could not be sent* | Configure Keycloak SMTP **or** Vercel SMTP vars for app-sent verification; test connection |
 | Login: *Verify your email* | User must click the link in the email |
-| Email not received | Check spam; SES sandbox; From address verified |
-| Link opens wrong site | Set `NEXT_PUBLIC_APP_URL` on Vercel |
+| Email not received | Check spam; Resend dashboard logs; domain must be Verified; From must match domain |
+| Link opens wrong site | Set `NEXT_PUBLIC_APP_URL` / `WEB_APP_URL` to `https://buildthai.com` |
 
 ---
 
