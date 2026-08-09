@@ -5,13 +5,32 @@ import { NotificationToasts } from '@/components/NotificationToasts';
 import { SessionProvider } from '@/components/SessionProvider';
 import './globals.css';
 
+function trimOrigin(value: string | undefined): string | null {
+  const trimmed = value?.trim().replace(/\/$/, '');
+  return trimmed || null;
+}
+
+/** Canonical site URL (custom domain). */
 const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ||
-  'https://buildthai.com';
+  trimOrigin(process.env.NEXT_PUBLIC_APP_URL) || 'https://buildthai.com';
+
+/**
+ * Origin used for og/twitter images. Prefer an origin that actually serves
+ * `/og.png` today (Vercel deployment). Custom domain can lag or point elsewhere
+ * while DNS is being moved.
+ */
+const ogAssetOrigin =
+  trimOrigin(process.env.NEXT_PUBLIC_OG_ASSET_ORIGIN) ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/^https?:\/\//, '')}`
+    : null) ||
+  siteUrl;
 
 const title = 'BuilTHAI — Construction Marketplace';
 const description =
   'AI-powered construction platform: browse projects, compare bids, and manage contracts in Thailand.';
+
+const ogImageUrl = `${ogAssetOrigin}/og.png`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -30,7 +49,7 @@ export const metadata: Metadata = {
     description,
     images: [
       {
-        url: '/og.png',
+        url: ogImageUrl,
         width: 1200,
         height: 630,
         alt: 'BuilTHAI — AI-powered construction platform',
@@ -41,7 +60,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title,
     description,
-    images: ['/og.png'],
+    images: [ogImageUrl],
   },
 };
 
