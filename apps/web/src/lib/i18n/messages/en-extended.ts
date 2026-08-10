@@ -154,6 +154,8 @@ export const enExtended = {
     readyPercent: "{n}% ready",
     ballparkMidpoint: "Ballpark midpoint",
     designBallparkMidpoint: "Design ballpark midpoint",
+    ballparkExcludesAdjustments:
+      "Works only — excludes preliminary, overhead & profit, and VAT.",
     scopeTags: "Scope tags",
     scopeTagsAria: "Project scope tags",
     tagSelectedDuringIntake: "Selected during intake",
@@ -501,6 +503,18 @@ export const enExtended = {
     errorGeneric: "Something went wrong while verifying your email.",
   },
   bid: {
+    worksTotalThb: "Works total (THB)",
+    grandTotalThb: "Grand total (incl. VAT)",
+    grandTotalHint: "Calculated automatically from works total and adjustments below.",
+    costAdjustmentsTitle: "Price adjustments",
+    costAdjustmentsHint:
+      "Preliminary and overhead & profit are calculated from the works total. VAT applies to works plus those adjustments.",
+    preliminaryPercent: "Preliminary (%)",
+    overheadProfitPercent: "Overhead & profit (%)",
+    vatPercent: "VAT (%)",
+    preliminaryAmount: "Preliminary ({percent}%)",
+    overheadProfitAmount: "Overhead & profit ({percent}%)",
+    vatAmount: "VAT ({percent}%)",
     totalThb: "Total (THB)",
     durationDays: "Duration (days)",
     scopeOfWorks: "Scope of works",
@@ -545,6 +559,8 @@ export const enExtended = {
     sendMessageFailed: "Failed to send message",
     errors: {
       invalidAmount: "Enter a valid total amount",
+      invalidWorksTotal: "Enter a valid works total",
+      invalidPercent: "Percentages must be between 0 and 100",
       durationMin: "Duration must be at least 1 day",
       tradeRequired: "Each cost line needs a trade",
       breakdownMismatch: "Breakdown subtotal does not match the total. Please check your calculations.",
@@ -616,12 +632,26 @@ export const enExtended = {
       developerConsentValue: "The Employer has written consent from the developer or juristic person to commission the Works on the Site.",
     },
     retentionReleaseOptions: {
-      standard5050Label: "50% on TOC, 50% after 12 months",
-      standard5050Value: "5% on Taking-Over Certificate; 5% after 12 months from Practical Completion.",
-      singleReleaseLabel: "Full release after 12 months",
-      singleReleaseValue: "Full retention released 12 months after Practical Completion, subject to defect rectification.",
-      onCompletionLabel: "Release on Practical Completion",
-      onCompletionValue: "Retention released upon Practical Completion, subject to final account and defect rectification.",
+      standard5050Label: "50% on works handover, 50% 12 months after handover",
+      standard5050Value:
+        "5% on Taking-Over Certificate upon works handover; 5% after 12 months from Practical Completion, subject to defect rectification.",
+      singleReleaseLabel: "Full release 12 months after works handover",
+      singleReleaseValue:
+        "Full retention released 12 months after Practical Completion (works handover), subject to defect rectification.",
+      onCompletionLabel: "Release on works handover",
+      onCompletionValue:
+        "Retention released upon Practical Completion (works handover), subject to final account and defect rectification.",
+    },
+    designRetentionReleaseOptions: {
+      standard5050Label: "50% on design handover, 50% 12 months after handover",
+      standard5050Value:
+        "50% upon acceptance of the relevant design documentation sections (design handover); 50% after 12 months from final design handover, subject to correction of documented defects.",
+      singleReleaseLabel: "Full release 12 months after design handover",
+      singleReleaseValue:
+        "Full retention released 12 months after acceptance of the final design documentation sections (design handover), subject to correction of documented defects.",
+      onCompletionLabel: "Release on design handover",
+      onCompletionValue:
+        "Retention released upon acceptance of the final design documentation sections (design handover), subject to final account and correction of documented defects.",
     },
     warrantyPeriodOptions: {
       defectNotificationLabel: "Standard defect notification ({months} months)",
@@ -990,6 +1020,17 @@ export const enExtended = {
     lowConfidenceTitle: "Very approximate estimate",
     lowConfidenceHint:
       "Confidence is under 60%. Treat this ballpark as a rough guide only — create a tender to get real prices from contractors.",
+    removeLineAria: "Remove this line from the ballpark",
+    addLineTitle: "Add missing work",
+    addLineHint:
+      "Pick a trade from the list. The system prices it from regional reference rates and updates the ballpark total.",
+    addLineTrade: "Trade",
+    addLineTradePlaceholder: "Select trade…",
+    addLineDescription: "Description (optional)",
+    addLineDescriptionPlaceholder: "Optional scope note",
+    addLineButton: "Add line",
+    adjustFailed: "Could not update the ballpark estimate",
+    tradeAlreadyAdded: "This trade is already in the estimate",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
@@ -1111,10 +1152,10 @@ export const enExtended = {
   },
   bidCompare: {
     title: "Compare bids",
-    hint: "Select up to 4 contractors to compare side by side.",
+    hint: "Select up to 4 contractors to compare side by side. Ballpark comparison uses works total only.",
     pickerAria: "Bids to compare",
     metric: "Metric",
-    total: "Total",
+    total: "Grand total (incl. VAT)",
     duration: "Duration",
     vsBallpark: "vs ballpark",
     scope: "Scope",

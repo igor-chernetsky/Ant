@@ -5338,6 +5338,43 @@ pre {
   color: var(--text);
 }
 
+.estimate-line-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.estimate-line-remove {
+  flex-shrink: 0;
+}
+
+.estimate-lines-add {
+  margin: 0 0 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.estimate-lines-add-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.estimate-lines-add-row {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .estimate-lines-add-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+    align-items: end;
+  }
+}
+
+.estimate-lines-error {
+  margin: 0 0 1rem;
+}
+
 .estimate-disclaimer {
   font-size: 0.85rem;
   margin: 0;
@@ -7885,6 +7922,97 @@ select:disabled {
 .bid-line-items-total {
   margin: 0.5rem 0 0;
   font-size: 0.9rem;
+}
+
+.bid-cost-adjustments-works {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  max-width: 16rem;
+}
+
+.bid-proposal-field--grand-total .bid-grand-total-output {
+  display: block;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted, rgba(0, 0, 0, 0.03));
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-height: 2.5rem;
+}
+
+.bid-cost-adjustments {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted, rgba(0, 0, 0, 0.02));
+}
+
+.bid-cost-adjustments-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.bid-cost-adjustments-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .bid-cost-adjustments-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bid-cost-adjustments-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.bid-pricing-summary {
+  margin: 0.85rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.bid-pricing-summary > div,
+.bid-pricing-summary--readonly li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.bid-pricing-summary dt,
+.bid-pricing-summary--readonly li > span:first-child {
+  margin: 0;
+  color: var(--muted);
+}
+
+.bid-pricing-summary dd,
+.bid-pricing-summary--readonly li > span:last-child {
+  margin: 0;
+  font-weight: 600;
+}
+
+.bid-pricing-summary-grand dt,
+.bid-pricing-summary-grand dd,
+.bid-pricing-summary--readonly .bid-pricing-summary-grand > span {
+  font-weight: 700;
+  color: inherit;
+}
+
+.bid-pricing-summary--readonly {
+  list-style: none;
+  padding: 0;
 }
 
 .bid-proposal-total-error {

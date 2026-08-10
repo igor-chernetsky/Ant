@@ -79,6 +79,11 @@ export function ProjectHeroSidebar({
             </span>
           </p>
         )}
+        {typeof estimateMidAmountThb === 'number' && estimateMidAmountThb > 0 && (
+          <p className="project-hero-meta muted project-hero-ballpark-note">
+            {t('projectHero.ballparkExcludesAdjustments')}
+          </p>
+        )}
       </div>
       {showTags && tags.length > 0 && (
         <div className="project-hero-tags">

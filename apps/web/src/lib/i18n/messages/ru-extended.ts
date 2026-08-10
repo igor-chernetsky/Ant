@@ -154,6 +154,8 @@ export const ruExtended = {
     readyPercent: "Готовность {n}%",
     ballparkMidpoint: "Средняя оценка",
     designBallparkMidpoint: "Средняя оценка проектирования",
+    ballparkExcludesAdjustments:
+      "Только работы — без preliminary, overhead & profit и НДС.",
     scopeTags: "Теги объёма",
     scopeTagsAria: "Теги объёма проекта",
     tagSelectedDuringIntake: "Выбрано при создании",
@@ -502,6 +504,18 @@ export const ruExtended = {
     errorGeneric: "Что-то пошло не так при подтверждении email.",
   },
   bid: {
+    worksTotalThb: "Стоимость работ (THB)",
+    grandTotalThb: "Итого с НДС",
+    grandTotalHint: "Считается автоматически из стоимости работ и надбавок ниже.",
+    costAdjustmentsTitle: "Корректировки цены",
+    costAdjustmentsHint:
+      "Preliminary и overhead & profit считаются от стоимости работ. НДС начисляется на работы плюс эти надбавки.",
+    preliminaryPercent: "Preliminary (%)",
+    overheadProfitPercent: "Overhead & profit (%)",
+    vatPercent: "НДС (%)",
+    preliminaryAmount: "Preliminary ({percent}%)",
+    overheadProfitAmount: "Overhead & profit ({percent}%)",
+    vatAmount: "НДС ({percent}%)",
     totalThb: "Итого (THB)",
     durationDays: "Срок (дней)",
     scopeOfWorks: "Объём работ",
@@ -546,6 +560,8 @@ export const ruExtended = {
     sendMessageFailed: "Не удалось отправить сообщение",
     errors: {
       invalidAmount: "Введите корректную общую сумму",
+      invalidWorksTotal: "Введите корректную стоимость работ",
+      invalidPercent: "Проценты должны быть от 0 до 100",
       durationMin: "Срок должен быть не менее 1 дня",
       tradeRequired: "Для каждой строки нужен вид работ",
       breakdownMismatch: "Промежуточный итог не совпадает с общей суммой. Проверьте расчёты.",
@@ -617,12 +633,26 @@ export const ruExtended = {
       developerConsentValue: "Заказчик имеет письменное согласие застройщика или юридического лица на выполнение работ на объекте.",
     },
     retentionReleaseOptions: {
-      standard5050Label: "50% при приёмке, 50% через 12 мес.",
-      standard5050Value: "5% по акту приёмки; 5% через 12 месяцев после практической сдачи.",
-      singleReleaseLabel: "Полный возврат через 12 мес.",
-      singleReleaseValue: "Полное удержание возвращается через 12 месяцев после практической сдачи при условии устранения дефектов.",
-      onCompletionLabel: "Возврат при сдаче объекта",
-      onCompletionValue: "Удержание возвращается при практической сдаче с учётом окончательного расчёта и устранения дефектов.",
+      standard5050Label: "50% при сдаче работ, 50% через 12 мес. после сдачи",
+      standard5050Value:
+        "5% по Taking-Over Certificate при сдаче работ; 5% через 12 месяцев после Practical Completion (сдачи работ), при условии устранения дефектов.",
+      singleReleaseLabel: "Полный возврат через 12 мес. после сдачи работ",
+      singleReleaseValue:
+        "Полное удержание возвращается через 12 месяцев после Practical Completion (сдачи работ), при условии устранения дефектов.",
+      onCompletionLabel: "Возврат при сдаче работ",
+      onCompletionValue:
+        "Удержание возвращается при Practical Completion (сдаче работ) с учётом окончательного расчёта и устранения дефектов.",
+    },
+    designRetentionReleaseOptions: {
+      standard5050Label: "50% при сдаче проекта, 50% через 12 мес. после сдачи",
+      standard5050Value:
+        "50% при приёмке соответствующих разделов проектной документации (сдача проекта); 50% через 12 месяцев после финальной сдачи проекта, при условии устранения дефектов документации.",
+      singleReleaseLabel: "Полный возврат через 12 мес. после сдачи проекта",
+      singleReleaseValue:
+        "Полное удержание возвращается через 12 месяцев после приёмки финальных разделов проектной документации (сдача проекта), при условии устранения дефектов документации.",
+      onCompletionLabel: "Возврат при сдаче проекта",
+      onCompletionValue:
+        "Удержание возвращается при приёмке финальных разделов проектной документации (сдача проекта) с учётом окончательного расчёта и устранения дефектов документации.",
     },
     warrantyPeriodOptions: {
       defectNotificationLabel: "Стандартный срок уведомления ({months} мес.)",
@@ -991,6 +1021,17 @@ export const ruExtended = {
     lowConfidenceTitle: "Очень приблизительная оценка",
     lowConfidenceHint:
       "Уверенность ниже 60%. Считайте эту сумму лишь ориентиром — создайте тендер, чтобы получить реальные оценки от исполнителей.",
+    removeLineAria: "Убрать эту строку из ballpark",
+    addLineTitle: "Добавить пропущенные работы",
+    addLineHint:
+      "Выберите trade из списка. Система оценит его по региональным ориентирам и обновит итог.",
+    addLineTrade: "Trade",
+    addLineTradePlaceholder: "Выберите trade…",
+    addLineDescription: "Описание (необязательно)",
+    addLineDescriptionPlaceholder: "Необязательное примечание к объёму",
+    addLineButton: "Добавить строку",
+    adjustFailed: "Не удалось обновить ballpark",
+    tradeAlreadyAdded: "Этот trade уже есть в оценке",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
@@ -1112,10 +1153,10 @@ export const ruExtended = {
   },
   bidCompare: {
     title: "Сравнение ставок",
-    hint: "Выберите до 4 подрядчиков для сравнения.",
+    hint: "Выберите до 4 подрядчиков для сравнения. Сравнение с оценкой — только по стоимости работ.",
     pickerAria: "Ставки для сравнения",
     metric: "Показатель",
-    total: "Итого",
+    total: "Итого с НДС",
     duration: "Срок",
     vsBallpark: "к оценке",
     scope: "Объём",

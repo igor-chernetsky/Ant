@@ -37,6 +37,25 @@ export interface BidContractTerms {
   specialConditions?: string;
 }
 
+/** Stored cost adjustment breakdown (percentages + computed THB amounts). */
+export interface BidCostAdjustments {
+  preliminaryPercent: number;
+  overheadProfitPercent: number;
+  vatPercent: number;
+  worksSubtotal: number;
+  preliminaryAmount: number;
+  overheadProfitAmount: number;
+  vatAmount: number;
+}
+
+/** Client payload for cost adjustment percentages (+ works when no BOQ). */
+export interface BidCostAdjustmentsInput {
+  preliminaryPercent: number;
+  overheadProfitPercent: number;
+  vatPercent: number;
+  worksSubtotal?: number;
+}
+
 /** Stored in Bid.termsJson — versioned payload for contractor proposals */
 export interface BidTermsV1 {
   /** Short comment visible to the client (conditions, assumptions) */
@@ -46,6 +65,8 @@ export interface BidTermsV1 {
   /** Optional high-level scope summary */
   scopeSummary?: string;
   lineItems?: BidLineItem[];
+  /** Preliminary, overhead & profit, and VAT breakdown. */
+  costAdjustments?: BidCostAdjustments;
   /** Commercial proposal document fields for PDF/HTML generation */
   contractTerms?: BidContractTerms;
   /**
@@ -166,6 +187,7 @@ export interface SubmitCounterOfferDto {
   approach?: string;
   scopeSummary?: string;
   lineItems?: BidLineItem[];
+  costAdjustments?: BidCostAdjustmentsInput;
   /** When true, send the same counter-offer to all submitted bids without a client counter-offer yet. */
   applyToAllPending?: boolean;
 }
@@ -262,6 +284,7 @@ export interface SubmitBidDto {
   approach?: string;
   scopeSummary?: string;
   lineItems?: BidLineItem[];
+  costAdjustments?: BidCostAdjustmentsInput;
   contractTerms?: BidContractTerms;
 }
 

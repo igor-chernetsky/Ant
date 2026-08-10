@@ -20,7 +20,8 @@ import {
   MAX_BID_SCOPE_LENGTH,
   SubmitCounterOfferDto,
 } from './tendering.types';
-import { assertBreakdownMatchesTotal } from './bid-breakdown.util';
+import { assertBidPricing } from './bid-breakdown.util';
+import { buildStoredCostAdjustments } from './bid-cost-adjustments.util';
 
 const MAX_BULK_COUNTER_OFFERS = 30;
 
@@ -109,6 +110,18 @@ export class BidOffersService {
       approach: approach || undefined,
       scopeSummary: scopeSummary || undefined,
       lineItems: lineItems?.length ? lineItems : undefined,
+      costAdjustments: dto.costAdjustments
+        ? buildStoredCostAdjustments({
+            ...dto.costAdjustments,
+            worksSubtotal:
+              lineItems?.length
+                ? lineItems.reduce(
+                    (sum, item) => sum + (Number(item.amount) || 0),
+                    0,
+                  )
+                : Number(dto.costAdjustments.worksSubtotal),
+          })
+        : undefined,
     };
   }
 
@@ -176,7 +189,7 @@ export class BidOffersService {
     }
 
     const terms = this.buildTerms(dto);
-    assertBreakdownMatchesTotal(dto.amount, terms.lineItems);
+    assertBidPricing(dto.amount, terms.lineItems, dto.costAdjustments);
 
     const targetBidIds = dto.applyToAllPending
       ? await this.findPendingCounterOfferBidIds(clientId, projectId)

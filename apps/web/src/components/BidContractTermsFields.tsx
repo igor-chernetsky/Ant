@@ -70,8 +70,8 @@ export function BidContractTermsFields({
     [t],
   );
   const retentionReleaseOptions = useMemo(
-    () => buildRetentionReleaseOptions(t),
-    [t],
+    () => buildRetentionReleaseOptions(t, isDesign),
+    [t, isDesign],
   );
   const warrantyPeriodOptions = useMemo(
     () => buildWarrantyPeriodOptions(t, warrantyMonths),

@@ -1,4 +1,6 @@
 /** Legal / contract fields for the downloadable commercial proposal document. */
+import type { BidCostAdjustments } from './tendering.types';
+
 export interface BidContractTerms {
   /** Subject of contract — scope definition (Clause 1). */
   subjectOfContract?: string;
@@ -70,6 +72,7 @@ export interface CommercialProposalRenderData {
   hasSpecialConditions: boolean;
   boqTableHtml: string;
   hasBoq: boolean;
+  costAdjustments?: BidCostAdjustments | null;
   annex2Html: string;
   hasAnnex2Documents: boolean;
   annex3Html: string;

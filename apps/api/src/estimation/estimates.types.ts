@@ -47,4 +47,18 @@ export interface EstimateResponse {
   improvementQuestions: string[];
   refinementAnswers: EstimateRefinementAnswer[];
   createdAt: string;
+  /** Client exclusions/additions applied to the latest AI estimate. */
+  adjustments?: EstimateAdjustmentsView;
+  availableTrades?: Array<{ trade: string; label: string }>;
+  editable?: boolean;
+}
+
+export interface EstimateAdjustmentsView {
+  excludedLines: Array<{ trade: string; description: string }>;
+  addedLines: Array<{ trade: string; description: string }>;
+}
+
+export interface UpdateEstimateAdjustmentsDto {
+  excludedLines: Array<{ trade: string; description: string }>;
+  addedLines: Array<{ trade: string; description?: string }>;
 }

@@ -40,7 +40,10 @@ import {
 } from './contract-terms.defaults';
 import { normalizeContractTerms } from './commercial-proposal.template';
 import { ContractsService } from './contracts.service';
-import { assertBreakdownMatchesTotal } from './bid-breakdown.util';
+import { assertBidPricing } from './bid-breakdown.util';
+import {
+  buildStoredCostAdjustments,
+} from './bid-cost-adjustments.util';
 import {
   isApplicationsDeadlinePassed,
   resolveApplicationsCloseAt,
@@ -697,7 +700,10 @@ export class TendersService {
     if (!tender) {
       await this.prisma.project.update({
         where: { id: projectId },
-        data: { status: ProjectStatus.estimated },
+        data: {
+          status: ProjectStatus.estimated,
+          estimateAdjustmentsJson: Prisma.DbNull,
+        },
       });
       return;
     }
@@ -721,7 +727,10 @@ export class TendersService {
       await tx.tender.delete({ where: { id: tender.id } });
       await tx.project.update({
         where: { id: projectId },
-        data: { status: ProjectStatus.estimated },
+        data: {
+          status: ProjectStatus.estimated,
+          estimateAdjustmentsJson: Prisma.DbNull,
+        },
       });
     });
   }
@@ -1499,6 +1508,18 @@ export class TendersService {
       approach: approach || undefined,
       scopeSummary: scopeSummary || undefined,
       lineItems: lineItems?.length ? lineItems : undefined,
+      costAdjustments: dto.costAdjustments
+        ? buildStoredCostAdjustments({
+            ...dto.costAdjustments,
+            worksSubtotal:
+              lineItems?.length
+                ? lineItems.reduce(
+                    (sum, item) => sum + (Number(item.amount) || 0),
+                    0,
+                  )
+                : Number(dto.costAdjustments.worksSubtotal),
+          })
+        : undefined,
       contractTerms: this.normalizeAndValidateContractTerms(dto.contractTerms),
     };
   }
@@ -1759,7 +1780,7 @@ export class TendersService {
       },
       existingTerms,
     );
-    assertBreakdownMatchesTotal(dto.amount, terms.lineItems);
+    assertBidPricing(dto.amount, terms.lineItems, dto.costAdjustments);
 
     const bid = await this.prisma.$transaction(async (tx) => {
       const nextBid = await tx.bid.update({

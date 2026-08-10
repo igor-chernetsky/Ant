@@ -5,6 +5,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProjectBriefV1 } from '../projects/project-brief';
 import { EstimateLine } from '../estimation/estimates.types';
 import {
+  applyEstimateAdjustments,
+  parseEstimateAdjustments,
+  priceCatalogEstimateLine,
+} from '../estimation/estimate-adjustments.util';
+import {
   DefaultCostBreakdownItem,
   MAX_DEFAULT_COST_BREAKDOWN_ITEMS,
 } from './tendering.types';
@@ -138,19 +143,53 @@ export class DefaultCostBreakdownService {
   private async itemsFromLatestEstimate(
     projectId: string,
   ): Promise<DefaultCostBreakdownItem[]> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        title: true,
+        description: true,
+        briefJson: true,
+        projectType: true,
+        designFeePercent: true,
+        estimateAdjustmentsJson: true,
+      },
+    });
     const estimate = await this.prisma.estimate.findFirst({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
       select: { linesJson: true },
     });
-    if (!estimate) {
+    if (!estimate || !project) {
       return [];
     }
-    const lines = (estimate.linesJson as EstimateLine[] | null) ?? [];
-    if (lines.length === 0) {
+    const baseLines = (estimate.linesJson as EstimateLine[] | null) ?? [];
+    if (baseLines.length === 0) {
       return [];
     }
-    return this.normalizeItems(this.itemsFromEstimateLines(lines));
+    const adjustments = parseEstimateAdjustments(project.estimateAdjustmentsJson);
+    const brief = (project.briefJson as ProjectBriefV1 | null) ?? {
+      schemaVersion: 1,
+    };
+    const narrative = [project.title, project.description ?? ''].join('\n');
+    const pricedAddedLines = adjustments.addedLines
+      .map((ref) =>
+        priceCatalogEstimateLine({
+          trade: ref.trade,
+          description: ref.description,
+          brief,
+          narrative,
+        }),
+      )
+      .filter((line): line is EstimateLine => line != null);
+    const effective = applyEstimateAdjustments({
+      lines: baseLines,
+      adjustments: { ...adjustments, pricedAddedLines },
+      brief,
+      narrative,
+      designFeePercent: project.designFeePercent,
+      isDesignProject: project.projectType === 'design',
+    });
+    return this.normalizeItems(this.itemsFromEstimateLines(effective.lines));
   }
 
   private itemsFromEstimateLines(

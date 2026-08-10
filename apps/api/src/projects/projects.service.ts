@@ -1327,10 +1327,13 @@ export class ProjectsService {
     const response = this.toResponse(
       project,
       estimate
-        ? this.estimatesService.toResponse(
-            estimate,
-            this.estimatesService.refinementAnswersFrom(
-              project.estimateRefinementQaJson,
+        ? this.estimatesService.presentForProject(
+            project,
+            this.estimatesService.toResponse(
+              estimate,
+              this.estimatesService.refinementAnswersFrom(
+                project.estimateRefinementQaJson,
+              ),
             ),
           )
         : null,

@@ -337,6 +337,7 @@ model Project {
   designFeePercent     Float?           @map("design_fee_percent")
   baseConstructionTotalsJson Json?      @map("base_construction_totals_json")
   estimateRefinementQaJson Json?        @map("estimate_refinement_qa_json")
+  estimateAdjustmentsJson Json?       @map("estimate_adjustments_json")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
   tags           ProjectTag[]

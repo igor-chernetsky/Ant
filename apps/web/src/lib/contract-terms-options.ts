@@ -165,34 +165,89 @@ export function buildPropertyOwnershipOptions(
   ];
 }
 
+type RetentionReleaseOptionKey =
+  | 'standard5050Label'
+  | 'standard5050Value'
+  | 'singleReleaseLabel'
+  | 'singleReleaseValue'
+  | 'onCompletionLabel'
+  | 'onCompletionValue';
+
+const LEGACY_CONSTRUCTION_RETENTION_ALIASES: Record<
+  'standard5050' | 'singleRelease' | 'onCompletion',
+  string[]
+> = {
+  standard5050: [
+    '5% on Taking-Over Certificate; 5% after 12 months from Practical Completion.',
+    '5% по акту приёмки; 5% через 12 месяцев после практической сдачи.',
+    '5% เมื่อออกใบรับมอบงาน; 5% หลัง 12 เดือนนับจากวันส่งมอบใช้งานจริง',
+  ],
+  singleRelease: [
+    'Full retention released 12 months after Practical Completion, subject to defect rectification.',
+    'Полное удержание возвращается через 12 месяцев после практической сдачи при условии устранения дефектов.',
+    'คืนเงินประกันทั้งหมดภายใน 12 เดือนหลังส่งมอบใช้งานจริง โดยมีเงื่อนไขการแก้ไขข้อบกพร่อง',
+  ],
+  onCompletion: [
+    'Retention released upon Practical Completion, subject to final account and defect rectification.',
+    'Удержание возвращается при практической сдаче с учётом окончательного расчёта и устранения дефектов.',
+    'คืนเงินประกันเมื่อส่งมอบใช้งานจริง โดยมีเงื่อนไขการชำระบัญชีสุดท้ายและแก้ไขข้อบกพร่อง',
+  ],
+};
+
+function pickRetentionReleaseOptions(isDesign: boolean) {
+  return (contractTerms: Messages['contractTerms']) =>
+    isDesign
+      ? contractTerms.designRetentionReleaseOptions
+      : contractTerms.retentionReleaseOptions;
+}
+
+function pickRetentionReleaseKey(
+  isDesign: boolean,
+  key: RetentionReleaseOptionKey,
+) {
+  return (contractTerms: Messages['contractTerms']) =>
+    pickRetentionReleaseOptions(isDesign)(contractTerms)[key];
+}
+
 export function buildRetentionReleaseOptions(
   t: TranslateFn,
+  isDesign = false,
 ): ContractTermsTextOption[] {
+  const prefix = isDesign ? 'designRetentionReleaseOptions' : 'retentionReleaseOptions';
   return [
     {
       id: 'standard5050',
-      label: t('contractTerms.retentionReleaseOptions.standard5050Label'),
-      value: t('contractTerms.retentionReleaseOptions.standard5050Value'),
+      label: t(`contractTerms.${prefix}.standard5050Label`),
+      value: t(`contractTerms.${prefix}.standard5050Value`),
       aliases: optionValuesAcrossLocales(
-        (ct) => ct.retentionReleaseOptions.standard5050Value,
+        pickRetentionReleaseKey(isDesign, 'standard5050Value'),
         undefined,
-        [DEFAULT_RETENTION_RELEASE_NOTES],
+        isDesign
+          ? []
+          : [
+              ...LEGACY_CONSTRUCTION_RETENTION_ALIASES.standard5050,
+              DEFAULT_RETENTION_RELEASE_NOTES,
+            ],
       ),
     },
     {
       id: 'singleRelease',
-      label: t('contractTerms.retentionReleaseOptions.singleReleaseLabel'),
-      value: t('contractTerms.retentionReleaseOptions.singleReleaseValue'),
+      label: t(`contractTerms.${prefix}.singleReleaseLabel`),
+      value: t(`contractTerms.${prefix}.singleReleaseValue`),
       aliases: optionValuesAcrossLocales(
-        (ct) => ct.retentionReleaseOptions.singleReleaseValue,
+        pickRetentionReleaseKey(isDesign, 'singleReleaseValue'),
+        undefined,
+        isDesign ? [] : LEGACY_CONSTRUCTION_RETENTION_ALIASES.singleRelease,
       ),
     },
     {
       id: 'onCompletion',
-      label: t('contractTerms.retentionReleaseOptions.onCompletionLabel'),
-      value: t('contractTerms.retentionReleaseOptions.onCompletionValue'),
+      label: t(`contractTerms.${prefix}.onCompletionLabel`),
+      value: t(`contractTerms.${prefix}.onCompletionValue`),
       aliases: optionValuesAcrossLocales(
-        (ct) => ct.retentionReleaseOptions.onCompletionValue,
+        pickRetentionReleaseKey(isDesign, 'onCompletionValue'),
+        undefined,
+        isDesign ? [] : LEGACY_CONSTRUCTION_RETENTION_ALIASES.onCompletion,
       ),
     },
   ];

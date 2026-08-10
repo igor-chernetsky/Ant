@@ -36,6 +36,12 @@ export interface BallparkEstimate {
   improvementQuestions?: string[];
   refinementAnswers?: EstimateRefinementAnswer[];
   createdAt: string;
+  adjustments?: {
+    excludedLines: Array<{ trade: string; description: string }>;
+    addedLines: Array<{ trade: string; description: string }>;
+  };
+  availableTrades?: Array<{ trade: string; label: string }>;
+  editable?: boolean;
 }
 
 export function formatThb(amount: number): string {
@@ -106,6 +112,35 @@ export async function refineProjectEstimate(
       ? body.message.join(', ')
       : body?.message;
     throw new Error(message ?? 'Failed to refine estimate');
+  }
+
+  return (await response.json()) as BallparkEstimate;
+}
+
+export async function updateProjectEstimateAdjustments(
+  projectId: string,
+  input: {
+    excludedLines: Array<{ trade: string; description: string }>;
+    addedLines: Array<{ trade: string; description?: string }>;
+  },
+): Promise<BallparkEstimate> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/estimate/adjustments`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string | string[];
+    } | null;
+    const message = Array.isArray(body?.message)
+      ? body.message.join(', ')
+      : body?.message;
+    throw new Error(message ?? 'Failed to update estimate');
   }
 
   return (await response.json()) as BallparkEstimate;

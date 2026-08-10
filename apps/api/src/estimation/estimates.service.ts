@@ -11,17 +11,34 @@ import { ProjectBriefV1 } from '../projects/project-brief';
 import { buildDesignFeeEstimate } from '../projects/design-fee-estimate';
 import { BallparkEstimateService } from './ballpark-estimate.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
-import { filterImprovementQuestionsAgainstAnswers } from './estimate-scope.utils';
+import {
+  ALLOWED_ESTIMATE_TRADES,
+  filterImprovementQuestionsAgainstAnswers,
+} from './estimate-scope.utils';
 import { adjustEstimateConfidence } from './estimate-confidence';
+import {
+  applyEstimateAdjustments,
+  catalogTradesForPicker,
+  emptyEstimateAdjustments,
+  mergeEstimateAdjustments,
+  parseEstimateAdjustments,
+  priceCatalogEstimateLine,
+} from './estimate-adjustments.util';
 import {
   EstimateLine,
   EstimateMeta,
   EstimateRefinementAnswer,
   EstimateResponse,
   EstimateTotals,
+  UpdateEstimateAdjustmentsDto,
 } from './estimates.types';
 
 const REFINE_ALLOWED_STATUSES: ProjectStatus[] = [
+  ProjectStatus.ready_for_estimate,
+  ProjectStatus.estimated,
+];
+
+const ADJUST_ALLOWED_STATUSES: ProjectStatus[] = [
   ProjectStatus.ready_for_estimate,
   ProjectStatus.estimated,
 ];
@@ -132,13 +149,173 @@ export class EstimatesService {
     });
 
     const response = estimate
-      ? this.toResponse(
-          estimate,
-          parseRefinementQa(project.estimateRefinementQaJson),
+      ? this.presentForProject(
+          project,
+          this.toResponse(
+            estimate,
+            parseRefinementQa(project.estimateRefinementQaJson),
+          ),
         )
       : null;
 
     return this.applyViewerLocale(project, response, viewerLocale);
+  }
+
+  presentForProject(
+    project: {
+      id: string;
+      status: ProjectStatus;
+      projectType: ProjectType;
+      title: string;
+      description: string | null;
+      briefJson: unknown;
+      estimateAdjustmentsJson: unknown;
+      designFeePercent: number | null;
+    },
+    response: EstimateResponse,
+  ): EstimateResponse {
+    const adjustments = parseEstimateAdjustments(project.estimateAdjustmentsJson);
+    const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
+    const narrative = [project.title, project.description ?? ''].join('\n');
+    const pricedAddedLines = adjustments.addedLines
+      .map((ref) =>
+        priceCatalogEstimateLine({
+          trade: ref.trade,
+          description: ref.description,
+          brief,
+          narrative,
+        }),
+      )
+      .filter((line): line is EstimateLine => line != null);
+
+    const effective = applyEstimateAdjustments({
+      lines: response.lines,
+      adjustments: {
+        ...adjustments,
+        pricedAddedLines,
+      },
+      brief,
+      narrative,
+      designFeePercent: project.designFeePercent,
+      isDesignProject: project.projectType === ProjectType.design,
+    });
+
+    const editable = ADJUST_ALLOWED_STATUSES.includes(project.status);
+    return {
+      ...response,
+      lines: effective.lines,
+      totals: effective.totals,
+      adjustments: {
+        excludedLines: adjustments.excludedLines,
+        addedLines: adjustments.addedLines.map((line) => ({
+          trade: line.trade,
+          description: line.description,
+        })),
+      },
+      availableTrades: editable ? catalogTradesForPicker() : undefined,
+      editable,
+    };
+  }
+
+  async updateAdjustments(
+    clientId: string,
+    projectId: string,
+    dto: UpdateEstimateAdjustmentsDto,
+    viewerLocale?: import('../users/locale.types').SupportedLocale,
+  ): Promise<EstimateResponse> {
+    const project = await this.assertProjectOwner(projectId, clientId);
+    if (!ADJUST_ALLOWED_STATUSES.includes(project.status)) {
+      throw new BadRequestException(
+        'Ballpark estimate can only be adjusted before the tender is published',
+      );
+    }
+
+    const latestEstimate = await this.prisma.estimate.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!latestEstimate) {
+      throw new NotFoundException('No estimate found');
+    }
+
+    const excludedLines = (dto.excludedLines ?? [])
+      .map((line) => ({
+        trade: line.trade?.trim() ?? '',
+        description: line.description?.trim() ?? '',
+      }))
+      .filter((line) => line.trade && line.description);
+
+    const addedLines = (dto.addedLines ?? [])
+      .map((line) => ({
+        trade: line.trade?.trim() ?? '',
+        description: line.description?.trim() ?? '',
+      }))
+      .filter((line) => line.trade && ALLOWED_ESTIMATE_TRADES.has(line.trade));
+
+    const seenAdded = new Set<string>();
+    const uniqueAdded = addedLines.filter((line) => {
+      const key = `${line.trade}::${line.description}`;
+      if (seenAdded.has(key)) return false;
+      seenAdded.add(key);
+      return true;
+    });
+
+    const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
+    const narrative = [project.title, project.description ?? ''].join('\n');
+    const pricedAddedLines = uniqueAdded
+      .map((ref) =>
+        priceCatalogEstimateLine({
+          trade: ref.trade,
+          description: ref.description,
+          brief,
+          narrative,
+        }),
+      )
+      .filter((line): line is EstimateLine => line != null);
+
+    if (uniqueAdded.length > pricedAddedLines.length) {
+      throw new BadRequestException('One or more selected trades are not supported');
+    }
+
+    const stored = mergeEstimateAdjustments(emptyEstimateAdjustments(), {
+      excludedLines,
+      addedLines: pricedAddedLines.map((line) => ({
+        trade: line.trade,
+        description: line.description,
+      })),
+    });
+    stored.pricedAddedLines = pricedAddedLines;
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        estimateAdjustmentsJson: stored as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    const updatedProject = {
+      ...project,
+      estimateAdjustmentsJson: stored,
+    };
+    const response = this.presentForProject(
+      updatedProject,
+      this.toResponse(
+        latestEstimate,
+        parseRefinementQa(project.estimateRefinementQaJson),
+      ),
+    );
+
+    return (
+      (await this.applyViewerLocale(updatedProject, response, viewerLocale)) ??
+      response
+    );
+  }
+
+  async clearAdjustments(projectId: string): Promise<void> {
+    await this.prisma.project.updateMany({
+      where: { id: projectId, estimateAdjustmentsJson: { not: Prisma.DbNull } },
+      data: { estimateAdjustmentsJson: Prisma.DbNull },
+    });
   }
 
   async refineAndRegenerate(
@@ -263,6 +440,8 @@ export class EstimatesService {
       throw new NotFoundException('Project not found');
     }
 
+    await this.clearAdjustments(projectId);
+
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
     const tagSlugs = project.tags.map((pt) => pt.tag.slug);
     const clarificationQa = (project.tender?.clarificationQuestions ?? [])
@@ -373,9 +552,19 @@ export class EstimatesService {
 
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
-    return this.toResponse(
-      record,
-      parseRefinementQa(project.estimateRefinementQaJson),
+    const refreshedProject = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!refreshedProject) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return this.presentForProject(
+      refreshedProject,
+      this.toResponse(
+        record,
+        parseRefinementQa(refreshedProject.estimateRefinementQaJson),
+      ),
     );
   }
 

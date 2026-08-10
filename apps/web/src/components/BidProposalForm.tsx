@@ -20,8 +20,13 @@ import {
 import {
   activeBreakdownLineItems,
   breakdownLineItemsSubtotal,
-  breakdownTotalsMismatch,
 } from '@/lib/bid-breakdown-validation';
+import {
+  computeBidCostAdjustments,
+  initialCostAdjustmentPercents,
+  initialWorksAmount,
+} from '@/lib/bid-cost-adjustments';
+import type { BidCostAdjustmentsInput } from '@/lib/tendering';
 
 export interface BidProposalInput {
   amount: number;
@@ -30,6 +35,7 @@ export interface BidProposalInput {
   approach?: string;
   scopeSummary?: string;
   lineItems?: BidLineItem[];
+  costAdjustments?: BidCostAdjustmentsInput;
   contractTerms?: BidContractTerms;
 }
 
@@ -138,6 +144,8 @@ function proposalSeedFromInputs(
         scopeSummary:
           offerTerms?.scopeSummary ?? existingBid?.terms?.scopeSummary,
         lineItems: offerTerms?.lineItems ?? existingBid?.terms?.lineItems,
+        costAdjustments:
+          offerTerms?.costAdjustments ?? existingBid?.terms?.costAdjustments,
         contractTerms: existingBid?.terms?.contractTerms,
       },
     };
@@ -178,9 +186,9 @@ export function BidProposalForm({
   const resolvedNotesLabel = notesLabel ?? t('bid.commentForClient');
   const resolvedScopeLabel = scopeLabel ?? t('bid.scopeOfWorks');
   const resolvedScopeHint = scopeHint ?? t('bid.scopeHint');
-  const breakdownMismatchMessage = t('bid.errors.breakdownMismatch');
   const seed = proposalSeedFromInputs(existingBid, prefillBid, prefillOffer);
   const terms = seed.terms;
+  const initialPercents = initialCostAdjustmentPercents(terms);
   const projectTermsSeed = {
     scopeSummary: terms?.scopeSummary ?? projectScopeSummary ?? undefined,
     contractTerms: {
@@ -194,9 +202,16 @@ export function BidProposalForm({
     projectDescription,
     projectBrief,
   );
-  const [amount, setAmount] = useState(
-    seed.amount != null ? String(seed.amount) : '',
+  const [worksAmount, setWorksAmount] = useState(() =>
+    initialWorksAmount(seed.amount, terms),
   );
+  const [preliminaryPercent, setPreliminaryPercent] = useState(
+    initialPercents.preliminaryPercent,
+  );
+  const [overheadProfitPercent, setOverheadProfitPercent] = useState(
+    initialPercents.overheadProfitPercent,
+  );
+  const [vatPercent, setVatPercent] = useState(initialPercents.vatPercent);
   const [durationDays, setDurationDays] = useState(
     seed.durationDays?.toString() ?? '',
   );
@@ -254,11 +269,50 @@ export function BidProposalForm({
 
   const handleSubmit = async () => {
     setError(null);
-    const parsedAmount = Number(amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setError(t('bid.errors.invalidAmount'));
+
+    const activeLineItems = activeLineItemsFrom(showBreakdown, lineItems);
+    const breakdownSubtotalValue = breakdownLineItemsSubtotal(activeLineItems);
+
+    let worksSubtotal: number;
+    if (showBreakdown && activeLineItems.length > 0) {
+      if (breakdownSubtotalValue <= 0) {
+        setError(t('bid.errors.invalidWorksTotal'));
+        return;
+      }
+      worksSubtotal = breakdownSubtotalValue;
+    } else {
+      const parsedWorks = Number(worksAmount);
+      if (!Number.isFinite(parsedWorks) || parsedWorks <= 0) {
+        setError(t('bid.errors.invalidWorksTotal'));
+        return;
+      }
+      worksSubtotal = parsedWorks;
+    }
+
+    const parsedPreliminary = Number(preliminaryPercent);
+    const parsedOverhead = Number(overheadProfitPercent);
+    const parsedVat = Number(vatPercent);
+    if (
+      !Number.isFinite(parsedPreliminary) ||
+      parsedPreliminary < 0 ||
+      parsedPreliminary > 100 ||
+      !Number.isFinite(parsedOverhead) ||
+      parsedOverhead < 0 ||
+      parsedOverhead > 100 ||
+      !Number.isFinite(parsedVat) ||
+      parsedVat < 0 ||
+      parsedVat > 100
+    ) {
+      setError(t('bid.errors.invalidPercent'));
       return;
     }
+
+    const pricing = computeBidCostAdjustments({
+      worksSubtotal,
+      preliminaryPercent: parsedPreliminary,
+      overheadProfitPercent: parsedOverhead,
+      vatPercent: parsedVat,
+    });
 
     const parsedDuration = durationDays.trim()
       ? Number(durationDays)
@@ -271,8 +325,6 @@ export function BidProposalForm({
       return;
     }
 
-    const activeLineItems = activeLineItemsFrom(showBreakdown, lineItems);
-
     for (const item of activeLineItems) {
       if (!item.trade.trim()) {
         setError(t('bid.errors.tradeRequired'));
@@ -280,21 +332,11 @@ export function BidProposalForm({
       }
     }
 
-    const breakdownSubtotal = breakdownLineItemsSubtotal(activeLineItems);
-    if (
-      showBreakdown &&
-      activeLineItems.length > 0 &&
-      breakdownTotalsMismatch(parsedAmount, activeLineItems)
-    ) {
-      setError(breakdownMismatchMessage);
-      return;
-    }
-
     const scopeText = scopeSummary.trim();
 
     try {
       await onSubmit({
-        amount: parsedAmount,
+        amount: pricing.grandTotal,
         durationDays: parsedDuration,
         notes: notes.trim() || undefined,
         approach: approach.trim() || undefined,
@@ -308,6 +350,12 @@ export function BidProposalForm({
               amount: item.amount,
             }))
           : undefined,
+        costAdjustments: {
+          preliminaryPercent: pricing.preliminaryPercent,
+          overheadProfitPercent: pricing.overheadProfitPercent,
+          vatPercent: pricing.vatPercent,
+          worksSubtotal: pricing.worksSubtotal,
+        },
         contractTerms:
           contractTermsAudience !== 'none'
             ? contractTermsAudience === 'contractor'
@@ -325,35 +373,38 @@ export function BidProposalForm({
 
   const activeLineItems = activeLineItemsFrom(showBreakdown, lineItems);
   const breakdownSubtotal = breakdownLineItemsSubtotal(activeLineItems);
-  const parsedAmount = Number(amount);
-  const amountIsValid = Number.isFinite(parsedAmount) && parsedAmount > 0;
-  const breakdownMismatch =
-    showBreakdown &&
-    activeLineItems.length > 0 &&
-    amountIsValid &&
-    breakdownTotalsMismatch(parsedAmount, activeLineItems);
+  const resolvedWorksSubtotal =
+    showBreakdown && activeLineItems.length > 0
+      ? breakdownSubtotal
+      : Number(worksAmount);
+  const worksSubtotalValid =
+    Number.isFinite(resolvedWorksSubtotal) && resolvedWorksSubtotal > 0;
+  const pricingPreview = worksSubtotalValid
+    ? computeBidCostAdjustments({
+        worksSubtotal: resolvedWorksSubtotal,
+        preliminaryPercent: Number(preliminaryPercent) || 0,
+        overheadProfitPercent: Number(overheadProfitPercent) || 0,
+        vatPercent: Number(vatPercent) || 0,
+      })
+    : null;
 
   return (
     <div className="bid-proposal-form bid-proposal-form--compact">
       <div className="modal-form bid-proposal-form-fields">
         <div className="bid-proposal-form-row bid-proposal-form-row--amount-duration">
-          <label className="bid-proposal-field bid-proposal-field--amount">
-            <span className="field-label">
-              {t('bid.totalThb')}
-              <span className="required-mark" aria-hidden="true">
-                *
-              </span>
-            </span>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder={t('bid.amountPlaceholder')}
-              inputMode="numeric"
-            />
-          </label>
+          <div className="bid-proposal-field bid-proposal-field--amount bid-proposal-field--grand-total">
+            <span className="field-label">{t('bid.grandTotalThb')}</span>
+            <output
+              className="bid-grand-total-output"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {pricingPreview
+                ? formatThb(pricingPreview.grandTotal)
+                : t('common.dash')}
+            </output>
+            <span className="field-hint muted">{t('bid.grandTotalHint')}</span>
+          </div>
           <label className="bid-proposal-field bid-proposal-field--duration">
             <span className="field-label">{t('bid.durationDays')}</span>
             <input
@@ -366,64 +417,6 @@ export function BidProposalForm({
             />
           </label>
         </div>
-
-        {breakdownMismatch && (
-          <p className="form-error bid-proposal-total-error" role="alert">
-            {breakdownMismatchMessage}
-          </p>
-        )}
-
-        <label>
-          {resolvedScopeLabel}
-          <span className="field-hint muted">{resolvedScopeHint}</span>
-          <textarea
-            rows={3}
-            value={scopeSummary}
-            onChange={(e) => setScopeSummary(e.target.value)}
-            placeholder={
-              projectDescription?.trim() ||
-              (projectTitle
-                ? t('bid.scopePlaceholderProject', { title: projectTitle })
-                : t('bid.scopePlaceholder'))
-            }
-          />
-        </label>
-
-        <label>
-          {resolvedNotesLabel}
-          <span className="field-hint muted">{t('bid.commentHint')}</span>
-          <textarea
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder={t('bid.commentPlaceholder')}
-          />
-        </label>
-
-        <label>
-          {t('bid.implementationApproach')}
-          <span className="field-hint muted">{t('bid.approachHint')}</span>
-          <textarea
-            rows={4}
-            value={approach}
-            onChange={(e) => setApproach(e.target.value)}
-            placeholder={t('bid.approachPlaceholder')}
-          />
-        </label>
-
-        {contractTermsAudience !== 'none' && (
-          <BidContractTermsFields
-            value={contractTerms}
-            onChange={handleContractTermsChange}
-            audience={contractTermsAudience}
-            projectTitle={projectTitle}
-            projectDistrict={projectDistrict}
-            disabled={busy}
-            hideSubjectOfContract
-            showSectionHeader={false}
-            isDesign={isDesign}
-          />
-        )}
       </div>
 
       <div className="bid-breakdown-toggle">
@@ -534,15 +527,164 @@ export function BidProposalForm({
               })}
             </p>
           )}
-          {breakdownMismatch && showBreakdown && (
-            <p className="form-error bid-line-items-total-error" role="alert">
-              {breakdownMismatchMessage}
-            </p>
-          )}
         </div>
       )}
 
-      {error && !breakdownMismatch && (
+      <div className="bid-cost-adjustments">
+        <p className="tag-section-label">{t('bid.costAdjustmentsTitle')}</p>
+        <p className="muted bid-cost-adjustments-hint">
+          {t('bid.costAdjustmentsHint')}
+        </p>
+        {!showBreakdown && (
+          <label className="bid-cost-adjustments-works">
+            <span className="field-label">
+              {t('bid.worksTotalThb')}
+              <span className="required-mark" aria-hidden="true">
+                *
+              </span>
+            </span>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={worksAmount}
+              onChange={(e) => setWorksAmount(e.target.value)}
+              placeholder={t('bid.amountPlaceholder')}
+              inputMode="numeric"
+            />
+          </label>
+        )}
+        <div className="bid-cost-adjustments-grid">
+          <label>
+            {t('bid.preliminaryPercent')}
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={preliminaryPercent}
+              onChange={(e) => setPreliminaryPercent(e.target.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label>
+            {t('bid.overheadProfitPercent')}
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={overheadProfitPercent}
+              onChange={(e) => setOverheadProfitPercent(e.target.value)}
+              inputMode="decimal"
+            />
+          </label>
+          <label>
+            {t('bid.vatPercent')}
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={vatPercent}
+              onChange={(e) => setVatPercent(e.target.value)}
+              inputMode="decimal"
+            />
+          </label>
+        </div>
+        {pricingPreview && (
+          <dl className="bid-pricing-summary">
+            <div>
+              <dt>{t('bid.worksTotalThb')}</dt>
+              <dd>{formatThb(pricingPreview.worksSubtotal)}</dd>
+            </div>
+            {pricingPreview.preliminaryAmount > 0 && (
+              <div>
+                <dt>
+                  {t('bid.preliminaryAmount', {
+                    percent: pricingPreview.preliminaryPercent,
+                  })}
+                </dt>
+                <dd>{formatThb(pricingPreview.preliminaryAmount)}</dd>
+              </div>
+            )}
+            {pricingPreview.overheadProfitAmount > 0 && (
+              <div>
+                <dt>
+                  {t('bid.overheadProfitAmount', {
+                    percent: pricingPreview.overheadProfitPercent,
+                  })}
+                </dt>
+                <dd>{formatThb(pricingPreview.overheadProfitAmount)}</dd>
+              </div>
+            )}
+            {pricingPreview.vatAmount > 0 && (
+              <div>
+                <dt>
+                  {t('bid.vatAmount', { percent: pricingPreview.vatPercent })}
+                </dt>
+                <dd>{formatThb(pricingPreview.vatAmount)}</dd>
+              </div>
+            )}
+          </dl>
+        )}
+      </div>
+
+      <div className="modal-form bid-proposal-form-fields">
+        <label>
+          {resolvedScopeLabel}
+          <span className="field-hint muted">{resolvedScopeHint}</span>
+          <textarea
+            rows={3}
+            value={scopeSummary}
+            onChange={(e) => setScopeSummary(e.target.value)}
+            placeholder={
+              projectDescription?.trim() ||
+              (projectTitle
+                ? t('bid.scopePlaceholderProject', { title: projectTitle })
+                : t('bid.scopePlaceholder'))
+            }
+          />
+        </label>
+
+        <label>
+          {resolvedNotesLabel}
+          <span className="field-hint muted">{t('bid.commentHint')}</span>
+          <textarea
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={t('bid.commentPlaceholder')}
+          />
+        </label>
+
+        <label>
+          {t('bid.implementationApproach')}
+          <span className="field-hint muted">{t('bid.approachHint')}</span>
+          <textarea
+            rows={4}
+            value={approach}
+            onChange={(e) => setApproach(e.target.value)}
+            placeholder={t('bid.approachPlaceholder')}
+          />
+        </label>
+
+        {contractTermsAudience !== 'none' && (
+          <BidContractTermsFields
+            value={contractTerms}
+            onChange={handleContractTermsChange}
+            audience={contractTermsAudience}
+            projectTitle={projectTitle}
+            projectDistrict={projectDistrict}
+            disabled={busy}
+            hideSubjectOfContract
+            showSectionHeader={false}
+            isDesign={isDesign}
+          />
+        )}
+      </div>
+
+      {error && (
         <p className="form-error bid-proposal-form-error">{error}</p>
       )}
 
@@ -550,7 +692,7 @@ export function BidProposalForm({
         <button
           type="button"
           className="primary"
-          disabled={busy || breakdownMismatch}
+          disabled={busy || !worksSubtotalValid}
           onClick={() => void handleSubmit()}
         >
           {busy

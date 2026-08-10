@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { formatThb } from '@/lib/estimate';
+import { bidWorksSubtotalForCompare } from '@/lib/bid-cost-adjustments';
 import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
 import { BidChat } from '@/components/BidChat';
 import { ClientCommercialProposalPanel } from '@/components/ClientCommercialProposalPanel';
@@ -68,9 +69,11 @@ export function BidApplicationCard({
     setExpanded(defaultExpanded);
   }, [defaultExpanded]);
   const amount = bid.amount != null ? Number(bid.amount) : null;
+  const worksAmount =
+    amount != null ? bidWorksSubtotalForCompare(bid.terms, amount) : null;
   const delta =
-    amount != null && ballparkMid && ballparkMid > 0
-      ? Math.round(((amount - ballparkMid) / ballparkMid) * 100)
+    worksAmount != null && ballparkMid && ballparkMid > 0
+      ? Math.round(((worksAmount - ballparkMid) / ballparkMid) * 100)
       : null;
 
   const canSelect =

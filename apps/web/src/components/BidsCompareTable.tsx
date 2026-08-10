@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { formatThb } from '@/lib/estimate';
+import { bidWorksSubtotalForCompare } from '@/lib/bid-cost-adjustments';
 import type { Bid, BidLineItem, DefaultCostBreakdownItem } from '@/lib/tendering';
 
 interface BidsCompareTableProps {
@@ -167,13 +168,20 @@ export function BidsCompareTable({
             </tr>
             <tr>
               <th scope="row">{t('bidCompare.vsBallpark')}</th>
-              {selectedBids.map((bid) => (
-                <td key={`${bid.id}-delta`}>
-                  {bid.amount != null
-                    ? deltaLabel(Number(bid.amount), ballparkMid ?? null)
-                    : t('common.dash')}
-                </td>
-              ))}
+              {selectedBids.map((bid) => {
+                const amount = bid.amount != null ? Number(bid.amount) : null;
+                const worksAmount =
+                  amount != null
+                    ? bidWorksSubtotalForCompare(bid.terms, amount)
+                    : null;
+                return (
+                  <td key={`${bid.id}-delta`}>
+                    {worksAmount != null
+                      ? deltaLabel(worksAmount, ballparkMid ?? null)
+                      : t('common.dash')}
+                  </td>
+                );
+              })}
             </tr>
             <tr>
               <th scope="row">{t('bidCompare.scope')}</th>

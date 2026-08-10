@@ -102,6 +102,18 @@ export interface CommercialProposalCopy {
   boqDescription: string;
   boqAmount: string;
   boqSubtotal: string;
+  boqWorksTotal: string;
+  boqPreliminary: (percent: number) => string;
+  boqOverheadProfit: (percent: number) => string;
+  boqVat: (percent: number) => string;
+  boqGrandTotal: string;
+  contractAmountVatBreakdown: (
+    works: string,
+    preliminary: string,
+    overheadProfit: string,
+    vat: string,
+    vatPercent: number,
+  ) => string;
   employerFallback: string;
   contractorFallback: string;
 }
@@ -204,7 +216,7 @@ const EN: CommercialProposalCopy = {
   defaultPropertyOwnership:
     'The Employer holds lawful title to the Site and right to commission the Works.',
   defaultRetentionRelease:
-    '5% on Taking-Over Certificate; 5% after 12 months from Practical Completion.',
+    '5% on Taking-Over Certificate upon works handover; 5% after 12 months from Practical Completion, subject to defect rectification.',
   defaultWarranty: (months) =>
     `Defect Notification Period: ${months} months from Practical Completion.`,
   defaultDelayDamages:
@@ -234,6 +246,13 @@ const EN: CommercialProposalCopy = {
   boqDescription: 'Description',
   boqAmount: 'Amount (THB)',
   boqSubtotal: 'Subtotal',
+  boqWorksTotal: 'Works total',
+  boqPreliminary: (percent) => `Preliminary (${percent}%)`,
+  boqOverheadProfit: (percent) => `Overhead & profit (${percent}%)`,
+  boqVat: (percent) => `VAT (${percent}%)`,
+  boqGrandTotal: 'Grand total (incl. VAT)',
+  contractAmountVatBreakdown: (works, preliminary, overheadProfit, vat, vatPercent) =>
+    `The Contract Amount comprises works ${works}, preliminary ${preliminary}, overhead & profit ${overheadProfit}, and VAT (${vatPercent}%) ${vat}.`,
   employerFallback: 'Employer',
   contractorFallback: 'Contractor',
 };
@@ -272,7 +291,7 @@ const DESIGN_EN: CommercialProposalCopy = {
   defaultPropertyOwnership:
     'The Employer holds lawful title to the Site and right to commission the design documentation.',
   defaultRetentionRelease:
-    'Any retention is released upon acceptance of the final design documentation sections, after correction of documented defects (if any). No Taking-Over Certificate or Practical Completion applies.',
+    '50% upon acceptance of the relevant design documentation sections (design handover); 50% after 12 months from final design handover, subject to correction of documented defects.',
   defaultWarranty: (months) =>
     `Documentation defect notification period: ${months} months from acceptance of the relevant design documentation sections. The Designer shall correct documentation defects at no additional cost.`,
   forceMajeureDefinition:
@@ -386,7 +405,7 @@ const RU: CommercialProposalCopy = {
   defaultPropertyOwnership:
     'Заказчик обладает законным правом на участок и правом поручать выполнение Работ.',
   defaultRetentionRelease:
-    '5% при сертификате Taking-Over; 5% через 12 месяцев после Practical Completion.',
+    '5% при Taking-Over Certificate при сдаче работ; 5% через 12 месяцев после Practical Completion (сдачи работ), при условии устранения дефектов.',
   defaultWarranty: (months) =>
     `Период уведомления о дефектах: ${months} мес. с момента Practical Completion.`,
   defaultDelayDamages:
@@ -416,6 +435,13 @@ const RU: CommercialProposalCopy = {
   boqDescription: 'Описание',
   boqAmount: 'Сумма (THB)',
   boqSubtotal: 'Итого',
+  boqWorksTotal: 'Стоимость работ',
+  boqPreliminary: (percent) => `Preliminary (${percent}%)`,
+  boqOverheadProfit: (percent) => `Overhead & profit (${percent}%)`,
+  boqVat: (percent) => `НДС (${percent}%)`,
+  boqGrandTotal: 'Итого с НДС',
+  contractAmountVatBreakdown: (works, preliminary, overheadProfit, vat, vatPercent) =>
+    `Сумма договора включает работы ${works}, preliminary ${preliminary}, overhead & profit ${overheadProfit} и НДС (${vatPercent}%) ${vat}.`,
   employerFallback: 'Заказчик',
   contractorFallback: 'Подрядчик',
 };
@@ -454,7 +480,7 @@ const DESIGN_RU: CommercialProposalCopy = {
   defaultPropertyOwnership:
     'Заказчик обладает законным правом на участок и правом поручать разработку проектной документации.',
   defaultRetentionRelease:
-    'Удержание (при наличии) выплачивается при приёмке окончательных разделов проектной документации после устранения зафиксированных дефектов документации (при наличии). Сертификат Taking-Over и Practical Completion не применяются.',
+    '50% при приёмке соответствующих разделов проектной документации (сдача проекта); 50% через 12 месяцев после финальной сдачи проекта, при условии устранения дефектов документации.',
   defaultWarranty: (months) =>
     `Период уведомления о дефектах документации: ${months} мес. с момента приёмки соответствующих разделов проектной документации. Проектировщик устраняет дефекты документации без дополнительной оплаты.`,
   forceMajeureDefinition:
@@ -568,7 +594,7 @@ const TH: CommercialProposalCopy = {
   defaultPropertyOwnership:
     'ผู้ว่าจ้างมีกรรมสิทธิ์หรือสิทธิโดยชอบในที่ดินและสิทธิมอบหมายงาน',
   defaultRetentionRelease:
-    '5% เมื่อออก Taking-Over Certificate; 5% หลัง 12 เดือนจาก Practical Completion',
+    '5% เมื่อออกใบรับมอบงาน (Taking-Over Certificate) เมื่อส่งมอบงาน; 5% หลัง 12 เดือนนับจาก Practical Completion (การส่งมอบงาน) โดยมีเงื่อนไขการแก้ไขข้อบกพร่อง',
   defaultWarranty: (months) =>
     `ระยะแจ้งข้อบกพร่อง: ${months} เดือนนับจาก Practical Completion`,
   defaultDelayDamages:
@@ -598,6 +624,13 @@ const TH: CommercialProposalCopy = {
   boqDescription: 'รายละเอียด',
   boqAmount: 'จำนวนเงิน (THB)',
   boqSubtotal: 'รวมย่อย',
+  boqWorksTotal: 'มูลค่างาน',
+  boqPreliminary: (percent) => `Preliminary (${percent}%)`,
+  boqOverheadProfit: (percent) => `Overhead & profit (${percent}%)`,
+  boqVat: (percent) => `VAT (${percent}%)`,
+  boqGrandTotal: 'รวมทั้งสิ้น (รวม VAT)',
+  contractAmountVatBreakdown: (works, preliminary, overheadProfit, vat, vatPercent) =>
+    `มูลค่าสัญญารวมงาน ${works} preliminary ${preliminary} overhead & profit ${overheadProfit} และ VAT (${vatPercent}%) ${vat}`,
   employerFallback: 'ผู้ว่าจ้าง',
   contractorFallback: 'ผู้รับจ้าง',
 };
@@ -636,7 +669,7 @@ const DESIGN_TH: CommercialProposalCopy = {
   defaultPropertyOwnership:
     'ผู้ว่าจ้างมีกรรมสิทธิ์หรือสิทธิโดยชอบในที่ดินและสิทธิมอบหมายงานออกแบบ',
   defaultRetentionRelease:
-    'เงินกัน (ถ้ามี) คืนเมื่อตรวจรับส่วนงานเอกสารออกแบบฉบับสุดท้ายหลังแก้ไขข้อบกพร่องของเอกสาร (ถ้ามี) ไม่ใช้ Taking-Over Certificate หรือ Practical Completion',
+    '50% เมื่อตรวจรับส่วนงานเอกสารออกแบบที่เกี่ยวข้อง (การส่งมอบงานออกแบบ); 50% หลัง 12 เดือนนับจากการส่งมอบงานออกแบบครั้งสุดท้าย โดยมีเงื่อนไขการแก้ไขข้อบกพร่องของเอกสาร',
   defaultWarranty: (months) =>
     `ระยะแจ้งข้อบกพร่องของเอกสาร: ${months} เดือนนับจากการตรวจรับส่วนงานเอกสารออกแบบที่เกี่ยวข้อง ผู้ออกแบบต้องแก้ไขข้อบกพร่องของเอกสารโดยไม่มีค่าใช้จ่ายเพิ่ม`,
   forceMajeureDefinition:

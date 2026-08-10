@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -13,6 +14,7 @@ import { JwtPayload } from '../auth/jwt-payload';
 import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import { EstimatesService } from './estimates.service';
+import type { UpdateEstimateAdjustmentsDto } from './estimates.types';
 
 @Controller('v1/projects/:projectId/estimate')
 @UseGuards(JwtAuthGuard)
@@ -65,6 +67,27 @@ export class EstimatesController {
                 : undefined,
           }))
         : [],
+      locale,
+    );
+  }
+
+  @Patch('adjustments')
+  async updateAdjustments(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: UpdateEstimateAdjustmentsDto,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.estimatesService.updateAdjustments(
+      user.id,
+      projectId,
+      {
+        excludedLines: Array.isArray(body?.excludedLines)
+          ? body.excludedLines
+          : [],
+        addedLines: Array.isArray(body?.addedLines) ? body.addedLines : [],
+      },
       locale,
     );
   }

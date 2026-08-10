@@ -2,6 +2,7 @@
 
 import { useTranslation } from '@/components/LocaleProvider';
 import { formatThb } from '@/lib/estimate';
+import { bidWorksSubtotalForCompare } from '@/lib/bid-cost-adjustments';
 import type { Bid } from '@/lib/tendering';
 
 interface BidProposalSummaryProps {
@@ -21,10 +22,13 @@ export function BidProposalSummary({
 }: BidProposalSummaryProps) {
   const { t } = useTranslation();
   const amount = bid.amount != null ? Number(bid.amount) : null;
+  const worksAmount =
+    amount != null ? bidWorksSubtotalForCompare(bid.terms, amount) : null;
   const delta =
-    amount != null && ballparkMid && ballparkMid > 0
-      ? Math.round(((amount - ballparkMid) / ballparkMid) * 100)
+    worksAmount != null && ballparkMid && ballparkMid > 0
+      ? Math.round(((worksAmount - ballparkMid) / ballparkMid) * 100)
       : null;
+  const adj = bid.terms?.costAdjustments;
   const terms = bid.terms;
 
   const details = (
@@ -49,6 +53,50 @@ export function BidProposalSummary({
           <p className="bid-proposal-text bid-proposal-text--pre">
             {terms.approach}
           </p>
+        </div>
+      )}
+
+      {adj && (
+        <div className="bid-proposal-block">
+          <h4>{t('bid.grandTotalThb')}</h4>
+          <ul className="bid-pricing-summary bid-pricing-summary--readonly">
+            <li>
+              <span>{t('bid.worksTotalThb')}</span>
+              <span>{formatThb(adj.worksSubtotal)}</span>
+            </li>
+            {adj.preliminaryAmount > 0 && (
+              <li>
+                <span>
+                  {t('bid.preliminaryAmount', {
+                    percent: adj.preliminaryPercent,
+                  })}
+                </span>
+                <span>{formatThb(adj.preliminaryAmount)}</span>
+              </li>
+            )}
+            {adj.overheadProfitAmount > 0 && (
+              <li>
+                <span>
+                  {t('bid.overheadProfitAmount', {
+                    percent: adj.overheadProfitPercent,
+                  })}
+                </span>
+                <span>{formatThb(adj.overheadProfitAmount)}</span>
+              </li>
+            )}
+            {adj.vatAmount > 0 && (
+              <li>
+                <span>{t('bid.vatAmount', { percent: adj.vatPercent })}</span>
+                <span>{formatThb(adj.vatAmount)}</span>
+              </li>
+            )}
+            {amount != null && (
+              <li className="bid-pricing-summary-grand">
+                <span>{t('bid.grandTotalThb')}</span>
+                <span>{formatThb(amount)}</span>
+              </li>
+            )}
+          </ul>
         </div>
       )}
 

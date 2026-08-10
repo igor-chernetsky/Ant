@@ -11,6 +11,7 @@ import {
   EstimateRefinementPanel,
   ESTIMATE_REFINE_SECTION_ID,
 } from '@/components/EstimateRefinementPanel';
+import { EstimateLinesEditor } from '@/components/EstimateLinesEditor';
 import { EstimateConfidenceRing } from '@/components/EstimateConfidenceRing';
 import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
@@ -633,27 +634,15 @@ export default function ProjectDetailPage() {
                           )
                         }
                       />
-                      {estimate.lines.length > 0 && (
-                        <ul className="estimate-lines">
-                          {estimate.lines.map((line, index) => (
-                            <li
-                              key={`${line.trade}-${index}`}
-                              className="estimate-line"
-                            >
-                              <div>
-                                <strong>{line.description}</strong>
-                                <span className="muted estimate-line-trade">
-                                  {line.trade}
-                                </span>
-                              </div>
-                              <span className="estimate-line-amount">
-                                {formatThb(line.lineMin)} –{' '}
-                                {formatThb(line.lineMax)}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
+                      <EstimateLinesEditor
+                        projectId={projectId}
+                        estimate={estimate}
+                        onEstimateUpdated={(updated: BallparkEstimate) =>
+                          setProject((prev) =>
+                            prev ? { ...prev, estimate: updated } : prev,
+                          )
+                        }
+                      />
                       <p className="muted estimate-disclaimer">
                         {estimate.disclaimer}
                       </p>

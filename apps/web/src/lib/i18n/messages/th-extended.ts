@@ -154,6 +154,8 @@ export const thExtended = {
     readyPercent: "พร้อม {n}%",
     ballparkMidpoint: "ประมาณการกลาง",
     designBallparkMidpoint: "ประมาณการกลางงานออกแบบ",
+    ballparkExcludesAdjustments:
+      "เฉพาะมูลค่างาน — ไม่รวม preliminary, overhead & profit และ VAT",
     scopeTags: "แท็กขอบเขต",
     scopeTagsAria: "แท็กขอบเขตโครงการ",
     tagSelectedDuringIntake: "เลือกระหว่างรับข้อมูล",
@@ -499,6 +501,18 @@ export const thExtended = {
     errorGeneric: "เกิดข้อผิดพลาดขณะยืนยันอีเมล",
   },
   bid: {
+    worksTotalThb: "มูลค่างาน (THB)",
+    grandTotalThb: "รวมทั้งสิ้น (รวม VAT)",
+    grandTotalHint: "คำนวณอัตโนมัติจากมูลค่างานและการปรับราคาด้านล่าง",
+    costAdjustmentsTitle: "การปรับราคา",
+    costAdjustmentsHint:
+      "Preliminary และ overhead & profit คำนวณจากมูลค่างาน VAT คิดจากงานบวกรายการเหล่านี้",
+    preliminaryPercent: "Preliminary (%)",
+    overheadProfitPercent: "Overhead & profit (%)",
+    vatPercent: "VAT (%)",
+    preliminaryAmount: "Preliminary ({percent}%)",
+    overheadProfitAmount: "Overhead & profit ({percent}%)",
+    vatAmount: "VAT ({percent}%)",
     totalThb: "รวม (บาท)",
     durationDays: "ระยะเวลา (วัน)",
     scopeOfWorks: "ขอบเขตงาน",
@@ -543,6 +557,8 @@ export const thExtended = {
     sendMessageFailed: "ส่งข้อความไม่สำเร็จ",
     errors: {
       invalidAmount: "กรุณากรอกจำนวนเงินรวมที่ถูกต้อง",
+      invalidWorksTotal: "กรุณากรอกมูลค่างานที่ถูกต้อง",
+      invalidPercent: "เปอร์เซ็นต์ต้องอยู่ระหว่าง 0 ถึง 100",
       durationMin: "ระยะเวลาต้องอย่างน้อย 1 วัน",
       tradeRequired: "แต่ละรายการต้องมีงานช่าง",
       breakdownMismatch: "ยอดรวมรายละเอียดไม่ตรงกับยอดรวม กรุณาตรวจสอบการคำนวณ",
@@ -614,12 +630,26 @@ export const thExtended = {
       developerConsentValue: "นายจ้างมีหนังสือยินยอมจากผู้พัฒนาหรือนิติบุคคลในการมอบหมายงานบนสถานที่",
     },
     retentionReleaseOptions: {
-      standard5050Label: "50% เมื่อรับมอบ 50% หลัง 12 เดือน",
-      standard5050Value: "5% เมื่อออกใบรับมอบงาน; 5% หลัง 12 เดือนนับจากวันส่งมอบใช้งานจริง",
-      singleReleaseLabel: "คืนเต็มจำนวนหลัง 12 เดือน",
-      singleReleaseValue: "คืนเงินประกันทั้งหมดภายใน 12 เดือนหลังส่งมอบใช้งานจริง โดยมีเงื่อนไขการแก้ไขข้อบกพร่อง",
-      onCompletionLabel: "คืนเมื่อส่งมอบใช้งานจริง",
-      onCompletionValue: "คืนเงินประกันเมื่อส่งมอบใช้งานจริง โดยมีเงื่อนไขการชำระบัญชีสุดท้ายและแก้ไขข้อบกพร่อง",
+      standard5050Label: "50% เมื่อส่งมอบงาน 50% หลัง 12 เดือนนับจากส่งมอบ",
+      standard5050Value:
+        "5% เมื่อออกใบรับมอบงาน (Taking-Over Certificate) เมื่อส่งมอบงาน; 5% หลัง 12 เดือนนับจาก Practical Completion (การส่งมอบงาน) โดยมีเงื่อนไขการแก้ไขข้อบกพร่อง",
+      singleReleaseLabel: "คืนเต็มจำนวน 12 เดือนหลังส่งมอบงาน",
+      singleReleaseValue:
+        "คืนเงินประกันทั้งหมดภายใน 12 เดือนหลัง Practical Completion (การส่งมอบงาน) โดยมีเงื่อนไขการแก้ไขข้อบกพร่อง",
+      onCompletionLabel: "คืนเมื่อส่งมอบงาน",
+      onCompletionValue:
+        "คืนเงินประกันเมื่อ Practical Completion (การส่งมอบงาน) โดยมีเงื่อนไขการชำระบัญชีสุดท้ายและแก้ไขข้อบกพร่อง",
+    },
+    designRetentionReleaseOptions: {
+      standard5050Label: "50% เมื่อส่งมอบงานออกแบบ 50% หลัง 12 เดือนนับจากส่งมอบ",
+      standard5050Value:
+        "50% เมื่อตรวจรับส่วนงานเอกสารออกแบบที่เกี่ยวข้อง (การส่งมอบงานออกแบบ); 50% หลัง 12 เดือนนับจากการส่งมอบงานออกแบบครั้งสุดท้าย โดยมีเงื่อนไขการแก้ไขข้อบกพร่องของเอกสาร",
+      singleReleaseLabel: "คืนเต็มจำนวน 12 เดือนหลังส่งมอบงานออกแบบ",
+      singleReleaseValue:
+        "คืนเงินประกันทั้งหมดภายใน 12 เดือนหลังตรวจรับส่วนงานเอกสารออกแบบฉบับสุดท้าย (การส่งมอบงานออกแบบ) โดยมีเงื่อนไขการแก้ไขข้อบกพร่องของเอกสาร",
+      onCompletionLabel: "คืนเมื่อส่งมอบงานออกแบบ",
+      onCompletionValue:
+        "คืนเงินประกันเมื่อตรวจรับส่วนงานเอกสารออกแบบฉบับสุดท้าย (การส่งมอบงานออกแบบ) โดยมีเงื่อนไขการชำระบัญชีสุดท้ายและแก้ไขข้อบกพร่องของเอกสาร",
     },
     warrantyPeriodOptions: {
       defectNotificationLabel: "ระยะแจ้งข้อบกพร่องมาตรฐาน ({months} เดือน)",
@@ -988,6 +1018,17 @@ export const thExtended = {
     lowConfidenceTitle: "ประมาณการคร่าวมาก",
     lowConfidenceHint:
       "ความมั่นใจต่ำกว่า 60% ตัวเลขนี้เป็นเพียงแนวทางคร่าวๆ — สร้างการประมูลเพื่อดูราคาจริงจากผู้รับเหมา",
+    removeLineAria: "ลบรายการนี้ออกจากประมาณการ",
+    addLineTitle: "เพิ่มงานที่ขาด",
+    addLineHint:
+      "เลือก trade จากรายการ ระบบจะประเมินราคาจากอัตราอ้างอิงในภูมิภาคและอัปเดตยอดรวม",
+    addLineTrade: "Trade",
+    addLineTradePlaceholder: "เลือก trade…",
+    addLineDescription: "รายละเอียด (ไม่บังคับ)",
+    addLineDescriptionPlaceholder: "หมายเหตุขอบเขต (ไม่บังคับ)",
+    addLineButton: "เพิ่มรายการ",
+    adjustFailed: "อัปเดตประมาณการไม่สำเร็จ",
+    tradeAlreadyAdded: "trade นี้มีในประมาณการแล้ว",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
@@ -1109,10 +1150,10 @@ export const thExtended = {
   },
   bidCompare: {
     title: "เปรียบเทียบข้อเสนอ",
-    hint: "เลือกผู้รับเหมาสูงสุด 4 รายเพื่อเปรียบเทียบ",
+    hint: "เลือกผู้รับเหมาสูงสุด 4 รายเพื่อเปรียบเทียบ การเทียบประมาณการใช้มูลค่างานเท่านั้น",
     pickerAria: "ข้อเสนอที่จะเปรียบเทียบ",
     metric: "ตัวชี้วัด",
-    total: "รวม",
+    total: "รวมทั้งสิ้น (รวม VAT)",
     duration: "ระยะเวลา",
     vsBallpark: "เทียบประมาณการ",
     scope: "ขอบเขต",

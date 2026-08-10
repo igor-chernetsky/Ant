@@ -65,11 +65,29 @@ export interface BidContractTerms {
   specialConditions?: string;
 }
 
+export interface BidCostAdjustments {
+  preliminaryPercent: number;
+  overheadProfitPercent: number;
+  vatPercent: number;
+  worksSubtotal: number;
+  preliminaryAmount: number;
+  overheadProfitAmount: number;
+  vatAmount: number;
+}
+
+export interface BidCostAdjustmentsInput {
+  preliminaryPercent: number;
+  overheadProfitPercent: number;
+  vatPercent: number;
+  worksSubtotal: number;
+}
+
 export interface BidTerms {
   notes?: string;
   approach?: string;
   scopeSummary?: string;
   lineItems?: BidLineItem[];
+  costAdjustments?: BidCostAdjustments;
   contractTerms?: BidContractTerms;
 }
 
@@ -765,6 +783,7 @@ export async function submitClientCounterOffer(
     approach?: string;
     scopeSummary?: string;
     lineItems?: BidLineItem[];
+    costAdjustments?: BidCostAdjustmentsInput;
     applyToAllPending?: boolean;
   },
 ): Promise<{ offer: BidOffer; sentToBidCount: number }> {
@@ -791,6 +810,7 @@ export async function submitContractorBid(
     approach?: string;
     scopeSummary?: string;
     lineItems?: BidLineItem[];
+    costAdjustments?: BidCostAdjustmentsInput;
     contractTerms?: BidContractTerms;
   },
 ): Promise<Bid> {

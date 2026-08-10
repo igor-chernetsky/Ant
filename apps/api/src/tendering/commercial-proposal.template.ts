@@ -1,4 +1,4 @@
-import type { BidLineItem, BidTermsV1 } from './tendering.types';
+import type { BidLineItem, BidTermsV1, BidCostAdjustments } from './tendering.types';
 import type {
   BidContractTerms,
   CommercialProposalRenderData,
@@ -115,18 +115,21 @@ function buildRetentionText(
 
 function buildBoqTable(
   lineItems: BidLineItem[] | undefined,
+  costAdjustments: BidCostAdjustments | undefined,
+  grandTotal: number,
   copy: CommercialProposalCopy,
   locale: SupportedLocale,
 ): string {
-  if (!lineItems?.length) return '';
-  // TipTap table cells require block content (`<p>…</p>`). Bare text in `<td>`
-  // is dropped when the English body is loaded/saved in the contract editor.
-  // Prefer `<tbody>` + header row (no `<thead>`) for TipTap compatibility.
+  const hasLineItems = Boolean(lineItems?.length);
+  const hasAdjustments = Boolean(costAdjustments);
+  if (!hasLineItems && !hasAdjustments) return '';
+
   const cell = (text: string, tag: 'td' | 'th' = 'td', className?: string) => {
     const classAttr = className ? ` class="${className}"` : '';
     return `<${tag}${classAttr}><p>${escapeHtml(text)}</p></${tag}>`;
   };
-  const rows = lineItems
+
+  const rows = (lineItems ?? [])
     .map(
       (item) => `
       <tr>
@@ -136,10 +139,68 @@ function buildBoqTable(
       </tr>`,
     )
     .join('');
-  const subtotal = lineItems.reduce(
-    (sum, item) => sum + (Number(item.amount) || 0),
-    0,
-  );
+
+  const worksSubtotal = hasAdjustments
+    ? costAdjustments!.worksSubtotal
+    : (lineItems ?? []).reduce(
+        (sum, item) => sum + (Number(item.amount) || 0),
+        0,
+      );
+
+  const adjustmentRows: string[] = [];
+  if (hasAdjustments) {
+    if (!hasLineItems) {
+      adjustmentRows.push(`
+        <tr>
+          ${cell(copy.boqWorksTotal)}
+          ${cell(copy.dash)}
+          ${cell(formatThb(worksSubtotal, locale), 'td', 'num')}
+        </tr>`);
+    } else {
+      adjustmentRows.push(`
+        <tr class="subtotal">
+          <td colspan="2"><p>${escapeHtml(copy.boqSubtotal)}</p></td>
+          ${cell(formatThb(worksSubtotal, locale), 'td', 'num')}
+        </tr>`);
+    }
+
+    if (costAdjustments!.preliminaryAmount > 0) {
+      adjustmentRows.push(`
+        <tr>
+          ${cell(copy.boqPreliminary(costAdjustments!.preliminaryPercent))}
+          ${cell(copy.dash)}
+          ${cell(formatThb(costAdjustments!.preliminaryAmount, locale), 'td', 'num')}
+        </tr>`);
+    }
+    if (costAdjustments!.overheadProfitAmount > 0) {
+      adjustmentRows.push(`
+        <tr>
+          ${cell(copy.boqOverheadProfit(costAdjustments!.overheadProfitPercent))}
+          ${cell(copy.dash)}
+          ${cell(formatThb(costAdjustments!.overheadProfitAmount, locale), 'td', 'num')}
+        </tr>`);
+    }
+    if (costAdjustments!.vatAmount > 0) {
+      adjustmentRows.push(`
+        <tr>
+          ${cell(copy.boqVat(costAdjustments!.vatPercent))}
+          ${cell(copy.dash)}
+          ${cell(formatThb(costAdjustments!.vatAmount, locale), 'td', 'num')}
+        </tr>`);
+    }
+    adjustmentRows.push(`
+      <tr class="subtotal">
+        <td colspan="2"><p>${escapeHtml(copy.boqGrandTotal)}</p></td>
+        ${cell(formatThb(grandTotal, locale), 'td', 'num')}
+      </tr>`);
+  } else if (hasLineItems) {
+    adjustmentRows.push(`
+      <tr class="subtotal">
+        <td colspan="2"><p>${escapeHtml(copy.boqSubtotal)}</p></td>
+        ${cell(formatThb(worksSubtotal, locale), 'td', 'num')}
+      </tr>`);
+  }
+
   return `
     <table class="boq">
       <tbody>
@@ -149,10 +210,7 @@ function buildBoqTable(
           ${cell(copy.boqAmount, 'th')}
         </tr>
         ${rows}
-        <tr class="subtotal">
-          <td colspan="2"><p>${escapeHtml(copy.boqSubtotal)}</p></td>
-          ${cell(formatThb(subtotal, locale), 'td', 'num')}
-        </tr>
+        ${adjustmentRows.join('')}
       </tbody>
     </table>`;
 }
@@ -325,7 +383,14 @@ export function buildCommercialProposalData(input: {
     .join(', ');
 
   const lineItems = input.terms?.lineItems;
-  const boqTableHtml = buildBoqTable(lineItems, copy, locale);
+  const costAdjustments = input.terms?.costAdjustments;
+  const boqTableHtml = buildBoqTable(
+    lineItems,
+    costAdjustments,
+    amount,
+    copy,
+    locale,
+  );
 
   return {
     documentTitle: copy.documentTitle(input.projectTitle),
@@ -374,7 +439,8 @@ export function buildCommercialProposalData(input: {
     specialConditions: contract?.specialConditions?.trim() ?? '',
     hasSpecialConditions: Boolean(contract?.specialConditions?.trim()),
     boqTableHtml,
-    hasBoq: Boolean(lineItems?.length),
+    hasBoq: Boolean(lineItems?.length || costAdjustments),
+    costAdjustments: costAdjustments ?? null,
     annex2Html: buildAnnex2Html(input.projectDocuments ?? [], copy),
     hasAnnex2Documents: (input.projectDocuments?.length ?? 0) > 0,
     annex3Html: buildAnnex3Html(input.contractorDocuments ?? [], copy),
@@ -659,9 +725,22 @@ function renderClause3(
     data.contractAmountFormatted,
     data.contractAmountNumeric,
   );
+  const vatBreakdown =
+    data.costAdjustments && data.costAdjustments.vatAmount > 0
+      ? `<p class="clause">${escapeHtml(
+          copy.contractAmountVatBreakdown(
+            formatThb(data.costAdjustments.worksSubtotal, data.locale as SupportedLocale),
+            formatThb(data.costAdjustments.preliminaryAmount, data.locale as SupportedLocale),
+            formatThb(data.costAdjustments.overheadProfitAmount, data.locale as SupportedLocale),
+            formatThb(data.costAdjustments.vatAmount, data.locale as SupportedLocale),
+            data.costAdjustments.vatPercent,
+          ),
+        )}</p>`
+      : '';
   return `
   <h2>${escapeHtml(copy.clause3)}</h2>
   <p class="clause">${escapeHtml(amountSentence)}</p>
+  ${vatBreakdown}
   <p class="clause">${escapeHtml(copy.noAdjustment)}</p>`;
 }
 
