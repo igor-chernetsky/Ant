@@ -391,32 +391,38 @@ export function BidProposalForm({
   return (
     <div className="bid-proposal-form bid-proposal-form--compact">
       <div className="modal-form bid-proposal-form-fields">
-        <div className="bid-proposal-form-row bid-proposal-form-row--amount-duration">
-          <div className="bid-proposal-field bid-proposal-field--amount bid-proposal-field--grand-total">
-            <span className="field-label">{t('bid.grandTotalThb')}</span>
-            <output
-              className="bid-grand-total-output"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {pricingPreview
-                ? formatThb(pricingPreview.grandTotal)
-                : t('common.dash')}
-            </output>
-            <span className="field-hint muted">{t('bid.grandTotalHint')}</span>
+        <section
+          className="bid-proposal-metrics"
+          aria-label={t('bid.grandTotalThb')}
+        >
+          <div className="bid-proposal-form-row bid-proposal-form-row--amount-duration">
+            <div className="bid-proposal-field bid-proposal-field--grand-total">
+              <span className="field-label">{t('bid.grandTotalThb')}</span>
+              <output
+                className="bid-grand-total-output"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {pricingPreview
+                  ? formatThb(pricingPreview.grandTotal)
+                  : t('common.dash')}
+              </output>
+            </div>
+            <label className="bid-proposal-field bid-proposal-field--duration">
+              <span className="field-label">{t('bid.durationDays')}</span>
+              <input
+                type="number"
+                className="bid-proposal-metric-input"
+                min="1"
+                value={durationDays}
+                onChange={(e) => handleDurationChange(e.target.value)}
+                placeholder={t('bid.durationPlaceholder')}
+                inputMode="numeric"
+              />
+            </label>
           </div>
-          <label className="bid-proposal-field bid-proposal-field--duration">
-            <span className="field-label">{t('bid.durationDays')}</span>
-            <input
-              type="number"
-              min="1"
-              value={durationDays}
-              onChange={(e) => handleDurationChange(e.target.value)}
-              placeholder={t('bid.durationPlaceholder')}
-              inputMode="numeric"
-            />
-          </label>
-        </div>
+          <p className="bid-proposal-metrics-hint muted">{t('bid.grandTotalHint')}</p>
+        </section>
       </div>
 
       <div className="bid-breakdown-toggle">
