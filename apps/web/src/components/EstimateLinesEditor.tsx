@@ -271,40 +271,43 @@ export function EstimateLinesEditor({
           </div>
 
           <div className="estimate-lines-add-form">
-            <label className="estimate-lines-add-field">
-              <span className="field-label">{t('estimateSection.addLineTrade')}</span>
-              <select
-                value={selectedTrade}
-                onChange={(e) => handleTradeChange(e.target.value)}
-                disabled={busy || availableTrades.length === 0}
-              >
-                <option value="">{t('estimateSection.addLineTradePlaceholder')}</option>
-                {availableTrades.map((item) => (
-                  <option key={item.trade} value={item.trade}>
-                    {formatTagLabel(item.trade, item.label)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="estimate-lines-add-row estimate-lines-add-row--primary">
+              <label className="estimate-lines-add-field">
+                <span className="field-label">{t('estimateSection.addLineTrade')}</span>
+                <select
+                  value={selectedTrade}
+                  onChange={(e) => handleTradeChange(e.target.value)}
+                  disabled={busy || availableTrades.length === 0}
+                >
+                  <option value="">{t('estimateSection.addLineTradePlaceholder')}</option>
+                  {availableTrades.map((item) => (
+                    <option key={item.trade} value={item.trade}>
+                      {formatTagLabel(item.trade, item.label)}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label className="estimate-lines-add-field estimate-lines-add-field--wide">
-              <span className="field-label">
-                {t('estimateSection.addLineDescription')}
-              </span>
-              <input
-                type="text"
-                value={addedDescription}
-                onChange={(e) => setAddedDescription(e.target.value)}
-                placeholder={t('estimateSection.addLineDescriptionPlaceholder')}
-                disabled={busy}
-              />
-            </label>
+              <label className="estimate-lines-add-field">
+                <span className="field-label">
+                  {t('estimateSection.addLineDescription')}
+                </span>
+                <input
+                  type="text"
+                  value={addedDescription}
+                  onChange={(e) => setAddedDescription(e.target.value)}
+                  placeholder={t('estimateSection.addLineDescriptionPlaceholder')}
+                  disabled={busy}
+                />
+              </label>
+            </div>
 
-            <div className="estimate-lines-add-price-row">
+            <div className="estimate-lines-add-row estimate-lines-add-row--pricing">
               <label className="estimate-lines-add-field">
                 <span className="field-label">{t('estimateSection.addLineMin')}</span>
                 <input
                   type="number"
+                  className="estimate-lines-add-amount"
                   inputMode="numeric"
                   min={0}
                   step={1}
@@ -321,6 +324,7 @@ export function EstimateLinesEditor({
                 <span className="field-label">{t('estimateSection.addLineMax')}</span>
                 <input
                   type="number"
+                  className="estimate-lines-add-amount"
                   inputMode="numeric"
                   min={0}
                   step={1}
@@ -333,21 +337,9 @@ export function EstimateLinesEditor({
                   disabled={busy || !selectedTrade}
                 />
               </label>
-            </div>
-
-            {showPreview && (
-              <p className="estimate-lines-add-preview muted">
-                {t('estimateSection.addLinePreview', {
-                  min: formatThb(parsedMin),
-                  max: formatThb(parsedMax),
-                })}
-              </p>
-            )}
-
-            <div className="estimate-lines-add-actions">
               <button
                 type="button"
-                className="secondary"
+                className="secondary estimate-lines-add-submit"
                 disabled={
                   busy ||
                   !selectedTrade ||
@@ -359,6 +351,15 @@ export function EstimateLinesEditor({
                 {t('estimateSection.addLineButton')}
               </button>
             </div>
+
+            {showPreview && (
+              <p className="estimate-lines-add-preview muted">
+                {t('estimateSection.addLinePreview', {
+                  min: formatThb(parsedMin),
+                  max: formatThb(parsedMax),
+                })}
+              </p>
+            )}
           </div>
         </section>
       )}
