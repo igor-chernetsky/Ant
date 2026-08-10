@@ -40,7 +40,12 @@ export interface BallparkEstimate {
     excludedLines: Array<{ trade: string; description: string }>;
     addedLines: Array<{ trade: string; description: string }>;
   };
-  availableTrades?: Array<{ trade: string; label: string }>;
+  availableTrades?: Array<{
+    trade: string;
+    label: string;
+    lineMin: number;
+    lineMax: number;
+  }>;
   editable?: boolean;
 }
 
@@ -121,7 +126,12 @@ export async function updateProjectEstimateAdjustments(
   projectId: string,
   input: {
     excludedLines: Array<{ trade: string; description: string }>;
-    addedLines: Array<{ trade: string; description?: string }>;
+    addedLines: Array<{
+      trade: string;
+      description?: string;
+      lineMin: number;
+      lineMax: number;
+    }>;
   },
 ): Promise<BallparkEstimate> {
   const response = await fetchWithAuth(

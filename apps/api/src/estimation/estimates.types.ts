@@ -49,7 +49,12 @@ export interface EstimateResponse {
   createdAt: string;
   /** Client exclusions/additions applied to the latest AI estimate. */
   adjustments?: EstimateAdjustmentsView;
-  availableTrades?: Array<{ trade: string; label: string }>;
+  availableTrades?: Array<{
+    trade: string;
+    label: string;
+    lineMin: number;
+    lineMax: number;
+  }>;
   editable?: boolean;
 }
 
@@ -60,5 +65,10 @@ export interface EstimateAdjustmentsView {
 
 export interface UpdateEstimateAdjustmentsDto {
   excludedLines: Array<{ trade: string; description: string }>;
-  addedLines: Array<{ trade: string; description?: string }>;
+  addedLines: Array<{
+    trade: string;
+    description?: string;
+    lineMin: number;
+    lineMax: number;
+  }>;
 }

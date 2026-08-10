@@ -7,7 +7,6 @@ import { EstimateLine } from '../estimation/estimates.types';
 import {
   applyEstimateAdjustments,
   parseEstimateAdjustments,
-  priceCatalogEstimateLine,
 } from '../estimation/estimate-adjustments.util';
 import {
   DefaultCostBreakdownItem,
@@ -171,19 +170,9 @@ export class DefaultCostBreakdownService {
       schemaVersion: 1,
     };
     const narrative = [project.title, project.description ?? ''].join('\n');
-    const pricedAddedLines = adjustments.addedLines
-      .map((ref) =>
-        priceCatalogEstimateLine({
-          trade: ref.trade,
-          description: ref.description,
-          brief,
-          narrative,
-        }),
-      )
-      .filter((line): line is EstimateLine => line != null);
     const effective = applyEstimateAdjustments({
       lines: baseLines,
-      adjustments: { ...adjustments, pricedAddedLines },
+      adjustments,
       brief,
       narrative,
       designFeePercent: project.designFeePercent,

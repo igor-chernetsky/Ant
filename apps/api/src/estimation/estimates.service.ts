@@ -18,11 +18,13 @@ import {
 import { adjustEstimateConfidence } from './estimate-confidence';
 import {
   applyEstimateAdjustments,
-  catalogTradesForPicker,
+  buildAddedEstimateLine,
+  catalogTradesForPickerWithPrices,
   emptyEstimateAdjustments,
   mergeEstimateAdjustments,
   parseEstimateAdjustments,
-  priceCatalogEstimateLine,
+  validateLinePriceRange,
+  type LinePriceRangeError,
 } from './estimate-adjustments.util';
 import {
   EstimateLine,
@@ -177,23 +179,10 @@ export class EstimatesService {
     const adjustments = parseEstimateAdjustments(project.estimateAdjustmentsJson);
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
     const narrative = [project.title, project.description ?? ''].join('\n');
-    const pricedAddedLines = adjustments.addedLines
-      .map((ref) =>
-        priceCatalogEstimateLine({
-          trade: ref.trade,
-          description: ref.description,
-          brief,
-          narrative,
-        }),
-      )
-      .filter((line): line is EstimateLine => line != null);
 
     const effective = applyEstimateAdjustments({
       lines: response.lines,
-      adjustments: {
-        ...adjustments,
-        pricedAddedLines,
-      },
+      adjustments,
       brief,
       narrative,
       designFeePercent: project.designFeePercent,
@@ -212,7 +201,9 @@ export class EstimatesService {
           description: line.description,
         })),
       },
-      availableTrades: editable ? catalogTradesForPicker() : undefined,
+      availableTrades: editable
+        ? catalogTradesForPickerWithPrices(brief, narrative)
+        : undefined,
       editable,
     };
   }
@@ -249,6 +240,8 @@ export class EstimatesService {
       .map((line) => ({
         trade: line.trade?.trim() ?? '',
         description: line.description?.trim() ?? '',
+        lineMin: Number(line.lineMin),
+        lineMax: Number(line.lineMax),
       }))
       .filter((line) => line.trade && ALLOWED_ESTIMATE_TRADES.has(line.trade));
 
@@ -262,13 +255,25 @@ export class EstimatesService {
 
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
     const narrative = [project.title, project.description ?? ''].join('\n');
+
+    for (const line of uniqueAdded) {
+      const rangeError = validateLinePriceRange(line.lineMin, line.lineMax);
+      if (rangeError) {
+        throw new BadRequestException(
+          this.linePriceRangeErrorMessage(rangeError),
+        );
+      }
+    }
+
     const pricedAddedLines = uniqueAdded
       .map((ref) =>
-        priceCatalogEstimateLine({
+        buildAddedEstimateLine({
           trade: ref.trade,
           description: ref.description,
           brief,
           narrative,
+          lineMin: ref.lineMin,
+          lineMax: ref.lineMax,
         }),
       )
       .filter((line): line is EstimateLine => line != null);
@@ -625,6 +630,20 @@ export class EstimatesService {
       percent: design.percent,
       baseTotals: design.baseTotals,
     };
+  }
+
+  private linePriceRangeErrorMessage(error: LinePriceRangeError): string {
+    switch (error) {
+      case 'negative':
+        return 'Line amounts must be zero or greater';
+      case 'max_lt_min':
+        return 'Maximum amount must be greater than or equal to minimum';
+      case 'too_large':
+        return 'Line amount is too large';
+      case 'invalid':
+      default:
+        return 'Enter valid whole-number amounts for min and max';
+    }
   }
 
   private async assertProjectOwner(projectId: string, clientId: string) {

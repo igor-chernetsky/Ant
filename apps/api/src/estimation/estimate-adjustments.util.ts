@@ -128,6 +128,39 @@ function isExcluded(
   );
 }
 
+export const MAX_ESTIMATE_LINE_AMOUNT_THB = 500_000_000;
+
+export type LinePriceRangeError =
+  | 'invalid'
+  | 'negative'
+  | 'max_lt_min'
+  | 'too_large';
+
+export function validateLinePriceRange(
+  lineMin: number,
+  lineMax: number,
+): LinePriceRangeError | null {
+  if (!Number.isFinite(lineMin) || !Number.isFinite(lineMax)) {
+    return 'invalid';
+  }
+  if (!Number.isInteger(lineMin) || !Number.isInteger(lineMax)) {
+    return 'invalid';
+  }
+  if (lineMin < 0 || lineMax < 0) {
+    return 'negative';
+  }
+  if (lineMax < lineMin) {
+    return 'max_lt_min';
+  }
+  if (
+    lineMin > MAX_ESTIMATE_LINE_AMOUNT_THB ||
+    lineMax > MAX_ESTIMATE_LINE_AMOUNT_THB
+  ) {
+    return 'too_large';
+  }
+  return null;
+}
+
 export function priceCatalogEstimateLine(input: {
   trade: string;
   description?: string;
@@ -166,11 +199,70 @@ export function priceCatalogEstimateLine(input: {
   };
 }
 
+export function buildAddedEstimateLine(input: {
+  trade: string;
+  description?: string;
+  brief: ProjectBriefV1;
+  narrative?: string;
+  lineMin: number;
+  lineMax: number;
+}): EstimateLine | null {
+  const catalogLine = priceCatalogEstimateLine({
+    trade: input.trade,
+    description: input.description,
+    brief: input.brief,
+    narrative: input.narrative,
+  });
+  if (!catalogLine) {
+    return null;
+  }
+
+  const rangeError = validateLinePriceRange(input.lineMin, input.lineMax);
+  if (rangeError) {
+    return null;
+  }
+
+  const quantity = catalogLine.quantity > 0 ? catalogLine.quantity : 1;
+  const lineMin = input.lineMin;
+  const lineMax = input.lineMax;
+
+  return {
+    ...catalogLine,
+    description: input.description?.trim() || catalogLine.description,
+    lineMin,
+    lineMax,
+    unitPriceMin: Math.max(0, Math.round(lineMin / quantity)),
+    unitPriceMax: Math.max(
+      Math.round(lineMin / quantity),
+      Math.round(lineMax / quantity),
+    ),
+  };
+}
+
 export function catalogTradesForPicker(): Array<{ trade: string; label: string }> {
   return TH_REGIONAL_CATALOG.map((item) => ({
     trade: item.trade,
     label: item.label,
   }));
+}
+
+export function catalogTradesForPickerWithPrices(
+  brief: ProjectBriefV1,
+  narrative?: string,
+): Array<{ trade: string; label: string; lineMin: number; lineMax: number }> {
+  return TH_REGIONAL_CATALOG.map((item) => {
+    const priced = priceCatalogEstimateLine({
+      trade: item.trade,
+      brief,
+      narrative,
+    });
+    return {
+      trade: item.trade,
+      label: item.label,
+      lineMin: priced?.lineMin ?? 0,
+      lineMax: priced?.lineMax ?? 0,
+    };
+  });
 }
 
 export function applyEstimateAdjustments(input: {
