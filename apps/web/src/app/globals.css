@@ -5386,25 +5386,10 @@ pre {
 }
 
 .estimate-lines-add-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.estimate-lines-add-row {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
   min-width: 0;
-}
-
-.estimate-lines-add-row--primary {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.estimate-lines-add-row--pricing {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: end;
 }
 
 .estimate-lines-add-field {
@@ -5421,14 +5406,21 @@ pre {
   line-height: 1.2;
 }
 
-.estimate-lines-add-field input,
-.estimate-lines-add-field select {
+.estimate-lines-add-control,
+button.secondary.estimate-lines-add-submit {
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  padding: 0.45rem 0.55rem;
+  height: 2.125rem;
+  min-height: 2.125rem;
+  padding: 0 0.55rem;
   font-size: 0.875rem;
+  line-height: 1.25;
+}
+
+.estimate-lines-add-field select.estimate-lines-add-control {
+  padding-right: 1.75rem;
 }
 
 .estimate-lines-add-amount {
@@ -5441,12 +5433,20 @@ pre {
   margin: 0;
 }
 
+.estimate-lines-add-submit-label {
+  visibility: hidden;
+  user-select: none;
+}
+
 .estimate-lines-add-submit {
-  grid-column: 1 / -1;
-  width: 100%;
-  padding: 0.45rem 0.65rem;
-  font-size: 0.875rem;
   white-space: nowrap;
+  padding-inline: 0.75rem;
+}
+
+button.secondary.estimate-lines-add-submit {
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .estimate-lines-add-preview {
@@ -5455,19 +5455,53 @@ pre {
   line-height: 1.3;
 }
 
+@media (max-width: 419px) {
+  .estimate-lines-add-submit,
+  button.secondary.estimate-lines-add-submit {
+    width: 100%;
+  }
+}
+
 @media (min-width: 420px) {
-  .estimate-lines-add-row--primary {
-    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  .estimate-lines-add-form {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr) auto;
+    align-items: start;
   }
 
-  .estimate-lines-add-row--pricing {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  .estimate-lines-add-field--trade {
+    grid-column: 1;
+    grid-row: 1;
   }
 
-  .estimate-lines-add-submit {
-    grid-column: auto;
+  .estimate-lines-add-field--description {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .estimate-lines-add-field--submit {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .estimate-lines-add-field--min {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .estimate-lines-add-field--max {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .estimate-lines-add-preview {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .estimate-lines-add-submit,
+  button.secondary.estimate-lines-add-submit {
     width: auto;
-    align-self: end;
+    min-width: 5.5rem;
   }
 }
 
