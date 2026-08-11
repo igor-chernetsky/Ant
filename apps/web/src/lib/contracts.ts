@@ -1,4 +1,8 @@
 import { fetchWithAuth } from './auth-client';
+import {
+  deliverFetchedBlob,
+  openPendingPreviewWindow,
+} from './blob-download';
 
 export type ContractStatus = 'pending_signatures' | 'fully_signed';
 
@@ -253,66 +257,70 @@ export async function downloadCustomContractFile(
   // Stamped PDFs must go through the POST download path (not the raw file URL).
   const usePostDownload = needsFormatDownload || includeSignatures;
 
-  if (!usePostDownload) {
+  const expectPdfPreview =
+    !needsFormatDownload &&
+    (!formats?.length || (formats.length === 1 && formats[0] === 'pdf'));
+  const previewWindow = expectPdfPreview ? openPendingPreviewWindow() : null;
+
+  try {
+    if (!usePostDownload) {
+      const response = await fetchWithAuth(
+        `${contractPath(projectId, asContractor)}/custom-file`,
+      );
+      if (!response.ok) {
+        await parseError(response, 'Failed to get contract download link');
+      }
+      const data = (await response.json()) as {
+        downloadUrl: string;
+        originalName: string;
+      };
+      if (previewWindow && !previewWindow.closed) {
+        previewWindow.location.href = data.downloadUrl;
+        previewWindow.focus();
+        return;
+      }
+      const anchor = document.createElement('a');
+      anchor.href = data.downloadUrl;
+      anchor.download = data.originalName || 'contract.pdf';
+      anchor.rel = 'noopener';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      return;
+    }
+
     const response = await fetchWithAuth(
-      `${contractPath(projectId, asContractor)}/custom-file`,
+      `${contractPath(projectId, asContractor)}/custom-file/download`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          formats: formats?.length ? formats : ['pdf'],
+          includeSignatures,
+        }),
+      },
     );
     if (!response.ok) {
-      await parseError(response, 'Failed to get contract download link');
+      await parseError(response, 'Failed to download custom contract');
     }
-    const data = (await response.json()) as {
-      downloadUrl: string;
-      originalName: string;
-    };
-    const anchor = document.createElement('a');
-    anchor.href = data.downloadUrl;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener noreferrer';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    return;
-  }
 
-  const response = await fetchWithAuth(
-    `${contractPath(projectId, asContractor)}/custom-file/download`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        formats: formats?.length ? formats : ['pdf'],
-        includeSignatures,
-      }),
-    },
-  );
-  if (!response.ok) {
-    await parseError(response, 'Failed to download custom contract');
+    const blob = await response.blob();
+    const fileName =
+      parseContentDispositionFilename(
+        response.headers.get('content-disposition'),
+      ) ??
+      (formats && formats.length > 1
+        ? 'contract-files.zip'
+        : formats?.[0] === 'docx'
+          ? 'contract.docx'
+          : 'contract.pdf');
+    deliverFetchedBlob(blob, fileName, previewWindow);
+  } catch (err) {
+    if (previewWindow && !previewWindow.closed) {
+      previewWindow.close();
+    }
+    throw err;
   }
-
-  const blob = await response.blob();
-  const fileName =
-    parseContentDispositionFilename(
-      response.headers.get('content-disposition'),
-    ) ??
-    (formats && formats.length > 1
-      ? 'contract-files.zip'
-      : formats?.[0] === 'docx'
-        ? 'contract.docx'
-        : 'contract.pdf');
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.target = '_blank';
-  anchor.rel = 'noopener noreferrer';
-  const isPdf =
-    blob.type === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
-  if (!isPdf) {
-    anchor.download = fileName;
-  }
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 function parseContentDispositionFilename(

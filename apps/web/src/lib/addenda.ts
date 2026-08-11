@@ -1,5 +1,9 @@
 import { fetchWithAuth } from './auth-client';
 import {
+  deliverFetchedBlob,
+  openPendingPreviewWindow,
+} from './blob-download';
+import {
   assertCustomContractFile,
   MAX_CUSTOM_CONTRACT_BYTES,
   type CustomFileDownloadFormat,
@@ -434,40 +438,41 @@ export async function downloadContractAddendum(
     includeSignatures?: boolean;
   },
 ): Promise<void> {
-  const params = new URLSearchParams();
-  if (options?.withAttachments) {
-    params.set('withAttachments', '1');
+  const formats = options?.formats;
+  const expectPdfPreview =
+    !options?.withAttachments &&
+    (!formats?.length || (formats.length === 1 && formats[0] === 'pdf'));
+  // Open before the first await so the tab is not blocked after fetch.
+  const previewWindow = expectPdfPreview ? openPendingPreviewWindow() : null;
+
+  try {
+    const params = new URLSearchParams();
+    if (options?.withAttachments) {
+      params.set('withAttachments', '1');
+    }
+    if (formats?.length) {
+      params.set('formats', formats.join(','));
+    }
+    if (options?.includeSignatures) {
+      params.set('includeSignatures', '1');
+    }
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const response = await fetchWithAuth(
+      `${addendaBase(projectId, Boolean(options?.asContractor))}/${encodeURIComponent(addendumId)}/download${query}`,
+    );
+    if (!response.ok) {
+      await parseError(response, 'Failed to download additional agreement');
+    }
+    const blob = await response.blob();
+    const fileName =
+      parseContentDispositionFilename(
+        response.headers.get('content-disposition'),
+      ) ?? `addendum-${addendumId.slice(0, 8)}.pdf`;
+    deliverFetchedBlob(blob, fileName, previewWindow);
+  } catch (err) {
+    if (previewWindow && !previewWindow.closed) {
+      previewWindow.close();
+    }
+    throw err;
   }
-  if (options?.formats?.length) {
-    params.set('formats', options.formats.join(','));
-  }
-  if (options?.includeSignatures) {
-    params.set('includeSignatures', '1');
-  }
-  const query = params.toString() ? `?${params.toString()}` : '';
-  const response = await fetchWithAuth(
-    `${addendaBase(projectId, Boolean(options?.asContractor))}/${encodeURIComponent(addendumId)}/download${query}`,
-  );
-  if (!response.ok) {
-    await parseError(response, 'Failed to download additional agreement');
-  }
-  const blob = await response.blob();
-  const fileName =
-    parseContentDispositionFilename(
-      response.headers.get('content-disposition'),
-    ) ?? `addendum-${addendumId.slice(0, 8)}.pdf`;
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.target = '_blank';
-  anchor.rel = 'noopener noreferrer';
-  const isPdf =
-    blob.type === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf');
-  if (!isPdf) {
-    anchor.download = fileName;
-  }
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
