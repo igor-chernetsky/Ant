@@ -1327,6 +1327,11 @@ export const ruExtended = {
     documentSaved: "Документ сохранён.",
     saveDocumentFailed: "Не удалось сохранить документ договора",
     regenerateFailed: "Не удалось пересобрать документ договора",
+    confirmSaveClearsSignaturesTitle: "Сохранить и сбросить подписи?",
+    confirmRegenerateClearsSignaturesTitle: "Пересобрать и сбросить подписи?",
+    confirmClearsSignaturesMessage:
+      "У договора уже есть подпись. Сохранение изменений сбросит подписи — обе стороны должны будут подписать снова.",
+    confirmClearsSignaturesLabel: "Сбросить подписи",
     toolbarBold: "Жирный",
     toolbarItalic: "Курсив",
     toolbarHeading: "Заголовок",
@@ -1412,6 +1417,11 @@ export const ruExtended = {
     documentSaved: "Документ сохранён.",
     saveFailed: "Не удалось сохранить документ",
     regenerateFailed: "Не удалось пересоздать документ",
+    confirmSaveClearsSignaturesTitle: "Сохранить и сбросить подписи?",
+    confirmRegenerateClearsSignaturesTitle: "Пересоздать и сбросить подписи?",
+    confirmClearsSignaturesMessage:
+      "У допсоглашения уже есть подпись. Сохранение изменений сбросит подписи — обе стороны должны будут подписать снова.",
+    confirmClearsSignaturesLabel: "Сбросить подписи",
     customFileLabel: "Файл: {name}",
     previewFrameTitle: "Просмотр PDF допсоглашения",
     previewLegacyDocx: "Этот DOCX нельзя показать здесь. Скачайте его или загрузите снова для конвертации в PDF.",

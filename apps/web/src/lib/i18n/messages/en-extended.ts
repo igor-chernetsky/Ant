@@ -1326,6 +1326,11 @@ export const enExtended = {
     documentSaved: "Document saved.",
     saveDocumentFailed: "Failed to save contract document",
     regenerateFailed: "Failed to regenerate contract document",
+    confirmSaveClearsSignaturesTitle: "Save and clear signatures?",
+    confirmRegenerateClearsSignaturesTitle: "Regenerate and clear signatures?",
+    confirmClearsSignaturesMessage:
+      "This contract already has a signature. Saving changes will clear existing signatures, and both parties must sign again.",
+    confirmClearsSignaturesLabel: "Clear signatures",
     toolbarBold: "Bold",
     toolbarItalic: "Italic",
     toolbarHeading: "Heading",
@@ -1411,6 +1416,11 @@ export const enExtended = {
     documentSaved: "Document saved.",
     saveFailed: "Failed to save document",
     regenerateFailed: "Failed to regenerate document",
+    confirmSaveClearsSignaturesTitle: "Save and clear signatures?",
+    confirmRegenerateClearsSignaturesTitle: "Regenerate and clear signatures?",
+    confirmClearsSignaturesMessage:
+      "This additional agreement already has a signature. Saving changes will clear existing signatures, and both parties must sign again.",
+    confirmClearsSignaturesLabel: "Clear signatures",
     customFileLabel: "Custom file: {name}",
     previewFrameTitle: "Additional agreement PDF preview",
     previewLegacyDocx: "This DOCX cannot be previewed here. Download it, or re-upload to convert to PDF.",

@@ -6,8 +6,9 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import {
   regenerateProjectContractDocument,
   updateProjectContractDocument,
@@ -137,11 +138,20 @@ export function ContractDocumentEditor({
   onSaved,
 }: ContractDocumentEditorProps) {
   const { t } = useTranslation();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const readOnly = !contract.canEditDocument || contract.fullySigned;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const baselineHtmlRef = useRef(contract.englishBodyHtml || '<p></p>');
+  const hasAnySignature = Boolean(
+    contract.clientSignedAt || contract.contractorSignedAt,
+  );
+
+  const syncDirtyFromEditor = (html: string) => {
+    setDirty(html !== baselineHtmlRef.current);
+  };
 
   const editor = useEditor({
     extensions: [
@@ -168,8 +178,12 @@ export function ContractDocumentEditor({
     content: contract.englishBodyHtml || '<p></p>',
     editable: !readOnly,
     immediatelyRender: false,
-    onUpdate: () => {
-      setDirty(true);
+    onCreate: ({ editor: current }) => {
+      baselineHtmlRef.current = current.getHTML();
+      setDirty(false);
+    },
+    onUpdate: ({ editor: current }) => {
+      syncDirtyFromEditor(current.getHTML());
       setSaved(false);
     },
   });
@@ -177,8 +191,10 @@ export function ContractDocumentEditor({
   useEffect(() => {
     if (!editor) return;
     const next = contract.englishBodyHtml || '<p></p>';
-    if (editor.getHTML() !== next && !dirty) {
+    if (!dirty) {
       editor.commands.setContent(next, { emitUpdate: false });
+      baselineHtmlRef.current = editor.getHTML();
+      setDirty(false);
     }
     editor.setEditable(!readOnly);
   }, [contract.englishBodyHtml, contract.id, dirty, editor, readOnly]);
@@ -189,8 +205,23 @@ export function ContractDocumentEditor({
     editor.chain().focus().run();
   };
 
+  const confirmClearsSignatures = async (kind: 'save' | 'regenerate') => {
+    if (!hasAnySignature) return true;
+    return confirm({
+      title:
+        kind === 'save'
+          ? t('contractPanel.confirmSaveClearsSignaturesTitle')
+          : t('contractPanel.confirmRegenerateClearsSignaturesTitle'),
+      message: t('contractPanel.confirmClearsSignaturesMessage'),
+      confirmLabel: t('contractPanel.confirmClearsSignaturesLabel'),
+      tone: 'danger',
+    });
+  };
+
   const handleSave = async () => {
-    if (!editor || readOnly) return;
+    if (!editor || readOnly || !dirty) return;
+    if (!(await confirmClearsSignatures('save'))) return;
+
     setBusy(true);
     setError(null);
     setSaved(false);
@@ -200,6 +231,7 @@ export function ContractDocumentEditor({
         editor.getHTML(),
         { asContractor },
       );
+      baselineHtmlRef.current = editor.getHTML();
       setDirty(false);
       setSaved(true);
       onSaved?.(updated);
@@ -216,6 +248,8 @@ export function ContractDocumentEditor({
 
   const handleRegenerate = async () => {
     if (readOnly) return;
+    if (!(await confirmClearsSignatures('regenerate'))) return;
+
     setBusy(true);
     setError(null);
     setSaved(false);
@@ -223,13 +257,14 @@ export function ContractDocumentEditor({
       const updated = await regenerateProjectContractDocument(projectId, {
         asContractor,
       });
-      setDirty(false);
       onSaved?.(updated);
       if (editor) {
         editor.commands.setContent(updated.englishBodyHtml || '<p></p>', {
           emitUpdate: false,
         });
+        baselineHtmlRef.current = editor.getHTML();
       }
+      setDirty(false);
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -358,6 +393,7 @@ export function ContractDocumentEditor({
         )}
 
         {error && <p className="form-error">{error}</p>}
+        {confirmDialog}
       </div>
     </details>
   );

@@ -82,6 +82,7 @@ function AddendumEditor({
   onSaved: (row: ContractAddendum) => void;
 }) {
   const { t } = useTranslation();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const readOnly = !addendum.canEditDocument || addendum.fullySigned;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +90,10 @@ function AddendumEditor({
   const [saved, setSaved] = useState(false);
   const [regenLocale, setRegenLocale] = useState<Locale>(
     addendum.bodyLocale ?? 'en',
+  );
+  const baselineHtmlRef = useRef(addendum.englishBodyHtml || '<p></p>');
+  const hasAnySignature = Boolean(
+    addendum.clientSignedAt || addendum.contractorSignedAt,
   );
 
   useEffect(() => {
@@ -118,8 +123,12 @@ function AddendumEditor({
     content: addendum.englishBodyHtml || '<p></p>',
     editable: !readOnly,
     immediatelyRender: false,
-    onUpdate: () => {
-      setDirty(true);
+    onCreate: ({ editor: current }) => {
+      baselineHtmlRef.current = current.getHTML();
+      setDirty(false);
+    },
+    onUpdate: ({ editor: current }) => {
+      setDirty(current.getHTML() !== baselineHtmlRef.current);
       setSaved(false);
     },
   });
@@ -127,14 +136,31 @@ function AddendumEditor({
   useEffect(() => {
     if (!editor) return;
     const next = addendum.englishBodyHtml || '<p></p>';
-    if (editor.getHTML() !== next && !dirty) {
+    if (!dirty) {
       editor.commands.setContent(next, { emitUpdate: false });
+      baselineHtmlRef.current = editor.getHTML();
+      setDirty(false);
     }
     editor.setEditable(!readOnly);
   }, [addendum.englishBodyHtml, addendum.id, dirty, editor, readOnly]);
 
+  const confirmClearsSignatures = async (kind: 'save' | 'regenerate') => {
+    if (!hasAnySignature) return true;
+    return confirm({
+      title:
+        kind === 'save'
+          ? t('addenda.confirmSaveClearsSignaturesTitle')
+          : t('addenda.confirmRegenerateClearsSignaturesTitle'),
+      message: t('addenda.confirmClearsSignaturesMessage'),
+      confirmLabel: t('addenda.confirmClearsSignaturesLabel'),
+      tone: 'danger',
+    });
+  };
+
   const handleSave = async () => {
-    if (!editor || readOnly) return;
+    if (!editor || readOnly || !dirty) return;
+    if (!(await confirmClearsSignatures('save'))) return;
+
     setBusy(true);
     setError(null);
     try {
@@ -144,6 +170,7 @@ function AddendumEditor({
         editor.getHTML(),
         { asContractor },
       );
+      baselineHtmlRef.current = editor.getHTML();
       setDirty(false);
       setSaved(true);
       onSaved(updated);
@@ -158,6 +185,8 @@ function AddendumEditor({
 
   const handleRegenerate = async () => {
     if (readOnly || !addendum.sourceDescription) return;
+    if (!(await confirmClearsSignatures('regenerate'))) return;
+
     setBusy(true);
     setError(null);
     try {
@@ -166,13 +195,14 @@ function AddendumEditor({
         addendum.id,
         { asContractor, locale: regenLocale },
       );
-      setDirty(false);
       onSaved(updated);
       if (editor) {
         editor.commands.setContent(updated.englishBodyHtml || '<p></p>', {
           emitUpdate: false,
         });
+        baselineHtmlRef.current = editor.getHTML();
       }
+      setDirty(false);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : t('addenda.regenerateFailed'),
@@ -236,6 +266,7 @@ function AddendumEditor({
         </div>
       )}
       {error && <p className="form-error">{error}</p>}
+      {confirmDialog}
     </div>
   );
 }

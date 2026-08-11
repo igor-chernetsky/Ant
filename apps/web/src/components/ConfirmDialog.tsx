@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { BusyLabel } from '@/components/AntSpinner';
 import { useTranslation } from '@/components/LocaleProvider';
 
@@ -40,15 +41,20 @@ export function ConfirmDialog({
       }
     };
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
   }, [isOpen, busy, onCancel]);
 
-  if (!isOpen) {
+  if (!isOpen || typeof document === 'undefined') {
     return null;
   }
 
-  return (
+  return createPortal(
     <div
       className="modal-backdrop confirm-dialog-backdrop"
       role="presentation"
@@ -98,6 +104,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

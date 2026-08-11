@@ -381,9 +381,24 @@ export class ContractsService {
       return await this.toResponse(contract, project, participant);
     }
 
+    const hadSignatures = Boolean(
+      contract.clientSignedAt || contract.contractorSignedAt,
+    );
+
     const updated = await this.prisma.contract.update({
       where: { id: contract.id },
-      data: { englishBodyHtml: sanitized },
+      data: {
+        englishBodyHtml: sanitized,
+        ...(hadSignatures
+          ? {
+              status: ContractStatus.pending_signatures,
+              clientSignedAt: null,
+              contractorSignedAt: null,
+              clientSignatureDataUrl: null,
+              contractorSignatureDataUrl: null,
+            }
+          : {}),
+      },
     });
 
     this.notifyOtherPartyOfContractChange(participant, projectId, 'document');
@@ -411,6 +426,10 @@ export class ContractsService {
     const previousCustomKey = contract.customFileStorageKey;
     const previousDocxKey = contract.sourceDocxStorageKey;
     const hadCustomFile = Boolean(previousCustomKey || previousDocxKey);
+    const hadSignatures = Boolean(
+      contract.clientSignedAt || contract.contractorSignedAt,
+    );
+    const clearSignatures = hadCustomFile || hadSignatures;
 
     const updated = await this.prisma.contract.update({
       where: { id: contract.id },
@@ -425,7 +444,7 @@ export class ContractsService {
         sourceDocxStorageKey: null,
         sourceDocxOriginalName: null,
         sourceDocxSizeBytes: null,
-        ...(hadCustomFile
+        ...(clearSignatures
           ? {
               status: ContractStatus.pending_signatures,
               clientSignedAt: null,
@@ -444,7 +463,7 @@ export class ContractsService {
       await this.deleteCustomFileObject(previousDocxKey);
     }
 
-    if (hadCustomFile) {
+    if (clearSignatures || hadCustomFile) {
       this.notifyOtherPartyOfContractChange(
         participant,
         projectId,

@@ -1324,6 +1324,11 @@ export const thExtended = {
     documentSaved: "บันทึกเอกสารแล้ว",
     saveDocumentFailed: "บันทึกเอกสารสัญญาไม่สำเร็จ",
     regenerateFailed: "สร้างเอกสารสัญญาใหม่ไม่สำเร็จ",
+    confirmSaveClearsSignaturesTitle: "บันทึกและล้างลายเซ็น?",
+    confirmRegenerateClearsSignaturesTitle: "สร้างใหม่และล้างลายเซ็น?",
+    confirmClearsSignaturesMessage:
+      "สัญญานี้มีลายเซ็นแล้ว การบันทึกการเปลี่ยนแปลงจะล้างลายเซ็น และทั้งสองฝ่ายต้องลงนามใหม่",
+    confirmClearsSignaturesLabel: "ล้างลายเซ็น",
     toolbarBold: "ตัวหนา",
     toolbarItalic: "ตัวเอียง",
     toolbarHeading: "หัวข้อ",
@@ -1409,6 +1414,11 @@ export const thExtended = {
     documentSaved: "บันทึกเอกสารแล้ว",
     saveFailed: "บันทึกเอกสารไม่สำเร็จ",
     regenerateFailed: "สร้างเอกสารใหม่ไม่สำเร็จ",
+    confirmSaveClearsSignaturesTitle: "บันทึกและล้างลายเซ็น?",
+    confirmRegenerateClearsSignaturesTitle: "สร้างใหม่และล้างลายเซ็น?",
+    confirmClearsSignaturesMessage:
+      "ข้อตกลงนี้มีลายเซ็นแล้ว การบันทึกการเปลี่ยนแปลงจะล้างลายเซ็น และทั้งสองฝ่ายต้องลงนามใหม่",
+    confirmClearsSignaturesLabel: "ล้างลายเซ็น",
     customFileLabel: "ไฟล์: {name}",
     previewFrameTitle: "ตัวอย่าง PDF ข้อตกลงเพิ่มเติม",
     previewLegacyDocx: "ไม่สามารถแสดง DOCX นี้ได้ที่นี่ ดาวน์โหลดหรืออัปโหลดใหม่เพื่อแปลงเป็น PDF",
