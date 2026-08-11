@@ -335,7 +335,6 @@ export function filterEstimateLines(input: {
   brief: ProjectBriefV1;
 }): EstimateLine[] {
   const filtered: EstimateLine[] = [];
-  const seenTrades = new Set<string>();
 
   for (const rawLine of input.lines) {
     const line = mapLineToCatalogTrade(rawLine);
@@ -359,10 +358,100 @@ export function filterEstimateLines(input: {
     }
 
     filtered.push(line);
-    seenTrades.add(line.trade);
   }
 
   return filtered;
+}
+
+/**
+ * Collapse duplicate catalog trades into one line each.
+ * Same-trade paraphrases (e.g. window replacement + installation) otherwise
+ * double-count the same catalog band in ballpark totals.
+ */
+export function dedupeSameTradeLines(lines: EstimateLine[]): EstimateLine[] {
+  const groups = new Map<string, EstimateLine[]>();
+  const order: string[] = [];
+
+  for (const line of lines) {
+    const trade = line.trade.trim();
+    if (!trade) {
+      continue;
+    }
+    if (!groups.has(trade)) {
+      order.push(trade);
+      groups.set(trade, []);
+    }
+    groups.get(trade)!.push(line);
+  }
+
+  return order.map((trade) => mergeSameTradeGroup(groups.get(trade)!));
+}
+
+function mergeSameTradeGroup(group: EstimateLine[]): EstimateLine {
+  if (group.length === 1) {
+    return group[0];
+  }
+
+  const descriptions = [
+    ...new Set(
+      group
+        .map((line) => line.description.trim())
+        .filter((text) => text.length > 0),
+    ),
+  ];
+
+  const unit =
+    group.find((line) => line.unit?.trim())?.unit?.trim() || group[0].unit;
+
+  const quantity = Math.max(
+    1,
+    ...group.map((line) =>
+      Number.isFinite(line.quantity) && line.quantity > 0 ? line.quantity : 1,
+    ),
+  );
+
+  const unitPriceMin = Math.min(
+    ...group.map((line) =>
+      Number.isFinite(line.unitPriceMin) && line.unitPriceMin > 0
+        ? line.unitPriceMin
+        : Number.POSITIVE_INFINITY,
+    ),
+  );
+  const unitPriceMax = Math.max(
+    ...group.map((line) =>
+      Number.isFinite(line.unitPriceMax) && line.unitPriceMax > 0
+        ? line.unitPriceMax
+        : 0,
+    ),
+  );
+
+  const safeMin =
+    Number.isFinite(unitPriceMin) && unitPriceMin > 0
+      ? unitPriceMin
+      : Math.min(...group.map((line) => line.unitPriceMin || 0));
+  const safeMax = Math.max(
+    safeMin,
+    Number.isFinite(unitPriceMax) && unitPriceMax > 0
+      ? unitPriceMax
+      : Math.max(...group.map((line) => line.unitPriceMax || 0)),
+  );
+
+  const lineMin = Math.round(safeMin * quantity);
+  const lineMax = Math.round(safeMax * quantity);
+
+  return {
+    trade: group[0].trade,
+    description:
+      descriptions.length > 0
+        ? descriptions.join('; ').slice(0, 500)
+        : group[0].description,
+    quantity,
+    unit,
+    unitPriceMin: safeMin,
+    unitPriceMax: safeMax,
+    lineMin: Math.min(lineMin, lineMax),
+    lineMax: Math.max(lineMin, lineMax),
+  };
 }
 
 /**
@@ -891,8 +980,11 @@ export function finalizeEstimateLines(input: {
     shellNormalized,
     signals,
   );
+  // One priced row per catalog trade — stops replacement/install paraphrases
+  // (and similar) from double-counting the same band.
+  const deduped = dedupeSameTradeLines(premiumAdjusted);
   return dedupeAndCapElectricalLines({
-    lines: premiumAdjusted,
+    lines: deduped,
     narrative: input.narrative,
     areaSqm,
   });

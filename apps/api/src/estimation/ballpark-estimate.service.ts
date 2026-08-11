@@ -126,6 +126,7 @@ Include 5-16 lines covering the FULL confirmed scope (base construction + detail
 When the client requests fire protection / sprinklers or other named specialty systems, include a dedicated line (trade fire-suppression or other) — never description-only.
 Supply/exhaust or warehouse/production ventilation: price HVAC per sqm (~1,200–3,200 THB/sqm), not as one residential AC unit.
 Prefer one consolidated electrical line for base wiring/board/lighting — do not stack duplicate electrical rows.
+One priced line per catalog trade only (e.g. one windows-doors line for replace+install, one painting line, one demolition line). If scope needs nuance, merge it into that trade's description — never emit two lines with the same trade.
 For sqm trades (structural, roofing, flooring, warehouse HVAC): quantity MUST be building GFA (resolvedAreaSqm), never 1 and never building height in metres. Height/storeys may raise unit rates, not replace area as quantity.
 lineMin/lineMax must equal quantity * unitPriceMin/Max (rounded).
 Obey pricingDirectives and premiumScopeSignals in the user payload — they must change amounts, not only wording.
