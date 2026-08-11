@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import { createHash, randomBytes } from 'crypto';
 import { MailService } from '../notifications/mail.service';
+import { resolveAppBaseUrl } from '../common/app-base-url';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   InviteDirectoryRecipientsDto,
@@ -47,11 +48,7 @@ export class TenderInvitesService {
   ) {}
 
   private appUrl(): string {
-    const url =
-      this.config.get<string>('WEB_APP_URL')?.trim() ||
-      this.config.get<string>('NEXT_PUBLIC_APP_URL')?.trim() ||
-      'http://localhost:3000';
-    return url.replace(/\/+$/, '');
+    return resolveAppBaseUrl((key) => this.config.get<string>(key));
   }
 
   inviteProjectUrl(projectId: string, token: string): string {

@@ -48,6 +48,12 @@ export function formatInAppNotificationTitle(
       return t('notifications.kinds.contractorSignatureRequestApprovedTitle');
     case 'contractor_signature_request_rejected':
       return t('notifications.kinds.contractorSignatureRequestRejectedTitle');
+    case 'client_progress_claim_submitted':
+      return t('notifications.kinds.clientProgressClaimSubmittedTitle');
+    case 'contractor_progress_claim_approved':
+      return t('notifications.kinds.contractorProgressClaimApprovedTitle');
+    case 'contractor_progress_claim_rejected':
+      return t('notifications.kinds.contractorProgressClaimRejectedTitle');
     default:
       return t('notifications.title');
   }
@@ -134,6 +140,24 @@ export function formatInAppNotificationBody(
     case 'contractor_signature_request_rejected':
       return t('notifications.kinds.contractorSignatureRequestRejectedBody', {
         project: projectTitle || t('common.dash'),
+      });
+    case 'client_progress_claim_submitted':
+      return t('notifications.kinds.clientProgressClaimSubmittedBody', {
+        company: companyName || t('header.contractor'),
+        project: projectTitle || t('common.dash'),
+        amount: amount || t('common.dash'),
+        n: payloadString(item.payload, 'sequenceNumber') || '—',
+      });
+    case 'contractor_progress_claim_approved':
+      return t('notifications.kinds.contractorProgressClaimApprovedBody', {
+        project: projectTitle || t('common.dash'),
+        amount: amount || t('common.dash'),
+        n: payloadString(item.payload, 'sequenceNumber') || '—',
+      });
+    case 'contractor_progress_claim_rejected':
+      return t('notifications.kinds.contractorProgressClaimRejectedBody', {
+        project: projectTitle || t('common.dash'),
+        n: payloadString(item.payload, 'sequenceNumber') || '—',
       });
     default:
       return projectTitle

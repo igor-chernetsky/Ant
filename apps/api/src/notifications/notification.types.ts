@@ -31,7 +31,10 @@ export type InAppNotificationKindDto =
   | 'contract_addendum_fully_signed'
   | 'admin_signature_request_created'
   | 'contractor_signature_request_approved'
-  | 'contractor_signature_request_rejected';
+  | 'contractor_signature_request_rejected'
+  | 'client_progress_claim_submitted'
+  | 'contractor_progress_claim_approved'
+  | 'contractor_progress_claim_rejected';
 
 export interface InAppNotificationDto {
   id: string;

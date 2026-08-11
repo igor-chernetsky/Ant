@@ -1,4 +1,5 @@
 import { sendAppVerificationEmail } from '@/lib/send-verification-email';
+import { resolveAppBaseUrl } from '@/lib/app-base-url';
 import { isAppEmailVerificationConfigured } from '@/lib/email-verification-token';
 
 const SELF_ASSIGNABLE_ROLES = ['client', 'contractor', 'designer'] as const;
@@ -30,12 +31,7 @@ interface KeycloakCredentialRepresentation {
 }
 
 function getAppRedirectUri(): string {
-  const normalize = (url: string) => url.replace(/\/+$/, '');
-  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (explicit) return normalize(explicit);
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return normalize(`https://${vercel}`);
-  return 'http://localhost:3000';
+  return resolveAppBaseUrl();
 }
 
 /** Client used in verification links — must have Valid redirect URIs for the app URL. */

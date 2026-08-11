@@ -89,6 +89,15 @@ export const en = {
       contractorSignatureRequestRejectedTitle: 'Signature request rejected',
       contractorSignatureRequestRejectedBody:
         'Your authorization request for {project} was rejected.',
+      clientProgressClaimSubmittedTitle: 'Progress claim received',
+      clientProgressClaimSubmittedBody:
+        '{company} submitted progress claim #{n} on {project} ({amount} THB).',
+      contractorProgressClaimApprovedTitle: 'Progress claim approved',
+      contractorProgressClaimApprovedBody:
+        'Claim #{n} on {project} was approved ({amount} THB).',
+      contractorProgressClaimRejectedTitle: 'Progress claim rejected',
+      contractorProgressClaimRejectedBody:
+        'Claim #{n} on {project} was rejected.',
       genericProjectBody: 'Related to {project}.',
     },
   },

@@ -80,7 +80,7 @@ Users are created with `emailVerified: true` and signed in immediately (old beha
 | Signup: *verification email could not be sent* | Configure Keycloak SMTP **or** Vercel SMTP vars for app-sent verification; test connection |
 | Login: *Verify your email* | User must click the link in the email |
 | Email not received | Check spam; Resend dashboard logs; domain must be Verified; From must match domain |
-| Link opens wrong site | Set `NEXT_PUBLIC_APP_URL` / `WEB_APP_URL` to `https://www.builthai.com` |
+| Link opens wrong site / `buildthai.com` in email | Fix **Vercel** `NEXT_PUBLIC_APP_URL` to `https://www.builthai.com` (not `buildthai.com`) and redeploy. On EC2 set `WEB_APP_URL` the same way. Code auto-corrects the typo at runtime, but update env anyway. |
 
 ---
 

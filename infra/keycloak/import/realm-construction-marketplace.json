@@ -31,16 +31,20 @@
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
-      "rootUrl": "https://iabuilding.duckdns.org",
+      "rootUrl": "https://www.builthai.com",
       "baseUrl": "/",
       "redirectUris": [
         "http://localhost:3000/*",
         "https://iabuilding.duckdns.org/*",
+        "https://www.builthai.com/*",
+        "https://builthai.com/*",
         "https://*.vercel.app/*"
       ],
       "webOrigins": [
         "http://localhost:3000",
         "https://iabuilding.duckdns.org",
+        "https://www.builthai.com",
+        "https://builthai.com",
         "https://*.vercel.app"
       ],
       "attributes": {

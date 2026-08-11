@@ -4,6 +4,7 @@ import { LocaleProvider } from '@/components/LocaleProvider';
 import { NotificationToasts } from '@/components/NotificationToasts';
 import { SessionProvider } from '@/components/SessionProvider';
 import './globals.css';
+import { resolveAppBaseUrl } from '@/lib/app-base-url';
 
 function trimOrigin(value: string | undefined): string | null {
   const trimmed = value?.trim().replace(/\/$/, '');
@@ -11,8 +12,7 @@ function trimOrigin(value: string | undefined): string | null {
 }
 
 /** Canonical site URL (custom domain). */
-const siteUrl =
-  trimOrigin(process.env.NEXT_PUBLIC_APP_URL) || 'https://www.builthai.com';
+const siteUrl = resolveAppBaseUrl();
 
 /**
  * Origin used for og/twitter images. Prefer an origin that actually serves

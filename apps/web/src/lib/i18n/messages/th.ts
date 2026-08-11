@@ -90,6 +90,15 @@ export const th: Messages = {
       contractorSignatureRequestRejectedTitle: 'คำขอลงนามถูกปฏิเสธ',
       contractorSignatureRequestRejectedBody:
         'คำขออนุญาตสำหรับ {project} ถูกปฏิเสธ',
+      clientProgressClaimSubmittedTitle: 'ได้รับ progress claim',
+      clientProgressClaimSubmittedBody:
+        '{company} ส่ง claim #{n} สำหรับ {project} ({amount} THB)',
+      contractorProgressClaimApprovedTitle: 'อนุมัติ progress claim แล้ว',
+      contractorProgressClaimApprovedBody:
+        'Claim #{n} ของ {project} ได้รับการอนุมัติ ({amount} THB)',
+      contractorProgressClaimRejectedTitle: 'progress claim ถูกปฏิเสธ',
+      contractorProgressClaimRejectedBody:
+        'Claim #{n} ของ {project} ถูกปฏิเสธ',
       genericProjectBody: 'เกี่ยวข้องกับ {project}',
     },
   },

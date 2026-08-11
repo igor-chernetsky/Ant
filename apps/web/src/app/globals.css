@@ -10337,4 +10337,219 @@ select:disabled {
   margin-top: -0.15rem;
 }
 
+.progress-claims-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.progress-claims-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.progress-claims-hint {
+  margin: 0.25rem 0 0;
+  max-width: 40rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.progress-claims-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem 1rem;
+  min-width: min(100%, 22rem);
+}
+
+.progress-claims-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.82rem;
+}
+
+.progress-claims-summary strong {
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-claim-card {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.progress-claim-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.progress-claim-card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.progress-claim-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: var(--muted);
+}
+
+.progress-claim-status--submitted {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.progress-claim-status--approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.progress-claim-status--rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.progress-claim-table-wrap {
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.progress-claim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.progress-claim-table th,
+.progress-claim-table td {
+  padding: 0.45rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.progress-claim-table th {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.progress-claim-line-desc {
+  display: block;
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+}
+
+.progress-claim-percent-input {
+  width: 4.5rem;
+  max-width: 100%;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.875rem;
+}
+
+.progress-claim-totals {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.progress-claim-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.progress-claim-totals dt {
+  margin: 0;
+  color: var(--muted);
+}
+
+.progress-claim-totals dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-claim-totals-grand {
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--border);
+  font-weight: 700;
+}
+
+.progress-claim-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.progress-claim-note-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.progress-claims-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.progress-claims-actions--review {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.progress-claims-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.progress-claim-history-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.progress-claim-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.progress-claim-history-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.85rem;
+  align-items: center;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 640px) {
+  .progress-claims-summary {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+}
+
 

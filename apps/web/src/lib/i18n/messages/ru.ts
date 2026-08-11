@@ -90,6 +90,15 @@ export const ru: Messages = {
       contractorSignatureRequestRejectedTitle: 'Запрос на подпись отклонён',
       contractorSignatureRequestRejectedBody:
         'Ваш запрос на авторизацию по проекту {project} отклонён.',
+      clientProgressClaimSubmittedTitle: 'Получен progress claim',
+      clientProgressClaimSubmittedBody:
+        '{company} отправил(а) claim #{n} по проекту {project} ({amount} THB).',
+      contractorProgressClaimApprovedTitle: 'Progress claim утверждён',
+      contractorProgressClaimApprovedBody:
+        'Claim #{n} по проекту {project} утверждён ({amount} THB).',
+      contractorProgressClaimRejectedTitle: 'Progress claim отклонён',
+      contractorProgressClaimRejectedBody:
+        'Claim #{n} по проекту {project} отклонён.',
       genericProjectBody: 'Связано с проектом {project}.',
     },
   },

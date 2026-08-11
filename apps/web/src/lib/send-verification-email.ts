@@ -1,13 +1,6 @@
 import nodemailer from 'nodemailer';
+import { resolveAppBaseUrl } from '@/lib/app-base-url';
 import { createEmailVerificationToken } from '@/lib/email-verification-token';
-
-function getAppBaseUrl(): string {
-  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (explicit) return explicit.replace(/\/+$/, '');
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel}`;
-  return 'http://localhost:3000';
-}
 
 function buildVerificationEmailHtml(verifyUrl: string): string {
   return `<!DOCTYPE html>
@@ -75,7 +68,7 @@ export async function sendAppVerificationEmail(params: {
     };
   }
 
-  const verifyUrl = `${getAppBaseUrl()}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
+  const verifyUrl = `${resolveAppBaseUrl()}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
 
   const transport = nodemailer.createTransport({
     host,

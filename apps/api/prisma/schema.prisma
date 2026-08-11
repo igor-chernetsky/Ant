@@ -42,6 +42,13 @@ enum ContractStatus {
   fully_signed
 }
 
+enum ProgressClaimStatus {
+  draft
+  submitted
+  approved
+  rejected
+}
+
 enum ContractAddendumStatus {
   pending_signatures
   fully_signed
@@ -182,6 +189,8 @@ model User {
   contractAddendumAttachments ContractAddendumAttachment[]
   signatureRequestsCreated ContractSignatureRequest[] @relation("SignatureRequestRequestedBy")
   signatureRequestsReviewed ContractSignatureRequest[] @relation("SignatureRequestReviewedBy")
+  progressClaimsSubmitted  ProgressClaim[] @relation("ProgressClaimSubmittedBy")
+  progressClaimsReviewed   ProgressClaim[] @relation("ProgressClaimReviewedBy")
 
   @@map("users")
 }
@@ -258,6 +267,9 @@ enum InAppNotificationKind {
   admin_signature_request_created
   contractor_signature_request_approved
   contractor_signature_request_rejected
+  client_progress_claim_submitted
+  contractor_progress_claim_approved
+  contractor_progress_claim_rejected
 }
 
 enum ContractSignatureRequestStatus {
@@ -354,6 +366,7 @@ model Project {
   contentTranslations ContentTranslation[]
   tenderInvites   TenderInvite[]
   signatureRequests ContractSignatureRequest[]
+  progressClaims  ProgressClaim[]
 
   @@index([clientId])
   @@index([clientId, isHidden])
@@ -568,6 +581,7 @@ model Bid {
   clarificationSubmission BidClarificationSubmission?
   projectReview           ContractorProjectReview?
   contract                Contract?
+  progressClaims          ProgressClaim[]
 
   @@unique([tenderId, contractorId])
   @@index([tenderId])
@@ -878,4 +892,61 @@ model PlatformSettings {
   updatedAt                  DateTime @updatedAt @map("updated_at")
 
   @@map("platform_settings")
+}
+
+/// Contractor progress / payment claim against the awarded bid.
+model ProgressClaim {
+  id                      String              @id @default(uuid())
+  projectId               String              @map("project_id")
+  project                 Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  bidId                   String              @map("bid_id")
+  bid                     Bid                 @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  sequenceNumber          Int                 @map("sequence_number")
+  status                  ProgressClaimStatus @default(draft)
+  note                    String?             @db.Text
+  rejectionReason         String?             @map("rejection_reason") @db.Text
+  preliminaryPercent      Float               @map("preliminary_percent")
+  overheadProfitPercent   Float               @map("overhead_profit_percent")
+  vatPercent              Float               @map("vat_percent")
+  worksCumulative         Decimal             @map("works_cumulative") @db.Decimal(14, 2)
+  preliminaryCumulative   Decimal             @map("preliminary_cumulative") @db.Decimal(14, 2)
+  overheadProfitCumulative Decimal            @map("overhead_profit_cumulative") @db.Decimal(14, 2)
+  vatCumulative           Decimal             @map("vat_cumulative") @db.Decimal(14, 2)
+  grandCumulative         Decimal             @map("grand_cumulative") @db.Decimal(14, 2)
+  worksPeriod             Decimal             @map("works_period") @db.Decimal(14, 2)
+  preliminaryPeriod       Decimal             @map("preliminary_period") @db.Decimal(14, 2)
+  overheadProfitPeriod    Decimal             @map("overhead_profit_period") @db.Decimal(14, 2)
+  vatPeriod               Decimal             @map("vat_period") @db.Decimal(14, 2)
+  grandPeriod             Decimal             @map("grand_period") @db.Decimal(14, 2)
+  submittedAt             DateTime?           @map("submitted_at")
+  submittedById           String?             @map("submitted_by_id")
+  submittedBy             User?               @relation("ProgressClaimSubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedAt              DateTime?           @map("reviewed_at")
+  reviewedById            String?             @map("reviewed_by_id")
+  reviewedBy              User?               @relation("ProgressClaimReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  createdAt               DateTime            @default(now()) @map("created_at")
+  updatedAt               DateTime            @updatedAt @map("updated_at")
+  lines                   ProgressClaimLine[]
+
+  @@unique([projectId, sequenceNumber])
+  @@index([projectId, status])
+  @@index([bidId])
+  @@map("progress_claims")
+}
+
+model ProgressClaimLine {
+  id                       String        @id @default(uuid())
+  claimId                  String        @map("claim_id")
+  claim                    ProgressClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  sortOrder                Int           @default(0) @map("sort_order")
+  trade                    String
+  description              String?
+  contractAmount           Decimal       @map("contract_amount") @db.Decimal(14, 2)
+  percentComplete          Decimal       @map("percent_complete") @db.Decimal(5, 2)
+  amountPreviouslyApproved Decimal       @map("amount_previously_approved") @db.Decimal(14, 2)
+  amountCumulative         Decimal       @map("amount_cumulative") @db.Decimal(14, 2)
+  amountPeriod             Decimal       @map("amount_period") @db.Decimal(14, 2)
+
+  @@index([claimId, sortOrder])
+  @@map("progress_claim_lines")
 }

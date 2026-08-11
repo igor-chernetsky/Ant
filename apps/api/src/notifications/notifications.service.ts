@@ -9,6 +9,7 @@ import {
   UserNotificationPreferences,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { resolveAppBaseUrl } from '../common/app-base-url';
 import { LocationsService } from '../locations/locations.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import {
@@ -54,11 +55,7 @@ export class NotificationsService {
   ) {}
 
   private appUrl(): string {
-    const url =
-      this.config.get<string>('WEB_APP_URL')?.trim() ||
-      this.config.get<string>('NEXT_PUBLIC_APP_URL')?.trim() ||
-      'http://localhost:3000';
-    return url.replace(/\/+$/, '');
+    return resolveAppBaseUrl((key) => this.config.get<string>(key));
   }
 
   private projectUrl(projectId: string): string {
@@ -1470,6 +1467,68 @@ export class NotificationsService {
       textBody: params.approved
         ? `Signature authorized for ${params.projectTitle}. You can sign the contract.`
         : `Signature request rejected for ${params.projectTitle}.${reason ? ` Reason: ${reason}` : ''}`,
+    });
+  }
+
+  async notifyClientProgressClaimSubmitted(params: {
+    clientUserId: string;
+    projectId: string;
+    projectTitle: string;
+    companyName: string;
+    amount: number;
+    sequenceNumber: number;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.clientUserId,
+      kind: InAppNotificationKind.client_progress_claim_submitted,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        companyName: params.companyName,
+        amount: params.amount,
+        sequenceNumber: params.sequenceNumber,
+      },
+    });
+  }
+
+  async notifyContractorProgressClaimApproved(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+    amount: number;
+    sequenceNumber: number;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.contractor_progress_claim_approved,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        amount: params.amount,
+        sequenceNumber: params.sequenceNumber,
+      },
+    });
+  }
+
+  async notifyContractorProgressClaimRejected(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+    sequenceNumber: number;
+    reason?: string | null;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.contractor_progress_claim_rejected,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        sequenceNumber: params.sequenceNumber,
+        reason: params.reason ?? null,
+      },
     });
   }
 

@@ -22,6 +22,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
 import { InviteFromDirectoryModal } from '@/components/InviteFromDirectoryModal';
 import { ClientContractPanel, isContractProjectStatus } from '@/components/ClientContractPanel';
+import { ProgressClaimsPanel } from '@/components/ProgressClaimsPanel';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
@@ -666,6 +667,17 @@ export default function ProjectDetailPage() {
                   onProjectUpdated={setProject}
                 />
               )}
+
+              {project.status === 'active' &&
+                (isOwner ||
+                  (project.projectType === 'design'
+                    ? isDesignerUser(me)
+                    : isContractorUser(me))) && (
+                  <ProgressClaimsPanel
+                    projectId={projectId}
+                    projectStatus={project.status}
+                  />
+                )}
 
               {!isOwner &&
                 ((project.projectType === 'design' && isDesignerUser(me)) ||
