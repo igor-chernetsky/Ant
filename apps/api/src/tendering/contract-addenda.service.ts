@@ -26,7 +26,8 @@ import { DocxToPdfService } from '../pdf/docx-to-pdf.service';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { sanitizeContractBodyHtml } from './contract-html.sanitize';
+import { sanitizeContractBodyHtml, stripContractSignaturesBlock } from './contract-html.sanitize';
+import { escapeHtml } from './commercial-proposal.template';
 import {
   ADDENDUM_ALLOWED_CONTENT_TYPES,
   ADDENDUM_ATTACHMENT_CONTENT_TYPES,
@@ -136,10 +137,124 @@ function wrapAddendumHtmlForPdf(title: string, bodyHtml: string): string {
   table { border-collapse: collapse; width: 100%; margin: 0.8em 0; }
   th, td { border: 1px solid #333; padding: 6px 8px; vertical-align: top; }
   ul, ol { margin: 0.5em 0 0.5em 1.25em; }
+  .signatures { margin-top: 2.5rem; page-break-inside: avoid; }
+  .signatures h2 { margin-bottom: 1rem; }
+  .signature-grid {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 1.5rem 0;
+  }
+  .signature-col { display: table-cell; width: 50%; vertical-align: top; }
+  .signature-party { margin: 0 0 0.75rem; font-weight: 700; }
+  .signature-org { margin: 0 0 1rem; font-size: 11pt; }
+  .signature-line-block { margin: 0 0 0.85rem; }
+  .signature-line {
+    display: block;
+    border-bottom: 1px solid #111;
+    height: 1.6rem;
+    margin-bottom: 0.25rem;
+  }
+  .signature-image {
+    display: block;
+    max-width: 100%;
+    max-height: 4.5rem;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    margin-bottom: 0.25rem;
+  }
+  .signature-caption { margin: 0; font-size: 10pt; color: #555; }
+  .signature-filled { margin: 0.15rem 0 0; min-height: 1.2rem; }
 </style>
 </head>
 <body>${bodyHtml}</body>
 </html>`;
+}
+
+function addendumSignatureImageHtml(dataUrl: string | null | undefined): string {
+  if (!dataUrl?.trim()) {
+    return '<span class="signature-line"></span>';
+  }
+  const trimmed = dataUrl.trim();
+  if (!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(trimmed)) {
+    return '<span class="signature-line"></span>';
+  }
+  return `<img class="signature-image" src="${trimmed}" alt="" />`;
+}
+
+function formatAddendumSignedAt(
+  value: Date | string | null | undefined,
+): string {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('en-GB', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/** Live Client/Contractor signatures appended after stripping placeholders. */
+function addendumSignaturesClosingHtml(params: {
+  clientName: string | null;
+  contractorName: string | null;
+  clientSignedAt: Date | null;
+  contractorSignedAt: Date | null;
+  clientSignatureDataUrl: string | null;
+  contractorSignatureDataUrl: string | null;
+}): string {
+  const clientDate = formatAddendumSignedAt(params.clientSignedAt);
+  const contractorDate = formatAddendumSignedAt(params.contractorSignedAt);
+  const clientOrg = params.clientName?.trim()
+    ? `<p class="signature-org">${escapeHtml(params.clientName.trim())}</p>`
+    : '';
+  const contractorOrg = params.contractorName?.trim()
+    ? `<p class="signature-org">${escapeHtml(params.contractorName.trim())}</p>`
+    : '';
+
+  return `
+<div class="signatures">
+  <h2>Signatures</h2>
+  <div class="signature-grid">
+    <div class="signature-col">
+      <p class="signature-party">Client</p>
+      ${clientOrg}
+      <div class="signature-line-block">
+        ${addendumSignatureImageHtml(params.clientSignatureDataUrl)}
+        <p class="signature-caption">Signature</p>
+      </div>
+      <div class="signature-line-block">
+        ${
+          clientDate
+            ? `<p class="signature-filled">${escapeHtml(clientDate)}</p>`
+            : '<span class="signature-line"></span>'
+        }
+        <p class="signature-caption">Date</p>
+      </div>
+    </div>
+    <div class="signature-col">
+      <p class="signature-party">Contractor</p>
+      ${contractorOrg}
+      <div class="signature-line-block">
+        ${addendumSignatureImageHtml(params.contractorSignatureDataUrl)}
+        <p class="signature-caption">Signature</p>
+      </div>
+      <div class="signature-line-block">
+        ${
+          contractorDate
+            ? `<p class="signature-filled">${escapeHtml(contractorDate)}</p>`
+            : '<span class="signature-line"></span>'
+        }
+        <p class="signature-caption">Date</p>
+      </div>
+    </div>
+  </div>
+</div>`;
 }
 
 @Injectable()
@@ -203,7 +318,11 @@ export class ContractAddendaService {
       projectId: row.projectId,
       title: row.title,
       sourceDescription: row.sourceDescription,
-      englishBodyHtml: hasCustomFile ? null : row.englishBodyHtml,
+      englishBodyHtml: hasCustomFile
+        ? null
+        : row.englishBodyHtml
+          ? stripContractSignaturesBlock(row.englishBodyHtml)
+          : null,
       bodyLocale: parseAddendumLocale(row.bodyLocale),
       status: row.status,
       contractorSignedAt: row.contractorSignedAt?.toISOString() ?? null,
@@ -348,7 +467,7 @@ export class ContractAddendaService {
     if (!html) {
       html = fallbackAddendumHtml(description, title, locale);
     }
-    html = sanitizeContractBodyHtml(html);
+    html = stripContractSignaturesBlock(sanitizeContractBodyHtml(html));
 
     const row = await this.prisma.contractAddendum.create({
       data: {
@@ -499,7 +618,9 @@ export class ContractAddendaService {
         'A custom file is in use; the platform document cannot be edited',
       );
     }
-    const html = sanitizeContractBodyHtml(dto.englishBodyHtml ?? '');
+    const html = stripContractSignaturesBlock(
+      sanitizeContractBodyHtml(dto.englishBodyHtml ?? ''),
+    );
     const updated = await this.prisma.contractAddendum.update({
       where: { id: row.id },
       data: {
@@ -548,7 +669,7 @@ export class ContractAddendaService {
     if (!html) {
       html = fallbackAddendumHtml(row.sourceDescription, row.title, locale);
     }
-    html = sanitizeContractBodyHtml(html);
+    html = stripContractSignaturesBlock(sanitizeContractBodyHtml(html));
 
     const previousKey = row.customFileStorageKey;
     const previousDocxKey = row.sourceDocxStorageKey;
@@ -1158,25 +1279,23 @@ export class ContractAddendaService {
           'Additional agreement has no document body',
         );
       }
-      const html = wrapAddendumHtmlForPdf(row.title, row.englishBodyHtml);
-      let pdf = await this.htmlToPdf.render(html);
+      let bodyHtml = row.englishBodyHtml;
       if (stamp?.includeSignatures) {
-        pdf = await stampCustomPdfSignatures({
-          pdfBuffer: pdf,
-          left: {
-            label: 'Client',
-            orgName: stamp.parties?.clientName ?? null,
-            signedAt: row.clientSignedAt,
-            signatureDataUrl: row.clientSignatureDataUrl,
-          },
-          right: {
-            label: 'Contractor',
-            orgName: stamp.parties?.contractorName ?? null,
-            signedAt: row.contractorSignedAt,
-            signatureDataUrl: row.contractorSignatureDataUrl,
-          },
-        });
+        // Replace placeholder Signatures with live images in document flow
+        // (do not PDF-stamp — that overlaps the template block).
+        bodyHtml =
+          stripContractSignaturesBlock(bodyHtml) +
+          addendumSignaturesClosingHtml({
+            clientName: stamp.parties?.clientName ?? null,
+            contractorName: stamp.parties?.contractorName ?? null,
+            clientSignedAt: row.clientSignedAt,
+            contractorSignedAt: row.contractorSignedAt,
+            clientSignatureDataUrl: row.clientSignatureDataUrl,
+            contractorSignatureDataUrl: row.contractorSignatureDataUrl,
+          });
       }
+      const html = wrapAddendumHtmlForPdf(row.title, bodyHtml);
+      const pdf = await this.htmlToPdf.render(html);
       const slug =
         row.title
           .toLowerCase()

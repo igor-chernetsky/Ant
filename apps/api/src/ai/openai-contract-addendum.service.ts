@@ -56,7 +56,7 @@ export class OpenAiContractAddendumService {
 Return JSON only with keys: title (short title in ${language}), bodyHtml (HTML fragment in ${language}).
 Rules:
 - bodyHtml must be a complete addendum document body in ${language} using only: p, h2, h3, ul, ol, li, strong, em, table, thead, tbody, tr, th, td, br.
-- Structure: heading, parties reference, purpose, changes/terms from the user description, effective date note, signature placeholders as plain text (not images).
+- Structure: heading, parties reference, purpose, changes/terms from the user description, effective date note. Do NOT include a Signatures / Employer / Contractor signature section — the platform appends live signature blocks when rendering the PDF.
 - Reflect the user's description faithfully; do not invent BOQ line items or payment amounts unless stated.
 - Keep professional legal-commercial tone suitable for Thailand construction marketplace.
 - Do not wrap in <html> or <body>.

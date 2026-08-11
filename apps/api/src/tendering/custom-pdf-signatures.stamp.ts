@@ -225,9 +225,9 @@ function drawSignatureBlock(params: {
 }
 
 /**
- * Append a signature block to a custom contract/addendum PDF.
- * Hybrid: place on the last page when it is tall enough for the fixed
- * block height; otherwise add a new page.
+ * Append a signature block on a dedicated new page.
+ * Never draw on the last content page — addenda/contracts often already end
+ * with an empty Signatures section, and we cannot reliably measure free space.
  */
 export async function stampCustomPdfSignatures(
   input: StampCustomPdfSignaturesInput,
@@ -251,16 +251,7 @@ export async function stampCustomPdfSignatures(
   const lastPage = pages[pages.length - 1];
   const { width, height } = lastPage?.getSize() ?? { width: 595, height: 842 };
   const needed = CUSTOM_PDF_SIGNATURE_BLOCK_HEIGHT + MARGIN * 2;
-
-  // Hybrid: reuse the last page when it is tall enough for the fixed block
-  // in the bottom band; otherwise append a page. (No content-scan — a dense
-  // last page may still have the block drawn over existing text.)
-  let target: PDFPage;
-  if (lastPage && height >= needed) {
-    target = lastPage;
-  } else {
-    target = pdfDoc.addPage([width, Math.max(height, needed)]);
-  }
+  const target = pdfDoc.addPage([width, Math.max(height, needed)]);
 
   drawSignatureBlock({
     page: target,

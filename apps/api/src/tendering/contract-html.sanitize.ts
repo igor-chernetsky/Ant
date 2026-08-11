@@ -170,8 +170,12 @@ export function stripContractSignaturesBlock(html: string): string {
     }
     out = `${out.slice(0, start)}${out.slice(pos)}`;
   } else {
-    // TipTap may unwrap the signatures div — drop from EN heading onward.
-    out = out.replace(/<h2\b[^>]*>\s*Signatures\s*<\/h2>[\s\S]*$/i, '');
+    // TipTap / AI addenda may unwrap the signatures div — drop from a
+    // Signatures heading (any level) or bold paragraph through the end.
+    out = out.replace(
+      /<(h[1-6]|p)\b[^>]*>\s*(?:<(?:strong|b)\b[^>]*>\s*)?(?:Signatures|Подписи|ลายเซ็น|ลงนาม)\s*(?:<\/(?:strong|b)>\s*)?<\/(?:h[1-6]|p)>[\s\S]*$/i,
+      '',
+    );
   }
 
   out = out.replace(
