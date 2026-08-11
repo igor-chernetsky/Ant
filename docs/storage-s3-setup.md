@@ -175,8 +175,10 @@ Browsers upload via PUT to presigned URLs. Add CORS rules:
     "AllowedHeaders": ["*"],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
     "AllowedOrigins": [
+      "https://www.builthai.com",
+      "https://builthai.com",
       "https://ant-eta-seven.vercel.app",
-      "https://app.example.com"
+      "http://localhost:3000"
     ],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 3000

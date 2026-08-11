@@ -69,6 +69,7 @@ function mergePortfolioItems(
 export function ContractorPortfolioPanel() {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadGenerationRef = useRef(0);
   const [items, setItems] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,6 +82,7 @@ export function ContractorPortfolioPanel() {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadItems = useCallback(async (options?: { silent?: boolean }) => {
+    const generation = ++loadGenerationRef.current;
     if (options?.silent) {
       setRefreshing(true);
     } else {
@@ -89,7 +91,9 @@ export function ContractorPortfolioPanel() {
     setError(null);
     try {
       const data = await fetchPortfolioItems();
+      if (generation !== loadGenerationRef.current) return;
       const synced = await syncPendingPortfolioItems(data);
+      if (generation !== loadGenerationRef.current) return;
       setItems(
         synced
           .filter((item) => item.status === 'uploaded' || item.status === 'pending')
@@ -99,16 +103,19 @@ export function ContractorPortfolioPanel() {
           ),
       );
     } catch (err: unknown) {
+      if (generation !== loadGenerationRef.current) return;
       setError(err instanceof Error ? err.message : t('portfolio.loadFailed'));
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (generation === loadGenerationRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [t]);
 
   useEffect(() => {
     void loadItems();
-  }, [loadItems, t]);
+  }, [loadItems]);
 
   const processSelectedFiles = useCallback(
     async (fileList: FileList | null, input?: HTMLInputElement | null) => {

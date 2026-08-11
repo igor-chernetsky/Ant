@@ -4,8 +4,12 @@
       "AllowedHeaders": ["*"],
       "AllowedMethods": ["PUT", "GET", "HEAD"],
       "AllowedOrigins": [
+        "https://www.builthai.com",
+        "https://builthai.com",
         "https://ant-eta-seven.vercel.app",
-        "https://iabuilding.duckdns.org"
+        "https://iabuilding.duckdns.org",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
       ],
       "ExposeHeaders": ["ETag"],
       "MaxAgeSeconds": 3000

@@ -180,6 +180,8 @@ export async function uploadPortfolioPhoto(file: File): Promise<PortfolioItem> {
   return completePortfolioItem(itemId);
 }
 
+const pendingCompleteInFlight = new Set<string>();
+
 export async function syncPendingPortfolioItems(
   items: PortfolioItem[],
 ): Promise<PortfolioItem[]> {
@@ -190,6 +192,10 @@ export async function syncPendingPortfolioItems(
 
   const synced = [...items];
   for (const item of pending) {
+    if (pendingCompleteInFlight.has(item.id)) {
+      continue;
+    }
+    pendingCompleteInFlight.add(item.id);
     try {
       const completed = await completePortfolioItem(item.id);
       const index = synced.findIndex((entry) => entry.id === item.id);
@@ -199,7 +205,14 @@ export async function syncPendingPortfolioItems(
         synced.push(completed);
       }
     } catch {
-      // Leave pending item as-is; UI can retry on next load.
+      // Incomplete uploads are cleaned up by the API; drop from the local list
+      // so we do not keep showing a broken pending tile this session.
+      const index = synced.findIndex((entry) => entry.id === item.id);
+      if (index >= 0) {
+        synced.splice(index, 1);
+      }
+    } finally {
+      pendingCompleteInFlight.delete(item.id);
     }
   }
   return synced;

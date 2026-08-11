@@ -1,4 +1,8 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   DeleteObjectCommand,
@@ -7,6 +11,23 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+
+function isS3NotFoundError(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as {
+    name?: string;
+    Code?: string;
+    $metadata?: { httpStatusCode?: number };
+  };
+  const status = e.$metadata?.httpStatusCode;
+  const code = (e.name || e.Code || '').toLowerCase();
+  return (
+    status === 404 ||
+    code === 'notfound' ||
+    code === 'nosuchkey' ||
+    code === 'not found'
+  );
+}
 
 export interface PresignedUpload {
   uploadUrl: string;
@@ -144,17 +165,26 @@ export class StorageService {
   ): Promise<{ sizeBytes: number; contentType: string | null }> {
     const { internal, bucket } = this.requireClient();
 
-    const head = await internal.send(
-      new HeadObjectCommand({ Bucket: bucket, Key: storageKey }),
-    );
+    try {
+      const head = await internal.send(
+        new HeadObjectCommand({ Bucket: bucket, Key: storageKey }),
+      );
 
-    const contentType =
-      head.ContentType?.split(';')[0]?.trim().toLowerCase() || null;
+      const contentType =
+        head.ContentType?.split(';')[0]?.trim().toLowerCase() || null;
 
-    return {
-      sizeBytes: head.ContentLength ?? 0,
-      contentType,
-    };
+      return {
+        sizeBytes: head.ContentLength ?? 0,
+        contentType,
+      };
+    } catch (err) {
+      if (isS3NotFoundError(err)) {
+        throw new BadRequestException(
+          'Uploaded file not found in storage. Re-upload the file.',
+        );
+      }
+      throw err;
+    }
   }
 
   async deleteObject(storageKey: string): Promise<void> {

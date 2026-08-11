@@ -270,9 +270,23 @@ export class ContractorPortfolioService {
       return response;
     }
 
-    const { sizeBytes, contentType } = await this.storage.verifyObject(
-      item.storageKey,
-    );
+    let sizeBytes: number;
+    let contentType: string | null;
+    try {
+      ({ sizeBytes, contentType } = await this.storage.verifyObject(
+        item.storageKey,
+      ));
+    } catch (err) {
+      // Orphan pending row (presign succeeded, browser never PUT the file).
+      // Soft-delete so page-load sync stops retrying forever.
+      if (err instanceof BadRequestException) {
+        await this.prisma.contractorPortfolioItem.update({
+          where: { id: itemId },
+          data: { status: DocumentStatus.deleted },
+        });
+      }
+      throw err;
+    }
     assertCompletedUploadLimits({
       sizeBytes,
       contentType: contentType ?? item.contentType,
