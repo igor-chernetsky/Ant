@@ -155,7 +155,7 @@ export const ruExtended = {
     ballparkMidpoint: "Средняя оценка",
     designBallparkMidpoint: "Средняя оценка проектирования",
     ballparkExcludesAdjustments:
-      "Только работы — без preliminary, overhead & profit и НДС.",
+      "Рассчитан без плановых, накладных и НДС.",
     scopeTags: "Теги объёма",
     scopeTagsAria: "Теги объёма проекта",
     tagSelectedDuringIntake: "Выбрано при создании",
@@ -747,6 +747,10 @@ export const ruExtended = {
     bannerCompleteVerification: "Пройти верификацию",
     bannerOpenPortal: "Открыть портал",
     bannerDismiss: "Скрыть до конца сессии",
+    requiredDialogTitle: "Нужна верификация",
+    requiredDialogMessage:
+      "Проекты можно просматривать, но задавать вопросы заказчику и участвовать в тендере можно только после подтверждения аккаунта подрядчика. Откройте портал, загрузите документы и запросите одобрение.",
+    requiredDialogGoToPortal: "Перейти в портал",
   },
   portfolio: {
     title: "Портфолио",
@@ -1175,7 +1179,7 @@ export const ruExtended = {
   },
   bidCompare: {
     title: "Сравнение ставок",
-    hint: "Выберите до 4 подрядчиков для сравнения. Сравнение с оценкой — только по стоимости работ.",
+    hint: "Сравнивайте всех подрядчиков рядом — при необходимости прокрутите таблицу горизонтально. Сравнение с оценкой — только по стоимости работ.",
     pickerAria: "Ставки для сравнения",
     metric: "Показатель",
     total: "Итого с НДС",

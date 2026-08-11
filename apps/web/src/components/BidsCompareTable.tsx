@@ -45,6 +45,27 @@ function breakdownSubtotal(items?: BidLineItem[]): number | null {
   return total > 0 ? total : null;
 }
 
+/** Indices of the lowest finite amount(s); empty when nothing comparable. */
+function lowestAmountIndices(amounts: Array<number | null>): Set<number> {
+  let min: number | null = null;
+  for (const amount of amounts) {
+    if (amount == null || !Number.isFinite(amount)) continue;
+    if (min == null || amount < min) {
+      min = amount;
+    }
+  }
+  if (min == null) {
+    return new Set();
+  }
+  const indices = new Set<number>();
+  amounts.forEach((amount, index) => {
+    if (amount != null && Number.isFinite(amount) && amount === min) {
+      indices.add(index);
+    }
+  });
+  return indices;
+}
+
 export function BidsCompareTable({
   bids,
   ballparkMid,
@@ -52,7 +73,7 @@ export function BidsCompareTable({
 }: BidsCompareTableProps) {
   const { t } = useTranslation();
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
-    bids.slice(0, Math.min(3, bids.length)).map((bid) => bid.id),
+    bids.map((bid) => bid.id),
   );
 
   const selectedBids = useMemo(
@@ -93,13 +114,26 @@ export function BidsCompareTable({
     return merged;
   }, [defaultCostBreakdown, selectedBids]);
 
+  const lowestByTrade = useMemo(() => {
+    const map = new Map<string, Set<number>>();
+    for (const row of breakdownRows) {
+      const amounts = selectedBids.map((bid) => amountForTrade(bid, row.trade));
+      map.set(normalizeTrade(row.trade), lowestAmountIndices(amounts));
+    }
+    return map;
+  }, [breakdownRows, selectedBids]);
+
+  const lowestSubtotalIndices = useMemo(() => {
+    const amounts = selectedBids.map((bid) =>
+      breakdownSubtotal(bid.terms?.lineItems),
+    );
+    return lowestAmountIndices(amounts);
+  }, [selectedBids]);
+
   const toggleBid = (bidId: string) => {
     setSelectedIds((current) => {
       if (current.includes(bidId)) {
         return current.length > 1 ? current.filter((id) => id !== bidId) : current;
-      }
-      if (current.length >= 4) {
-        return [...current.slice(1), bidId];
       }
       return [...current, bidId];
     });
@@ -139,9 +173,11 @@ export function BidsCompareTable({
         <table className="bids-compare-table">
           <thead>
             <tr>
-              <th scope="col">{t('bidCompare.metric')}</th>
+              <th scope="col" className="bids-compare-sticky-col">
+                {t('bidCompare.metric')}
+              </th>
               {selectedBids.map((bid) => (
-                <th key={bid.id} scope="col">
+                <th key={bid.id} scope="col" className="bids-compare-bid-col">
                   {bid.companyName ?? t('common.contractor')}
                 </th>
               ))}
@@ -149,17 +185,21 @@ export function BidsCompareTable({
           </thead>
           <tbody>
             <tr>
-              <th scope="row">{t('bidCompare.total')}</th>
+              <th scope="row" className="bids-compare-sticky-col">
+                {t('bidCompare.total')}
+              </th>
               {selectedBids.map((bid) => (
-                <td key={`${bid.id}-total`}>
+                <td key={`${bid.id}-total`} className="bids-compare-bid-col">
                   {bid.amount != null ? formatThb(Number(bid.amount)) : t('common.dash')}
                 </td>
               ))}
             </tr>
             <tr>
-              <th scope="row">{t('bidCompare.duration')}</th>
+              <th scope="row" className="bids-compare-sticky-col">
+                {t('bidCompare.duration')}
+              </th>
               {selectedBids.map((bid) => (
-                <td key={`${bid.id}-duration`}>
+                <td key={`${bid.id}-duration`} className="bids-compare-bid-col">
                   {bid.durationDays != null
                     ? t('common.daysCount', { n: bid.durationDays })
                     : t('common.dash')}
@@ -167,7 +207,9 @@ export function BidsCompareTable({
               ))}
             </tr>
             <tr>
-              <th scope="row">{t('bidCompare.vsBallpark')}</th>
+              <th scope="row" className="bids-compare-sticky-col">
+                {t('bidCompare.vsBallpark')}
+              </th>
               {selectedBids.map((bid) => {
                 const amount = bid.amount != null ? Number(bid.amount) : null;
                 const worksAmount =
@@ -175,7 +217,7 @@ export function BidsCompareTable({
                     ? bidWorksSubtotalForCompare(bid.terms, amount)
                     : null;
                 return (
-                  <td key={`${bid.id}-delta`}>
+                  <td key={`${bid.id}-delta`} className="bids-compare-bid-col">
                     {worksAmount != null
                       ? deltaLabel(worksAmount, ballparkMid ?? null)
                       : t('common.dash')}
@@ -184,9 +226,14 @@ export function BidsCompareTable({
               })}
             </tr>
             <tr>
-              <th scope="row">{t('bidCompare.scope')}</th>
+              <th scope="row" className="bids-compare-sticky-col">
+                {t('bidCompare.scope')}
+              </th>
               {selectedBids.map((bid) => (
-                <td key={`${bid.id}-scope`} className="bids-compare-text-cell">
+                <td
+                  key={`${bid.id}-scope`}
+                  className="bids-compare-text-cell bids-compare-bid-col"
+                >
                   {bid.terms?.scopeSummary?.trim() || t('common.dash')}
                 </td>
               ))}
@@ -202,34 +249,54 @@ export function BidsCompareTable({
                     {t('bidCompare.breakdownByTrade')}
                   </th>
                 </tr>
-                {breakdownRows.map((row) => (
-                  <tr key={normalizeTrade(row.trade)}>
-                    <th scope="row" className="bids-compare-breakdown-row-label">
-                      <span className="bids-compare-breakdown-trade-name">
-                        {row.trade}
-                      </span>
-                      {row.description ? (
-                        <span className="bids-compare-breakdown-desc muted">
-                          {row.description}
+                {breakdownRows.map((row) => {
+                  const lowest = lowestByTrade.get(normalizeTrade(row.trade));
+                  return (
+                    <tr key={normalizeTrade(row.trade)}>
+                      <th
+                        scope="row"
+                        className="bids-compare-breakdown-row-label bids-compare-sticky-col"
+                      >
+                        <span className="bids-compare-breakdown-trade-name">
+                          {row.trade}
                         </span>
-                      ) : null}
-                    </th>
-                    {selectedBids.map((bid) => {
-                      const amount = amountForTrade(bid, row.trade);
-                      return (
-                        <td key={`${bid.id}-${row.trade}`}>
-                          {amount != null ? formatThb(amount) : t('common.dash')}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                        {row.description ? (
+                          <span className="bids-compare-breakdown-desc muted">
+                            {row.description}
+                          </span>
+                        ) : null}
+                      </th>
+                      {selectedBids.map((bid, index) => {
+                        const amount = amountForTrade(bid, row.trade);
+                        const isLowest = lowest?.has(index) ?? false;
+                        return (
+                          <td
+                            key={`${bid.id}-${row.trade}`}
+                            className={`bids-compare-bid-col${
+                              isLowest ? ' bids-compare-cell-lowest' : ''
+                            }`}
+                          >
+                            {amount != null ? formatThb(amount) : t('common.dash')}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
                 <tr className="bids-compare-breakdown-subtotal-row">
-                  <th scope="row">{t('bidCompare.breakdownSubtotal')}</th>
-                  {selectedBids.map((bid) => {
+                  <th scope="row" className="bids-compare-sticky-col">
+                    {t('bidCompare.breakdownSubtotal')}
+                  </th>
+                  {selectedBids.map((bid, index) => {
                     const subtotal = breakdownSubtotal(bid.terms?.lineItems);
+                    const isLowest = lowestSubtotalIndices.has(index);
                     return (
-                      <td key={`${bid.id}-subtotal`}>
+                      <td
+                        key={`${bid.id}-subtotal`}
+                        className={`bids-compare-bid-col${
+                          isLowest ? ' bids-compare-cell-lowest' : ''
+                        }`}
+                      >
                         {subtotal != null ? formatThb(subtotal) : t('common.dash')}
                       </td>
                     );

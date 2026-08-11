@@ -586,6 +586,9 @@ export default function ProjectDetailPage() {
                             {t('estimateSection.midpoint')}{' '}
                             {formatThb(estimate.totals.midAmount)}
                           </p>
+                          <p className="muted estimate-meta estimate-excludes-note">
+                            {t('projectHero.ballparkExcludesAdjustments')}
+                          </p>
                         </div>
                         <EstimateConfidenceRing
                           confidence={estimate.confidence}

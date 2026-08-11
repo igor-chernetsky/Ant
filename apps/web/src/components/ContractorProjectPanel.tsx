@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
 import { ContractAddendaPanel } from '@/components/ContractAddendaPanel';
@@ -83,6 +84,7 @@ export function ContractorProjectPanel({
     formatVerificationStatus,
   } = useAppFormatters();
   const { me } = useSession();
+  const router = useRouter();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const portalHref = isDesignerUser(me) ? '/designer' : '/contractor';
   const [participation, setParticipation] =
@@ -151,8 +153,25 @@ export function ContractorProjectPanel({
     void loadParticipation();
   }, [loadParticipation]);
 
+  const ensureVerified = useCallback(async (): Promise<boolean> => {
+    if (participation?.verificationStatus === 'verified') {
+      return true;
+    }
+    const goToPortal = await confirm({
+      title: t('verification.requiredDialogTitle'),
+      message: t('verification.requiredDialogMessage'),
+      confirmLabel: t('verification.requiredDialogGoToPortal'),
+      cancelLabel: t('common.close'),
+    });
+    if (goToPortal) {
+      router.push(portalHref);
+    }
+    return false;
+  }, [confirm, participation?.verificationStatus, portalHref, router, t]);
+
   const handleApply = async () => {
     if (!participation?.tenderId) return;
+    if (!(await ensureVerified())) return;
     setBusy(true);
     setError(null);
     try {
@@ -169,6 +188,7 @@ export function ContractorProjectPanel({
     input: Parameters<typeof submitContractorBid>[1],
   ) => {
     if (!participation?.tenderId) return;
+    if (!(await ensureVerified())) return;
     setBusy(true);
     setError(null);
     try {
@@ -443,6 +463,7 @@ export function ContractorProjectPanel({
               <StructuredClarificationForm
                 bidId={myBid.id}
                 disabled={busy}
+                onBeforeSubmit={ensureVerified}
                 onSubmitted={() => void loadParticipation()}
               />
               {participation.tenderCollectingClarifications && (
@@ -470,6 +491,7 @@ export function ContractorProjectPanel({
                 bidId={myBid.id}
                 currentUserId={me.id}
                 title={t('contractor.clarificationsTitle')}
+                onBeforeSend={ensureVerified}
               />
             </>
           ) : null}

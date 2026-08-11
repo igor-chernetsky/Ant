@@ -155,7 +155,7 @@ export const thExtended = {
     ballparkMidpoint: "ประมาณการกลาง",
     designBallparkMidpoint: "ประมาณการกลางงานออกแบบ",
     ballparkExcludesAdjustments:
-      "เฉพาะมูลค่างาน — ไม่รวม preliminary, overhead & profit และ VAT",
+      "คำนวณโดยไม่รวม preliminary, overhead & profit และ VAT",
     scopeTags: "แท็กขอบเขต",
     scopeTagsAria: "แท็กขอบเขตโครงการ",
     tagSelectedDuringIntake: "เลือกระหว่างรับข้อมูล",
@@ -744,6 +744,10 @@ export const thExtended = {
     bannerCompleteVerification: "ดำเนินการยืนยัน",
     bannerOpenPortal: "เปิดพอร์ทัล",
     bannerDismiss: "ปิดสำหรับเซสชันนี้",
+    requiredDialogTitle: "ต้องยืนยันตัวตนก่อน",
+    requiredDialogMessage:
+      "คุณสามารถดูโครงการได้ แต่การถามลูกค้าหรือเข้าร่วมการประมูลจะใช้ได้หลังบัญชีผู้รับเหมาได้รับการยืนยันแล้ว เปิดพอร์ทัลเพื่ออัปโหลดเอกสารและขออนุมัติ",
+    requiredDialogGoToPortal: "ไปที่พอร์ทัล",
   },
   portfolio: {
     title: "ผลงาน",
@@ -1172,7 +1176,7 @@ export const thExtended = {
   },
   bidCompare: {
     title: "เปรียบเทียบข้อเสนอ",
-    hint: "เลือกผู้รับเหมาสูงสุด 4 รายเพื่อเปรียบเทียบ การเทียบประมาณการใช้มูลค่างานเท่านั้น",
+    hint: "เปรียบเทียบผู้รับเหมาทุกรายเคียงข้างกัน — เลื่อนแนวนอนได้เมื่อจำเป็น การเทียบประมาณการใช้มูลค่างานเท่านั้น",
     pickerAria: "ข้อเสนอที่จะเปรียบเทียบ",
     metric: "ตัวชี้วัด",
     total: "รวมทั้งสิ้น (รวม VAT)",

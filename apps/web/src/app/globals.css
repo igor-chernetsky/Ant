@@ -8778,12 +8778,12 @@ select:disabled {
 }
 
 .bids-compare-table thead th {
-  background: rgba(241, 245, 249, 0.72);
+  background: rgba(241, 245, 249, 0.95);
   font-weight: 700;
 }
 
 .bids-compare-table tbody th {
-  background: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.92);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -8806,11 +8806,15 @@ select:disabled {
 
 .bids-compare-table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .bids-compare-table {
-  width: 100%;
-  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.88rem;
 }
 
@@ -8822,9 +8826,37 @@ select:disabled {
   vertical-align: top;
 }
 
+.bids-compare-sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 10.5rem;
+  max-width: 14rem;
+  box-shadow: 1px 0 0 var(--border);
+}
+
+.bids-compare-table thead .bids-compare-sticky-col {
+  z-index: 3;
+  background: rgba(241, 245, 249, 0.98);
+}
+
+.bids-compare-table tbody .bids-compare-sticky-col {
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.bids-compare-bid-col {
+  min-width: 11rem;
+  max-width: 16rem;
+}
+
 .bids-compare-text-cell {
   max-width: 14rem;
   line-height: 1.45;
+}
+
+.bids-compare-cell-lowest {
+  background: rgba(34, 197, 94, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.22);
 }
 
 .bids-compare-breakdown-cell {
@@ -8895,6 +8927,9 @@ select:disabled {
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  position: sticky;
+  left: 0;
+  z-index: 1;
 }
 
 .bids-compare-breakdown-row-label {
@@ -8909,6 +8944,14 @@ select:disabled {
   border-top: 1px solid var(--border);
   font-weight: 600;
   background: #fafafa;
+}
+
+.bids-compare-breakdown-subtotal-row .bids-compare-sticky-col {
+  background: #fafafa;
+}
+
+.bids-compare-breakdown-subtotal-row .bids-compare-cell-lowest {
+  background: rgba(34, 197, 94, 0.14);
 }
 
 .bid-analysis-card {

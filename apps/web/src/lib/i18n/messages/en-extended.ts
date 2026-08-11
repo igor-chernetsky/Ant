@@ -155,7 +155,7 @@ export const enExtended = {
     ballparkMidpoint: "Ballpark midpoint",
     designBallparkMidpoint: "Design ballpark midpoint",
     ballparkExcludesAdjustments:
-      "Works only — excludes preliminary, overhead & profit, and VAT.",
+      "Calculated without preliminaries, overhead & profit, and VAT.",
     scopeTags: "Scope tags",
     scopeTagsAria: "Project scope tags",
     tagSelectedDuringIntake: "Selected during intake",
@@ -746,6 +746,10 @@ export const enExtended = {
     bannerCompleteVerification: "Complete verification",
     bannerOpenPortal: "Open portal",
     bannerDismiss: "Dismiss for this session",
+    requiredDialogTitle: "Verification required",
+    requiredDialogMessage:
+      "You can browse projects, but asking the client questions or joining a tender is available only after your contractor account is verified. Open your portal to upload documents and request approval.",
+    requiredDialogGoToPortal: "Go to portal",
   },
   portfolio: {
     title: "Portfolio",
@@ -1174,7 +1178,7 @@ export const enExtended = {
   },
   bidCompare: {
     title: "Compare bids",
-    hint: "Select up to 4 contractors to compare side by side. Ballpark comparison uses works total only.",
+    hint: "Compare all contractors side by side — scroll horizontally when needed. Ballpark comparison uses works total only.",
     pickerAria: "Bids to compare",
     metric: "Metric",
     total: "Grand total (incl. VAT)",

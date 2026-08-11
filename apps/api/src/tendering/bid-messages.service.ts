@@ -119,6 +119,11 @@ export class BidMessagesService {
   ): Promise<BidMessageResponse> {
     const { bid, isClient } = await this.assertBidAccess(userId, bidId, projectId);
 
+    if (!isClient) {
+      const profile = await this.contractorProfiles.requireByUserId(userId);
+      this.contractorProfiles.assertVerified(profile);
+    }
+
     if (bid.tender.project.clarificationMode === ClarificationMode.structured_qa) {
       const postAwardChat =
         bid.status === BidStatus.selected &&

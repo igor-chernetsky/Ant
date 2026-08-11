@@ -15,6 +15,8 @@ interface BidChatProps {
   projectId?: string;
   currentUserId: string;
   title?: string;
+  /** Return false to cancel send (e.g. verification gate). */
+  onBeforeSend?: () => boolean | Promise<boolean>;
 }
 
 export function BidChat({
@@ -22,6 +24,7 @@ export function BidChat({
   projectId,
   currentUserId,
   title,
+  onBeforeSend,
 }: BidChatProps) {
   const { t } = useTranslation();
   const resolvedTitle = title ?? t('bid.chatTitle');
@@ -102,6 +105,9 @@ export function BidChat({
   const handleSend = async () => {
     const body = draft.trim();
     if (!body) return;
+    if (onBeforeSend && !(await onBeforeSend())) {
+      return;
+    }
 
     setBusy(true);
     setError(null);

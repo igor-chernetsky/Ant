@@ -247,12 +247,15 @@ export class ContractorProfilesService {
   }
 
   /**
-   * Reserved for future business rules if some actions should be
-   * restricted to verified contractors. Currently verification is optional.
+   * Tender participation (questions, enroll, bids, contractor chat) requires
+   * admin-verified contractor/designer status.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   assertVerified(profile: ContractorProfile): void {
-    // no-op — participation in tenders is allowed without verification
+    if (profile.verificationStatus !== ContractorVerificationStatus.verified) {
+      throw new ForbiddenException(
+        'Verification is required before asking questions or joining tenders',
+      );
+    }
   }
 
   /**

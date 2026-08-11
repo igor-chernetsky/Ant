@@ -11,6 +11,7 @@ import {
   ClarificationMode,
   ContractStatus,
   ContractorProfile,
+  ContractorVerificationStatus,
   Prisma,
   ProjectStatus,
   Tender,
@@ -1234,6 +1235,7 @@ export class TendersService {
     tenderId: string,
   ): Promise<BidResponse> {
     const profile = await this.contractorProfiles.requireByUserId(userId);
+    this.contractorProfiles.assertVerified(profile);
     const tender = await this.loadTender(tenderId);
 
     const project = await this.prisma.project.findUnique({
@@ -1325,7 +1327,9 @@ export class TendersService {
   ): Promise<Bid & { contractor: ContractorProfile }> {
     if (
       tender.status !== TenderStatus.open ||
-      bid.status !== BidStatus.clarifying
+      bid.status !== BidStatus.clarifying ||
+      bid.contractor.verificationStatus !==
+        ContractorVerificationStatus.verified
     ) {
       return bid;
     }
@@ -1353,6 +1357,12 @@ export class TendersService {
     const enrolledUserIds: string[] = [];
 
     for (const bid of tender.bids) {
+      if (
+        bid.contractor.verificationStatus !==
+        ContractorVerificationStatus.verified
+      ) {
+        continue;
+      }
       if (clarificationMode === ClarificationMode.structured_qa) {
         const submitted = await this.clarifications.hasSubmittedQuestions(
           bid.id,
@@ -1417,6 +1427,7 @@ export class TendersService {
 
   async enrollInTender(userId: string, tenderId: string): Promise<BidResponse> {
     const profile = await this.contractorProfiles.requireByUserId(userId);
+    this.contractorProfiles.assertVerified(profile);
     const tender = await this.loadTender(tenderId);
 
     if (tender.status !== TenderStatus.open) {
@@ -1732,6 +1743,7 @@ export class TendersService {
     }
 
     const profile = await this.contractorProfiles.requireByUserId(userId);
+    this.contractorProfiles.assertVerified(profile);
     const tender = await this.loadTender(tenderId);
     const project = await this.prisma.project.findUnique({
       where: { id: tender.projectId },

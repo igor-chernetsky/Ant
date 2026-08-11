@@ -302,6 +302,7 @@ export class TenderClarificationsService {
     dto: SubmitBidClarificationQuestionsDto,
   ): Promise<{ questions: string[]; submittedAt: string }> {
     const bid = await this.loadBidForContractor(userId, bidId);
+    this.contractorProfiles.assertVerified(bid.contractor);
     const project = bid.tender.project;
 
     if (project.clarificationMode !== ClarificationMode.structured_qa) {

@@ -10,12 +10,15 @@ import {
 interface StructuredClarificationFormProps {
   bidId: string;
   disabled?: boolean;
+  /** Return false to cancel submit (e.g. verification gate). */
+  onBeforeSubmit?: () => boolean | Promise<boolean>;
   onSubmitted?: () => void;
 }
 
 export function StructuredClarificationForm({
   bidId,
   disabled = false,
+  onBeforeSubmit,
   onSubmitted,
 }: StructuredClarificationFormProps) {
   const { t } = useTranslation();
@@ -78,6 +81,9 @@ export function StructuredClarificationForm({
     event.preventDefault();
     if (!confirmed) {
       setError(t('clarification.confirmReview'));
+      return;
+    }
+    if (onBeforeSubmit && !(await onBeforeSubmit())) {
       return;
     }
 
