@@ -1040,13 +1040,20 @@ export class ContractAddendaService {
         .replace(/^-|-$/g, '')
         .slice(0, 40) || 'addendum';
 
-    const parties =
-      options.includeSignatures === true
-        ? await this.loadSignaturePartyNames(projectId)
-        : null;
+    const hasAnySignature = Boolean(
+      row.clientSignedAt || row.contractorSignedAt,
+    );
+    // Once anyone has signed, always stamp the PDF so download/preview
+    // matches the signed status (checkbox is only needed for blank pads).
+    const includeSignatures =
+      options.includeSignatures === true || hasAnySignature;
+
+    const parties = includeSignatures
+      ? await this.loadSignaturePartyNames(projectId)
+      : null;
 
     const mainEntries = await this.buildMainDocumentEntries(row, options.formats, {
-      includeSignatures: options.includeSignatures === true,
+      includeSignatures,
       parties,
     });
     const attachments = row.attachments ?? [];
@@ -1152,7 +1159,24 @@ export class ContractAddendaService {
         );
       }
       const html = wrapAddendumHtmlForPdf(row.title, row.englishBodyHtml);
-      const pdf = await this.htmlToPdf.render(html);
+      let pdf = await this.htmlToPdf.render(html);
+      if (stamp?.includeSignatures) {
+        pdf = await stampCustomPdfSignatures({
+          pdfBuffer: pdf,
+          left: {
+            label: 'Client',
+            orgName: stamp.parties?.clientName ?? null,
+            signedAt: row.clientSignedAt,
+            signatureDataUrl: row.clientSignatureDataUrl,
+          },
+          right: {
+            label: 'Contractor',
+            orgName: stamp.parties?.contractorName ?? null,
+            signedAt: row.contractorSignedAt,
+            signatureDataUrl: row.contractorSignatureDataUrl,
+          },
+        });
+      }
       const slug =
         row.title
           .toLowerCase()

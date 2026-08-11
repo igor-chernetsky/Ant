@@ -291,11 +291,19 @@ function AddendumItem({
   const [downloadFormats, setDownloadFormats] = useState<
     CustomFileDownloadFormat[]
   >(['pdf', 'docx']);
-  const [includeSignatures, setIncludeSignatures] = useState(false);
+  const [includeSignatures, setIncludeSignatures] = useState(() =>
+    Boolean(addendum.clientSignedAt || addendum.contractorSignedAt),
+  );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const signaturePadRef = useRef<ContractSignaturePadHandle | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
+
+  useEffect(() => {
+    if (addendum.clientSignedAt || addendum.contractorSignedAt) {
+      setIncludeSignatures(true);
+    }
+  }, [addendum.clientSignedAt, addendum.contractorSignedAt]);
 
   const file = addendum.customFile;
   const uploadedAttachments = (addendum.attachments ?? []).filter(
@@ -378,10 +386,7 @@ function AddendumItem({
         asContractor,
         withAttachments: withAttachments && uploadedAttachments.length > 0,
         formats: selectedFormats,
-        includeSignatures:
-          Boolean(addendum.hasCustomFile && canPreviewPdf) &&
-          includeSignatures &&
-          downloadingPdf,
+        includeSignatures: includeSignatures && downloadingPdf,
       });
     } catch (err: unknown) {
       setError(
@@ -510,7 +515,7 @@ function AddendumItem({
               </span>
             </div>
           </div>
-          {addendum.hasCustomFile && canPreviewPdf && (
+          {(addendum.hasCustomFile ? canPreviewPdf : true) && (
             <label className="contract-include-signatures">
               <input
                 type="checkbox"
@@ -539,14 +544,182 @@ function AddendumItem({
             ) : (
               <p className="muted">{t('addenda.previewLegacyDocx')}</p>
             )}
+            <section
+              className="contract-custom-signatures"
+              aria-label={t('contractPanel.customSignaturesTitle')}
+            >
+              <h3 className="contract-custom-signatures-title">
+                {t('contractPanel.customSignaturesTitle')}
+              </h3>
+              <p className="muted contract-custom-signatures-hint">
+                {t('contractPanel.customSignaturesHint')}
+              </p>
+              <div className="contract-custom-signatures-grid">
+                <div
+                  className={`contract-custom-signature-slot${
+                    addendum.clientSignedAt
+                      ? ' contract-custom-signature-slot--signed'
+                      : ''
+                  }`}
+                >
+                  <div className="contract-custom-signature-slot-head">
+                    <strong>{t('contractPanel.partyClient')}</strong>
+                    <span className="muted">
+                      {addendum.clientSignedAt
+                        ? t('contractPanel.signedAt', {
+                            date: formatDateTime(addendum.clientSignedAt),
+                          })
+                        : t('contractPanel.awaiting')}
+                    </span>
+                  </div>
+                  <div className="contract-custom-signature-slot-pad">
+                    {addendum.clientSignedAt &&
+                    addendum.clientSignatureDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={addendum.clientSignatureDataUrl}
+                        alt={t('contractPanel.clientSignatureAlt')}
+                        className="contract-custom-signature-image"
+                      />
+                    ) : (
+                      <span className="muted contract-custom-signature-empty">
+                        {addendum.clientSignedAt
+                          ? t('contractPanel.signatureAckOnly')
+                          : t('contractPanel.signaturePending')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className={`contract-custom-signature-slot${
+                    addendum.contractorSignedAt
+                      ? ' contract-custom-signature-slot--signed'
+                      : ''
+                  }`}
+                >
+                  <div className="contract-custom-signature-slot-head">
+                    <strong>{t('contractPanel.partyContractor')}</strong>
+                    <span className="muted">
+                      {addendum.contractorSignedAt
+                        ? t('contractPanel.signedAt', {
+                            date: formatDateTime(addendum.contractorSignedAt),
+                          })
+                        : t('contractPanel.awaiting')}
+                    </span>
+                  </div>
+                  <div className="contract-custom-signature-slot-pad">
+                    {addendum.contractorSignedAt &&
+                    addendum.contractorSignatureDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={addendum.contractorSignatureDataUrl}
+                        alt={t('contractPanel.contractorSignatureAlt')}
+                        className="contract-custom-signature-image"
+                      />
+                    ) : (
+                      <span className="muted contract-custom-signature-empty">
+                        {addendum.contractorSignedAt
+                          ? t('contractPanel.signatureAckOnly')
+                          : t('contractPanel.signaturePending')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
         ) : (
-          <AddendumEditor
-            projectId={projectId}
-            addendum={addendum}
-            asContractor={asContractor}
-            onSaved={onUpdated}
-          />
+          <>
+            <AddendumEditor
+              projectId={projectId}
+              addendum={addendum}
+              asContractor={asContractor}
+              onSaved={onUpdated}
+            />
+            <section
+              className="contract-custom-signatures"
+              aria-label={t('contractPanel.customSignaturesTitle')}
+            >
+              <h3 className="contract-custom-signatures-title">
+                {t('contractPanel.customSignaturesTitle')}
+              </h3>
+              <p className="muted contract-custom-signatures-hint">
+                {t('contractPanel.customSignaturesHint')}
+              </p>
+              <div className="contract-custom-signatures-grid">
+                <div
+                  className={`contract-custom-signature-slot${
+                    addendum.clientSignedAt
+                      ? ' contract-custom-signature-slot--signed'
+                      : ''
+                  }`}
+                >
+                  <div className="contract-custom-signature-slot-head">
+                    <strong>{t('contractPanel.partyClient')}</strong>
+                    <span className="muted">
+                      {addendum.clientSignedAt
+                        ? t('contractPanel.signedAt', {
+                            date: formatDateTime(addendum.clientSignedAt),
+                          })
+                        : t('contractPanel.awaiting')}
+                    </span>
+                  </div>
+                  <div className="contract-custom-signature-slot-pad">
+                    {addendum.clientSignedAt &&
+                    addendum.clientSignatureDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={addendum.clientSignatureDataUrl}
+                        alt={t('contractPanel.clientSignatureAlt')}
+                        className="contract-custom-signature-image"
+                      />
+                    ) : (
+                      <span className="muted contract-custom-signature-empty">
+                        {addendum.clientSignedAt
+                          ? t('contractPanel.signatureAckOnly')
+                          : t('contractPanel.signaturePending')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className={`contract-custom-signature-slot${
+                    addendum.contractorSignedAt
+                      ? ' contract-custom-signature-slot--signed'
+                      : ''
+                  }`}
+                >
+                  <div className="contract-custom-signature-slot-head">
+                    <strong>{t('contractPanel.partyContractor')}</strong>
+                    <span className="muted">
+                      {addendum.contractorSignedAt
+                        ? t('contractPanel.signedAt', {
+                            date: formatDateTime(addendum.contractorSignedAt),
+                          })
+                        : t('contractPanel.awaiting')}
+                    </span>
+                  </div>
+                  <div className="contract-custom-signature-slot-pad">
+                    {addendum.contractorSignedAt &&
+                    addendum.contractorSignatureDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={addendum.contractorSignatureDataUrl}
+                        alt={t('contractPanel.contractorSignatureAlt')}
+                        className="contract-custom-signature-image"
+                      />
+                    ) : (
+                      <span className="muted contract-custom-signature-empty">
+                        {addendum.contractorSignedAt
+                          ? t('contractPanel.signatureAckOnly')
+                          : t('contractPanel.signaturePending')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </>
         )}
 
         <section className="addendum-attachments" aria-label={t('addenda.attachmentsTitle')}>
