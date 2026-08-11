@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ContractorProfilesService } from '../tendering/contractor-profiles.service';
+import { normalizePreferredContactMethods } from '../tendering/contractor-contact.util';
 import {
   AdminContractorDetail,
   AdminContractorListItem,
@@ -72,6 +73,10 @@ export class AdminContractorsService {
       displayName: p.user.displayName,
       companyName: p.companyName,
       phone: p.phone,
+      taxId: p.taxId,
+      preferredContactMethods: normalizePreferredContactMethods(
+        p.preferredContactMethods,
+      ),
       bankName: p.bankName,
       bankAccount: p.bankAccount,
       regionCode: p.regionCode,
@@ -106,6 +111,10 @@ export class AdminContractorsService {
       displayName: profile.user.displayName,
       companyName: profile.companyName,
       phone: profile.phone,
+      taxId: profile.taxId,
+      preferredContactMethods: normalizePreferredContactMethods(
+        profile.preferredContactMethods,
+      ),
       bankName: profile.bankName,
       bankAccount: profile.bankAccount,
       regionCode: profile.regionCode,

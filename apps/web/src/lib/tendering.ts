@@ -139,6 +139,8 @@ export interface ContractorProfile {
   kind?: 'contractor' | 'designer';
   companyName: string | null;
   phone: string | null;
+  taxId: string | null;
+  preferredContactMethods: Array<'phone' | 'line' | 'whatsapp' | 'email'>;
   bankName: string | null;
   bankAccount: string | null;
   regionCode: string;
@@ -667,6 +669,8 @@ export async function fetchContractorProfile(): Promise<ContractorProfile | null
 export async function upsertContractorProfile(input: {
   companyName?: string;
   phone?: string | null;
+  taxId?: string | null;
+  preferredContactMethods?: Array<'phone' | 'line' | 'whatsapp' | 'email'>;
   bankName?: string | null;
   bankAccount?: string | null;
   regionCode?: string;

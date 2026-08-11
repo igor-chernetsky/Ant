@@ -4024,6 +4024,24 @@ pre {
   margin: 0;
 }
 
+.page-shell--portal .portal-contact-methods {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.page-shell--portal .portal-contact-methods > legend {
+  padding: 0;
+  margin-bottom: 0.35rem;
+}
+
+.page-shell--portal .portal-contact-methods-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
 .page-shell--portal .portal-profile-form input:not([type='checkbox']):not(
     [type='radio']
   ):not([type='file']),

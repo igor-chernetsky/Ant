@@ -109,6 +109,17 @@ export function ContractorVerificationPanel({
       setError(t('verification.phoneRequired'));
       return;
     }
+    if (!profile.taxId?.trim() || !/^\d{13}$/.test(profile.taxId.trim())) {
+      setError(t('verification.taxIdRequired'));
+      return;
+    }
+    if (
+      !profile.preferredContactMethods ||
+      profile.preferredContactMethods.length === 0
+    ) {
+      setError(t('verification.contactMethodsRequired'));
+      return;
+    }
     if (!profile.bankName?.trim() || !profile.bankAccount?.trim()) {
       setError(t('verification.bankRequired'));
       return;
@@ -165,6 +176,27 @@ export function ContractorVerificationPanel({
         {profile.phone?.trim() ? profile.phone : t('common.dash')}
         {!profile.phone?.trim() && canRequestApproval
           ? ` — ${t('verification.phoneRequired')}`
+          : ''}
+      </p>
+      <p className="muted doc-hint">
+        {t('contractor.taxIdLabel')}:{' '}
+        {profile.taxId?.trim() ? profile.taxId : t('common.dash')}
+        {(!profile.taxId?.trim() || !/^\d{13}$/.test(profile.taxId.trim())) &&
+        canRequestApproval
+          ? ` — ${t('verification.taxIdRequired')}`
+          : ''}
+      </p>
+      <p className="muted doc-hint">
+        {t('contractor.preferredContactLabel')}:{' '}
+        {profile.preferredContactMethods?.length
+          ? profile.preferredContactMethods
+              .map((method) => t(`contractor.contactMethod_${method}`))
+              .join(', ')
+          : t('common.dash')}
+        {(!profile.preferredContactMethods ||
+          profile.preferredContactMethods.length === 0) &&
+        canRequestApproval
+          ? ` — ${t('verification.contactMethodsRequired')}`
           : ''}
       </p>
       <p className="muted doc-hint">

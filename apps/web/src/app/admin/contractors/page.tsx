@@ -251,6 +251,24 @@ export default function AdminContractorsPage() {
                     <dd>{detail.phone?.trim() ? detail.phone : t('common.dash')}</dd>
                   </div>
                   <div>
+                    <dt>{t('contractor.taxIdLabel')}</dt>
+                    <dd>
+                      {detail.taxId?.trim() ? detail.taxId : t('common.dash')}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t('contractor.preferredContactLabel')}</dt>
+                    <dd>
+                      {detail.preferredContactMethods?.length
+                        ? detail.preferredContactMethods
+                            .map((method) =>
+                              t(`contractor.contactMethod_${method}`),
+                            )
+                            .join(', ')
+                        : t('common.dash')}
+                    </dd>
+                  </div>
+                  <div>
                     <dt>{t('contractor.bankNameLabel')}</dt>
                     <dd>
                       {detail.bankName?.trim() ? detail.bankName : t('common.dash')}

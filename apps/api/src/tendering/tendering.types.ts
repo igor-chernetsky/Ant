@@ -96,6 +96,8 @@ export interface ContractorProfileResponse {
   kind: 'contractor' | 'designer';
   companyName: string | null;
   phone: string | null;
+  taxId: string | null;
+  preferredContactMethods: Array<'phone' | 'line' | 'whatsapp' | 'email'>;
   bankName: string | null;
   bankAccount: string | null;
   regionCode: string;
@@ -112,6 +114,8 @@ export interface ContractorProfileResponse {
 export interface UpsertContractorProfileDto {
   companyName?: string;
   phone?: string | null;
+  taxId?: string | null;
+  preferredContactMethods?: Array<'phone' | 'line' | 'whatsapp' | 'email'>;
   bankName?: string | null;
   bankAccount?: string | null;
   regionCode?: string;

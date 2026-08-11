@@ -467,6 +467,10 @@ model ContractorProfile {
   kind                    SupplyProfileKind            @default(contractor)
   companyName             String?                      @map("company_name")
   phone                   String?
+  /** Thai Tax ID / เลขผู้เสียภาษี — 13 digits. Admin-only visibility beyond own profile. */
+  taxId                   String?                      @map("tax_id")
+  /** Preferred contact channels: phone | line | whatsapp | email */
+  preferredContactMethods String[]                     @default([]) @map("preferred_contact_methods")
   bankName                String?                      @map("bank_name")
   bankAccount             String?                      @map("bank_account")
   regionCode              String                       @default("TH") @map("region_code")

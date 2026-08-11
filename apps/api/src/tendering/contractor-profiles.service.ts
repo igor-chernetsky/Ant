@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -21,6 +22,11 @@ import {
   ContractorProfileResponse,
   UpsertContractorProfileDto,
 } from './tendering.types';
+import {
+  isValidThaiTaxId,
+  normalizePreferredContactMethods,
+  normalizeThaiTaxId,
+} from './contractor-contact.util';
 
 export interface ClientContractorProfileDocument {
   id: string;
@@ -73,6 +79,10 @@ export class ContractorProfilesService {
       kind: profile.kind,
       companyName: profile.companyName,
       phone: profile.phone,
+      taxId: profile.taxId,
+      preferredContactMethods: normalizePreferredContactMethods(
+        profile.preferredContactMethods,
+      ),
       bankName: profile.bankName,
       bankAccount: profile.bankAccount,
       regionCode: profile.regionCode,
@@ -166,6 +176,18 @@ export class ContractorProfilesService {
     const companyName = dto.companyName?.trim() || null;
     const phone =
       dto.phone === undefined ? undefined : dto.phone?.trim() || null;
+    let taxId: string | null | undefined = undefined;
+    if (dto.taxId !== undefined) {
+      const normalized = normalizeThaiTaxId(dto.taxId);
+      if (normalized && !isValidThaiTaxId(normalized)) {
+        throw new BadRequestException('Tax ID must be exactly 13 digits');
+      }
+      taxId = normalized;
+    }
+    const preferredContactMethods =
+      dto.preferredContactMethods === undefined
+        ? undefined
+        : normalizePreferredContactMethods(dto.preferredContactMethods);
     const bankName =
       dto.bankName === undefined ? undefined : dto.bankName?.trim() || null;
     const bankAccount =
@@ -185,6 +207,8 @@ export class ContractorProfilesService {
         kind,
         companyName,
         phone: phone ?? null,
+        taxId: taxId ?? null,
+        preferredContactMethods: preferredContactMethods ?? [],
         bankName: bankName ?? null,
         bankAccount: bankAccount ?? null,
         regionCode: primaryRegion.countryCode,
@@ -198,6 +222,10 @@ export class ContractorProfilesService {
         kind,
         companyName,
         ...(phone !== undefined ? { phone } : {}),
+        ...(taxId !== undefined ? { taxId } : {}),
+        ...(preferredContactMethods !== undefined
+          ? { preferredContactMethods }
+          : {}),
         ...(bankName !== undefined ? { bankName } : {}),
         ...(bankAccount !== undefined ? { bankAccount } : {}),
         regionCode: primaryRegion.countryCode,

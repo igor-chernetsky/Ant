@@ -35,6 +35,12 @@ import {
   type ContractorApplicationItem,
   type ContractorProfile,
 } from '@/lib/tendering';
+import {
+  isValidThaiTaxId,
+  normalizeThaiTaxIdInput,
+  PREFERRED_CONTACT_METHODS,
+  type PreferredContactMethod,
+} from '@/lib/contractor-contact';
 
 function isProjectType(value: string): value is ProjectType {
   return CONSTRUCTION_PROJECT_TYPE_OPTIONS.some(
@@ -52,6 +58,10 @@ export default function ContractorPage() {
   );
   const [companyName, setCompanyName] = useState('');
   const [phone, setPhone] = useState('');
+  const [taxId, setTaxId] = useState('');
+  const [preferredContactMethods, setPreferredContactMethods] = useState<
+    PreferredContactMethod[]
+  >([]);
   const [bankName, setBankName] = useState('');
   const [bankAccount, setBankAccount] = useState('');
   const [locationCatalog, setLocationCatalog] = useState<LocationCatalog | null>(
@@ -107,6 +117,8 @@ export default function ContractorPage() {
       setCompanyName(me.displayName);
     }
     setPhone(prof?.phone ?? '');
+    setTaxId(prof?.taxId ?? '');
+    setPreferredContactMethods(prof?.preferredContactMethods ?? []);
     setBankName(prof?.bankName ?? '');
     setBankAccount(prof?.bankAccount ?? '');
     if (prof?.serviceLocations?.length) {
@@ -146,9 +158,17 @@ export default function ContractorPage() {
     setBusy(true);
     setError(null);
     try {
+      const normalizedTaxId = normalizeThaiTaxIdInput(taxId);
+      if (normalizedTaxId && !isValidThaiTaxId(normalizedTaxId)) {
+        setError(t('contractor.taxIdInvalid'));
+        setBusy(false);
+        return;
+      }
       const prof = await upsertContractorProfile({
         companyName: companyName.trim() || undefined,
         phone: phone.trim() || null,
+        taxId: normalizedTaxId || null,
+        preferredContactMethods,
         bankName: bankName.trim() || null,
         bankAccount: bankAccount.trim() || null,
         serviceLocations,
@@ -158,6 +178,8 @@ export default function ContractorPage() {
       setProfile(prof);
       setServiceLocations(prof.serviceLocations);
       setPhone(prof.phone ?? '');
+      setTaxId(prof.taxId ?? '');
+      setPreferredContactMethods(prof.preferredContactMethods ?? []);
       setBankName(prof.bankName ?? '');
       setBankAccount(prof.bankAccount ?? '');
       setSelectedProjectTypes(prof.projectTypes.filter(isProjectType));
@@ -170,6 +192,14 @@ export default function ContractorPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const toggleContactMethod = (method: PreferredContactMethod) => {
+    setPreferredContactMethods((prev) =>
+      prev.includes(method)
+        ? prev.filter((item) => item !== method)
+        : [...prev, method],
+    );
   };
 
   const handleRegister = async () => {
@@ -231,6 +261,48 @@ export default function ContractorPage() {
               />
             </label>
           </div>
+          <fieldset className="portal-contact-methods">
+            <legend className="portal-field-title">
+              {t('contractor.preferredContactLabel')}
+              <span className="portal-field-optional">
+                {t('common.optional')}
+              </span>
+            </legend>
+            <p className="muted tag-hint">{t('contractor.preferredContactHint')}</p>
+            <div className="portal-contact-methods-options">
+              {PREFERRED_CONTACT_METHODS.map((method) => (
+                <label key={method} className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={preferredContactMethods.includes(method)}
+                    onChange={() => toggleContactMethod(method)}
+                    disabled={busy}
+                  />
+                  {t(`contractor.contactMethod_${method}`)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <label>
+            <span className="portal-field-title">
+              {t('contractor.taxIdLabel')}
+              <span className="portal-field-optional">
+                {t('common.optional')}
+              </span>
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={taxId}
+              onChange={(e) =>
+                setTaxId(normalizeThaiTaxIdInput(e.target.value))
+              }
+              placeholder={t('contractor.taxIdPlaceholder')}
+              autoComplete="off"
+              maxLength={13}
+            />
+            <span className="muted tag-hint">{t('contractor.taxIdHint')}</span>
+          </label>
           <p className="muted tag-hint portal-contact-hint">
             {t('contractor.bankOptionalHint')}
           </p>

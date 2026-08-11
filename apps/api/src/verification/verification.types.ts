@@ -30,6 +30,8 @@ export interface AdminContractorListItem {
   displayName: string | null;
   companyName: string | null;
   phone: string | null;
+  taxId: string | null;
+  preferredContactMethods: Array<'phone' | 'line' | 'whatsapp' | 'email'>;
   bankName: string | null;
   bankAccount: string | null;
   regionCode: string;

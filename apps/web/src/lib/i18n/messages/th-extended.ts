@@ -282,6 +282,17 @@ export const thExtended = {
     phoneLabel: "โทรศัพท์",
     phoneOptionalHint: "ไม่บังคับ จำเป็นเมื่อขอการยืนยันตัวตน",
     phonePlaceholder: "+66 …",
+    taxIdLabel: "Tax ID",
+    taxIdHint: "เลขผู้เสียภาษีไทย (13 หลัก) จำเป็นเมื่อขอการยืนยันตัวตน",
+    taxIdPlaceholder: "0XXXXXXXXXXXX",
+    taxIdInvalid: "Tax ID ต้องมี 13 หลักพอดี",
+    preferredContactLabel: "ช่องทางติดต่อที่ต้องการ",
+    preferredContactHint:
+      "เลือกช่องทางที่สะดวกให้ติดต่อคุณ จำเป็นเมื่อขอการยืนยันตัวตน",
+    contactMethod_phone: "โทรศัพท์",
+    contactMethod_line: "Line",
+    contactMethod_whatsapp: "WhatsApp",
+    contactMethod_email: "อีเมล",
     bankNameLabel: "ธนาคาร",
     bankAccountLabel: "เลขบัญชี",
     bankOptionalHint: "ไม่บังคับ จำเป็นเมื่อขอการยืนยันตัวตน",
@@ -710,6 +721,10 @@ export const thExtended = {
     requestApprovalConfirmLabel: "ส่งเพื่อตรวจสอบ",
     phoneRequired:
       "กรอกเบอร์โทรในโปรไฟล์ก่อนขอการยืนยันตัวตน",
+    taxIdRequired:
+      "กรอก Tax ID 13 หลักในโปรไฟล์ก่อนขอการยืนยันตัวตน",
+    contactMethodsRequired:
+      "เลือกช่องทางติดต่ออย่างน้อยหนึ่งช่องทางก่อนขอการยืนยันตัวตน",
     bankRequired:
       "กรอกชื่อธนาคารและเลขบัญชีในโปรไฟล์ก่อนขอการยืนยันตัวตน",
     loadDocumentsFailed: "โหลดเอกสารไม่สำเร็จ",

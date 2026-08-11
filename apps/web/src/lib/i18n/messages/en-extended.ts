@@ -284,6 +284,17 @@ export const enExtended = {
     phoneLabel: "Phone",
     phoneOptionalHint: "Optional. Required when you request verification.",
     phonePlaceholder: "+66 …",
+    taxIdLabel: "Tax ID",
+    taxIdHint: "Thai Tax ID (13 digits). Required for verification.",
+    taxIdPlaceholder: "0XXXXXXXXXXXX",
+    taxIdInvalid: "Tax ID must be exactly 13 digits.",
+    preferredContactLabel: "Preferred contact",
+    preferredContactHint:
+      "Select how clients and admins should prefer to reach you. Required for verification.",
+    contactMethod_phone: "Phone",
+    contactMethod_line: "Line",
+    contactMethod_whatsapp: "WhatsApp",
+    contactMethod_email: "Email",
     bankNameLabel: "Bank name",
     bankAccountLabel: "Settlement account",
     bankOptionalHint: "Optional. Required when you request verification.",
@@ -712,6 +723,10 @@ export const enExtended = {
     requestApprovalConfirmLabel: "Send for review",
     phoneRequired:
       "Add a phone number to your profile before requesting verification.",
+    taxIdRequired:
+      "Add a valid 13-digit Tax ID to your profile before requesting verification.",
+    contactMethodsRequired:
+      "Select at least one preferred contact method before requesting verification.",
     bankRequired:
       "Add your bank name and settlement account to your profile before requesting verification.",
     loadDocumentsFailed: "Failed to load documents",

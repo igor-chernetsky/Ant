@@ -18,6 +18,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { ContractorProfilesService } from '../tendering/contractor-profiles.service';
+import { isValidThaiTaxId } from '../tendering/contractor-contact.util';
 import {
   buildContractorDocStorageKey,
   ContractorVerificationDocumentResponse,
@@ -218,6 +219,21 @@ export class ContractorVerificationService {
     if (!profile.phone?.trim()) {
       throw new BadRequestException(
         'Add a phone number to your profile before requesting verification',
+      );
+    }
+
+    if (!isValidThaiTaxId(profile.taxId)) {
+      throw new BadRequestException(
+        'Add a valid 13-digit Tax ID to your profile before requesting verification',
+      );
+    }
+
+    if (
+      !Array.isArray(profile.preferredContactMethods) ||
+      profile.preferredContactMethods.length === 0
+    ) {
+      throw new BadRequestException(
+        'Select at least one preferred contact method before requesting verification',
       );
     }
 

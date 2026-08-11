@@ -284,6 +284,17 @@ export const ruExtended = {
     phoneLabel: "Телефон",
     phoneOptionalHint: "Необязательно. Нужен при запросе верификации.",
     phonePlaceholder: "+66 …",
+    taxIdLabel: "Tax ID",
+    taxIdHint: "Налоговый номер Таиланда (13 цифр). Нужен для верификации.",
+    taxIdPlaceholder: "0XXXXXXXXXXXX",
+    taxIdInvalid: "Tax ID должен состоять ровно из 13 цифр.",
+    preferredContactLabel: "Предпочтительная связь",
+    preferredContactHint:
+      "Выберите, как с вами лучше связываться. Нужно для верификации.",
+    contactMethod_phone: "Телефон",
+    contactMethod_line: "Line",
+    contactMethod_whatsapp: "WhatsApp",
+    contactMethod_email: "Email",
     bankNameLabel: "Банк",
     bankAccountLabel: "Расчётный счёт",
     bankOptionalHint: "Необязательно. Нужен при запросе верификации.",
@@ -713,6 +724,10 @@ export const ruExtended = {
     requestApprovalConfirmLabel: "Отправить на проверку",
     phoneRequired:
       "Укажите телефон в профиле перед запросом верификации.",
+    taxIdRequired:
+      "Укажите корректный Tax ID из 13 цифр в профиле перед запросом верификации.",
+    contactMethodsRequired:
+      "Выберите хотя бы один способ связи перед запросом верификации.",
     bankRequired:
       "Укажите банк и расчётный счёт в профиле перед запросом верификации.",
     loadDocumentsFailed: "Не удалось загрузить документы",
