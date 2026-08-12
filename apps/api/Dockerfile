@@ -26,9 +26,11 @@ RUN npm ci
 COPY prisma ./prisma
 RUN npx prisma generate
 
-COPY tsconfig.json nest-cli.json ./
+COPY tsconfig.json tsconfig.build.json nest-cli.json ./
 COPY src ./src
-RUN npm run build && npm prune --omit=dev
+# Nest/TS compile OOMs on small EC2 with Node's default ~512MB heap.
+RUN NODE_OPTIONS="--max-old-space-size=1536" npm run build
+RUN npm prune --omit=dev && rm -rf src
 
 ENV NODE_ENV=production
 

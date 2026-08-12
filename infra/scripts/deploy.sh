@@ -25,7 +25,8 @@ docker compose -f "$COMPOSE_FILE" up -d postgres
 log "Start MinIO if full profile is enabled in .env (COMPOSE_PROFILES=full)"
 docker compose -f "$COMPOSE_FILE" --profile full up -d minio minio-init 2>/dev/null || true
 
-log "Build API image (this is the slow step on EC2)"
+log "Build API image (this is the slow step on EC2; needs ~1.5GB RAM during compile)"
+# Optional on t3.micro/small: sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
 docker compose -f "$COMPOSE_FILE" build api
 
 log "Start API (entrypoint runs migrate + node)"
