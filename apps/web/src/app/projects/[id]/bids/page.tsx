@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BidAnalysisPanel } from '@/components/BidAnalysisPanel';
 import { BidApplicationCard } from '@/components/BidApplicationCard';
@@ -30,6 +30,7 @@ import { ContractorCoverageNotice } from '@/components/ContractorCoverageNotice'
 export default function ProjectBidsPage() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
+  const router = useRouter();
   const { t } = useTranslation();
   const { formatTenderStatus } = useAppFormatters();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
@@ -69,6 +70,7 @@ export default function ProjectBidsPage() {
         setTender(null);
         setLoading(false);
         setRefreshing(false);
+        router.replace('/');
         return;
       }
 
@@ -78,17 +80,23 @@ export default function ProjectBidsPage() {
         const tenderData = await fetchProjectTender(projectId);
         setTender(tenderData);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : t('bidsPage.loadFailed'));
-        if (!silent) {
+        if (silent) {
+          setError(
+            err instanceof Error ? err.message : t('bidsPage.loadFailed'),
+          );
+        } else {
           setProject(null);
           setTender(null);
+          // Owner-only page — send unauthorized users home instead of an error card.
+          router.replace('/');
+          return;
         }
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [projectId, sessionReady, me, t],
+    [projectId, sessionReady, me, router, t],
   );
 
   useEffect(() => {
@@ -196,25 +204,9 @@ export default function ProjectBidsPage() {
             </section>
           ) : null}
 
-          {!loading && !me && (
-            <section className="card">
-              <p className="muted">{t('bidsPage.signInPrompt')}</p>
-              <button
-                type="button"
-                className="primary"
-                onClick={() => setLoginOpen(true)}
-              >
-                {t('header.signIn')}
-              </button>
-            </section>
-          )}
-
           {error && (
             <section className="card error">
               <p>{error}</p>
-              <Link href="/" className="text-link">
-                {t('bidsPage.backToProjects')}
-              </Link>
             </section>
           )}
 

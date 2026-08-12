@@ -237,9 +237,11 @@ function AddendumEditor({
             {busy ? t('common.saving') : t('addenda.saveDocument')}
           </button>
           {addendum.sourceDescription && (
-            <>
-              <label className="field addendum-regen-locale">
-                <span className="muted">{t('addenda.documentLanguage')}</span>
+            <div className="addendum-regen-group">
+              <label className="addendum-regen-locale">
+                <span className="addendum-regen-locale-label">
+                  {t('addenda.documentLanguage')}
+                </span>
                 <select
                   value={regenLocale}
                   disabled={busy}
@@ -260,7 +262,7 @@ function AddendumEditor({
               >
                 {t('addenda.regenerateDocument')}
               </button>
-            </>
+            </div>
           )}
           {saved && <p className="muted">{t('addenda.documentSaved')}</p>}
         </div>

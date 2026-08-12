@@ -213,16 +213,13 @@ export default function ProjectDetailPage() {
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'NOT_FOUND') {
-        if (!profile) {
-          setError(
-            inviteToken
-              ? t('projectDetail.inviteAccessDenied')
-              : t('projectDetail.accessDeniedContractor'),
-          );
-        } else if (isContractorUser(profile) || isDesignerUser(profile)) {
-          setError(t('projectDetail.accessDeniedParties'));
+        // No public/ACL access — send users home instead of an access-denied card.
+        // Keep invite failures on-page so the token issue is visible.
+        if (!profile && inviteToken) {
+          setError(t('projectDetail.inviteAccessDenied'));
         } else {
-          setError(t('projectDetail.accessDenied'));
+          router.replace('/');
+          return;
         }
       } else {
         setError(
@@ -231,7 +228,7 @@ export default function ProjectDetailPage() {
       }
       setPageReady(true);
     }
-  }, [projectId, loadDocuments, me, sessionReady, t, inviteToken]);
+  }, [projectId, loadDocuments, me, sessionReady, t, inviteToken, router]);
 
   useEffect(() => {
     if (!sessionReady) return;
