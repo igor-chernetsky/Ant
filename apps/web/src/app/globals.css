@@ -5779,6 +5779,22 @@ select:disabled {
   gap: 0.85rem;
 }
 
+.tender-open-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  width: 100%;
+}
+
+.tender-open-hint {
+  flex: 1 1 16rem;
+  max-width: 40rem;
+  margin: 0;
+  line-height: 1.45;
+  font-size: 0.88rem;
+}
+
 .tender-deadline-fields {
   display: flex;
   flex-wrap: wrap;

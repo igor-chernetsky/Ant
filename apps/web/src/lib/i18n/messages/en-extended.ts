@@ -1104,6 +1104,8 @@ export const enExtended = {
     clarificationPhaseHint:
       "Contractors are submitting clarification questions. The system ranks them by importance and repeatability to help you answer the most useful ones — this improves project understanding and the estimate. You do not need to answer all of them before opening the tender. Participating contractors go through verification.",
     openTenderForBids: "Open tender for bids",
+    openTenderForBidsHint:
+      "Please wait for contractors to apply for tender and answer the contractors' questions before opening tender for bids.",
     publishedWaiting: "Published for bids. Waiting for contractors to start clarification.",
     inviteFromDirectory: "Invite from registry",
     inviteFromDirectoryHint: "No responses yet. Invite contractors, designers, or suppliers from the registry and send them a project link by email.",

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  BidStatus,
   InAppNotificationKind,
   NotificationEmailKind,
   Prisma,
@@ -280,6 +281,152 @@ export class NotificationsService {
       },
     });
     return count < MATCHING_PROJECT_EMAILS_DAILY_CAP;
+  }
+
+  private async hasSentTenderOpenedEmail(
+    userId: string,
+    projectId: string,
+  ): Promise<boolean> {
+    const row = await this.prisma.notificationEmailLog.findFirst({
+      where: {
+        userId,
+        projectId,
+        kind: NotificationEmailKind.contractor_tender_opened,
+      },
+      select: { id: true },
+    });
+    return Boolean(row);
+  }
+
+  private async shouldSendTenderOpened(
+    userId: string,
+  ): Promise<{ user: User; ok: boolean }> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.email?.trim()) {
+      return { user: user!, ok: false };
+    }
+
+    const prefs = await this.getOrCreatePreferences(userId);
+    if (!prefs.emailEnabled) {
+      return { user, ok: false };
+    }
+    if (prefs.emailMatchingProjects || prefs.emailContractorUpdates) {
+      return { user, ok: true };
+    }
+    return { user, ok: false };
+  }
+
+  private clarificationSummaryBlocks(summary: string | null | undefined): {
+    summaryBlock: string;
+    summaryText: string;
+  } {
+    const trimmed = summary?.trim();
+    if (!trimmed) {
+      return { summaryBlock: '', summaryText: '' };
+    }
+    return {
+      summaryBlock: `<div style="margin-top:16px;padding:14px 16px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;">
+<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.04em;">Clarification summary</p>
+<p style="margin:0;font-size:14px;line-height:1.55;color:#475569;white-space:pre-wrap;">${escapeHtml(trimmed)}</p>
+</div>`,
+      summaryText: `\n\nClarification summary:\n${trimmed}`,
+    };
+  }
+
+  private async loadMatchingContractorsForProject(projectId: string) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        tags: { include: { tag: true } },
+        tender: { select: { id: true, status: true } },
+      },
+    });
+    if (!project?.tender) return null;
+
+    const tender = project.tender;
+    const projectTagSlugs = project.tags.map((row) => row.tag.slug);
+    const projectLocation = {
+      regionSlug: project.locationRegionSlug,
+      areaSlug: project.locationAreaSlug,
+    };
+
+    const candidates = await this.prisma.contractorProfile.findMany({
+      where: {
+        regionCode: project.regionCode,
+        userId: { not: project.clientId },
+        kind: project.projectType === 'design' ? 'designer' : 'contractor',
+        OR: [
+          { projectTypes: { isEmpty: true } },
+          { projectTypes: { has: project.projectType } },
+        ],
+      },
+      include: { user: true },
+    });
+
+    const contractors = candidates.filter((contractor) => {
+      const serviceLocations = this.locations.normalizeServiceLocations(
+        contractor.serviceLocationsJson,
+      );
+      if (
+        !this.locations.contractorMatchesProject(
+          serviceLocations,
+          projectLocation,
+        )
+      ) {
+        return false;
+      }
+      if (
+        !contractorProjectTypeMatches(
+          contractor.projectTypes ?? [],
+          project.projectType,
+        )
+      ) {
+        return false;
+      }
+      return contractorTagsMatchProject(
+        contractor.tagSlugs ?? [],
+        projectTagSlugs,
+      );
+    });
+
+    return { project, tender, contractors };
+  }
+
+  private async sendTenderOpenedEmail(params: {
+    userId: string;
+    user: User;
+    projectId: string;
+    subject: string;
+    title: string;
+    bodyHtml: string;
+    textBody: string;
+  }): Promise<boolean> {
+    if (!this.mail.isConfigured()) return false;
+
+    const locale = this.resolveUserLocale(params.user);
+    const ctaHref = this.projectUrl(params.projectId);
+    const ctaLabel = 'View project';
+    const html = this.wrapEmail(
+      params.title,
+      params.bodyHtml,
+      ctaHref,
+      ctaLabel,
+      locale,
+    );
+    const sent = await this.mail.send({
+      to: params.user.email!,
+      subject: params.subject,
+      html,
+      text: `${params.title}\n\n${params.textBody}\n\n${ctaLabel}: ${ctaHref}`,
+    });
+    if (sent) {
+      await this.logSent(
+        params.userId,
+        NotificationEmailKind.contractor_tender_opened,
+        params.projectId,
+      );
+    }
+    return sent;
   }
 
   private async sendToUser(params: {
@@ -1168,116 +1315,103 @@ export class NotificationsService {
     });
   }
 
-  async notifyContractorsTenderOpened(params: {
-    contractorUserIds: string[];
-    projectId: string;
-    projectTitle: string;
-    district?: string | null;
-    clarificationSummary?: string | null;
-  }): Promise<void> {
-    const uniqueUserIds = [...new Set(params.contractorUserIds)];
-    if (uniqueUserIds.length === 0) return;
+  /**
+   * When a tender opens for commercial proposals, email every contractor/designer
+   * whose region, locations, project type, and tags match the project — not only
+   * those already enrolled from the clarification phase.
+   */
+  async notifyMatchingContractorsTenderOpened(
+    projectId: string,
+  ): Promise<void> {
+    if (!this.mail.isConfigured()) return;
 
-    const locationPart = params.district
-      ? ` in ${escapeHtml(params.district)}`
-      : '';
-    const summaryBlock = params.clarificationSummary?.trim()
-      ? `<div style="margin-top:16px;padding:14px 16px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;">
-<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:0.04em;">Clarification summary</p>
-<p style="margin:0;font-size:14px;line-height:1.55;color:#475569;white-space:pre-wrap;">${escapeHtml(params.clarificationSummary.trim())}</p>
-</div>`
-      : '';
-    const summaryText = params.clarificationSummary?.trim()
-      ? `\n\nClarification summary:\n${params.clarificationSummary.trim()}`
-      : '';
+    const loaded = await this.loadMatchingContractorsForProject(projectId);
+    if (!loaded) return;
 
-    for (const userId of uniqueUserIds) {
-      await this.sendToUser({
-        userId,
-        prefFlag: 'emailContractorUpdates',
-        kind: NotificationEmailKind.contractor_tender_opened,
-        projectId: params.projectId,
-        subject: `Tender open for bids — ${params.projectTitle}`,
+    const { project, tender, contractors } = loaded;
+    if (tender.status !== TenderStatus.open) return;
+
+    const bids = await this.prisma.bid.findMany({
+      where: {
+        tenderId: tender.id,
+        contractorId: { in: contractors.map((row) => row.id) },
+        status: { not: BidStatus.withdrawn },
+      },
+      select: { contractorId: true, status: true },
+    });
+    const bidStatusByContractor = new Map(
+      bids.map((bid) => [bid.contractorId, bid.status]),
+    );
+
+    const locationPart = project.district
+      ? ` in ${escapeHtml(project.district)}`
+      : '';
+    const { summaryBlock, summaryText } = this.clarificationSummaryBlocks(
+      project.clarificationSummary,
+    );
+
+    let notifiedCount = 0;
+
+    for (const contractor of contractors) {
+      if (await this.hasSentTenderOpenedEmail(contractor.userId, projectId)) {
+        continue;
+      }
+
+      const { user, ok } = await this.shouldSendTenderOpened(contractor.userId);
+      if (!ok) continue;
+
+      const bidStatus = bidStatusByContractor.get(contractor.id);
+      const isEnrolledContender =
+        bidStatus === BidStatus.enrolled ||
+        bidStatus === BidStatus.submitted ||
+        bidStatus === BidStatus.selected;
+
+      let bodyHtml: string;
+      let textBody: string;
+      if (isEnrolledContender) {
+        bodyHtml = `<p>The client opened <strong>${escapeHtml(project.title)}</strong>${locationPart} for commercial proposals. You are enrolled as a contender and can submit your proposal.</p>${summaryBlock}`;
+        textBody = `Tender open for bids: ${project.title}. You are enrolled as a contender.${summaryText}`;
+      } else if (bidStatus === BidStatus.clarifying) {
+        bodyHtml = `<p>The client opened <strong>${escapeHtml(project.title)}</strong>${locationPart} for commercial proposals. You started on this project during clarification — review the brief and submit your commercial proposal.</p>${summaryBlock}`;
+        textBody = `Tender open for bids: ${project.title}. Submit your commercial proposal.${summaryText}`;
+      } else {
+        bodyHtml = `<p>The client opened <strong>${escapeHtml(project.title)}</strong>${locationPart} for commercial proposals. This project matches your region and specialties — apply and submit your proposal.</p>${summaryBlock}`;
+        textBody = `Tender open for bids: ${project.title}. This project matches your profile.${summaryText}`;
+      }
+
+      const sent = await this.sendTenderOpenedEmail({
+        userId: contractor.userId,
+        user,
+        projectId,
+        subject: `Tender open for bids — ${project.title}`,
         title: 'Tender open for commercial proposals',
-        bodyHtml: `<p>The client opened <strong>${escapeHtml(params.projectTitle)}</strong>${locationPart} for commercial proposals. You are enrolled as a contender and can submit your proposal.</p>${summaryBlock}`,
-        ctaHref: this.projectUrl(params.projectId),
-        ctaLabel: 'View project',
-        textBody: `Tender open for bids: ${params.projectTitle}. You are enrolled as a contender.${summaryText}`,
+        bodyHtml,
+        textBody,
       });
+      if (sent) notifiedCount += 1;
     }
+
+    this.logger.log(
+      `Tender opened notifications for ${projectId}: sent ${notifiedCount} to matching contractors`,
+    );
   }
 
   async notifyMatchingContractorsForProject(projectId: string): Promise<void> {
     if (!this.mail.isConfigured()) return;
 
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      include: {
-        tags: { include: { tag: true } },
-        tender: { select: { id: true, status: true } },
-      },
-    });
-    if (!project?.tender) return;
+    const loaded = await this.loadMatchingContractorsForProject(projectId);
+    if (!loaded) return;
 
-    const projectTagSlugs = project.tags.map((row) => row.tag.slug);
-
-    const contractors = await this.prisma.contractorProfile.findMany({
-      where: {
-        regionCode: project.regionCode,
-        userId: { not: project.clientId },
-        kind:
-          project.projectType === 'design' ? 'designer' : 'contractor',
-        OR: [
-          { projectTypes: { isEmpty: true } },
-          { projectTypes: { has: project.projectType } },
-        ],
-      },
-      include: { user: true },
-    });
-
-    const projectLocation = {
-      regionSlug: project.locationRegionSlug,
-      areaSlug: project.locationAreaSlug,
-    };
-    const isClarificationPhase = project.tender.status === TenderStatus.draft;
+    const { project, tender, contractors } = loaded;
+    const isClarificationPhase = tender.status === TenderStatus.draft;
     let notifiedCount = 0;
 
     for (const contractor of contractors) {
-      const serviceLocations = this.locations.normalizeServiceLocations(
-        contractor.serviceLocationsJson,
-      );
-      if (
-        !this.locations.contractorMatchesProject(
-          serviceLocations,
-          projectLocation,
-        )
-      ) {
-        continue;
-      }
-
-      if (
-        !contractorProjectTypeMatches(
-          contractor.projectTypes ?? [],
-          project.projectType,
-        )
-      ) {
-        continue;
-      }
-
-      if (
-        !contractorTagsMatchProject(
-          contractor.tagSlugs ?? [],
-          projectTagSlugs,
-        )
-      ) {
-        continue;
-      }
-
       const existingBid = await this.prisma.bid.findFirst({
         where: {
-          tenderId: project.tender.id,
+          tenderId: tender.id,
           contractorId: contractor.id,
-          status: { not: 'withdrawn' },
+          status: { not: BidStatus.withdrawn },
         },
         select: { id: true },
       });
@@ -1319,7 +1453,7 @@ export class NotificationsService {
     }
 
     this.logger.log(
-      `Matching project notifications for ${projectId}: sent ${notifiedCount} (tender ${project.tender.status})`,
+      `Matching project notifications for ${projectId}: sent ${notifiedCount} (tender ${tender.status})`,
     );
   }
 

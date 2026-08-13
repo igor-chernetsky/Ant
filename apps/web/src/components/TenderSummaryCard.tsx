@@ -398,14 +398,19 @@ export function TenderSummaryCard({
                 onInviteFromDirectory={() => setInviteModalOpen(true)}
                 onCoverageLoaded={setCoverage}
               />
-              <button
-                type="button"
-                className="primary"
-                disabled={busy}
-                onClick={() => void handleOpenTender()}
-              >
-                {t('tenderCard.openTenderForBids')}
-              </button>
+              <div className="tender-open-row">
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => void handleOpenTender()}
+                >
+                  {t('tenderCard.openTenderForBids')}
+                </button>
+                <p className="muted tender-hint tender-open-hint">
+                  {t('tenderCard.openTenderForBidsHint')}
+                </p>
+              </div>
             </div>
           )}
 

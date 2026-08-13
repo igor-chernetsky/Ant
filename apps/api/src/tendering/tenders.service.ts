@@ -571,7 +571,7 @@ export class TendersService {
       return next;
     });
 
-    const enrolledUserIds = await this.enrollDiscussionParticipants(
+    await this.enrollDiscussionParticipants(
       updated.id,
       project.clarificationMode,
     );
@@ -587,29 +587,8 @@ export class TendersService {
         : [],
     );
 
-    const projectAfterOpen = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      select: {
-        title: true,
-        district: true,
-        clarificationSummary: true,
-      },
-    });
-
-    if (projectAfterOpen) {
-      this.notifications.dispatch(
-        this.notifications.notifyContractorsTenderOpened({
-          contractorUserIds: enrolledUserIds,
-          projectId,
-          projectTitle: projectAfterOpen.title,
-          district: projectAfterOpen.district,
-          clarificationSummary: projectAfterOpen.clarificationSummary,
-        }),
-      );
-    }
-
     this.notifications.dispatch(
-      this.notifications.notifyMatchingContractorsForProject(projectId),
+      this.notifications.notifyMatchingContractorsTenderOpened(projectId),
     );
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
