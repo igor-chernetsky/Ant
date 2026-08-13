@@ -140,6 +140,7 @@ export function ClientCounterOfferPanel({
             projectContractTerms={projectContractTerms}
             defaultCostBreakdown={defaultCostBreakdown}
             busy={busy}
+            confirmBeforeSubmit={false}
             contractTermsAudience="none"
             notesLabel={t('negotiation.commentLabel')}
             scopeLabel={t('bid.scopeOfWorks')}

@@ -879,6 +879,10 @@ export const ruExtended = {
     withdrawAwardTitle: "Выйти из тендера?",
     withdrawAwardMessage: "Отказаться от участия до подписания договора? Тендер снова откроется для других подрядчиков.",
     withdrawAwardLabel: "Выйти",
+    submitProposalTitle: "Подать предложение?",
+    submitProposalMessage:
+      "Коммерческое предложение будет отправлено заказчику. Проверьте сумму, объём работ и условия договора перед подтверждением.",
+    submitProposalLabel: "Подать предложение",
   },
   platformFees: {
     signTitle: "Авторизация подписания договора",

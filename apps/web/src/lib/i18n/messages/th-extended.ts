@@ -876,6 +876,10 @@ export const thExtended = {
     withdrawAwardTitle: "ถอนตัวจากการได้รับเลือก?",
     withdrawAwardMessage: "ออกจากโครงการก่อนลงนามสัญญาหรือไม่? การประมูลจะเปิดอีกครั้งสำหรับผู้รับเหมาคนอื่น",
     withdrawAwardLabel: "ถอนตัว",
+    submitProposalTitle: "ส่งข้อเสนอ?",
+    submitProposalMessage:
+      "ข้อเสนอเชิงพาณิชย์จะถูกส่งให้ลูกค้า โปรดตรวจสอบจำนวนเงิน ขอบเขตงาน และเงื่อนไขสัญญาก่อนยืนยัน",
+    submitProposalLabel: "ส่งข้อเสนอ",
   },
   platformFees: {
     signTitle: "ขออนุญาตลงนามสัญญา",

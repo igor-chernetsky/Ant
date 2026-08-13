@@ -878,6 +878,10 @@ export const enExtended = {
     withdrawAwardTitle: "Withdraw from award?",
     withdrawAwardMessage: "Leave this project before signing the contract? The tender will reopen for other participants.",
     withdrawAwardLabel: "Withdraw",
+    submitProposalTitle: "Submit proposal?",
+    submitProposalMessage:
+      "Your commercial proposal will be sent to the client. Review the amount, scope, and contract terms before confirming.",
+    submitProposalLabel: "Submit proposal",
   },
   platformFees: {
     signTitle: "Authorize contract signing",

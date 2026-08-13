@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import type { ProjectBriefV1 } from '@/lib/projects';
 import { formatThb } from '@/lib/estimate';
 import type { Bid, BidContractTerms, BidLineItem, BidOffer, BidTerms, DefaultCostBreakdownItem } from '@/lib/tendering';
@@ -63,6 +64,8 @@ interface BidProposalFormProps {
   scopeLabel?: string;
   scopeHint?: string;
   submitLabel?: string;
+  /** Ask for confirmation before the first proposal submit (not updates). */
+  confirmBeforeSubmit?: boolean;
   /** Rendered next to the submit button (e.g. bulk counter-offer checkbox). */
   footerExtra?: ReactNode;
   onSubmit: (input: BidProposalInput) => Promise<void>;
@@ -178,11 +181,13 @@ export function BidProposalForm({
   scopeLabel,
   scopeHint,
   submitLabel,
+  confirmBeforeSubmit = true,
   footerExtra,
   onSubmit,
   onWithdraw,
 }: BidProposalFormProps) {
   const { t } = useTranslation();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const resolvedNotesLabel = notesLabel ?? t('bid.commentForClient');
   const resolvedScopeLabel = scopeLabel ?? t('bid.scopeOfWorks');
   const resolvedScopeHint = scopeHint ?? t('bid.scopeHint');
@@ -333,6 +338,16 @@ export function BidProposalForm({
     }
 
     const scopeText = scopeSummary.trim();
+
+    const isUpdate = existingBid?.status === 'submitted';
+    if (confirmBeforeSubmit && !isUpdate) {
+      const confirmed = await confirm({
+        title: t('confirm.submitProposalTitle'),
+        message: t('confirm.submitProposalMessage'),
+        confirmLabel: t('confirm.submitProposalLabel'),
+      });
+      if (!confirmed) return;
+    }
 
     try {
       await onSubmit({
@@ -720,6 +735,7 @@ export function BidProposalForm({
           </button>
         )}
       </div>
+      {confirmDialog}
     </div>
   );
 }
