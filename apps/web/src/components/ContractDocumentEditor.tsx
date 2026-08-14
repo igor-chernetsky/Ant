@@ -128,6 +128,8 @@ interface ContractDocumentEditorProps {
   projectId: string;
   contract: ProjectContract;
   asContractor?: boolean;
+  /** Open the editor panel and scroll into view (e.g. after awarding a bid). */
+  initialOpen?: boolean;
   onSaved?: (contract: ProjectContract) => void;
 }
 
@@ -135,6 +137,7 @@ export function ContractDocumentEditor({
   projectId,
   contract,
   asContractor = false,
+  initialOpen = false,
   onSaved,
 }: ContractDocumentEditorProps) {
   const { t } = useTranslation();
@@ -145,6 +148,8 @@ export function ContractDocumentEditor({
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
   const baselineHtmlRef = useRef(contract.englishBodyHtml || '<p></p>');
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const openedInitiallyRef = useRef(false);
   const hasAnySignature = Boolean(
     contract.clientSignedAt || contract.contractorSignedAt,
   );
@@ -198,6 +203,23 @@ export function ContractDocumentEditor({
     }
     editor.setEditable(!readOnly);
   }, [contract.englishBodyHtml, contract.id, dirty, editor, readOnly]);
+
+  useEffect(() => {
+    if (!initialOpen || openedInitiallyRef.current || !detailsRef.current) {
+      return;
+    }
+    openedInitiallyRef.current = true;
+    detailsRef.current.open = true;
+  }, [initialOpen]);
+
+  useEffect(() => {
+    if (!initialOpen || !editor || readOnly) {
+      return;
+    }
+    requestAnimationFrame(() => {
+      editor.commands.focus('start');
+    });
+  }, [initialOpen, editor, readOnly, contract.id]);
 
   const runCommand = (command: () => boolean) => {
     if (!editor || readOnly) return;
@@ -277,7 +299,7 @@ export function ContractDocumentEditor({
   };
 
   return (
-    <details className="contract-secondary-details">
+    <details ref={detailsRef} className="contract-secondary-details" id="contract-document-editor">
       <summary className="contract-secondary-details-summary">
         {t('contractPanel.editorToggle')}
       </summary>

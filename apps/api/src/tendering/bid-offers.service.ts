@@ -22,6 +22,8 @@ import {
 } from './tendering.types';
 import { assertBidPricing } from './bid-breakdown.util';
 import { buildStoredCostAdjustments } from './bid-cost-adjustments.util';
+import { normalizeContractTerms } from './commercial-proposal.template';
+import { calendarDaysBetween } from './contract-terms-inference';
 
 const MAX_BULK_COUNTER_OFFERS = 30;
 
@@ -122,7 +124,31 @@ export class BidOffersService {
                 : Number(dto.costAdjustments.worksSubtotal),
           })
         : undefined,
+      contractTerms: normalizeContractTerms(dto.contractTerms),
     };
+  }
+
+  private resolveCounterOfferDurationDays(
+    dto: SubmitCounterOfferDto,
+  ): number | null {
+    const normalized = normalizeContractTerms(dto.contractTerms);
+    if (normalized?.worksStartDate && normalized.worksFinishDate) {
+      const days = calendarDaysBetween(
+        normalized.worksStartDate,
+        normalized.worksFinishDate,
+      );
+      if (days != null && days >= 1) {
+        return days;
+      }
+    }
+    if (
+      dto.durationDays != null &&
+      Number.isFinite(dto.durationDays) &&
+      dto.durationDays >= 1
+    ) {
+      return Math.round(dto.durationDays);
+    }
+    return null;
   }
 
   async listForBid(
@@ -250,7 +276,7 @@ export class BidOffersService {
             authorRole: 'client',
             authorId: clientId,
             amount: dto.amount,
-            durationDays: dto.durationDays ?? null,
+            durationDays: this.resolveCounterOfferDurationDays(dto),
             termsJson,
             note,
           },

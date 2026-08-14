@@ -106,6 +106,8 @@ export interface Bid {
   withdrawalReason?: BidWithdrawalReasonCode | null;
   withdrawalNote?: string | null;
   withdrawnAt?: string | null;
+  /** Contractor KP submissions (initial = 1, updated = 2+). */
+  contractorProposalCount?: number;
 }
 
 export interface DefaultCostBreakdownItem {
@@ -788,6 +790,7 @@ export async function submitClientCounterOffer(
     scopeSummary?: string;
     lineItems?: BidLineItem[];
     costAdjustments?: BidCostAdjustmentsInput;
+    contractTerms?: BidContractTerms;
     applyToAllPending?: boolean;
   },
 ): Promise<{ offer: BidOffer; sentToBidCount: number }> {

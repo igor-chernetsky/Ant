@@ -3,15 +3,17 @@ import {
   BidAnalysisContext,
   BidAnalysisResult,
 } from './bid-analysis.types';
-import { employerContractTermNotes, enforceEmployerBidAnalysis } from './bid-analysis-employer.utils';
+import { employerContractTermNotes, enforceEmployerBidAnalysis, pickTimelineTiebreaker } from './bid-analysis-employer.utils';
 
 @Injectable()
 export class BidAnalysisFallbackService {
   analyzeBids(context: BidAnalysisContext): BidAnalysisResult {
-    const bids = [...context.bids].sort(
+    const byPrice = [...context.bids].sort(
       (a, b) => Number(a.amount) - Number(b.amount),
     );
-    const recommended = bids[0] ?? null;
+    const cheapest = byPrice[0] ?? null;
+    const timelineWinner = pickTimelineTiebreaker(context.bids);
+    const recommended = timelineWinner ?? cheapest;
     const ballparkMid = context.ballparkMid ?? null;
 
     const comparisons = context.bids.map((bid) => {
@@ -21,9 +23,13 @@ export class BidAnalysisFallbackService {
       const riskFlags: string[] = [];
 
       if (recommended && bid.id === recommended.id) {
-        strengths.push('Lowest submitted price');
-      } else if (recommended) {
-        const delta = amount - Number(recommended.amount);
+        strengths.push(
+          timelineWinner && timelineWinner.id === bid.id
+            ? 'Best works schedule among price-tied bids'
+            : 'Lowest submitted price',
+        );
+      } else if (cheapest && bid.id !== cheapest.id) {
+        const delta = amount - Number(cheapest.amount);
         if (delta > 0) {
           weaknesses.push(`Higher than lowest bid by ${delta.toLocaleString()} THB`);
         }
@@ -65,11 +71,15 @@ export class BidAnalysisFallbackService {
     });
 
     const summary = recommended
-      ? `${recommended.companyName ?? 'One contractor'} submitted the lowest price. Review scope and employer-side contract terms (advance, penalties, retention) before awarding — automated fallback only compares basic bid fields.`
+      ? timelineWinner && timelineWinner.id === recommended.id
+        ? `${recommended.companyName ?? 'One contractor'} is preferred for the better works schedule while price and commercial terms are comparable. Review scope before awarding — automated fallback ranks tied bids by start date and duration.`
+        : `${recommended.companyName ?? 'One contractor'} submitted the lowest price. Review scope, timeline, and employer-side contract terms (advance, penalties, retention) before awarding — automated fallback only compares basic bid fields.`
       : 'No bids available to compare.';
 
     const reasoning = recommended
-      ? `With limited AI configuration, the fallback ranks bids primarily by total price from the employer's perspective. ${recommended.companyName ?? 'The lowest bidder'} at ${Number(recommended.amount).toLocaleString()} THB is the default pick, but validate scope, exclusions, timeline, and contract terms (lower advance and stronger delay damages favour you as employer).`
+      ? timelineWinner && timelineWinner.id === recommended.id
+        ? `Price and commercial terms are comparable across bids. From the employer's perspective, ${recommended.companyName ?? 'the preferred bidder'} wins on works schedule (earlier start and/or shorter duration). Still validate scope coverage and exclusions before awarding.`
+        : `With limited AI configuration, the fallback ranks bids primarily by total price from the employer's perspective. ${recommended.companyName ?? 'The lowest bidder'} at ${Number(recommended.amount).toLocaleString()} THB is the default pick, but validate scope, exclusions, timeline, and contract terms (lower advance and stronger delay damages favour you as employer).`
       : 'Add at least two contractor bids before running analysis.';
 
     return enforceEmployerBidAnalysis(

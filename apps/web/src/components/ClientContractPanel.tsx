@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BidChat } from '@/components/BidChat';
 import { ContractAddendaPanel } from '@/components/ContractAddendaPanel';
 import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
@@ -31,6 +32,12 @@ export function ClientContractPanel({
 }: ClientContractPanelProps) {
   const { t } = useTranslation();
   const { me } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [focusContractEditor] = useState(
+    () => searchParams.get('contract') === 'edit',
+  );
+  const clearedContractQueryRef = useRef(false);
   const [tender, setTender] = useState<Tender | null>(null);
   const [contract, setContract] = useState<ProjectContract | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,6 +74,22 @@ export function ClientContractPanel({
     void loadContract();
   }, [project.status, loadTender, loadContract]);
 
+  useEffect(() => {
+    if (!focusContractEditor || clearedContractQueryRef.current) {
+      return;
+    }
+    clearedContractQueryRef.current = true;
+    router.replace(`/projects/${projectId}`, { scroll: false });
+  }, [focusContractEditor, projectId, router]);
+
+  useEffect(() => {
+    if (!focusContractEditor || loading || !contract) {
+      return;
+    }
+    const section = document.getElementById('project-contract');
+    section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [focusContractEditor, loading, contract]);
+
   const awardedBidId = tender?.awardedBidId;
   const awardedBid =
     awardedBidId != null
@@ -90,7 +113,7 @@ export function ClientContractPanel({
       project.clarificationMode === 'structured_qa');
 
   return (
-    <section className="card client-contract-card">
+    <section id="project-contract" className="card client-contract-card">
       <div className="client-contract-header">
         <div className="client-contract-heading">
           <h2 className="section-title">{t('contractPanel.title')}</h2>
@@ -136,6 +159,7 @@ export function ClientContractPanel({
             <ContractDocumentEditor
               projectId={projectId}
               contract={contract}
+              initialOpen={focusContractEditor}
               onSaved={setContract}
             />
           )}

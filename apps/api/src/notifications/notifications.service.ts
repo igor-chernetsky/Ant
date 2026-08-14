@@ -75,6 +75,18 @@ export class NotificationsService {
     return `/projects/${projectId}`;
   }
 
+  private progressClaimsPath(projectId: string): string {
+    return `/projects/${projectId}#progress-claims`;
+  }
+
+  private progressClaimsUrl(projectId: string): string {
+    return `${this.projectUrl(projectId)}#progress-claims`;
+  }
+
+  private formatThbAmount(amount: number): string {
+    return Math.round(amount).toLocaleString('en-US');
+  }
+
   private mapInAppNotification(row: {
     id: string;
     kind: InAppNotificationKind;
@@ -1612,10 +1624,11 @@ export class NotificationsService {
     amount: number;
     sequenceNumber: number;
   }): Promise<void> {
+    const amountLabel = `${this.formatThbAmount(params.amount)} THB`;
     await this.createInAppNotification({
       userId: params.clientUserId,
       kind: InAppNotificationKind.client_progress_claim_submitted,
-      href: this.projectPath(params.projectId),
+      href: this.progressClaimsPath(params.projectId),
       projectId: params.projectId,
       payload: {
         projectTitle: params.projectTitle,
@@ -1623,6 +1636,18 @@ export class NotificationsService {
         amount: params.amount,
         sequenceNumber: params.sequenceNumber,
       },
+    });
+    await this.sendToUser({
+      userId: params.clientUserId,
+      prefFlag: 'emailClientBidActivity',
+      kind: NotificationEmailKind.client_progress_claim_submitted,
+      projectId: params.projectId,
+      subject: `Progress claim submitted — ${params.projectTitle}`,
+      title: 'Progress claim awaiting approval',
+      bodyHtml: `<p><strong>${escapeHtml(params.companyName)}</strong> submitted progress claim <strong>#${params.sequenceNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Amount due this period: <strong>${escapeHtml(amountLabel)}</strong></p><p>Review the claim and approve or reject it on the project page.</p>`,
+      ctaHref: this.progressClaimsUrl(params.projectId),
+      ctaLabel: 'Review progress claim',
+      textBody: `${params.companyName} submitted progress claim #${params.sequenceNumber} on ${params.projectTitle} (${amountLabel}). Review and approve or reject on the project page.`,
     });
   }
 
@@ -1633,16 +1658,29 @@ export class NotificationsService {
     amount: number;
     sequenceNumber: number;
   }): Promise<void> {
+    const amountLabel = `${this.formatThbAmount(params.amount)} THB`;
     await this.createInAppNotification({
       userId: params.contractorUserId,
       kind: InAppNotificationKind.contractor_progress_claim_approved,
-      href: this.projectPath(params.projectId),
+      href: this.progressClaimsPath(params.projectId),
       projectId: params.projectId,
       payload: {
         projectTitle: params.projectTitle,
         amount: params.amount,
         sequenceNumber: params.sequenceNumber,
       },
+    });
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.contractor_progress_claim_approved,
+      projectId: params.projectId,
+      subject: `Progress claim approved — ${params.projectTitle}`,
+      title: 'Progress claim approved',
+      bodyHtml: `<p>The client approved progress claim <strong>#${params.sequenceNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Approved amount this period: <strong>${escapeHtml(amountLabel)}</strong></p>`,
+      ctaHref: this.progressClaimsUrl(params.projectId),
+      ctaLabel: 'View progress claims',
+      textBody: `Progress claim #${params.sequenceNumber} on ${params.projectTitle} was approved (${amountLabel}).`,
     });
   }
 
@@ -1653,16 +1691,33 @@ export class NotificationsService {
     sequenceNumber: number;
     reason?: string | null;
   }): Promise<void> {
+    const reason = params.reason?.trim();
     await this.createInAppNotification({
       userId: params.contractorUserId,
       kind: InAppNotificationKind.contractor_progress_claim_rejected,
-      href: this.projectPath(params.projectId),
+      href: this.progressClaimsPath(params.projectId),
       projectId: params.projectId,
       payload: {
         projectTitle: params.projectTitle,
         sequenceNumber: params.sequenceNumber,
         reason: params.reason ?? null,
       },
+    });
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.contractor_progress_claim_rejected,
+      projectId: params.projectId,
+      subject: `Progress claim rejected — ${params.projectTitle}`,
+      title: 'Progress claim rejected',
+      bodyHtml: `<p>The client rejected progress claim <strong>#${params.sequenceNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong>.</p>${
+        reason
+          ? `<p style="background:#f8fafc;padding:12px;border-radius:8px;white-space:pre-wrap;"><strong>Reason:</strong> ${escapeHtml(reason)}</p>`
+          : ''
+      }<p>Update the claim and submit again when ready.</p>`,
+      ctaHref: this.progressClaimsUrl(params.projectId),
+      ctaLabel: 'View progress claims',
+      textBody: `Progress claim #${params.sequenceNumber} on ${params.projectTitle} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
     });
   }
 

@@ -51,6 +51,20 @@ const SHARED_KEYS: ContractTermsFieldKey[] = [
   'specialConditions',
 ];
 
+/** Fields the client may change in a counter-offer (schedule + payment terms). */
+const COUNTER_OFFER_KEYS: ContractTermsFieldKey[] = [
+  'worksStartDate',
+  'worksFinishDate',
+  'contractPeriodMonths',
+  'advancePaymentPercent',
+  'advancePaymentAmount',
+  'retentionPercent',
+  'retentionLimitPercent',
+  'retentionReleaseNotes',
+  'defectNotificationMonths',
+  'warrantyPeriodNotes',
+];
+
 const CLIENT_ONLY_KEYS: ContractTermsFieldKey[] = [
   'siteAddress',
   'propertyOwnership',
@@ -98,6 +112,12 @@ export function pickClientContractTerms(
   terms: BidContractTerms,
 ): BidContractTerms {
   return pickKeys(terms, [...CLIENT_ONLY_KEYS, ...SHARED_KEYS]);
+}
+
+export function pickCounterOfferContractTerms(
+  terms: BidContractTerms,
+): BidContractTerms {
+  return pickKeys(terms, COUNTER_OFFER_KEYS);
 }
 
 export function defaultScopeSummary(

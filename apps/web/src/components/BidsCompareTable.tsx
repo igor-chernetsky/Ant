@@ -19,10 +19,21 @@ interface BidsCompareTableProps {
   defaultCostBreakdown?: DefaultCostBreakdownItem[];
 }
 
-function deltaLabel(amount: number, ballparkMid: number | null | undefined): string {
-  if (!ballparkMid || ballparkMid <= 0) return '—';
-  const delta = Math.round(((amount - ballparkMid) / ballparkMid) * 100);
-  return `${delta >= 0 ? '+' : ''}${delta}%`;
+function formatCompareDate(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmed);
+  if (iso) {
+    const date = new Date(
+      Number(iso[1]),
+      Number(iso[2]) - 1,
+      Number(iso[3]),
+    );
+    return date.toLocaleDateString();
+  }
+  const parsed = Date.parse(trimmed);
+  if (Number.isNaN(parsed)) return null;
+  return new Date(parsed).toLocaleDateString();
 }
 
 function normalizeTrade(value: string): string {
@@ -50,6 +61,28 @@ function breakdownSubtotal(items?: BidLineItem[]): number | null {
     0,
   );
   return total > 0 ? total : null;
+}
+
+function contractorProposalCount(bid: Bid): number {
+  return bid.contractorProposalCount ?? 1;
+}
+
+function isUpdatedProposal(bid: Bid): boolean {
+  return contractorProposalCount(bid) > 1;
+}
+
+function formatBallparkDelta(
+  worksAmount: number,
+  ballparkMid: number | null,
+  t: (key: string, params?: Record<string, string | number>) => string,
+): string {
+  if (!ballparkMid || ballparkMid <= 0) {
+    return t('common.dash');
+  }
+  const delta = Math.round(((worksAmount - ballparkMid) / ballparkMid) * 100);
+  return t('bidApplication.vsBallpark', {
+    delta: `${delta >= 0 ? '+' : ''}${delta}`,
+  });
 }
 
 /** Indices of the lowest finite amount(s); empty when nothing comparable. */
@@ -220,6 +253,7 @@ export function BidsCompareTable({
       >
         {bids.map((bid) => {
           const active = selectedIds.includes(bid.id);
+          const updated = isUpdatedProposal(bid);
           return (
             <button
               key={bid.id}
@@ -228,7 +262,18 @@ export function BidsCompareTable({
               aria-pressed={active}
               onClick={() => toggleBid(bid.id)}
             >
-              {bid.companyName ?? t('common.contractor')}
+              <span className="bids-compare-picker-label">
+                {bid.companyName ?? t('common.contractor')}
+                <span
+                  className={`bids-compare-proposal-kind${
+                    updated ? ' bids-compare-proposal-kind--updated' : ''
+                  }`}
+                >
+                  {updated
+                    ? t('bidCompare.updatedProposal')
+                    : t('bidCompare.initialProposal')}
+                </span>
+              </span>
             </button>
           );
         })}
@@ -251,6 +296,12 @@ export function BidsCompareTable({
               </tr>
               <tr>
                 <th scope="row">{t('bidCompare.duration')}</th>
+              </tr>
+              <tr>
+                <th scope="row">{t('bidCompare.worksStartDate')}</th>
+              </tr>
+              <tr>
+                <th scope="row">{t('bidCompare.worksFinishDate')}</th>
               </tr>
               <tr>
                 <th scope="row">{t('bidCompare.vsBallpark')}</th>
@@ -298,11 +349,27 @@ export function BidsCompareTable({
           >
             <thead>
               <tr>
-                {selectedBids.map((bid) => (
-                  <th key={bid.id} scope="col" className="bids-compare-bid-col">
-                    {bid.companyName ?? t('common.contractor')}
-                  </th>
-                ))}
+                {selectedBids.map((bid) => {
+                  const updated = isUpdatedProposal(bid);
+                  return (
+                    <th key={bid.id} scope="col" className="bids-compare-bid-col">
+                      <div className="bids-compare-bid-header">
+                        <span className="bids-compare-bid-company">
+                          {bid.companyName ?? t('common.contractor')}
+                        </span>
+                        <span
+                          className={`bids-compare-proposal-kind${
+                            updated ? ' bids-compare-proposal-kind--updated' : ''
+                          }`}
+                        >
+                          {updated
+                            ? t('bidCompare.updatedProposal')
+                            : t('bidCompare.initialProposal')}
+                        </span>
+                      </div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -326,6 +393,36 @@ export function BidsCompareTable({
               </tr>
               <tr>
                 {selectedBids.map((bid) => {
+                  const start = formatCompareDate(
+                    bid.terms?.contractTerms?.worksStartDate,
+                  );
+                  return (
+                    <td
+                      key={`${bid.id}-works-start`}
+                      className="bids-compare-bid-col"
+                    >
+                      {start ?? t('common.dash')}
+                    </td>
+                  );
+                })}
+              </tr>
+              <tr>
+                {selectedBids.map((bid) => {
+                  const finish = formatCompareDate(
+                    bid.terms?.contractTerms?.worksFinishDate,
+                  );
+                  return (
+                    <td
+                      key={`${bid.id}-works-finish`}
+                      className="bids-compare-bid-col"
+                    >
+                      {finish ?? t('common.dash')}
+                    </td>
+                  );
+                })}
+              </tr>
+              <tr>
+                {selectedBids.map((bid) => {
                   const amount = bid.amount != null ? Number(bid.amount) : null;
                   const worksAmount =
                     amount != null
@@ -334,7 +431,7 @@ export function BidsCompareTable({
                   return (
                     <td key={`${bid.id}-delta`} className="bids-compare-bid-col">
                       {worksAmount != null
-                        ? deltaLabel(worksAmount, ballparkMid ?? null)
+                        ? formatBallparkDelta(worksAmount, ballparkMid ?? null, t)
                         : t('common.dash')}
                     </td>
                   );

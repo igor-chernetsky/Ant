@@ -41,10 +41,11 @@ recommendedBidId, recommendedCompanyName, summary, reasoning, comparisons, confi
 Rules:
 - recommendedBidId must be one of the provided bid ids, or null if no bid is recommendable.
 - summary: 2-4 sentences with a clear recommendation for the employer.
-- reasoning: detailed argumentation (4-8 sentences) covering price, scope coverage, timeline, and employer-side contract risks.
+- reasoning: detailed argumentation (4-8 sentences) covering price, scope coverage, timeline (duration and calendar start/finish dates), and employer-side contract risks.
 - comparisons: one entry per bid with bidId, strengths[], weaknesses[], riskFlags[] (short bullet phrases).
 - Do not invent facts missing from the bid data; flag gaps as employer risks.
 - Price alone must not decide the winner if scope or employer-side risk differs materially.
+- When price and commercial terms are comparable, timeline differences (earlier start / shorter duration) MUST decide recommendedBidId — do not leave it null.
 - confidence: 0-1.
 ${employerBidAnalysisPromptRules()}`;
 

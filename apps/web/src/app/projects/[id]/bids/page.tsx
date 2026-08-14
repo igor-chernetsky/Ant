@@ -129,10 +129,8 @@ export default function ProjectBidsPage() {
     setBusy(true);
     setError(null);
     try {
-      const updated = await selectProjectBid(projectId, bid.id);
-      setTender(updated);
-      const projectData = await fetchProject(projectId);
-      setProject(projectData);
+      await selectProjectBid(projectId, bid.id);
+      router.push(`/projects/${projectId}?contract=edit`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('bidsPage.selectFailed'));
     } finally {

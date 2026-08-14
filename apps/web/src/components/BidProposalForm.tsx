@@ -11,7 +11,9 @@ import {
   contractTermsFromBid,
   defaultScopeSummary,
   pickContractorContractTerms,
+  pickCounterOfferContractTerms,
   type ContractTermsAudience,
+  type ContractTermsVariant,
 } from '@/components/BidContractTermsFields';
 import {
   addCalendarDays,
@@ -44,7 +46,7 @@ interface BidProposalFormProps {
   existingBid?: Bid | null;
   /** Seed form fields from another bid (e.g. client counter-offer from contractor proposal). */
   prefillBid?: Bid | null;
-  /** Prefill editable fields from a client counter-offer (keeps contract terms from existing bid). */
+  /** Prefill editable fields from a client counter-offer (merges offer terms into the bid). */
   prefillOffer?: BidOffer | null;
   busy?: boolean;
   projectTitle?: string;
@@ -56,6 +58,12 @@ interface BidProposalFormProps {
   projectContractTerms?: BidContractTerms;
   /** Who fills commercial proposal fields — `none` hides contract terms. */
   contractTermsAudience?: ContractTermsAudience | 'none';
+  /** `counter-offer` shows schedule and payment terms only (client counter-KP). */
+  contractTermsVariant?: ContractTermsVariant;
+  /** Where to render contract terms — `afterMetrics` puts schedule near the total. */
+  contractTermsPlacement?: 'default' | 'afterMetrics';
+  /** Header duration field — hidden for client counter-offers (dates drive duration). */
+  durationInputMode?: 'editable' | 'readonly' | 'hidden';
   isDesign?: boolean;
   /** Label for the notes / comment field. */
   notesLabel?: string;
@@ -137,9 +145,35 @@ function proposalSeedFromInputs(
 } {
   if (prefillOffer) {
     const offerTerms = prefillOffer.terms;
+    const mergedContractTerms: BidContractTerms = {
+      ...existingBid?.terms?.contractTerms,
+      ...offerTerms?.contractTerms,
+    };
+
+    let durationDays = prefillOffer.durationDays;
+
+    const daysFromDates = calendarDaysBetween(
+      mergedContractTerms.worksStartDate,
+      mergedContractTerms.worksFinishDate,
+    );
+    if (daysFromDates != null && daysFromDates >= 1) {
+      durationDays = daysFromDates;
+    } else if (
+      durationDays != null &&
+      durationDays >= 1 &&
+      mergedContractTerms.worksStartDate
+    ) {
+      mergedContractTerms.worksFinishDate = addCalendarDays(
+        mergedContractTerms.worksStartDate,
+        durationDays,
+      );
+      mergedContractTerms.contractPeriodMonths =
+        monthsFromDurationDays(durationDays);
+    }
+
     return {
       amount: prefillOffer.amount,
-      durationDays: prefillOffer.durationDays,
+      durationDays,
       terms: {
         ...existingBid?.terms,
         notes: prefillOffer.note ?? offerTerms?.notes ?? existingBid?.terms?.notes,
@@ -149,7 +183,7 @@ function proposalSeedFromInputs(
         lineItems: offerTerms?.lineItems ?? existingBid?.terms?.lineItems,
         costAdjustments:
           offerTerms?.costAdjustments ?? existingBid?.terms?.costAdjustments,
-        contractTerms: existingBid?.terms?.contractTerms,
+        contractTerms: mergedContractTerms,
       },
     };
   }
@@ -175,6 +209,9 @@ export function BidProposalForm({
   projectScopeSummary = null,
   projectContractTerms,
   contractTermsAudience = 'contractor',
+  contractTermsVariant = 'full',
+  contractTermsPlacement = 'default',
+  durationInputMode = 'editable',
   isDesign = false,
   notesLabel,
   breakdownMode = 'create',
@@ -319,14 +356,27 @@ export function BidProposalForm({
       vatPercent: parsedVat,
     });
 
-    const parsedDuration = durationDays.trim()
-      ? Number(durationDays)
-      : undefined;
+    const scheduleDays = calendarDaysBetween(
+      contractTerms.worksStartDate,
+      contractTerms.worksFinishDate,
+    );
+    let parsedDuration: number | undefined;
+    if (durationInputMode !== 'editable' && scheduleDays != null) {
+      parsedDuration = scheduleDays;
+    } else {
+      parsedDuration = durationDays.trim()
+        ? Number(durationDays)
+        : undefined;
+    }
     if (
       parsedDuration !== undefined &&
       (!Number.isFinite(parsedDuration) || parsedDuration < 1)
     ) {
-      setError(t('bid.errors.durationMin'));
+      setError(
+        durationInputMode !== 'editable'
+          ? t('bid.errors.scheduleRequired')
+          : t('bid.errors.durationMin'),
+      );
       return;
     }
 
@@ -378,7 +428,9 @@ export function BidProposalForm({
                   ...pickContractorContractTerms(contractTerms),
                   ...(scopeText ? { subjectOfContract: scopeText } : {}),
                 }
-              : contractTerms
+              : contractTermsVariant === 'counter-offer'
+                ? pickCounterOfferContractTerms(contractTerms)
+                : contractTerms
             : undefined,
       });
     } catch (err: unknown) {
@@ -403,6 +455,27 @@ export function BidProposalForm({
       })
     : null;
 
+  const headerDurationDays = calendarDaysBetween(
+    contractTerms.worksStartDate,
+    contractTerms.worksFinishDate,
+  );
+
+  const contractTermsBlock =
+    contractTermsAudience !== 'none' ? (
+      <BidContractTermsFields
+        value={contractTerms}
+        onChange={handleContractTermsChange}
+        audience={contractTermsAudience}
+        variant={contractTermsVariant}
+        projectTitle={projectTitle}
+        projectDistrict={projectDistrict}
+        disabled={busy}
+        hideSubjectOfContract
+        showSectionHeader={contractTermsPlacement === 'afterMetrics'}
+        isDesign={isDesign}
+      />
+    ) : null;
+
   return (
     <div className="bid-proposal-form bid-proposal-form--compact">
       <div className="modal-form bid-proposal-form-fields">
@@ -423,22 +496,39 @@ export function BidProposalForm({
                   : t('common.dash')}
               </output>
             </div>
-            <label className="bid-proposal-field bid-proposal-field--duration">
-              <span className="field-label">{t('bid.durationDays')}</span>
-              <input
-                type="number"
-                className="bid-proposal-metric-input"
-                min="1"
-                value={durationDays}
-                onChange={(e) => handleDurationChange(e.target.value)}
-                placeholder={t('bid.durationPlaceholder')}
-                inputMode="numeric"
-              />
-            </label>
+            {durationInputMode !== 'hidden' && (
+              durationInputMode === 'readonly' ? (
+                <div className="bid-proposal-field bid-proposal-field--duration">
+                  <span className="field-label">{t('bid.durationDays')}</span>
+                  <output className="bid-proposal-metric-output">
+                    {headerDurationDays != null
+                      ? t('contractTerms.contractPeriodDaysValue', {
+                          days: headerDurationDays,
+                        })
+                      : t('common.dash')}
+                  </output>
+                </div>
+              ) : (
+                <label className="bid-proposal-field bid-proposal-field--duration">
+                  <span className="field-label">{t('bid.durationDays')}</span>
+                  <input
+                    type="number"
+                    className="bid-proposal-metric-input"
+                    min="1"
+                    value={durationDays}
+                    onChange={(e) => handleDurationChange(e.target.value)}
+                    placeholder={t('bid.durationPlaceholder')}
+                    inputMode="numeric"
+                  />
+                </label>
+              )
+            )}
           </div>
           <p className="bid-proposal-metrics-hint muted">{t('bid.grandTotalHint')}</p>
         </section>
       </div>
+
+      {contractTermsPlacement === 'afterMetrics' && contractTermsBlock}
 
       <div className="bid-breakdown-toggle">
         <label className="checkbox-label">
@@ -690,19 +780,7 @@ export function BidProposalForm({
           />
         </label>
 
-        {contractTermsAudience !== 'none' && (
-          <BidContractTermsFields
-            value={contractTerms}
-            onChange={handleContractTermsChange}
-            audience={contractTermsAudience}
-            projectTitle={projectTitle}
-            projectDistrict={projectDistrict}
-            disabled={busy}
-            hideSubjectOfContract
-            showSectionHeader={false}
-            isDesign={isDesign}
-          />
-        )}
+        {contractTermsPlacement === 'default' && contractTermsBlock}
       </div>
 
       {error && (

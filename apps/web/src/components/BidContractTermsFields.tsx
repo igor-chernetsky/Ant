@@ -29,12 +29,16 @@ export {
   defaultScopeSummary,
   pickClientContractTerms,
   pickContractorContractTerms,
+  pickCounterOfferContractTerms,
 } from '@/lib/contract-terms-fields';
+
+export type ContractTermsVariant = 'full' | 'counter-offer';
 
 interface BidContractTermsFieldsProps {
   value: BidContractTerms;
   onChange: (next: BidContractTerms) => void;
   audience?: ContractTermsAudience;
+  variant?: ContractTermsVariant;
   projectTitle?: string;
   projectDistrict?: string | null;
   disabled?: boolean;
@@ -47,6 +51,7 @@ export function BidContractTermsFields({
   value,
   onChange,
   audience = 'contractor',
+  variant = 'full',
   projectTitle,
   projectDistrict,
   disabled = false,
@@ -111,23 +116,27 @@ export function BidContractTermsFields({
   const fieldDisabled = (key: keyof BidContractTerms) =>
     disabled || !canEditContractTermField(key, audience);
 
+  const isCounterOffer = variant === 'counter-offer';
+
   return (
     <div className="bid-contract-terms">
       {showSectionHeader && (
         <div className="bid-contract-terms-header">
           <p className="tag-section-label">{t('contractTerms.sectionTitle')}</p>
           <p className="muted bid-contract-terms-hint">
-            {audience === 'client'
-              ? t('contractTerms.clientHint')
-              : isDesign
-                ? t('contractTerms.designerHint')
-                : t('contractTerms.contractorHint')}
+            {isCounterOffer
+              ? t('contractTerms.counterOfferHint')
+              : audience === 'client'
+                ? t('contractTerms.clientHint')
+                : isDesign
+                  ? t('contractTerms.designerHint')
+                  : t('contractTerms.contractorHint')}
           </p>
         </div>
       )}
 
       <div className="modal-form bid-proposal-form-fields bid-contract-terms-fields">
-        {!hideSubjectOfContract && (
+        {!isCounterOffer && !hideSubjectOfContract && (
           <ContractTermsTextOptionField
             label={
               <>
@@ -145,6 +154,8 @@ export function BidContractTermsFields({
           />
         )}
 
+        {!isCounterOffer && (
+          <>
         <ContractTermsTextOptionField
           label={t('contractTerms.siteAddress')}
           value={value.siteAddress ?? ''}
@@ -170,6 +181,8 @@ export function BidContractTermsFields({
           disabled={fieldDisabled('propertyOwnership')}
           rows={2}
         />
+          </>
+        )}
 
         <div className="bid-proposal-form-row bid-proposal-form-row--triple">
           <label className="bid-proposal-field">
@@ -324,6 +337,8 @@ export function BidContractTermsFields({
           rows={2}
         />
 
+        {!isCounterOffer && (
+          <>
         <ContractTermsTextOptionField
           label={
             <>
@@ -356,7 +371,11 @@ export function BidContractTermsFields({
           rows={4}
           customPlaceholder={t('contractTerms.specialConditionsPlaceholder')}
         />
+          </>
+        )}
 
+        {!isCounterOffer && (
+          <>
         <p className="tag-section-label bid-contract-terms-legal-label">
           {t('contractTerms.employerLegalDetails')}
         </p>
@@ -428,6 +447,8 @@ export function BidContractTermsFields({
             }
           />
         </label>
+          </>
+        )}
       </div>
     </div>
   );

@@ -8850,6 +8850,40 @@ select:disabled {
   margin-bottom: 0.85rem;
 }
 
+.bids-compare-picker-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  text-align: left;
+}
+
+.bids-compare-bid-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 8.5rem;
+}
+
+.bids-compare-bid-company {
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.bids-compare-proposal-kind {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--muted, #64748b);
+  letter-spacing: 0.01em;
+}
+
+.bids-compare-proposal-kind--updated {
+  color: var(--accent, #2563eb);
+}
+
 .bids-compare-table-layout {
   display: flex;
   align-items: stretch;

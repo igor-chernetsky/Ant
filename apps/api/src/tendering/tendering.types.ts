@@ -148,6 +148,8 @@ export interface BidResponse {
   withdrawalReason: BidWithdrawalReasonCode | null;
   withdrawalNote: string | null;
   withdrawnAt: string | null;
+  /** Contractor KP submissions (initial = 1, updated = 2+). */
+  contractorProposalCount: number;
 }
 
 export type BidWithdrawalReasonCode =
@@ -192,6 +194,8 @@ export interface SubmitCounterOfferDto {
   scopeSummary?: string;
   lineItems?: BidLineItem[];
   costAdjustments?: BidCostAdjustmentsInput;
+  /** Schedule and payment terms proposed by the client (partial overlay on the bid). */
+  contractTerms?: BidContractTerms;
   /** When true, send the same counter-offer to all submitted bids without a client counter-offer yet. */
   applyToAllPending?: boolean;
 }

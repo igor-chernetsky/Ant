@@ -23,6 +23,9 @@ type BidForFingerprint = Pick<
   'id' | 'status' | 'amount' | 'durationDays' | 'termsJson' | 'updatedAt'
 >;
 
+/** Bump when employer ranking rules change so cached analyses can be regenerated. */
+const BID_ANALYSIS_LOGIC_VERSION = 'employer-timeline-v1';
+
 @Injectable()
 export class BidAnalysisService {
   constructor(
@@ -44,7 +47,9 @@ export class BidAnalysisService {
         updatedAt: bid.updatedAt.toISOString(),
       }));
 
-    return createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+    return createHash('sha256')
+      .update(`${BID_ANALYSIS_LOGIC_VERSION}:${JSON.stringify(payload)}`)
+      .digest('hex');
   }
 
   private mapBidInput(

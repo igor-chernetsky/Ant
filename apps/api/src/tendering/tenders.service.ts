@@ -98,7 +98,10 @@ export class TendersService {
     private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
-  private mapBid(bid: Bid & { contractor: ContractorProfile }): BidResponse {
+  private mapBid(
+    bid: Bid & { contractor: ContractorProfile },
+    contractorProposalCount = bid.status === BidStatus.submitted ? 1 : 0,
+  ): BidResponse {
     return {
       id: bid.id,
       tenderId: bid.tenderId,
@@ -114,7 +117,35 @@ export class TendersService {
       withdrawalReason: bid.withdrawalReason ?? null,
       withdrawalNote: bid.withdrawalNote ?? null,
       withdrawnAt: bid.withdrawnAt?.toISOString() ?? null,
+      contractorProposalCount,
     };
+  }
+
+  private async attachContractorProposalCounts(
+    bids: BidResponse[],
+  ): Promise<BidResponse[]> {
+    if (bids.length === 0) {
+      return bids;
+    }
+
+    const grouped = await this.prisma.bidOffer.groupBy({
+      by: ['bidId'],
+      where: {
+        bidId: { in: bids.map((bid) => bid.id) },
+        authorRole: 'contractor',
+      },
+      _count: { _all: true },
+    });
+    const countByBidId = new Map(
+      grouped.map((row) => [row.bidId, row._count._all]),
+    );
+
+    return bids.map((bid) => ({
+      ...bid,
+      contractorProposalCount:
+        countByBidId.get(bid.id) ??
+        (bid.status === BidStatus.submitted ? 1 : 0),
+    }));
   }
 
   private async localizeBidResponse(
@@ -294,6 +325,8 @@ export class TendersService {
       await this.loadTender(tender.id),
       this.resolveProjectContractTerms(project),
     );
+
+    mapped.bids = await this.attachContractorProposalCounts(mapped.bids);
 
     mapped.bids = await Promise.all(
       mapped.bids.map((bid) =>
