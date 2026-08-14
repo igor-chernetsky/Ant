@@ -51,6 +51,11 @@ import {
   UpdateAddendumDocumentDto,
 } from './contract-addenda.types';
 import {
+  enrichAddendumHtmlWithPricing,
+  resolveAddendumPricingPercents,
+} from './contract-addendum-pricing.util';
+import type { BidCostAdjustments } from './tendering.types';
+import {
   mapDualCustomFileMeta,
   normalizeDownloadFormats,
 } from './custom-contract-files.util';
@@ -69,6 +74,7 @@ type Participant = {
   isClient: boolean;
   isSelectedContractor: boolean;
   contractEnglishBodyHtml: string | null;
+  bidCostAdjustments: BidCostAdjustments | null;
 };
 
 type AddendumWithAttachments = ContractAddendum & {
@@ -381,6 +387,11 @@ export class ContractAddendaService {
       throw new BadRequestException('Awarded contractor not found');
     }
 
+    const bidTerms = project.tender?.awardedBid?.termsJson as
+      | { costAdjustments?: BidCostAdjustments | null }
+      | null
+      | undefined;
+
     const isClient = project.clientId === userId;
     const isSelectedContractor = contractorUserId === userId;
     if (!isClient && !isSelectedContractor) {
@@ -396,7 +407,22 @@ export class ContractAddendaService {
       isClient,
       isSelectedContractor,
       contractEnglishBodyHtml: project.contract.englishBodyHtml,
+      bidCostAdjustments: bidTerms?.costAdjustments ?? null,
     };
+  }
+
+  private finalizeAddendumHtml(
+    description: string,
+    html: string,
+    participant: Participant,
+    locale: ReturnType<typeof parseAddendumLocale>,
+  ): string {
+    return enrichAddendumHtmlWithPricing(
+      description,
+      html,
+      participant.bidCostAdjustments,
+      locale,
+    );
   }
 
   async list(userId: string, projectId: string): Promise<ContractAddendumResponse[]> {
@@ -463,11 +489,15 @@ export class ContractAddendaService {
       contractExcerptHtml: participant.contractEnglishBodyHtml,
       description,
       locale,
+      pricingPercents: resolveAddendumPricingPercents(
+        participant.bidCostAdjustments,
+      ),
     });
     if (!html) {
       html = fallbackAddendumHtml(description, title, locale);
     }
     html = stripContractSignaturesBlock(sanitizeContractBodyHtml(html));
+    html = this.finalizeAddendumHtml(description, html, participant, locale);
 
     const row = await this.prisma.contractAddendum.create({
       data: {
@@ -665,11 +695,20 @@ export class ContractAddendaService {
       contractExcerptHtml: participant.contractEnglishBodyHtml,
       description: row.sourceDescription,
       locale,
+      pricingPercents: resolveAddendumPricingPercents(
+        participant.bidCostAdjustments,
+      ),
     });
     if (!html) {
       html = fallbackAddendumHtml(row.sourceDescription, row.title, locale);
     }
     html = stripContractSignaturesBlock(sanitizeContractBodyHtml(html));
+    html = this.finalizeAddendumHtml(
+      row.sourceDescription,
+      html,
+      participant,
+      locale,
+    );
 
     const previousKey = row.customFileStorageKey;
     const previousDocxKey = row.sourceDocxStorageKey;

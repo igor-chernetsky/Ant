@@ -11,6 +11,11 @@ export interface AddendumGenerationInput {
   contractExcerptHtml?: string | null;
   description: string;
   locale?: string;
+  pricingPercents?: {
+    preliminaryPercent: number;
+    overheadProfitPercent: number;
+    vatPercent: number;
+  } | null;
 }
 
 const LOCALE_LABEL: Record<SupportedLocale, string> = {
@@ -57,7 +62,10 @@ Return JSON only with keys: title (short title in ${language}), bodyHtml (HTML f
 Rules:
 - bodyHtml must be a complete addendum document body in ${language} using only: p, h2, h3, ul, ol, li, strong, em, table, thead, tbody, tr, th, td, br.
 - Structure: heading, parties reference, purpose, changes/terms from the user description, effective date note. Do NOT include a Signatures / Employer / Contractor signature section — the platform appends live signature blocks when rendering the PDF.
-- Reflect the user's description faithfully; do not invent BOQ line items or payment amounts unless stated.
+- Reflect the user's description faithfully; do not invent BOQ line items unless stated.
+- When the user states a new contract total/price, include a clear VAT breakdown table if pricingPercents is provided (works, preliminary, overhead & profit, subtotal excl. VAT, VAT, grand total incl. VAT).
+- If pricingPercents is provided, treat an unspecified amount as VAT-inclusive unless the user explicitly says excluding VAT / без НДС / ex VAT.
+- Typical user phrasings include: "new contract amount", "revised total", "увеличить стоимость договора до …", "новая сумма договора … с НДС", "3.5 million THB", "3,5 млн бат", "grand total incl. VAT".
 - Keep professional legal-commercial tone suitable for Thailand construction marketplace.
 - Do not wrap in <html> or <body>.
 - Also accept legacy key englishBodyHtml as an alias for bodyHtml if you emit it.`;
@@ -72,6 +80,7 @@ Rules:
         .trim()
         .slice(0, 4000),
       addendumDescription: input.description,
+      pricingPercents: input.pricingPercents ?? null,
     });
 
     try {
