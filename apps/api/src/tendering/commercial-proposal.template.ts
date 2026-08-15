@@ -744,6 +744,14 @@ function renderClause3(
   <p class="clause">${escapeHtml(copy.noAdjustment)}</p>`;
 }
 
+function renderClause4(
+  _data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  return `
+  <h2>${escapeHtml(copy.clause4)}</h2>`;
+}
+
 function renderBoqSection(
   data: CommercialProposalRenderData,
   copy: CommercialProposalCopy,
@@ -752,6 +760,14 @@ function renderBoqSection(
   return `
   <h2>${escapeHtml(copy.annex1Boq)}</h2>
   ${data.boqTableHtml}`;
+}
+
+function renderContractDocumentsMutual(
+  _data: CommercialProposalRenderData,
+  copy: CommercialProposalCopy,
+): string {
+  return `
+  <p class="clause">${escapeHtml(copy.contractDocumentsMutual)}</p>`;
 }
 
 function escapeRegExp(value: string): string {
@@ -842,7 +858,8 @@ function renderClause6(
   <p class="clause"><span class="clause-num">${escapeHtml(copy.retention)}</span> ${escapeHtml(data.retentionText)}</p>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.releaseOfRetention)}</span></p>
   <p class="clause pre">${escapeHtml(data.retentionReleaseText)}</p>
-  <p class="clause"><span class="clause-num">${escapeHtml(copy.defectWarranty)}</span> ${escapeHtml(data.warrantyText)}</p>`;
+  <p class="clause"><span class="clause-num">${escapeHtml(copy.defectWarranty)}</span> ${escapeHtml(data.warrantyText)}</p>
+  <p class="clause">${escapeHtml(copy.defectWarrantyRemedial)}</p>`;
 }
 
 function renderForceMajeure(copy: CommercialProposalCopy): string {
@@ -856,6 +873,13 @@ function renderForceMajeure(copy: CommercialProposalCopy): string {
   </ul>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.forceMajeureNoticeTitle)}</span> ${escapeHtml(copy.forceMajeureNotice)}</p>
   <p class="clause"><span class="clause-num">${escapeHtml(copy.forceMajeureReliefTitle)}</span> ${escapeHtml(copy.forceMajeureRelief)}</p>`;
+}
+
+function renderGoverningLaw(copy: CommercialProposalCopy): string {
+  return `
+  <h2>${escapeHtml(copy.clause8)}</h2>
+  <p class="clause">${escapeHtml(copy.governingLawMutualRespect)}</p>
+  <p class="clause">${escapeHtml(copy.governingLawAndJurisdiction)}</p>`;
 }
 
 function renderClarifications(
@@ -1018,11 +1042,15 @@ export function renderCommercialProposalBodyContent(
 
   ${renderClause3(data, copy)}
 
+  ${renderClause4(data, copy)}
+
   ${renderBoqSection(data, copy)}
 
   ${renderAnnex2Section(data, copy)}
 
   ${renderAnnex3Section(data, copy)}
+
+  ${renderContractDocumentsMutual(data, copy)}
 
   ${renderClause5(data, copy)}
 
@@ -1032,7 +1060,9 @@ export function renderCommercialProposalBodyContent(
 
   ${renderClarifications(data, copy)}
 
-  ${renderSpecialConditions(data, copy)}`;
+  ${renderSpecialConditions(data, copy)}
+
+  ${renderGoverningLaw(copy)}`;
 }
 
 function renderStackedMultilingualWithEditedEnglish(
@@ -1122,8 +1152,15 @@ export function renderMultilingualCommercialProposalHtml(
     renderInterleavedSection(ordered, dataByLocale, renderClause1),
     renderInterleavedSection(ordered, dataByLocale, renderClause2),
     renderInterleavedSection(ordered, dataByLocale, renderClause3),
+    renderInterleavedSection(ordered, dataByLocale, renderClause4),
     renderInterleavedSection(ordered, dataByLocale, renderBoqSection, 'section'),
     renderInterleavedSection(ordered, dataByLocale, renderAnnex2Section, 'section'),
+    renderInterleavedSection(ordered, dataByLocale, renderAnnex3Section, 'section'),
+    renderInterleavedSection(
+      ordered,
+      dataByLocale,
+      renderContractDocumentsMutual,
+    ),
     renderInterleavedSection(ordered, dataByLocale, renderClause5),
     renderInterleavedSection(ordered, dataByLocale, renderClause6),
     renderInterleavedSection(
@@ -1133,6 +1170,11 @@ export function renderMultilingualCommercialProposalHtml(
     ),
     renderInterleavedSection(ordered, dataByLocale, renderClarifications),
     renderInterleavedSection(ordered, dataByLocale, renderSpecialConditions),
+    renderInterleavedSection(
+      ordered,
+      dataByLocale,
+      (_data, copy) => renderGoverningLaw(copy),
+    ),
   ].join('\n');
 
   return `<!DOCTYPE html>
