@@ -173,6 +173,7 @@ export function ClientContractPanel({
           <ContractAddendaPanel
             projectId={projectId}
             enabled={Boolean(contract?.fullySigned)}
+            reusedSignatureDataUrl={contract?.clientSignatureDataUrl ?? null}
           />
 
           {showWinnerChat && me?.id && (

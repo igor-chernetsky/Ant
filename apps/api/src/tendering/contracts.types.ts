@@ -115,6 +115,15 @@ export function normalizeOptionalSignatureDataUrl(
   return trimmed.replace(/\s+/g, '');
 }
 
+/** Drawn signature is required for signing the main contract. */
+export function normalizeRequiredSignatureDataUrl(value: unknown): string {
+  const normalized = normalizeOptionalSignatureDataUrl(value);
+  if (!normalized) {
+    throw new Error('A drawn signature is required');
+  }
+  return normalized;
+}
+
 export function buildCustomContractStorageKey(
   projectId: string,
   contractId: string,

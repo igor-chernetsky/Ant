@@ -117,10 +117,15 @@ export function ContractSigningPanel({
     });
     if (!confirmed) return;
 
+    const signatureDataUrl = signaturePadRef.current?.toDataURL() ?? null;
+    if (!signatureDataUrl) {
+      setError(t('contractPanel.signatureRequired'));
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
-      const signatureDataUrl = signaturePadRef.current?.toDataURL() ?? null;
       const updated = await signProjectContract(projectId, {
         asContractor,
         signatureDataUrl,

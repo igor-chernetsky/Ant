@@ -254,6 +254,9 @@ export function BidApplicationCard({
               <ContractAddendaPanel
                 projectId={projectId}
                 enabled={Boolean(contract?.fullySigned)}
+                reusedSignatureDataUrl={
+                  contract?.clientSignatureDataUrl ?? null
+                }
               />
             </div>
           )}

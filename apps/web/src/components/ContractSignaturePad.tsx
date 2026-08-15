@@ -74,7 +74,7 @@ export function ContractSignaturePad({
     <div className="contract-signature-pad">
       <div className="contract-signature-pad-header">
         <p className="contract-signature-pad-label">
-          {t('contractPanel.drawSignatureOptional')}
+          {t('contractPanel.drawSignatureRequired')}
         </p>
         <button
           type="button"

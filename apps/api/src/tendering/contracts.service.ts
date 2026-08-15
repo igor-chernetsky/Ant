@@ -35,7 +35,7 @@ import {
   CUSTOM_CONTRACT_ALLOWED_CONTENT_TYPES,
   isCustomContractStorageKeyForContract,
   MAX_CUSTOM_CONTRACT_BYTES,
-  normalizeOptionalSignatureDataUrl,
+  normalizeRequiredSignatureDataUrl,
   type CompleteCustomContractFileDto,
   type ContractResponse,
   type DownloadCustomContractDto,
@@ -866,9 +866,9 @@ export class ContractsService {
       );
     }
 
-    let signatureDataUrl: string | null = null;
+    let signatureDataUrl: string;
     try {
-      signatureDataUrl = normalizeOptionalSignatureDataUrl(dto.signatureDataUrl);
+      signatureDataUrl = normalizeRequiredSignatureDataUrl(dto.signatureDataUrl);
     } catch (err: unknown) {
       throw new BadRequestException(
         err instanceof Error ? err.message : 'Invalid signature',
@@ -883,15 +883,11 @@ export class ContractsService {
     const updateData: Prisma.ContractUpdateInput = isClient
       ? {
           clientSignedAt: now,
-          ...(signatureDataUrl
-            ? { clientSignatureDataUrl: signatureDataUrl }
-            : {}),
+          clientSignatureDataUrl: signatureDataUrl,
         }
       : {
           contractorSignedAt: now,
-          ...(signatureDataUrl
-            ? { contractorSignatureDataUrl: signatureDataUrl }
-            : {}),
+          contractorSignatureDataUrl: signatureDataUrl,
         };
 
     if (otherPartySigned) {

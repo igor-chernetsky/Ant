@@ -1367,8 +1367,9 @@ export const thExtended = {
     signatureAckOnly: "ลงนามแล้วโดยไม่วาดลายเซ็น",
     clientSignatureAlt: "ลายเซ็นลูกค้า",
     contractorSignatureAlt: "ลายเซ็นผู้รับเหมา",
-    drawSignatureOptional: "วาดลายเซ็น (ไม่บังคับ)",
-    drawSignatureHint: "วาดด้วยเมาส์หรือนิ้วได้ หรือเว้นว่างแล้วกดลงนามสัญญาอย่างเดียว",
+    drawSignatureRequired: "วาดลายเซ็น (จำเป็น)",
+    drawSignatureHint: "วาดลายเซ็นด้วยเมาส์หรือนิ้ว แล้วกดยืนยันด้วยปุ่มลงนามสัญญา",
+    signatureRequired: "กรุณาวาดลายเซ็นก่อนลงนามสัญญา",
     clearSignature: "ล้าง",
     signContract: "ลงนามสัญญา",
     signing: "กำลังลงนาม…",
@@ -1444,6 +1445,11 @@ export const thExtended = {
     sign: "ลงนามข้อตกลงเพิ่มเติม",
     signing: "กำลังลงนาม…",
     signFailed: "ลงนามไม่สำเร็จ",
+    reuseSignatureTitle: "ลายเซ็นจากสัญญาหลัก",
+    reuseSignatureHint:
+      "ข้อตกลงเพิ่มเติมนี้จะใช้ลายเซ็นเดียวกับที่คุณวาดไว้ในสัญญาหลัก",
+    reuseSignatureEmpty:
+      "ไม่มีลายเซ็นที่วาดไว้ในสัญญาหลัก — การลงนามจะยืนยันโดยไม่มีรูปภาพ",
     fullySignedNote: "ทั้งสองฝ่ายลงนามข้อตกลงนี้แล้ว",
     confirmSignTitle: "ลงนามข้อตกลงเพิ่มเติม?",
     confirmSignMessage: "ยืนยันว่าคุณยอมรับข้อตกลงเพิ่มเติมนี้",

@@ -42,7 +42,6 @@ import {
   MAX_ADDENDUM_ATTACHMENTS,
   MAX_ADDENDUM_ATTACHMENT_BYTES,
   MAX_ADDENDUM_FILE_BYTES,
-  normalizeOptionalSignatureDataUrl,
   parseAddendumLocale,
   PresignAddendumAttachmentDto,
   PresignAddendumFileDto,
@@ -74,6 +73,8 @@ type Participant = {
   isClient: boolean;
   isSelectedContractor: boolean;
   contractEnglishBodyHtml: string | null;
+  clientSignatureDataUrl: string | null;
+  contractorSignatureDataUrl: string | null;
   bidCostAdjustments: BidCostAdjustments | null;
 };
 
@@ -407,6 +408,8 @@ export class ContractAddendaService {
       isClient,
       isSelectedContractor,
       contractEnglishBodyHtml: project.contract.englishBodyHtml,
+      clientSignatureDataUrl: project.contract.clientSignatureDataUrl,
+      contractorSignatureDataUrl: project.contract.contractorSignatureDataUrl,
       bidCostAdjustments: bidTerms?.costAdjustments ?? null,
     };
   }
@@ -874,7 +877,7 @@ export class ContractAddendaService {
     userId: string,
     projectId: string,
     addendumId: string,
-    dto: SignAddendumDto,
+    _dto: SignAddendumDto = {},
   ): Promise<ContractAddendumResponse> {
     const participant = await this.loadParticipant(userId, projectId);
     const row = await this.prisma.contractAddendum.findFirst({
@@ -898,14 +901,11 @@ export class ContractAddendaService {
       throw new BadRequestException('You have already signed');
     }
 
-    let signatureDataUrl: string | null = null;
-    try {
-      signatureDataUrl = normalizeOptionalSignatureDataUrl(dto.signatureDataUrl);
-    } catch (err: unknown) {
-      throw new BadRequestException(
-        err instanceof Error ? err.message : 'Invalid signature',
-      );
-    }
+    // Reuse the drawn signature from the main contract (ack-only if none was stored).
+    // Client-drawn pads are not used for addenda.
+    const signatureDataUrl = participant.isSelectedContractor
+      ? participant.contractorSignatureDataUrl
+      : participant.clientSignatureDataUrl;
 
     const now = new Date();
     const data =

@@ -613,6 +613,9 @@ export function ContractorProjectPanel({
             projectId={projectId}
             asContractor
             enabled={Boolean(contract?.fullySigned)}
+            reusedSignatureDataUrl={
+              contract?.contractorSignatureDataUrl ?? null
+            }
           />
           {participation.canWithdrawFromAward && (
             <div className="participation-actions">

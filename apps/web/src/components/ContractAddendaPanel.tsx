@@ -16,10 +16,6 @@ import {
 } from 'react';
 import { BusyLabel } from '@/components/AntSpinner';
 import { CustomFileFormatPicker } from '@/components/CustomFileFormatPicker';
-import {
-  ContractSignaturePad,
-  type ContractSignaturePadHandle,
-} from '@/components/ContractSignaturePad';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import {
@@ -55,6 +51,11 @@ interface ContractAddendaPanelProps {
   asContractor?: boolean;
   /** Only show when the main contract is fully signed. */
   enabled: boolean;
+  /**
+   * Drawn signature from the fully signed main contract for the current party.
+   * Reused on addendum sign; shown as a read-only preview.
+   */
+  reusedSignatureDataUrl?: string | null;
 }
 
 type CreateMode = 'text' | 'file';
@@ -277,12 +278,14 @@ function AddendumItem({
   projectId,
   addendum,
   asContractor,
+  reusedSignatureDataUrl,
   onUpdated,
   onDeleted,
 }: {
   projectId: string;
   addendum: ContractAddendum;
   asContractor: boolean;
+  reusedSignatureDataUrl: string | null;
   onUpdated: (row: ContractAddendum) => void;
   onDeleted: (addendumId: string) => void;
 }) {
@@ -298,7 +301,6 @@ function AddendumItem({
   );
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
-  const signaturePadRef = useRef<ContractSignaturePadHandle | null>(null);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   useEffect(() => {
@@ -330,12 +332,9 @@ function AddendumItem({
     setBusy(true);
     setError(null);
     try {
-      const signatureDataUrl = signaturePadRef.current?.toDataURL() ?? null;
       const updated = await signContractAddendum(projectId, addendum.id, {
         asContractor,
-        signatureDataUrl,
       });
-      signaturePadRef.current?.clear();
       onUpdated(updated);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('addenda.signFailed'));
@@ -801,11 +800,32 @@ function AddendumItem({
 
         <div
           className={`addendum-tools${
-            addendum.canSign ? ' addendum-tools--with-pad' : ''
+            addendum.canSign ? ' addendum-tools--with-preview' : ''
           }`}
         >
           {addendum.canSign && (
-            <ContractSignaturePad padRef={signaturePadRef} disabled={busy} />
+            <div className="addendum-signature-preview">
+              <p className="addendum-signature-preview-label">
+                {t('addenda.reuseSignatureTitle')}
+              </p>
+              <div className="addendum-signature-preview-pad">
+                {reusedSignatureDataUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={reusedSignatureDataUrl}
+                    alt=""
+                    className="addendum-signature-preview-image"
+                  />
+                ) : (
+                  <span className="muted addendum-signature-preview-empty">
+                    {t('addenda.reuseSignatureEmpty')}
+                  </span>
+                )}
+              </div>
+              <p className="muted addendum-signature-preview-hint">
+                {t('addenda.reuseSignatureHint')}
+              </p>
+            </div>
           )}
 
           <div className="addendum-actions-card">
@@ -938,6 +958,7 @@ export function ContractAddendaPanel({
   projectId,
   asContractor = false,
   enabled,
+  reusedSignatureDataUrl = null,
 }: ContractAddendaPanelProps) {
   const { t, locale } = useTranslation();
   const [items, setItems] = useState<ContractAddendum[]>([]);
@@ -1061,6 +1082,7 @@ export function ContractAddendaPanel({
               projectId={projectId}
               addendum={item}
               asContractor={asContractor}
+              reusedSignatureDataUrl={reusedSignatureDataUrl}
               onUpdated={(updated) => {
                 setItems((prev) =>
                   prev.map((row) => (row.id === updated.id ? updated : row)),

@@ -1369,8 +1369,9 @@ export const enExtended = {
     signatureAckOnly: "Signed without a drawn signature",
     clientSignatureAlt: "Client signature",
     contractorSignatureAlt: "Contractor signature",
-    drawSignatureOptional: "Draw signature (optional)",
-    drawSignatureHint: "You can sign with your mouse or finger, or leave blank and confirm with Sign contract only.",
+    drawSignatureRequired: "Draw signature (required)",
+    drawSignatureHint: "Draw your signature with mouse or finger, then confirm with Sign contract.",
+    signatureRequired: "Please draw your signature before signing the contract.",
     clearSignature: "Clear",
     signContract: "Sign contract",
     signing: "Signing…",
@@ -1446,6 +1447,11 @@ export const enExtended = {
     sign: "Sign additional agreement",
     signing: "Signing…",
     signFailed: "Failed to sign",
+    reuseSignatureTitle: "Signature from main contract",
+    reuseSignatureHint:
+      "This additional agreement will use the same signature you drew on the main contract.",
+    reuseSignatureEmpty:
+      "No drawn signature on the main contract — signing will confirm without an image.",
     fullySignedNote: "Both parties have signed this additional agreement.",
     confirmSignTitle: "Sign additional agreement?",
     confirmSignMessage: "Confirm that you agree to this additional agreement.",
