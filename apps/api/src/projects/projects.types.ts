@@ -28,11 +28,14 @@ export interface CreateProjectDto {
   clarificationMode?: ClarificationMode;
 }
 
-/** Owner may update card title/description/property type at any project status. */
+/** Owner may update card title/description/property type at any project status.
+ *  Construction projectType may be set only before the tender starts.
+ */
 export interface UpdateProjectDto {
   title?: string;
   description?: string | null;
   propertyType?: PropertyType | null;
+  projectType?: ProjectType;
 }
 
 export interface ProjectResponse {

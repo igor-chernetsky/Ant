@@ -163,11 +163,13 @@ export const thExtended = {
     locationMap: "ตำแหน่ง",
     locationMapAria: "แผนที่ตำแหน่งโครงการ",
     locationMapAriaNamed: "แผนที่ตำแหน่งโครงการ: {location}",
-    editCard: "แก้ไขชื่อและคำอธิบาย",
+    editCard: "แก้ไขรายละเอียดโครงการ",
     editTitleLabel: "ชื่อโครงการ",
     editDescriptionLabel: "คำอธิบาย",
     editTitleTooShort: "ชื่อต้องมีอย่างน้อย 3 ตัวอักษร",
     editSaveFailed: "บันทึกการ์ดโครงการไม่สำเร็จ",
+    editProjectTypeHint:
+      "เปลี่ยนประเภทโครงการ / งานได้จนกว่าจะเผยแพร่ประกวดราคา",
     editKpHint: "ข้อเสนอเชิงพาณิชย์ที่ยืนยันแล้วจะคงชื่อและคำอธิบาย ณ เวลาที่ส่งไว้",
   },
   clarificationMode: {

@@ -36,12 +36,14 @@ import {
   type ProjectTrack,
 } from './discover-filters';
 import {
+  canEditConstructionProjectType,
   canResumeConstruction,
   DEFAULT_CONSTRUCTION_TYPE_FROM_DESIGN,
   isConvertibleToDesign,
 } from './design-permits.utils';
 import {
   normalizeConstructionProjectType,
+  SELECTABLE_CONSTRUCTION_PROJECT_TYPES,
   suggestProjectTypeFromText,
 } from './project-type-inference';
 
@@ -1368,7 +1370,8 @@ export class ProjectsService {
     if (
       dto.title === undefined &&
       dto.description === undefined &&
-      dto.propertyType === undefined
+      dto.propertyType === undefined &&
+      dto.projectType === undefined
     ) {
       throw new BadRequestException('Nothing to update');
     }
@@ -1401,11 +1404,36 @@ export class ProjectsService {
       dto.propertyType !== undefined ? dto.propertyType : project.propertyType;
 
     let nextProjectType = project.projectType;
-    if (
-      project.projectType !== ProjectType.design &&
-      dto.description !== undefined
-    ) {
-      const narrative = [nextTitle, nextDescription ?? ''].filter(Boolean).join('\n');
+    const typeEditable = canEditConstructionProjectType(
+      project.projectType,
+      project.status,
+    );
+
+    if (dto.projectType !== undefined) {
+      if (!typeEditable) {
+        throw new BadRequestException(
+          'Project/Work type can only be changed before the tender starts',
+        );
+      }
+      if (dto.projectType === ProjectType.design) {
+        throw new BadRequestException(
+          'Cannot switch to the Design & Permits track from card edit',
+        );
+      }
+      const normalized = normalizeConstructionProjectType(dto.projectType);
+      if (
+        !(SELECTABLE_CONSTRUCTION_PROJECT_TYPES as readonly string[]).includes(
+          normalized,
+        )
+      ) {
+        throw new BadRequestException('Invalid Project/Work type');
+      }
+      nextProjectType = normalized;
+    } else if (typeEditable && dto.description !== undefined) {
+      // Re-infer only when the client did not send an explicit type.
+      const narrative = [nextTitle, nextDescription ?? '']
+        .filter(Boolean)
+        .join('\n');
       nextProjectType = narrative.trim()
         ? suggestProjectTypeFromText(narrative)
         : normalizeConstructionProjectType(project.projectType);

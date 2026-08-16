@@ -8,6 +8,8 @@ import { ProjectLocationMap } from '@/components/ProjectLocationMap';
 import { ProjectStageRail } from '@/components/ProjectStageRail';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
+  canEditConstructionProjectType,
+  CONSTRUCTION_PROJECT_TYPE_OPTIONS,
   convertProjectToDesign,
   formatDateTime,
   PROPERTY_TYPE_OPTIONS,
@@ -16,6 +18,7 @@ import {
   updateProjectCard,
   type Project,
   type ProjectTag,
+  type ProjectType,
   type PropertyType,
 } from '@/lib/projects';
 
@@ -145,6 +148,9 @@ export function ProjectHero({
   const [propertyType, setPropertyType] = useState<PropertyType | ''>(
     project.propertyType ?? '',
   );
+  const [projectType, setProjectType] = useState<ProjectType>(
+    project.projectType,
+  );
   const [saving, setSaving] = useState(false);
   const [converting, setConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,15 +169,25 @@ export function ProjectHero({
   const canResumeConstruction = Boolean(
     canEditCard && project.canResumeConstruction,
   );
+  const canEditType = Boolean(
+    canEditCard && canEditConstructionProjectType(project),
+  );
 
   useEffect(() => {
     if (!editing) {
       setTitle(project.title);
       setDescription(project.description ?? '');
       setPropertyType(project.propertyType ?? '');
+      setProjectType(project.projectType);
       setError(null);
     }
-  }, [project.title, project.description, project.propertyType, editing]);
+  }, [
+    project.title,
+    project.description,
+    project.propertyType,
+    project.projectType,
+    editing,
+  ]);
 
   const chips = [
     formatProjectType(project.projectType),
@@ -195,6 +211,7 @@ export function ProjectHero({
         title: nextTitle,
         description: description.trim() || null,
         propertyType: propertyType || null,
+        ...(canEditType ? { projectType } : {}),
       });
       onCardUpdated?.(updated);
       setEditing(false);
@@ -211,6 +228,7 @@ export function ProjectHero({
     setTitle(project.title);
     setDescription(project.description ?? '');
     setPropertyType(project.propertyType ?? '');
+    setProjectType(project.projectType);
     setError(null);
     setEditing(false);
   };
@@ -325,6 +343,34 @@ export function ProjectHero({
                   ))}
                 </select>
               </label>
+              {canEditType && (
+                <label className="project-hero-edit-label">
+                  {t('createProject.projectTypeLabel')}
+                  <select
+                    value={projectType}
+                    onChange={(e) =>
+                      setProjectType(e.target.value as ProjectType)
+                    }
+                    disabled={saving}
+                  >
+                    {CONSTRUCTION_PROJECT_TYPE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {formatProjectType(option.value)}
+                      </option>
+                    ))}
+                    {!CONSTRUCTION_PROJECT_TYPE_OPTIONS.some(
+                      (option) => option.value === projectType,
+                    ) && (
+                      <option value={projectType}>
+                        {formatProjectType(projectType)}
+                      </option>
+                    )}
+                  </select>
+                  <span className="muted project-hero-edit-field-hint">
+                    {t('projectHero.editProjectTypeHint')}
+                  </span>
+                </label>
+              )}
               {error && (
                 <p className="project-hero-edit-error" role="alert">
                   {error}

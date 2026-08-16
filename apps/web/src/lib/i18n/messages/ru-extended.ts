@@ -163,11 +163,13 @@ export const ruExtended = {
     locationMap: "Локация",
     locationMapAria: "Карта локации проекта",
     locationMapAriaNamed: "Карта локации проекта: {location}",
-    editCard: "Изменить название и описание",
+    editCard: "Изменить карточку проекта",
     editTitleLabel: "Название проекта",
     editDescriptionLabel: "Описание",
     editTitleTooShort: "Название должно быть не короче 3 символов.",
     editSaveFailed: "Не удалось сохранить карточку проекта.",
+    editProjectTypeHint:
+      "Тип проекта / работ можно менять до публикации тендера.",
     editKpHint: "Согласованные КП сохраняют название и описание на момент подачи.",
   },
   clarificationMode: {

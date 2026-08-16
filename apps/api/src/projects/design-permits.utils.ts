@@ -86,6 +86,24 @@ export function isConvertibleToDesign(projectType: ProjectType): boolean {
   return CONVERTIBLE_TO_DESIGN_TYPES.includes(projectType);
 }
 
+/** Statuses where the owner may still change construction Project/Work type. */
+export const PROJECT_TYPE_EDITABLE_STATUSES: ProjectStatus[] = [
+  ProjectStatus.draft,
+  ProjectStatus.intake,
+  ProjectStatus.ready_for_estimate,
+  ProjectStatus.estimated,
+];
+
+export function canEditConstructionProjectType(
+  projectType: ProjectType,
+  status: ProjectStatus,
+): boolean {
+  return (
+    projectType !== ProjectType.design &&
+    PROJECT_TYPE_EDITABLE_STATUSES.includes(status)
+  );
+}
+
 /** Default construction type when branching from a standalone design card. */
 export const DEFAULT_CONSTRUCTION_TYPE_FROM_DESIGN = ProjectType.new_build;
 

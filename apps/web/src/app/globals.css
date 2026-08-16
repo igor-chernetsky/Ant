@@ -3426,7 +3426,8 @@ pre {
 }
 
 .project-hero-edit-label input,
-.project-hero-edit-label textarea {
+.project-hero-edit-label textarea,
+.project-hero-edit-label select {
   font: inherit;
   font-weight: 400;
   padding: 0.65rem 0.75rem;
@@ -3435,6 +3436,13 @@ pre {
   background: rgba(255, 255, 255, 0.72);
   color: inherit;
   resize: vertical;
+}
+
+.project-hero-edit-field-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.35;
 }
 
 .project-hero-edit-actions {

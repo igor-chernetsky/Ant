@@ -163,11 +163,13 @@ export const enExtended = {
     locationMap: "Location",
     locationMapAria: "Project location map",
     locationMapAriaNamed: "Project location map: {location}",
-    editCard: "Edit title & description",
+    editCard: "Edit project details",
     editTitleLabel: "Project title",
     editDescriptionLabel: "Description",
     editTitleTooShort: "Title must be at least 3 characters.",
     editSaveFailed: "Could not save project card.",
+    editProjectTypeHint:
+      "You can change Project/Work type until the project is published for tender.",
     editKpHint: "Agreed commercial proposals keep the title and description from when they were submitted.",
   },
   clarificationMode: {

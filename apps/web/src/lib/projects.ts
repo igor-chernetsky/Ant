@@ -232,6 +232,24 @@ export interface UpdateProjectCardInput {
   title?: string;
   description?: string | null;
   propertyType?: PropertyType | null;
+  projectType?: ProjectType;
+}
+
+const PROJECT_TYPE_EDITABLE_STATUSES = new Set([
+  'draft',
+  'intake',
+  'ready_for_estimate',
+  'estimated',
+]);
+
+/** Owner may change construction Project/Work type before the tender starts. */
+export function canEditConstructionProjectType(
+  project: Pick<Project, 'projectType' | 'status'>,
+): boolean {
+  return (
+    project.projectType !== 'design' &&
+    PROJECT_TYPE_EDITABLE_STATUSES.has(project.status)
+  );
 }
 
 export async function updateProjectCard(
