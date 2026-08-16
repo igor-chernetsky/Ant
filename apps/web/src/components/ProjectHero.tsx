@@ -326,50 +326,54 @@ export function ProjectHero({
                   disabled={saving}
                 />
               </label>
-              <label className="project-hero-edit-label">
-                {t('createProject.propertyTypeLabel')}
-                <select
-                  value={propertyType}
-                  onChange={(e) =>
-                    setPropertyType(e.target.value as PropertyType | '')
-                  }
-                  disabled={saving}
-                >
-                  <option value="">{t('createProject.notSpecified')}</option>
-                  {PROPERTY_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {formatPropertyType(option.value)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {canEditType && (
+              <div className="project-hero-edit-type-row">
                 <label className="project-hero-edit-label">
-                  {t('createProject.projectTypeLabel')}
+                  {t('createProject.propertyTypeLabel')}
                   <select
-                    value={projectType}
+                    value={propertyType}
                     onChange={(e) =>
-                      setProjectType(e.target.value as ProjectType)
+                      setPropertyType(e.target.value as PropertyType | '')
                     }
                     disabled={saving}
                   >
-                    {CONSTRUCTION_PROJECT_TYPE_OPTIONS.map((option) => (
+                    <option value="">{t('createProject.notSpecified')}</option>
+                    {PROPERTY_TYPE_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
-                        {formatProjectType(option.value)}
+                        {formatPropertyType(option.value)}
                       </option>
                     ))}
-                    {!CONSTRUCTION_PROJECT_TYPE_OPTIONS.some(
-                      (option) => option.value === projectType,
-                    ) && (
-                      <option value={projectType}>
-                        {formatProjectType(projectType)}
-                      </option>
-                    )}
                   </select>
-                  <span className="muted project-hero-edit-field-hint">
-                    {t('projectHero.editProjectTypeHint')}
-                  </span>
                 </label>
+                {canEditType && (
+                  <label className="project-hero-edit-label">
+                    {t('createProject.projectTypeLabel')}
+                    <select
+                      value={projectType}
+                      onChange={(e) =>
+                        setProjectType(e.target.value as ProjectType)
+                      }
+                      disabled={saving}
+                    >
+                      {CONSTRUCTION_PROJECT_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {formatProjectType(option.value)}
+                        </option>
+                      ))}
+                      {!CONSTRUCTION_PROJECT_TYPE_OPTIONS.some(
+                        (option) => option.value === projectType,
+                      ) && (
+                        <option value={projectType}>
+                          {formatProjectType(projectType)}
+                        </option>
+                      )}
+                    </select>
+                  </label>
+                )}
+              </div>
+              {canEditType && (
+                <p className="muted project-hero-edit-field-hint">
+                  {t('projectHero.editProjectTypeHint')}
+                </p>
               )}
               {error && (
                 <p className="project-hero-edit-error" role="alert">
