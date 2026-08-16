@@ -142,10 +142,10 @@ export class TenderInvitesService {
     );
 
     const entries = await this.prisma.supplyDirectoryEntry.findMany({
-      where: { id: { in: entryIds }, isActive: true },
+      where: { id: { in: entryIds } },
     });
     if (entries.length === 0) {
-      throw new NotFoundException('No active directory entries found');
+      throw new NotFoundException('No directory entries found');
     }
 
     const registered = await this.registeredSupplyEmails(

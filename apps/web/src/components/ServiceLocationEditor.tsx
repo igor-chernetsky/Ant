@@ -13,6 +13,10 @@ interface ServiceLocationEditorProps {
   value: ServiceLocation[];
   onChange: (next: ServiceLocation[]) => void;
   disabled?: boolean;
+  /** When true, empty value is allowed (matches any project location). */
+  allowEmpty?: boolean;
+  /** Overrides the default location.hint copy. */
+  hint?: string;
 }
 
 function locationKey(location: ServiceLocation): string {
@@ -24,9 +28,16 @@ export function ServiceLocationEditor({
   value,
   onChange,
   disabled = false,
+  allowEmpty = false,
+  hint,
 }: ServiceLocationEditorProps) {
   const { t } = useTranslation();
-  const locations = value.length > 0 ? value : [DEFAULT_SERVICE_LOCATION];
+  const locations =
+    value.length > 0
+      ? value
+      : allowEmpty
+        ? []
+        : [DEFAULT_SERVICE_LOCATION];
 
   const updateAt = (index: number, next: ServiceLocation) => {
     const copy = [...locations];
@@ -36,7 +47,7 @@ export function ServiceLocationEditor({
 
   const removeAt = (index: number) => {
     if (locations.length <= 1) {
-      onChange([DEFAULT_SERVICE_LOCATION]);
+      onChange(allowEmpty ? [] : [DEFAULT_SERVICE_LOCATION]);
       return;
     }
     onChange(locations.filter((_, i) => i !== index));
@@ -54,70 +65,79 @@ export function ServiceLocationEditor({
   return (
     <fieldset className="tag-fieldset service-location-fieldset">
       <legend>{t('location.serviceAreas')}</legend>
-      <p className="muted tag-hint">{t('location.hint')}</p>
-      <ul className="service-location-list">
-        {locations.map((location, index) => {
-          const areas = areasForRegion(catalog, location.regionSlug);
-          return (
-            <li key={`${index}-${locationKey(location)}`} className="service-location-row">
-              <div className="form-row">
-                <label>
-                  {t('location.region')}
-                  <select
-                    value={location.regionSlug}
-                    disabled={disabled}
-                    onChange={(e) =>
-                      updateAt(index, {
-                        regionSlug: e.target.value,
-                        areaSlug: undefined,
-                      })
+      <p className="muted tag-hint">{hint ?? t('location.hint')}</p>
+      {locations.length === 0 ? (
+        <p className="muted tag-hint">{t('location.emptyNationwide')}</p>
+      ) : (
+        <ul className="service-location-list">
+          {locations.map((location, index) => {
+            const areas = areasForRegion(catalog, location.regionSlug);
+            return (
+              <li
+                key={`${index}-${locationKey(location)}`}
+                className="service-location-row"
+              >
+                <div className="form-row">
+                  <label>
+                    {t('location.region')}
+                    <select
+                      value={location.regionSlug}
+                      disabled={disabled}
+                      onChange={(e) =>
+                        updateAt(index, {
+                          regionSlug: e.target.value,
+                          areaSlug: undefined,
+                        })
+                      }
+                    >
+                      {catalog.regions.map((region) => (
+                        <option key={region.slug} value={region.slug}>
+                          {region.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    {t('location.area')}
+                    <select
+                      value={location.areaSlug ?? ''}
+                      disabled={disabled || areas.length === 0}
+                      onChange={(e) =>
+                        updateAt(index, {
+                          regionSlug: location.regionSlug,
+                          areaSlug: e.target.value || undefined,
+                        })
+                      }
+                    >
+                      <option value="">{t('common.wholeRegion')}</option>
+                      {areas.map((area) => (
+                        <option key={area.slug} value={area.slug}>
+                          {area.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="service-location-row-actions">
+                  <span className="muted service-location-summary">
+                    {formatServiceLocation(catalog, location)}
+                  </span>
+                  <button
+                    type="button"
+                    className="secondary service-location-remove"
+                    disabled={
+                      disabled || (!allowEmpty && locations.length <= 1)
                     }
+                    onClick={() => removeAt(index)}
                   >
-                    {catalog.regions.map((region) => (
-                      <option key={region.slug} value={region.slug}>
-                        {region.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  {t('location.area')}
-                  <select
-                    value={location.areaSlug ?? ''}
-                    disabled={disabled || areas.length === 0}
-                    onChange={(e) =>
-                      updateAt(index, {
-                        regionSlug: location.regionSlug,
-                        areaSlug: e.target.value || undefined,
-                      })
-                    }
-                  >
-                    <option value="">{t('common.wholeRegion')}</option>
-                    {areas.map((area) => (
-                      <option key={area.slug} value={area.slug}>
-                        {area.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <div className="service-location-row-actions">
-                <span className="muted service-location-summary">
-                  {formatServiceLocation(catalog, location)}
-                </span>
-                <button
-                  type="button"
-                  className="secondary service-location-remove"
-                  disabled={disabled || locations.length <= 1}
-                  onClick={() => removeAt(index)}
-                >
-                  {t('common.remove')}
-                </button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+                    {t('common.remove')}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <button
         type="button"
         className="secondary"

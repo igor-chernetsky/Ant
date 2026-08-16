@@ -3,16 +3,22 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { SupplyDirectoryEntry, SupplyDirectoryKind } from '@prisma/client';
+import { Prisma, SupplyDirectoryEntry, SupplyDirectoryKind } from '@prisma/client';
+import { LocationsService } from '../locations/locations.service';
+import type { ServiceLocation } from '../locations/locations.catalog';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  DirectoryListFilter,
   SupplyDirectoryEntryDto,
   UpsertDirectoryEntryDto,
 } from './supply-directory.types';
 
 @Injectable()
 export class SupplyDirectoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly locations: LocationsService,
+  ) {}
 
   toDto(entry: SupplyDirectoryEntry): SupplyDirectoryEntryDto {
     return {
@@ -23,56 +29,101 @@ export class SupplyDirectoryService {
       email: entry.email,
       phone: entry.phone,
       website: entry.website,
-      regionSlug: entry.regionSlug,
+      serviceLocations: this.parseServiceLocations(entry.serviceLocationsJson),
+      tagSlugs: entry.tagSlugs ?? [],
       notes: entry.notes,
-      isActive: entry.isActive,
-      sortOrder: entry.sortOrder,
       createdAt: entry.createdAt.toISOString(),
       updatedAt: entry.updatedAt.toISOString(),
     };
   }
 
+  parseServiceLocations(raw: unknown): ServiceLocation[] {
+    if (raw == null) {
+      return [];
+    }
+    if (!Array.isArray(raw) || raw.length === 0) {
+      return [];
+    }
+    return this.locations.normalizeServiceLocations(raw);
+  }
+
   async listAdmin(kind?: SupplyDirectoryKind): Promise<SupplyDirectoryEntryDto[]> {
     const entries = await this.prisma.supplyDirectoryEntry.findMany({
       where: kind ? { kind } : undefined,
-      orderBy: [{ kind: 'asc' }, { sortOrder: 'asc' }, { companyName: 'asc' }],
+      orderBy: [{ kind: 'asc' }, { companyName: 'asc' }],
     });
     return entries.map((e) => this.toDto(e));
   }
 
-  async listActive(
-    kind?: SupplyDirectoryKind,
-    options?: { excludeRegistered?: boolean },
-  ): Promise<SupplyDirectoryEntryDto[]> {
+  async listForInvite(filter: DirectoryListFilter = {}): Promise<SupplyDirectoryEntryDto[]> {
     const entries = await this.prisma.supplyDirectoryEntry.findMany({
-      where: {
-        isActive: true,
-        ...(kind ? { kind } : {}),
-      },
-      orderBy: [{ kind: 'asc' }, { sortOrder: 'asc' }, { companyName: 'asc' }],
+      where: filter.kind ? { kind: filter.kind } : undefined,
+      orderBy: [{ kind: 'asc' }, { companyName: 'asc' }],
     });
 
-    if (!options?.excludeRegistered || entries.length === 0) {
-      return entries.map((e) => this.toDto(e));
+    let dtos = entries.map((e) => this.toDto(e));
+
+    if (filter.excludeRegistered && dtos.length > 0) {
+      const emails = dtos.map((e) => e.email.trim().toLowerCase());
+      const registeredUsers = await this.prisma.user.findMany({
+        where: {
+          email: { in: emails, mode: 'insensitive' },
+          contractorProfile: { isNot: null },
+        },
+        select: { email: true },
+      });
+      const registered = new Set(
+        registeredUsers
+          .map((u) => u.email?.trim().toLowerCase())
+          .filter((e): e is string => Boolean(e)),
+      );
+      dtos = dtos.filter((e) => !registered.has(e.email.trim().toLowerCase()));
     }
 
-    const emails = entries.map((e) => e.email.trim().toLowerCase());
-    const registeredUsers = await this.prisma.user.findMany({
-      where: {
-        email: { in: emails, mode: 'insensitive' },
-        contractorProfile: { isNot: null },
-      },
-      select: { email: true },
-    });
-    const registered = new Set(
-      registeredUsers
-        .map((u) => u.email?.trim().toLowerCase())
-        .filter((e): e is string => Boolean(e)),
-    );
+    const regionSlug = filter.locationRegionSlug?.trim();
+    if (regionSlug) {
+      const projectLocation = {
+        regionSlug,
+        areaSlug: filter.locationAreaSlug?.trim() || null,
+      };
+      dtos = dtos.filter((entry) =>
+        this.matchesProjectLocation(entry.serviceLocations, projectLocation),
+      );
+    }
 
-    return entries
-      .filter((e) => !registered.has(e.email.trim().toLowerCase()))
-      .map((e) => this.toDto(e));
+    const projectTags = (filter.tagSlugs ?? [])
+      .map((slug) => slug.trim())
+      .filter(Boolean);
+    if (projectTags.length > 0) {
+      dtos = dtos.filter((entry) =>
+        this.matchesProjectTrades(entry.tagSlugs, projectTags),
+      );
+    }
+
+    return dtos;
+  }
+
+  /** Empty locations = nationwide / any project. */
+  matchesProjectLocation(
+    serviceLocations: ServiceLocation[],
+    project: { regionSlug: string; areaSlug?: string | null },
+  ): boolean {
+    if (serviceLocations.length === 0) {
+      return true;
+    }
+    return this.locations.contractorMatchesProject(serviceLocations, project);
+  }
+
+  /** Empty entry tags = any trades; otherwise any overlap with project trades. */
+  matchesProjectTrades(
+    entryTagSlugs: string[],
+    projectTagSlugs: string[],
+  ): boolean {
+    if (entryTagSlugs.length === 0 || projectTagSlugs.length === 0) {
+      return true;
+    }
+    const entry = new Set(entryTagSlugs);
+    return projectTagSlugs.some((slug) => entry.has(slug));
   }
 
   async getById(id: string): Promise<SupplyDirectoryEntryDto> {
@@ -119,7 +170,9 @@ export class SupplyDirectoryService {
     await this.prisma.supplyDirectoryEntry.delete({ where: { id } });
   }
 
-  private normalizeUpsert(dto: UpsertDirectoryEntryDto) {
+  private normalizeUpsert(
+    dto: UpsertDirectoryEntryDto,
+  ): Prisma.SupplyDirectoryEntryCreateInput {
     const companyName = dto.companyName?.trim();
     const email = dto.email?.trim().toLowerCase();
     if (!companyName) {
@@ -132,6 +185,20 @@ export class SupplyDirectoryService {
       throw new BadRequestException('Invalid directory kind');
     }
 
+    const serviceLocations =
+      dto.serviceLocations == null ||
+      (Array.isArray(dto.serviceLocations) && dto.serviceLocations.length === 0)
+        ? []
+        : this.locations.normalizeServiceLocations(dto.serviceLocations);
+
+    const tagSlugs = [
+      ...new Set(
+        (dto.tagSlugs ?? [])
+          .map((slug) => String(slug).trim())
+          .filter(Boolean),
+      ),
+    ];
+
     return {
       kind: dto.kind,
       companyName,
@@ -139,10 +206,9 @@ export class SupplyDirectoryService {
       email,
       phone: dto.phone?.trim() || null,
       website: dto.website?.trim() || null,
-      regionSlug: dto.regionSlug?.trim() || null,
+      serviceLocationsJson: serviceLocations as unknown as Prisma.InputJsonValue,
+      tagSlugs,
       notes: dto.notes?.trim() || null,
-      isActive: dto.isActive ?? true,
-      sortOrder: Number.isFinite(dto.sortOrder) ? Number(dto.sortOrder) : 0,
     };
   }
 }

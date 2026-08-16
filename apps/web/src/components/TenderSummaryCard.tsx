@@ -515,6 +515,9 @@ export function TenderSummaryCard({
         <InviteFromDirectoryModal
           projectId={projectId}
           projectType={project.projectType}
+          locationRegionSlug={project.locationRegionSlug}
+          locationAreaSlug={project.locationAreaSlug}
+          tagSlugs={project.tags.map((tag) => tag.slug)}
           onClose={() => setInviteModalOpen(false)}
         />
       )}

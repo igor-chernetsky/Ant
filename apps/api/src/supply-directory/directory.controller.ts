@@ -12,10 +12,25 @@ export class DirectoryController {
   list(
     @Query('kind') kind?: SupplyDirectoryKind,
     @Query('excludeRegistered') excludeRegistered?: string,
+    @Query('locationRegionSlug') locationRegionSlug?: string,
+    @Query('locationAreaSlug') locationAreaSlug?: string,
+    @Query('tagSlugs') tagSlugsRaw?: string | string[],
   ) {
-    return this.directory.listActive(kind, {
+    const tagSlugs = Array.isArray(tagSlugsRaw)
+      ? tagSlugsRaw
+      : typeof tagSlugsRaw === 'string' && tagSlugsRaw.trim()
+        ? tagSlugsRaw.split(',').map((s) => s.trim()).filter(Boolean)
+        : undefined;
+
+    return this.directory.listForInvite({
+      kind,
       excludeRegistered:
-        excludeRegistered === '1' || excludeRegistered === 'true',
+        excludeRegistered === '1' ||
+        excludeRegistered === 'true' ||
+        excludeRegistered === 'yes',
+      locationRegionSlug: locationRegionSlug?.trim() || undefined,
+      locationAreaSlug: locationAreaSlug?.trim() || undefined,
+      tagSlugs,
     });
   }
 }

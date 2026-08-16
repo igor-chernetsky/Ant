@@ -11,10 +11,18 @@ import {
   type SupplyDirectoryEntry,
   type SupplyDirectoryKind,
 } from '@/lib/directory';
+import {
+  fetchLocationCatalog,
+  formatServiceLocation,
+  type LocationCatalog,
+} from '@/lib/locations';
 
 interface InviteFromDirectoryModalProps {
   projectId: string;
   projectType?: string | null;
+  locationRegionSlug?: string | null;
+  locationAreaSlug?: string | null;
+  tagSlugs?: string[];
   onClose: () => void;
   /** Admin send-project invites: show-all toggle + unregistered-only list. */
   variant?: 'client' | 'admin';
@@ -25,6 +33,9 @@ const KINDS: SupplyDirectoryKind[] = ['contractor', 'designer', 'supplier'];
 export function InviteFromDirectoryModal({
   projectId,
   projectType,
+  locationRegionSlug,
+  locationAreaSlug,
+  tagSlugs,
   onClose,
   variant = 'client',
 }: InviteFromDirectoryModalProps) {
@@ -42,10 +53,28 @@ export function InviteFromDirectoryModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [locationCatalog, setLocationCatalog] =
+    useState<LocationCatalog | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchLocationCatalog()
+      .then((catalog) => {
+        if (!cancelled) setLocationCatalog(catalog);
+      })
+      .catch(() => {
+        if (!cancelled) setLocationCatalog(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const tagSlugsKey = (tagSlugs ?? []).join(',');
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +87,9 @@ export function InviteFromDirectoryModal({
       : kind;
     void fetchDirectoryEntries(listKind, {
       excludeRegistered: true,
+      locationRegionSlug,
+      locationAreaSlug,
+      tagSlugs: tagSlugsKey ? tagSlugsKey.split(',') : undefined,
     })
       .then((list) => {
         if (!cancelled) {
@@ -79,7 +111,16 @@ export function InviteFromDirectoryModal({
     return () => {
       cancelled = true;
     };
-  }, [kind, showAllKinds, isAdmin, suggestedKind, t]);
+  }, [
+    kind,
+    showAllKinds,
+    isAdmin,
+    suggestedKind,
+    locationRegionSlug,
+    locationAreaSlug,
+    tagSlugsKey,
+    t,
+  ]);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -99,6 +140,24 @@ export function InviteFromDirectoryModal({
     }),
     [t],
   );
+
+  const formatEntryLocations = (entry: SupplyDirectoryEntry) => {
+    if (entry.serviceLocations.length === 0) {
+      return t('directory.locationsAny');
+    }
+    if (!locationCatalog) {
+      return entry.serviceLocations
+        .map((loc) =>
+          loc.areaSlug
+            ? `${loc.areaSlug}, ${loc.regionSlug}`
+            : loc.regionSlug,
+        )
+        .join(' · ');
+    }
+    return entry.serviceLocations
+      .map((loc) => formatServiceLocation(locationCatalog, loc))
+      .join(' · ');
+  };
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -259,7 +318,7 @@ export function InviteFromDirectoryModal({
                     {isAdmin && showAllKinds ? (
                       <th scope="col">{t('directory.kindColumn')}</th>
                     ) : null}
-                    <th scope="col">{t('directory.regionColumn')}</th>
+                    <th scope="col">{t('directory.locationsColumn')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -301,8 +360,8 @@ export function InviteFromDirectoryModal({
                       {isAdmin && showAllKinds ? (
                         <td className="muted">{kindLabel[entry.kind]}</td>
                       ) : null}
-                      <td className="muted">
-                        {entry.regionSlug || t('common.dash')}
+                      <td className="muted directory-invite-locations">
+                        {formatEntryLocations(entry)}
                       </td>
                     </tr>
                   ))}

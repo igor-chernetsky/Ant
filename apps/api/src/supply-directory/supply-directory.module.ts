@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { LocationsModule } from '../locations/locations.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AdminDirectoryController } from './admin-directory.controller';
 import { DirectoryController } from './directory.controller';
@@ -6,7 +7,7 @@ import { SupplyDirectoryService } from './supply-directory.service';
 import { TenderInvitesService } from './tender-invites.service';
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, LocationsModule],
   controllers: [AdminDirectoryController, DirectoryController],
   providers: [SupplyDirectoryService, TenderInvitesService],
   exports: [SupplyDirectoryService, TenderInvitesService],

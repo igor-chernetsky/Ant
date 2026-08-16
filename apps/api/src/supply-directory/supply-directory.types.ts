@@ -1,4 +1,5 @@
 import { SupplyDirectoryKind } from '@prisma/client';
+import type { ServiceLocation } from '../locations/locations.catalog';
 
 export type DirectoryKind = SupplyDirectoryKind;
 
@@ -10,10 +11,9 @@ export interface SupplyDirectoryEntryDto {
   email: string;
   phone: string | null;
   website: string | null;
-  regionSlug: string | null;
+  serviceLocations: ServiceLocation[];
+  tagSlugs: string[];
   notes: string | null;
-  isActive: boolean;
-  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,10 +25,11 @@ export interface UpsertDirectoryEntryDto {
   email: string;
   phone?: string | null;
   website?: string | null;
-  regionSlug?: string | null;
+  /** Empty / omitted = matches any project location. */
+  serviceLocations?: ServiceLocation[] | null;
+  /** Empty / omitted = matches any project trades. */
+  tagSlugs?: string[] | null;
   notes?: string | null;
-  isActive?: boolean;
-  sortOrder?: number;
 }
 
 export interface InviteDirectoryRecipientsDto {
@@ -48,4 +49,13 @@ export interface TenderInviteResultDto {
   kind: DirectoryKind;
   emailSent: boolean;
   inviteUrl: string;
+}
+
+export interface DirectoryListFilter {
+  kind?: SupplyDirectoryKind;
+  excludeRegistered?: boolean;
+  locationRegionSlug?: string;
+  locationAreaSlug?: string | null;
+  /** Project trade tag slugs used for matching. */
+  tagSlugs?: string[];
 }

@@ -412,6 +412,9 @@ export default function ProjectBidsPage() {
         <InviteFromDirectoryModal
           projectId={projectId}
           projectType={project?.projectType}
+          locationRegionSlug={project?.locationRegionSlug}
+          locationAreaSlug={project?.locationAreaSlug}
+          tagSlugs={project?.tags.map((tag) => tag.slug)}
           onClose={() => setInviteModalOpen(false)}
         />
       )}

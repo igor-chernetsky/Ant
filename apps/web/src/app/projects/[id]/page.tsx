@@ -779,6 +779,9 @@ export default function ProjectDetailPage() {
         <InviteFromDirectoryModal
           projectId={project.id}
           projectType={project.projectType}
+          locationRegionSlug={project.locationRegionSlug}
+          locationAreaSlug={project.locationAreaSlug}
+          tagSlugs={project.tags.map((tag) => tag.slug)}
           variant="admin"
           onClose={() => setAdminInviteOpen(false)}
         />

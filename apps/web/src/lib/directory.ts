@@ -1,4 +1,5 @@
 import { fetchWithAuth } from '@/lib/auth-client';
+import type { ServiceLocation } from '@/lib/locations';
 
 export type SupplyDirectoryKind = 'contractor' | 'designer' | 'supplier';
 
@@ -10,10 +11,9 @@ export interface SupplyDirectoryEntry {
   email: string;
   phone: string | null;
   website: string | null;
-  regionSlug: string | null;
+  serviceLocations: ServiceLocation[];
+  tagSlugs: string[];
   notes: string | null;
-  isActive: boolean;
-  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,10 +25,16 @@ export interface UpsertDirectoryEntryInput {
   email: string;
   phone?: string | null;
   website?: string | null;
-  regionSlug?: string | null;
+  serviceLocations?: ServiceLocation[] | null;
+  tagSlugs?: string[] | null;
   notes?: string | null;
-  isActive?: boolean;
-  sortOrder?: number;
+}
+
+export interface DirectoryListOptions {
+  excludeRegistered?: boolean;
+  locationRegionSlug?: string | null;
+  locationAreaSlug?: string | null;
+  tagSlugs?: string[];
 }
 
 export interface TenderInviteResult {
@@ -52,11 +58,21 @@ async function readError(response: Response, fallback: string): Promise<string> 
 
 export async function fetchDirectoryEntries(
   kind?: SupplyDirectoryKind,
-  options?: { excludeRegistered?: boolean },
+  options?: DirectoryListOptions,
 ): Promise<SupplyDirectoryEntry[]> {
   const params = new URLSearchParams();
   if (kind) params.set('kind', kind);
   if (options?.excludeRegistered) params.set('excludeRegistered', '1');
+  if (options?.locationRegionSlug?.trim()) {
+    params.set('locationRegionSlug', options.locationRegionSlug.trim());
+  }
+  if (options?.locationAreaSlug?.trim()) {
+    params.set('locationAreaSlug', options.locationAreaSlug.trim());
+  }
+  for (const slug of options?.tagSlugs ?? []) {
+    const trimmed = slug.trim();
+    if (trimmed) params.append('tagSlugs', trimmed);
+  }
   const qs = params.toString() ? `?${params.toString()}` : '';
   const response = await fetchWithAuth(`/api/directory${qs}`);
   if (!response.ok) {
