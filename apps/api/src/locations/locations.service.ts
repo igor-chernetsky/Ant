@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   assertAreaSlug,
   assertRegionSlug,
+  coerceServiceLocations,
   contractorMatchesProjectLocation,
   formatLocationLabel,
   formatProjectDistrict,
@@ -37,6 +38,10 @@ export class LocationsService {
 
   normalizeServiceLocations(raw: unknown) {
     return normalizeServiceLocations(raw);
+  }
+
+  coerceServiceLocations(raw: unknown) {
+    return coerceServiceLocations(raw);
   }
 
   contractorMatchesProject(

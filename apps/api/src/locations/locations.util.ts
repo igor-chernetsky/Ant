@@ -18,37 +18,78 @@ const areasBySlug = new Map(
   LOCATION_AREAS.map((area) => [area.slug, area]),
 );
 
+/**
+ * Catalog slugs use underscores (`chiang_mai`). Older free-text / seed data
+ * sometimes used hyphens (`chiang-mai`) — map those aliases when possible.
+ */
+export function canonicalizeRegionSlug(slug: string): string | null {
+  const trimmed = slug.trim();
+  if (!trimmed) return null;
+  if (regionBySlug.has(trimmed)) return trimmed;
+  const underscored = trimmed.replace(/-/g, '_');
+  if (underscored !== trimmed && regionBySlug.has(underscored)) {
+    return underscored;
+  }
+  return null;
+}
+
+export function canonicalizeAreaSlug(
+  regionSlug: string,
+  areaSlug: string,
+): string | null {
+  const trimmed = areaSlug.trim();
+  if (!trimmed) return null;
+  const candidates = [trimmed];
+  const underscored = trimmed.replace(/-/g, '_');
+  if (underscored !== trimmed) candidates.push(underscored);
+  for (const candidate of candidates) {
+    const area = areasBySlug.get(candidate);
+    if (area && area.regionSlug === regionSlug) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
 export function getRegion(slug: string): LocationRegion | undefined {
-  return regionBySlug.get(slug);
+  const canonical = canonicalizeRegionSlug(slug);
+  return canonical ? regionBySlug.get(canonical) : undefined;
 }
 
 export function getArea(slug: string): LocationArea | undefined {
-  return areasBySlug.get(slug);
+  const trimmed = slug.trim();
+  if (!trimmed) return undefined;
+  return (
+    areasBySlug.get(trimmed) ??
+    areasBySlug.get(trimmed.replace(/-/g, '_'))
+  );
 }
 
 export function listAreasForRegion(regionSlug: string): LocationArea[] {
-  return LOCATION_AREAS.filter((area) => area.regionSlug === regionSlug);
+  const canonical = canonicalizeRegionSlug(regionSlug) ?? regionSlug;
+  return LOCATION_AREAS.filter((area) => area.regionSlug === canonical);
 }
 
 export function assertRegionSlug(regionSlug: string): LocationRegion {
-  const region = getRegion(regionSlug);
-  if (!region) {
+  const canonical = canonicalizeRegionSlug(regionSlug);
+  if (!canonical) {
     throw new BadRequestException(`Unknown region: ${regionSlug}`);
   }
-  return region;
+  return regionBySlug.get(canonical)!;
 }
 
 export function assertAreaSlug(
   regionSlug: string,
   areaSlug: string,
 ): LocationArea {
-  const area = getArea(areaSlug);
-  if (!area || area.regionSlug !== regionSlug) {
+  const canonicalRegion = assertRegionSlug(regionSlug).slug;
+  const canonicalArea = canonicalizeAreaSlug(canonicalRegion, areaSlug);
+  if (!canonicalArea) {
     throw new BadRequestException(
       `Unknown area "${areaSlug}" for region "${regionSlug}"`,
     );
   }
-  return area;
+  return areasBySlug.get(canonicalArea)!;
 }
 
 export function normalizeProjectLocation(input: {
@@ -65,25 +106,28 @@ export function normalizeProjectLocation(input: {
   const regionSlug =
     input.locationRegionSlug?.trim() || DEFAULT_LOCATION_REGION_SLUG;
   const region = assertRegionSlug(regionSlug);
-  const areaSlug = input.locationAreaSlug?.trim() || null;
-  if (areaSlug) {
-    assertAreaSlug(regionSlug, areaSlug);
-  }
+  const areaSlugRaw = input.locationAreaSlug?.trim() || null;
+  const areaSlug = areaSlugRaw
+    ? assertAreaSlug(region.slug, areaSlugRaw).slug
+    : null;
   const locationNote = input.locationNote?.trim() || null;
 
   return {
-    locationRegionSlug: regionSlug,
+    locationRegionSlug: region.slug,
     locationAreaSlug: areaSlug,
     locationNote,
     regionCode: region.countryCode,
     district: formatProjectDistrict({
-      regionSlug,
+      regionSlug: region.slug,
       areaSlug,
       note: locationNote,
     }),
   };
 }
 
+/**
+ * Strict normalize for writes (profiles, forms). Empty input → default Bangkok.
+ */
 export function normalizeServiceLocations(
   raw: unknown,
 ): ServiceLocation[] {
@@ -106,27 +150,60 @@ export function normalizeServiceLocations(
     if (!entry || typeof entry !== 'object') {
       throw new BadRequestException('Invalid service location entry');
     }
-    const regionSlug = String(
+    const regionRaw = String(
       (entry as ServiceLocation).regionSlug ?? '',
     ).trim();
-    if (!regionSlug) {
+    if (!regionRaw) {
       throw new BadRequestException('Each service location needs a region');
     }
-    assertRegionSlug(regionSlug);
+    const regionSlug = assertRegionSlug(regionRaw).slug;
 
     const areaSlugRaw = (entry as ServiceLocation).areaSlug;
     const areaSlug =
       typeof areaSlugRaw === 'string' && areaSlugRaw.trim()
-        ? areaSlugRaw.trim()
+        ? assertAreaSlug(regionSlug, areaSlugRaw.trim()).slug
         : undefined;
-    if (areaSlug) {
-      assertAreaSlug(regionSlug, areaSlug);
-    }
 
     const key = `${regionSlug}::${areaSlug ?? '*'}`;
     if (seen.has(key)) {
       continue;
     }
+    seen.add(key);
+    normalized.push(areaSlug ? { regionSlug, areaSlug } : { regionSlug });
+  }
+
+  return normalized;
+}
+
+/**
+ * Lenient read path for stored JSON (directory, matching).
+ * Remaps legacy hyphen aliases; skips unknown entries; empty → [].
+ */
+export function coerceServiceLocations(raw: unknown): ServiceLocation[] {
+  if (raw == null || !Array.isArray(raw) || raw.length === 0) {
+    return [];
+  }
+
+  const normalized: ServiceLocation[] = [];
+  const seen = new Set<string>();
+
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    const regionRaw = String(
+      (entry as ServiceLocation).regionSlug ?? '',
+    ).trim();
+    const regionSlug = canonicalizeRegionSlug(regionRaw);
+    if (!regionSlug) continue;
+
+    const areaSlugRaw = (entry as ServiceLocation).areaSlug;
+    let areaSlug: string | undefined;
+    if (typeof areaSlugRaw === 'string' && areaSlugRaw.trim()) {
+      areaSlug =
+        canonicalizeAreaSlug(regionSlug, areaSlugRaw.trim()) ?? undefined;
+    }
+
+    const key = `${regionSlug}::${areaSlug ?? '*'}`;
+    if (seen.has(key)) continue;
     seen.add(key);
     normalized.push(areaSlug ? { regionSlug, areaSlug } : { regionSlug });
   }

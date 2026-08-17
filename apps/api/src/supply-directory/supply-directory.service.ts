@@ -38,13 +38,7 @@ export class SupplyDirectoryService {
   }
 
   parseServiceLocations(raw: unknown): ServiceLocation[] {
-    if (raw == null) {
-      return [];
-    }
-    if (!Array.isArray(raw) || raw.length === 0) {
-      return [];
-    }
-    return this.locations.normalizeServiceLocations(raw);
+    return this.locations.coerceServiceLocations(raw);
   }
 
   async listAdmin(kind?: SupplyDirectoryKind): Promise<SupplyDirectoryEntryDto[]> {
