@@ -107,28 +107,32 @@ export function ContractorCoverageNotice({
   const professionalPlural = t(
     isDesign ? 'coverage.designer_other' : 'coverage.contractor_other',
   );
-  const suggestInvite =
+  const lowMatchInvite =
     coverage.suggestInviteFromDirectory === true ||
     coverage.contractorCount <= DIRECTORY_INVITE_LOW_MATCH_THRESHOLD;
+  const showInvite = Boolean(
+    onInviteFromDirectory && (isDesign || lowMatchInvite),
+  );
 
-  const inviteBlock =
-    suggestInvite && onInviteFromDirectory ? (
-      <div className="contractor-coverage-invite">
-        <p className="contractor-coverage-notice-text">
-          {t('coverage.inviteSuggestLowMatches', {
-            count: coverage.contractorCount,
-            professionals: professionalPlural,
-          })}
-        </p>
-        <button
-          type="button"
-          className="secondary"
-          onClick={onInviteFromDirectory}
-        >
-          {t('tenderCard.inviteFromDirectory')}
-        </button>
-      </div>
-    ) : null;
+  const inviteBlock = showInvite ? (
+    <div className="contractor-coverage-invite">
+      <p className="contractor-coverage-notice-text">
+        {lowMatchInvite
+          ? t('coverage.inviteSuggestLowMatches', {
+              count: coverage.contractorCount,
+              professionals: professionalPlural,
+            })
+          : t('coverage.inviteAnytimeDesign')}
+      </p>
+      <button
+        type="button"
+        className="secondary"
+        onClick={() => onInviteFromDirectory?.()}
+      >
+        {t('tenderCard.inviteFromDirectory')}
+      </button>
+    </div>
+  ) : null;
 
   if (coverage.suggestSplitProject) {
     return (
@@ -171,7 +175,7 @@ export function ContractorCoverageNotice({
   return (
     <div
       className={`contractor-coverage-notice${
-        suggestInvite ? ' contractor-coverage-notice-warning' : ''
+        lowMatchInvite ? ' contractor-coverage-notice-warning' : ''
       }`}
       role="note"
     >

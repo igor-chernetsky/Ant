@@ -45,6 +45,7 @@ interface ClientClarificationQuestionsPanelProps {
   projectId: string;
   clarificationSummary?: string | null;
   tenderStatus?: string | null;
+  audience?: 'contractor' | 'designer';
   onUpdated?: () => void;
 }
 
@@ -162,9 +163,19 @@ export function ClientClarificationQuestionsPanel({
   projectId,
   clarificationSummary,
   tenderStatus,
+  audience = 'contractor',
   onUpdated,
 }: ClientClarificationQuestionsPanelProps) {
   const { t } = useTranslation();
+  const isDesign = audience === 'designer';
+  const professionalOne = isDesign
+    ? t('clarificationClient.designer_one')
+    : t('clarificationClient.contractor_one');
+  const professionalOther = isDesign
+    ? t('clarificationClient.designer_other')
+    : t('clarificationClient.contractor_other');
+  const professionalLabel = (count: number) =>
+    count === 1 ? professionalOne : professionalOther;
   const [questions, setQuestions] = useState<ClarificationQuestion[]>([]);
   const [fullyAnsweredContractorCount, setFullyAnsweredContractorCount] =
     useState(0);
@@ -266,7 +277,11 @@ export function ClientClarificationQuestionsPanel({
   if (loading) {
     return (
       <div className="client-clarification-panel">
-        <p className="muted">{t('clarificationClient.loading')}</p>
+        <p className="muted">{t(
+          isDesign
+            ? 'clarificationClient.loadingDesign'
+            : 'clarificationClient.loading',
+        )}</p>
       </div>
     );
   }
@@ -283,17 +298,33 @@ export function ClientClarificationQuestionsPanel({
 
   return (
     <div className="client-clarification-panel">
-      <h3 className="tender-subsection-title">{t('clarificationClient.questionsTitle')}</h3>
+      <h3 className="tender-subsection-title">{t(
+        isDesign
+          ? 'clarificationClient.questionsTitleDesign'
+          : 'clarificationClient.questionsTitle',
+      )}</h3>
       <p className="muted client-clarification-hint">
-        {t('clarificationClient.activeHint')}
+        {t(
+          isDesign
+            ? 'clarificationClient.activeHintDesign'
+            : 'clarificationClient.activeHint',
+        )}
       </p>
       <p className="muted client-clarification-hint">
-        {t('clarificationClient.verificationHint')}
+        {t(
+          isDesign
+            ? 'clarificationClient.verificationHintDesign'
+            : 'clarificationClient.verificationHint',
+        )}
       </p>
 
       {questions.length === 0 ? (
         <p className="muted">
-          {t('clarificationClient.noQuestionsYet')}
+          {t(
+            isDesign
+              ? 'clarificationClient.noQuestionsYetDesign'
+              : 'clarificationClient.noQuestionsYet',
+          )}
         </p>
       ) : (
         question && (
@@ -326,10 +357,7 @@ export function ClientClarificationQuestionsPanel({
                       {t('clarificationClient.fullyAnsweredFor', {
                         answered: fullyAnsweredContractorCount,
                         total: totalContractorCount,
-                        contractors:
-                          totalContractorCount === 1
-                            ? t('clarificationClient.contractor_one')
-                            : t('clarificationClient.contractor_other'),
+                        contractors: professionalLabel(totalContractorCount),
                       })}
                     </>
                   )}
@@ -357,8 +385,8 @@ export function ClientClarificationQuestionsPanel({
                     {question.askedByCount ?? question.sourceBidIds.length}
                   </strong>{' '}
                   {(question.askedByCount ?? question.sourceBidIds.length) === 1
-                    ? t('clarificationClient.contractor_one')
-                    : t('clarificationClient.contractor_other')}
+                    ? professionalOne
+                    : professionalOther}
                 </p>
               </div>
             </div>

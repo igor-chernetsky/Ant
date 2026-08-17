@@ -316,7 +316,8 @@ export default function ProjectBidsPage() {
                       </h2>
 
                       {displayBids.length > 0 ? (
-                        <ul className="bid-proposal-list">
+                        <>
+                          <ul className="bid-proposal-list">
                           {displayBids.map((bid) => (
                             <BidApplicationCard
                               key={bid.id}
@@ -356,9 +357,33 @@ export default function ProjectBidsPage() {
                             />
                           ))}
                         </ul>
+                          {project?.projectType === 'design' &&
+                            !tenderAwarded && (
+                              <div className="tender-actions-block">
+                                <p className="muted tender-hint">
+                                  {t(
+                                    'tenderCard.inviteFromDirectoryHintDesign',
+                                  )}
+                                </p>
+                                <button
+                                  type="button"
+                                  className="secondary"
+                                  onClick={() => setInviteModalOpen(true)}
+                                >
+                                  {t('tenderCard.inviteFromDirectory')}
+                                </button>
+                              </div>
+                            )}
+                        </>
                       ) : (
                         <div className="tender-actions-block">
-                          <p className="muted">{t('bidsPage.noApplications')}</p>
+                          <p className="muted">
+                            {t(
+                              project?.projectType === 'design'
+                                ? 'bidsPage.noApplicationsDesign'
+                                : 'bidsPage.noApplications',
+                            )}
+                          </p>
                           <ContractorCoverageNotice
                             projectId={projectId}
                             enabled
@@ -376,8 +401,16 @@ export default function ProjectBidsPage() {
                           />
                           <p className="muted tender-hint">
                             {tenderHasStaleEmptyResponses(tender)
-                              ? t('tenderCard.inviteSuggestStale')
-                              : t('tenderCard.inviteFromDirectoryHint')}
+                              ? t(
+                                  project?.projectType === 'design'
+                                    ? 'tenderCard.inviteSuggestStaleDesign'
+                                    : 'tenderCard.inviteSuggestStale',
+                                )
+                              : t(
+                                  project?.projectType === 'design'
+                                    ? 'tenderCard.inviteFromDirectoryHintDesign'
+                                    : 'tenderCard.inviteFromDirectoryHint',
+                                )}
                           </p>
                           <button
                             type="button"
@@ -396,6 +429,11 @@ export default function ProjectBidsPage() {
                           projectId={projectId}
                           tenderStatus={tender.status}
                           clarificationSummary={project.clarificationSummary}
+                          audience={
+                            project?.projectType === 'design'
+                              ? 'designer'
+                              : 'contractor'
+                          }
                           onUpdated={() => void loadData()}
                         />
                       </section>

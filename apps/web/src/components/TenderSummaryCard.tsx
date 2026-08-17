@@ -71,8 +71,10 @@ export function TenderSummaryCard({
   );
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
-  const audience =
-    project.projectType === 'design' ? 'designer' : 'contractor';
+  const isDesign = project.projectType === 'design';
+  const audience = isDesign ? 'designer' : 'contractor';
+  const winnerSelected =
+    tender?.status === 'awarded' || Boolean(tender?.awardedBidId);
 
   const applicationLabel = (count: number) =>
     count === 1
@@ -188,10 +190,12 @@ export function TenderSummaryCard({
   // Low-match CTA is shown inside ContractorCoverageNotice; stale empty
   // tenders also get an invite block below.
   const showDirectoryInviteBlock =
-    showStaleInviteSuggest ||
-    (Boolean(tender) &&
-      (tender?.bids.length ?? 0) === 0 &&
-      !collectingQuestions);
+    Boolean(tender) &&
+    !winnerSelected &&
+    !collectingQuestions &&
+    (isDesign ||
+      showStaleInviteSuggest ||
+      (tender?.bids.length ?? 0) === 0);
 
   const handleRevert = async () => {
     const confirmed = await confirm({
@@ -255,8 +259,16 @@ export function TenderSummaryCard({
         <>
           <p className="muted doc-hint">
             {structuredQa
-              ? t('tenderCard.publishStructuredHint')
-              : t('tenderCard.publishOpenHint')}
+              ? t(
+                  isDesign
+                    ? 'tenderCard.publishStructuredHintDesign'
+                    : 'tenderCard.publishStructuredHint',
+                )
+              : t(
+                  isDesign
+                    ? 'tenderCard.publishOpenHintDesign'
+                    : 'tenderCard.publishOpenHint',
+                )}
           </p>
           <div className="tender-actions-block tender-publish-block">
             <ContractorCoverageNotice
@@ -350,7 +362,11 @@ export function TenderSummaryCard({
             <div className="tender-summary-actions">
               <p className="muted tender-summary-lead">
                 {tender.status === 'awarded' && tender.awardedBidId ? (
-                  t('tenderCard.awardedLead')
+                  t(
+                    isDesign
+                      ? 'tenderCard.awardedLeadDesign'
+                      : 'tenderCard.awardedLead',
+                  )
                 ) : tender.submittedBidCount > 0 ? (
                   <>
                     {t('tenderCard.reviewCount', {
@@ -388,7 +404,11 @@ export function TenderSummaryCard({
           {collectingQuestions && (
             <div className="tender-actions-block tender-publish-block">
               <p className="muted tender-phase-hint">
-                {t('tenderCard.clarificationPhaseHint')}
+                {t(
+                  isDesign
+                    ? 'tenderCard.clarificationPhaseHintDesign'
+                    : 'tenderCard.clarificationPhaseHint',
+                )}
               </p>
               <ContractorCoverageNotice
                 projectId={projectId}
@@ -408,7 +428,11 @@ export function TenderSummaryCard({
                   {t('tenderCard.openTenderForBids')}
                 </button>
                 <p className="muted tender-hint tender-open-hint">
-                  {t('tenderCard.openTenderForBidsHint')}
+                  {t(
+                    isDesign
+                      ? 'tenderCard.openTenderForBidsHintDesign'
+                      : 'tenderCard.openTenderForBidsHint',
+                  )}
                 </p>
               </div>
             </div>
@@ -426,7 +450,11 @@ export function TenderSummaryCard({
               )}
               {(tender?.bids.length ?? 0) === 0 && !collectingQuestions && (
                 <p className="muted tender-phase-hint">
-                  {t('tenderCard.publishedWaiting')}
+                  {t(
+                    isDesign
+                      ? 'tenderCard.publishedWaitingDesign'
+                      : 'tenderCard.publishedWaiting',
+                  )}
                 </p>
               )}
               {!collectingQuestions && (
@@ -442,8 +470,16 @@ export function TenderSummaryCard({
               <div className="tender-actions-block">
                 <p className="muted tender-hint">
                   {showStaleInviteSuggest
-                    ? t('tenderCard.inviteSuggestStale')
-                    : t('tenderCard.inviteFromDirectoryHint')}
+                    ? t(
+                        isDesign
+                          ? 'tenderCard.inviteSuggestStaleDesign'
+                          : 'tenderCard.inviteSuggestStale',
+                      )
+                    : t(
+                        isDesign
+                          ? 'tenderCard.inviteFromDirectoryHintDesign'
+                          : 'tenderCard.inviteFromDirectoryHint',
+                      )}
                 </p>
                 <button
                   type="button"
@@ -467,7 +503,11 @@ export function TenderSummaryCard({
                       : t('tenderCard.returnToPreparation')}
                   </button>
                   <p className="muted tender-hint">
-                    {t('tenderCard.unpublishHint')}
+                    {t(
+                      isDesign
+                        ? 'tenderCard.unpublishHintDesign'
+                        : 'tenderCard.unpublishHint',
+                    )}
                   </p>
                 </div>
               )}
@@ -493,6 +533,7 @@ export function TenderSummaryCard({
               projectId={projectId}
               tenderStatus={tender.status}
               clarificationSummary={project.clarificationSummary}
+              audience={audience}
               onUpdated={() => void refreshProject()}
             />
           )}

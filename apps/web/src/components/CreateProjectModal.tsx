@@ -302,15 +302,27 @@ export function CreateProjectModal({
 
           <div className="clarification-mode-field">
             <span className="clarification-mode-label">
-              {t('createProject.clarificationLabel')}
+              {t(
+                projectType === 'design'
+                  ? 'createProject.clarificationLabelDesign'
+                  : 'createProject.clarificationLabel',
+              )}
             </span>
             <p className="muted clarification-mode-hint">
-              {t('createProject.clarificationHint')}
+              {t(
+                projectType === 'design'
+                  ? 'createProject.clarificationHintDesign'
+                  : 'createProject.clarificationHint',
+              )}
             </p>
             <div
               className="clarification-mode-switch"
               role="radiogroup"
-              aria-label={t('createProject.clarificationAria')}
+              aria-label={t(
+                projectType === 'design'
+                  ? 'createProject.clarificationAriaDesign'
+                  : 'createProject.clarificationAria',
+              )}
             >
               {CLARIFICATION_MODE_OPTIONS.map((option) => (
                 <button

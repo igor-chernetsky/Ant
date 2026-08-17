@@ -92,6 +92,7 @@ export function PublishTenderPackageModal({
   const [error, setError] = useState<string | null>(null);
   const [portalReady, setPortalReady] = useState(false);
 
+  const isDesign = project.projectType === 'design';
   const isClarificationPublish = mode === 'create' && structuredQa;
 
   useEffect(() => {
@@ -234,8 +235,16 @@ export function PublishTenderPackageModal({
 
           <p className="muted modal-subtitle publish-tender-modal-subtitle">
             {isClarificationPublish
-              ? t('tenderCard.modalSubtitleClarification')
-              : t('tenderCard.modalSubtitle')}
+              ? t(
+                  isDesign
+                    ? 'tenderCard.modalSubtitleClarificationDesign'
+                    : 'tenderCard.modalSubtitleClarification',
+                )
+              : t(
+                  isDesign
+                    ? 'tenderCard.modalSubtitleDesign'
+                    : 'tenderCard.modalSubtitle',
+                )}
           </p>
         </div>
 
@@ -263,7 +272,11 @@ export function PublishTenderPackageModal({
 
                 {isClarificationPublish && (
                   <p className="muted publish-clarification-hint">
-                    {t('tenderCard.modalClarificationPublishHint')}
+                    {t(
+                      isDesign
+                        ? 'tenderCard.modalClarificationPublishHintDesign'
+                        : 'tenderCard.modalClarificationPublishHint',
+                    )}
                   </p>
                 )}
 
@@ -291,7 +304,11 @@ export function PublishTenderPackageModal({
                       <label>
                         {t('tenderCard.clarificationSummary')}
                         <span className="field-hint muted">
-                          {t('tenderCard.clarificationSummaryHint')}
+                          {t(
+                            isDesign
+                              ? 'tenderCard.clarificationSummaryHintDesign'
+                              : 'tenderCard.clarificationSummaryHint',
+                          )}
                         </span>
                         <textarea
                           rows={4}
