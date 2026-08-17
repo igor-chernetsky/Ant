@@ -1398,6 +1398,8 @@ export const ruExtended = {
     reportLabel: "Описание дефекта",
     reportPlaceholder: "Что не так и где?",
     attachmentsOptional: "Фото или документы (необязательно)",
+    attachmentsHint: "Нажмите или перетащите файлы · изображения, PDF, Word, Excel",
+    removeFileAria: "Удалить {name}",
     filesSelected: "Выбрано файлов: {n}",
     reportButton: "Сообщить о дефекте",
     empty: "Дефекты пока не сообщались.",

@@ -1397,6 +1397,8 @@ export const enExtended = {
     reportLabel: "Describe the defect",
     reportPlaceholder: "What is wrong and where?",
     attachmentsOptional: "Photos or documents (optional)",
+    attachmentsHint: "Click or drop files here · images, PDF, Word, Excel",
+    removeFileAria: "Remove {name}",
     filesSelected: "{n} file(s) selected",
     reportButton: "Report defect",
     empty: "No defects reported yet.",

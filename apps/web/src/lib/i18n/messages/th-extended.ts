@@ -1395,6 +1395,8 @@ export const thExtended = {
     reportLabel: "อธิบายข้อบกพร่อง",
     reportPlaceholder: "มีปัญหาอะไรและอยู่ตรงไหน?",
     attachmentsOptional: "รูปภาพหรือเอกสาร (ไม่บังคับ)",
+    attachmentsHint: "คลิกหรือลากไฟล์มาวาง · รูปภาพ PDF Word Excel",
+    removeFileAria: "ลบ {name}",
     filesSelected: "เลือก {n} ไฟล์",
     reportButton: "รายงานข้อบกพร่อง",
     empty: "ยังไม่มีการรายงานข้อบกพร่อง",

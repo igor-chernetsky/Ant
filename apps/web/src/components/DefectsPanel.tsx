@@ -1,10 +1,10 @@
 'use client';
 
 import {
-  ChangeEvent,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { DocumentImage } from '@/components/DocumentImage';
@@ -25,6 +25,7 @@ import {
   type DefectStatus,
 } from '@/lib/defects';
 import {
+  formatFileSize,
   getDocumentDownloadUrl,
   MAX_UPLOAD_BYTES,
   type ProjectDocument,
@@ -85,6 +86,128 @@ function eventLabelKey(
     default:
       return 'defectsSection.eventCreated';
   }
+}
+
+function mergeSelectedFiles(current: File[], incoming: File[]): File[] {
+  const next = [...current];
+  for (const file of incoming) {
+    if (file.size > MAX_UPLOAD_BYTES) continue;
+    if (
+      next.some(
+        (item) =>
+          item.name === file.name &&
+          item.size === file.size &&
+          item.lastModified === file.lastModified,
+      )
+    ) {
+      continue;
+    }
+    next.push(file);
+  }
+  return next;
+}
+
+function DefectFilePicker({
+  files,
+  disabled,
+  label,
+  onChange,
+}: {
+  files: File[];
+  disabled?: boolean;
+  label: string;
+  onChange: (files: File[]) => void;
+}) {
+  const { t } = useTranslation();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const takeFiles = (list: FileList | File[] | null) => {
+    if (!list || disabled) return;
+    onChange(mergeSelectedFiles(files, Array.from(list)));
+  };
+
+  return (
+    <div className="defect-file-picker">
+      <input
+        ref={inputRef}
+        type="file"
+        className="sr-only"
+        multiple
+        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+        disabled={disabled}
+        onChange={(event) => {
+          takeFiles(event.target.files);
+          event.target.value = '';
+        }}
+      />
+      <button
+        type="button"
+        className={`defect-file-drop${dragOver ? ' is-dragover' : ''}`}
+        disabled={disabled}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(event) => {
+          event.preventDefault();
+          if (!disabled) setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragOver(false);
+          takeFiles(event.dataTransfer.files);
+        }}
+      >
+        <span className="defect-file-drop-icon" aria-hidden="true">
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21.44 11.05l-8.49 8.49a5.25 5.25 0 0 1-7.43-7.43l8.49-8.49a3.5 3.5 0 0 1 4.95 4.95l-8.49 8.49a1.75 1.75 0 0 1-2.47-2.47l8.13-8.13" />
+          </svg>
+        </span>
+        <span className="defect-file-drop-copy">
+          <strong>{label}</strong>
+          <span className="muted">{t('defectsSection.attachmentsHint')}</span>
+        </span>
+      </button>
+      {files.length > 0 && (
+        <ul className="defect-file-chips">
+          {files.map((file, index) => (
+            <li
+              key={`${file.name}-${file.size}-${file.lastModified}`}
+              className="defect-file-chip"
+            >
+              <span className="defect-file-chip-name" title={file.name}>
+                {file.name}
+              </span>
+              <span className="muted defect-file-chip-size">
+                {formatFileSize(file.size)}
+              </span>
+              <button
+                type="button"
+                className="defect-file-chip-remove"
+                disabled={disabled}
+                aria-label={t('defectsSection.removeFileAria', {
+                  name: file.name,
+                })}
+                onClick={() =>
+                  onChange(files.filter((_, itemIndex) => itemIndex !== index))
+                }
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function toProjectDocument(
@@ -150,22 +273,6 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
   if (projectStatus !== 'active') {
     return null;
   }
-
-  const handleNewFiles = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    setNewFiles(files.filter((file) => file.size <= MAX_UPLOAD_BYTES));
-    event.target.value = '';
-  };
-
-  const handleActionFiles =
-    (defectId: string) => (event: ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(event.target.files ?? []);
-      setActionFiles((prev) => ({
-        ...prev,
-        [defectId]: files.filter((file) => file.size <= MAX_UPLOAD_BYTES),
-      }));
-      event.target.value = '';
-    };
 
   const handleReport = async () => {
     const description = newDescription.trim();
@@ -273,21 +380,12 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
             placeholder={t('defectsSection.reportPlaceholder')}
             onChange={(event) => setNewDescription(event.target.value)}
           />
-          <label className="field-label" htmlFor="defect-files">
-            {t('defectsSection.attachmentsOptional')}
-          </label>
-          <input
-            id="defect-files"
-            type="file"
-            multiple
+          <DefectFilePicker
+            files={newFiles}
             disabled={busy}
-            onChange={handleNewFiles}
+            label={t('defectsSection.attachmentsOptional')}
+            onChange={setNewFiles}
           />
-          {newFiles.length > 0 && (
-            <p className="muted">
-              {t('defectsSection.filesSelected', { n: String(newFiles.length) })}
-            </p>
-          )}
           <button
             type="button"
             className="primary"
@@ -412,11 +510,13 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                       }))
                     }
                   />
-                  <input
-                    type="file"
-                    multiple
+                  <DefectFilePicker
+                    files={files}
                     disabled={busy}
-                    onChange={handleActionFiles(defect.id)}
+                    label={t('defectsSection.attachmentsOptional')}
+                    onChange={(next) =>
+                      setActionFiles((prev) => ({ ...prev, [defect.id]: next }))
+                    }
                   />
                   <button
                     type="button"
@@ -459,14 +559,13 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                       }))
                     }
                   />
-                  <label className="field-label">
-                    {t('defectsSection.fixPhotosOptional')}
-                  </label>
-                  <input
-                    type="file"
-                    multiple
+                  <DefectFilePicker
+                    files={files}
                     disabled={busy}
-                    onChange={handleActionFiles(defect.id)}
+                    label={t('defectsSection.fixPhotosOptional')}
+                    onChange={(next) =>
+                      setActionFiles((prev) => ({ ...prev, [defect.id]: next }))
+                    }
                   />
                   <button
                     type="button"
@@ -521,11 +620,13 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                       }))
                     }
                   />
-                  <input
-                    type="file"
-                    multiple
+                  <DefectFilePicker
+                    files={files}
                     disabled={busy}
-                    onChange={handleActionFiles(defect.id)}
+                    label={t('defectsSection.attachmentsOptional')}
+                    onChange={(next) =>
+                      setActionFiles((prev) => ({ ...prev, [defect.id]: next }))
+                    }
                   />
                   <button
                     type="button"

@@ -3194,8 +3194,128 @@ pre {
 .defect-compose {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 1.15rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--glass-bg-dense);
+}
+
+.defect-file-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.defect-file-drop {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 12px;
+  font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.defect-file-drop:hover:not(:disabled),
+.defect-file-drop.is-dragover {
+  background: var(--accent-muted);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.defect-file-drop:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.defect-file-drop-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 10px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, white);
+}
+
+.defect-file-drop-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.defect-file-drop-copy strong {
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.defect-file-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.defect-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 100%;
+  padding: 0.35rem 0.4rem 0.35rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 0.82rem;
+}
+
+.defect-file-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 12rem;
+}
+
+.defect-file-chip-size {
+  flex-shrink: 0;
+}
+
+.defect-file-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted, #64748b);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.defect-file-chip-remove:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--text);
 }
 
 .defect-list {
