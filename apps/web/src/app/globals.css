@@ -1045,18 +1045,25 @@ pre {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1.25rem;
+  align-items: stretch;
 }
 
 .home-results .project-grid {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
 }
 
+.project-grid > * {
+  min-height: 0;
+  height: 100%;
+}
+
 .home-ad-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  padding: 1.15rem 1.15rem 1.35rem;
+  min-height: 0;
+  height: 100%;
+  padding: 1rem 1rem 1.7rem;
   border-radius: 16px;
   border: 1px solid rgba(139, 92, 246, 0.22);
   background: linear-gradient(
@@ -1084,11 +1091,11 @@ pre {
 
 .home-ad-body {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(7.5rem, 0.85fr);
-  gap: 0.75rem;
-  align-items: center;
-  flex: 1;
-  min-height: 11.5rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 0.65rem;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
   padding-top: 1.35rem;
 }
 
@@ -1096,36 +1103,48 @@ pre {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.55rem;
+  gap: 0.45rem;
   min-width: 0;
+  min-height: 0;
 }
 
 .home-ad-title {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   line-height: 1.25;
   color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .home-ad-description {
   margin: 0;
   font-size: 0.88rem;
-  line-height: 1.45;
+  line-height: 1.4;
   color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .home-ad-cta {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 0.2rem;
-  padding: 0.55rem 0.95rem;
+  margin-top: 0.15rem;
+  padding: 0.5rem 0.9rem;
   border-radius: 10px;
   background: #7c3aed;
   color: #fff;
   font-size: 0.88rem;
   font-weight: 700;
   text-decoration: none;
+  flex-shrink: 0;
 }
 
 .home-ad-cta:hover {
@@ -1133,19 +1152,33 @@ pre {
   color: #fff;
 }
 
+.home-ad-media {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  align-self: stretch;
+}
+
 .home-ad-image {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  max-height: 10.5rem;
+  height: 100%;
   object-fit: contain;
   object-position: center;
   pointer-events: none;
 }
 
 .home-ad-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.55rem;
   display: flex;
   justify-content: center;
   gap: 0.4rem;
-  margin-top: 0.65rem;
+  margin: 0;
 }
 
 .home-ad-dot {

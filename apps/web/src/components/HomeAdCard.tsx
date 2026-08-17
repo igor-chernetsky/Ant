@@ -100,12 +100,14 @@ export function HomeAdCard({ slides }: { slides: PublicHomeAdSlide[] }) {
             </Link>
           )}
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          className="home-ad-image"
-          src={slide.imageUrl}
-          alt=""
-        />
+        <div className="home-ad-media">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="home-ad-image"
+            src={slide.imageUrl}
+            alt=""
+          />
+        </div>
       </div>
       {slides.length > 1 && (
         <div className="home-ad-dots" role="tablist">
