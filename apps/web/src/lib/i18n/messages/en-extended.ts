@@ -1077,6 +1077,23 @@ export const enExtended = {
     addLineTooLarge: "Amount is too large",
     adjustFailed: "Could not update the ballpark estimate",
     tradeAlreadyAdded: "This trade is already in the estimate",
+    excludeCoreTitle: "Remove essential work?",
+    excludeCoreMessage:
+      "Removing {trade} ({description}) may make the ballpark unreliable. Exclude it only if this work is truly out of scope.",
+    excludeCoreConfirm: "Exclude anyway",
+    recalcReviewTitle: "Recalculation summary",
+    recalcReviewLead:
+      "Your line edits were kept. Review what changed after the new answers were applied.",
+    recalcCoreExcludedWarning:
+      "You excluded core building trades. The midpoint may be significantly lower than a full project cost.",
+    recalcTotalsChange: "Midpoint: {previous} → {next} ({delta})",
+    recalcStillExcluded: "Still excluded by you",
+    recalcRepricedAdditions: "Your additions (re-priced)",
+    recalcNewSuggestions: "New suggestions from the system",
+    recalcNewSuggestionsHint:
+      "These lines were added by the recalculation. Remove any that do not apply to your project.",
+    recalcExcludeSuggestion: "Remove",
+    recalcRemovedBySystem: "No longer in the estimate",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",

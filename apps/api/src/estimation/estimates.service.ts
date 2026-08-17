@@ -21,6 +21,7 @@ import {
   buildAddedEstimateLine,
   catalogTradesForPickerWithPrices,
   emptyEstimateAdjustments,
+  filterLinesExcludedByClient,
   mergeEstimateAdjustments,
   parseEstimateAdjustments,
   validateLinePriceRange,
@@ -445,7 +446,17 @@ export class EstimatesService {
       throw new NotFoundException('Project not found');
     }
 
-    await this.clearAdjustments(projectId);
+    const clientAdjustments = parseEstimateAdjustments(
+      project.estimateAdjustmentsJson,
+    );
+    const clientScopePreferences =
+      clientAdjustments.excludedLines.length > 0 ||
+      clientAdjustments.addedLines.length > 0
+        ? {
+            excludedLines: clientAdjustments.excludedLines,
+            addedLines: clientAdjustments.addedLines,
+          }
+        : undefined;
 
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
     const tagSlugs = project.tags.map((pt) => pt.tag.slug);
@@ -466,9 +477,16 @@ export class EstimatesService {
       where: { projectId },
       orderBy: { createdAt: 'desc' },
     });
-    const previousLines = Array.isArray(previousEstimate?.linesJson)
+    const previousLinesRaw = Array.isArray(previousEstimate?.linesJson)
       ? (previousEstimate.linesJson as unknown as EstimateLine[])
       : [];
+    const previousLines =
+      project.projectType === ProjectType.design
+        ? []
+        : filterLinesExcludedByClient(
+            previousLinesRaw,
+            clientAdjustments.excludedLines,
+          );
 
     // Always generate the construction-style ballpark first (same algorithm).
     const result = await this.ballpark.generate({
@@ -484,13 +502,13 @@ export class EstimatesService {
       tagSlugs,
       brief,
       locale: normalizeSourceLocale(project.sourceLocale),
-      previousLines:
-        project.projectType === ProjectType.design ? [] : previousLines,
+      previousLines,
       clarificationQa,
       clarificationSummary: project.clarificationSummary,
       scopeSummary: project.scopeSummary,
       estimateRefinementQa,
       allowTinyLineShare: project.projectType === ProjectType.design,
+      clientScopePreferences,
     });
 
     let lines = result.lines;

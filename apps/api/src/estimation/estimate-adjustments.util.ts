@@ -118,7 +118,7 @@ export function lineIdentity(trade: string, description: string): string {
   return `${trade.trim().toLowerCase()}::${normalizedDescription}`;
 }
 
-function isExcluded(
+function isLineExcluded(
   line: EstimateLineRef,
   excludedLines: EstimateLineRef[],
 ): boolean {
@@ -127,6 +127,8 @@ function isExcluded(
     (excluded) => lineIdentity(excluded.trade, excluded.description) === key,
   );
 }
+
+export { isLineExcluded };
 
 export const MAX_ESTIMATE_LINE_AMOUNT_THB = 500_000_000;
 
@@ -265,6 +267,22 @@ export function catalogTradesForPickerWithPrices(
   });
 }
 
+export function filterLinesExcludedByClient(
+  lines: EstimateLine[],
+  excludedLines: EstimateLineRef[],
+): EstimateLine[] {
+  if (excludedLines.length === 0) {
+    return lines;
+  }
+  return lines.filter(
+    (line) =>
+      !isLineExcluded(
+        { trade: line.trade, description: line.description },
+        excludedLines,
+      ),
+  );
+}
+
 export function applyEstimateAdjustments(input: {
   lines: EstimateLine[];
   adjustments: EstimateAdjustmentsStored;
@@ -275,14 +293,19 @@ export function applyEstimateAdjustments(input: {
 }): { lines: EstimateLine[]; totals: EstimateTotals } {
   const filtered = input.lines.filter(
     (line) =>
-      !isExcluded(
+      !isLineExcluded(
         { trade: line.trade, description: line.description },
         input.adjustments.excludedLines,
       ),
   );
 
+  const presentTrades = new Set(filtered.map((line) => line.trade.trim()));
+
   const pricedAdded: EstimateLine[] = [];
   for (const ref of input.adjustments.addedLines) {
+    if (presentTrades.has(ref.trade.trim())) {
+      continue;
+    }
     const cached = input.adjustments.pricedAddedLines?.find(
       (line) => lineIdentity(line.trade, line.description) === lineIdentity(ref.trade, ref.description || ref.trade),
     );
@@ -298,6 +321,7 @@ export function applyEstimateAdjustments(input: {
     });
     if (priced) {
       pricedAdded.push(priced);
+      presentTrades.add(ref.trade.trim());
     }
   }
 

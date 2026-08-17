@@ -63,6 +63,12 @@ export interface EstimateAdjustmentsView {
   addedLines: Array<{ trade: string; description: string }>;
 }
 
+/** Client line edits persisted on the project and honored across recalculations. */
+export interface ClientEstimateScopePreferences {
+  excludedLines: Array<{ trade: string; description: string }>;
+  addedLines: Array<{ trade: string; description: string }>;
+}
+
 export interface UpdateEstimateAdjustmentsDto {
   excludedLines: Array<{ trade: string; description: string }>;
   addedLines: Array<{

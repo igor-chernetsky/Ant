@@ -2,11 +2,16 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
+import { EstimateRecalcReview } from '@/components/EstimateRecalcReview';
 import {
   isLowEstimateConfidence,
   refineProjectEstimate,
   type BallparkEstimate,
 } from '@/lib/estimate';
+import {
+  computeEstimateRecalcDiff,
+  type EstimateRecalcDiff,
+} from '@/lib/estimate-recalc-diff';
 import type { Project } from '@/lib/projects';
 
 const REFINE_STATUSES = new Set(['ready_for_estimate', 'estimated']);
@@ -34,10 +39,15 @@ export function EstimateRefinementPanel({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recalcDiff, setRecalcDiff] = useState<EstimateRecalcDiff | null>(null);
+  const [recalcBaseline, setRecalcBaseline] =
+    useState<BallparkEstimate | null>(null);
 
   useEffect(() => {
     setAnswers({});
     setError(null);
+    setRecalcDiff(null);
+    setRecalcBaseline(null);
   }, [estimate.id]);
 
   const handleSubmit = async (event: FormEvent) => {
@@ -59,8 +69,11 @@ export function EstimateRefinementPanel({
 
     setSubmitting(true);
     setError(null);
+    const previousSnapshot = estimate;
     try {
       const updated = await refineProjectEstimate(project.id, payload);
+      setRecalcBaseline(previousSnapshot);
+      setRecalcDiff(computeEstimateRecalcDiff(previousSnapshot, updated));
       onEstimateUpdated(updated);
     } catch (err: unknown) {
       setError(
@@ -73,7 +86,7 @@ export function EstimateRefinementPanel({
     }
   };
 
-  if (!canRefine && history.length === 0) {
+  if (!canRefine && history.length === 0 && !recalcDiff) {
     return null;
   }
 
@@ -84,6 +97,24 @@ export function EstimateRefinementPanel({
         highlightLowConfidence ? ' estimate-refinement--low-confidence' : ''
       }`}
     >
+      {recalcDiff && recalcBaseline && (
+        <EstimateRecalcReview
+          projectId={project.id}
+          estimate={estimate}
+          diff={recalcDiff}
+          onEstimateUpdated={(updated) => {
+            onEstimateUpdated(updated);
+            setRecalcDiff(
+              computeEstimateRecalcDiff(recalcBaseline, updated),
+            );
+          }}
+          onDismiss={() => {
+            setRecalcDiff(null);
+            setRecalcBaseline(null);
+          }}
+        />
+      )}
+
       {canRefine && (
         <details className="estimate-refine-details" open>
           <summary>{t('estimateSection.refineTitle')}</summary>

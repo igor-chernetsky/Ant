@@ -3,12 +3,14 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import {
   formatThb,
   updateProjectEstimateAdjustments,
   type BallparkEstimate,
   type EstimateLine,
 } from '@/lib/estimate';
+import { isCoreEstimateTrade } from '@/lib/estimate-recalc-diff';
 
 interface EstimateLinesEditorProps {
   projectId: string;
@@ -68,6 +70,7 @@ export function EstimateLinesEditor({
 }: EstimateLinesEditorProps) {
   const { t } = useTranslation();
   const { formatTagLabel } = useAppFormatters();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTrade, setSelectedTrade] = useState('');
@@ -141,7 +144,7 @@ export function EstimateLinesEditor({
     }
   };
 
-  const handleRemoveLine = (line: EstimateLine) => {
+  const handleRemoveLine = async (line: EstimateLine) => {
     if (!editable || busy) return;
     const key = lineKey(line);
     if (added.some((item) => lineKey(item) === key)) {
@@ -151,6 +154,22 @@ export function EstimateLinesEditor({
       );
       return;
     }
+
+    if (isCoreEstimateTrade(line.trade)) {
+      const tradeLabel = formatTagLabel(line.trade, line.trade);
+      const confirmed = await confirm({
+        title: t('estimateSection.excludeCoreTitle'),
+        message: t('estimateSection.excludeCoreMessage', {
+          trade: tradeLabel,
+          description: line.description,
+        }),
+        confirmLabel: t('estimateSection.excludeCoreConfirm'),
+        cancelLabel: t('common.cancel'),
+        tone: 'danger',
+      });
+      if (!confirmed) return;
+    }
+
     void persist(
       [...excluded, { trade: line.trade, description: line.description }],
       mapAddedForSave(added),
@@ -374,6 +393,7 @@ export function EstimateLinesEditor({
           {error}
         </p>
       )}
+      {confirmDialog}
     </div>
   );
 }

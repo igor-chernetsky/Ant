@@ -9,6 +9,14 @@ export const ALLOWED_ESTIMATE_TRADES = new Set(
 const ELEVATOR_PATTERN =
   /\b(elevator|elevators|lift|lifts|лифт|лифты|passenger\s+lift)\b/i;
 
+function estimateLineIdentity(trade: string, description: string): string {
+  const normalizedDescription = description
+    .replace(/^Design:\s*/i, '')
+    .trim()
+    .toLowerCase();
+  return `${trade.trim().toLowerCase()}::${normalizedDescription}`;
+}
+
 /** Core trades that should not vanish after an additive scope change. */
 const CORE_SCOPE_TRADES = new Set([
   'structural',
@@ -464,6 +472,8 @@ export function mergePreviousEstimateLines(input: {
   description: string | null;
   brief: ProjectBriefV1;
   tagSlugs: string[];
+  /** Client-excluded lines must not be reintroduced from the previous snapshot. */
+  excludedLines?: Array<{ trade: string; description: string }>;
 }): EstimateLine[] {
   if (input.previousLines.length === 0) {
     return input.nextLines;
@@ -483,6 +493,16 @@ export function mergePreviousEstimateLines(input: {
   for (const previous of input.previousLines) {
     const mapped = mapLineToCatalogTrade(previous);
     if (!mapped || presentTrades.has(mapped.trade)) {
+      continue;
+    }
+
+    if (
+      input.excludedLines?.some(
+        (excluded) =>
+          estimateLineIdentity(excluded.trade, excluded.description) ===
+          estimateLineIdentity(mapped.trade, mapped.description),
+      )
+    ) {
       continue;
     }
 
@@ -1004,6 +1024,10 @@ export function buildEstimateUserContext(input: {
   clarificationSummary?: string | null;
   scopeSummary?: string | null;
   estimateRefinementQa?: Array<{ question: string; answer: string }>;
+  clientScopePreferences?: {
+    excludedLines: Array<{ trade: string; description: string }>;
+    addedLines: Array<{ trade: string; description: string }>;
+  };
 }) {
   const narrative = collectEstimateNarrative(input);
   const premiumSignals = detectPremiumScopeSignals(narrative);
@@ -1013,6 +1037,8 @@ export function buildEstimateUserContext(input: {
     Boolean(input.clarificationSummary?.trim());
   const hasRefinement =
     (input.estimateRefinementQa?.length ?? 0) > 0;
+  const clientExcluded = input.clientScopePreferences?.excludedLines ?? [];
+  const clientAdded = input.clientScopePreferences?.addedLines ?? [];
 
   const pricingDirectives = buildPricingDirectives(premiumSignals);
   if (wantsIndustrialVentilation(narrative)) {
@@ -1057,6 +1083,16 @@ export function buildEstimateUserContext(input: {
     estimateRefinementQa: input.estimateRefinementQa ?? [],
     premiumScopeSignals: premiumSignals,
     pricingDirectives,
+    ...(clientExcluded.length > 0 || clientAdded.length > 0
+      ? {
+          clientScopePreferences: {
+            excludedLines: clientExcluded,
+            addedLines: clientAdded,
+            guidance:
+              'The client edited the ballpark before recalculation. excludedLines are OUT OF SCOPE — do not price or reintroduce them unless new refinement answers explicitly require them. addedLines are REQUIRED scope — include and recalculate amounts using current facts; do not omit them.',
+          },
+        }
+      : {}),
     ...(input.previousLines && input.previousLines.length > 0
       ? {
           previousEstimate: {

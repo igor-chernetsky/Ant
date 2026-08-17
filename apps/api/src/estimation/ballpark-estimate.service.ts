@@ -8,6 +8,7 @@ import {
 import { localeLanguageName } from '../localization/locale.utils';
 import {
   BallparkEstimateResult,
+  ClientEstimateScopePreferences,
   EstimateLine,
   EstimateTotals,
 } from './estimates.types';
@@ -39,6 +40,27 @@ const DISCLAIMER =
 const BUILDING_SHELL_IMPROVEMENT_QUESTION_PATTERN =
   /\b(storey|storeys|floors?|этаж|ชั้น|sanitary|wet\s*points?|сантех|foundation|фундамент|elevator|lift|лифт|basement|подвал)\b/i;
 
+type BallparkGenerateInput = {
+  title: string;
+  description: string | null;
+  projectType: string;
+  propertyType: string | null;
+  district: string | null;
+  regionCode: string;
+  tagSlugs: string[];
+  brief: ProjectBriefV1;
+  locale?: SupportedLocale;
+  previousLines?: EstimateLine[];
+  clarificationQa?: Array<{ question: string; answer: string }>;
+  clarificationSummary?: string | null;
+  scopeSummary?: string | null;
+  estimateRefinementQa?: Array<{ question: string; answer: string }>;
+  allowTinyLineShare?: boolean;
+  clientScopePreferences?: ClientEstimateScopePreferences;
+  anomalyFeedback?: EstimateLineShareAnomaly[];
+  anomalyRetryDone?: boolean;
+};
+
 @Injectable()
 export class BallparkEstimateService {
   private readonly logger = new Logger(BallparkEstimateService.name);
@@ -51,24 +73,7 @@ export class BallparkEstimateService {
       this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini').trim();
   }
 
-  async generate(input: {
-    title: string;
-    description: string | null;
-    projectType: string;
-    propertyType: string | null;
-    district: string | null;
-    regionCode: string;
-    tagSlugs: string[];
-    brief: ProjectBriefV1;
-    locale?: SupportedLocale;
-    previousLines?: EstimateLine[];
-    clarificationQa?: Array<{ question: string; answer: string }>;
-    clarificationSummary?: string | null;
-    scopeSummary?: string | null;
-    estimateRefinementQa?: Array<{ question: string; answer: string }>;
-    /** When true, lines under 1% of total are not treated as anomalies (design). */
-    allowTinyLineShare?: boolean;
-  }): Promise<BallparkEstimateResult> {
+  async generate(input: BallparkGenerateInput): Promise<BallparkEstimateResult> {
     if (this.apiKey.length > 0) {
       const ai = await this.generateWithOpenAi(input);
       if (ai) return ai;
@@ -76,25 +81,9 @@ export class BallparkEstimateService {
     return this.generateFallback(input);
   }
 
-  private async generateWithOpenAi(input: {
-    title: string;
-    description: string | null;
-    projectType: string;
-    propertyType: string | null;
-    district: string | null;
-    regionCode: string;
-    tagSlugs: string[];
-    brief: ProjectBriefV1;
-    locale?: SupportedLocale;
-    previousLines?: EstimateLine[];
-    clarificationQa?: Array<{ question: string; answer: string }>;
-    clarificationSummary?: string | null;
-    scopeSummary?: string | null;
-    estimateRefinementQa?: Array<{ question: string; answer: string }>;
-    allowTinyLineShare?: boolean;
-    anomalyFeedback?: EstimateLineShareAnomaly[];
-    anomalyRetryDone?: boolean;
-  }): Promise<BallparkEstimateResult | null> {
+  private async generateWithOpenAi(
+    input: BallparkGenerateInput,
+  ): Promise<BallparkEstimateResult | null> {
     const lang =
       input.locale && isSupportedLocale(input.locale)
         ? localeLanguageName(input.locale)
@@ -121,6 +110,7 @@ improvementQuestions: 0–5 short questions (in ${lang}) that would most improve
 CRITICAL: Do not repeat or rephrase questions already answered in estimateRefinementQa. If a topic+space was already covered (e.g. office finishing, warehouse lighting, plumbing), do not ask again with wording like "exact requirements" or "additional requirements". Prefer a genuinely new gap only; otherwise return [].
 Do NOT invent priced scope for unanswered gaps — put that uncertainty into improvementQuestions and keep confidence lower.
 When regenerating with previousEstimate and/or estimateRefinementQa, retain still-confirmed trades/lines unless answers change them; never drop confirmed scope.
+When clientScopePreferences is present, treat excludedLines as client-confirmed OUT OF SCOPE (omit unless new answers explicitly require them) and addedLines as client-confirmed REQUIRED scope (include and recalculate).
 Use regional reference prices as guidance; prefer mid-to-high of catalog bands for MEP networks, lighting fixtures, utility connections, and premium treatment systems.
 Include 5-16 lines covering the FULL confirmed scope (base construction + detailed MEP + finishing + newly added items). Split MEP into multiple lines when intake/premium signals justify it.
 When the client requests fire protection / sprinklers or other named specialty systems, include a dedicated line (trade fire-suppression or other) — never description-only.
@@ -253,20 +243,7 @@ ${scopeRules}`;
     }
   }
 
-  private generateFallback(input: {
-    title: string;
-    description: string | null;
-    projectType: string;
-    propertyType: string | null;
-    tagSlugs: string[];
-    brief: ProjectBriefV1;
-    previousLines?: EstimateLine[];
-    clarificationQa?: Array<{ question: string; answer: string }>;
-    clarificationSummary?: string | null;
-    scopeSummary?: string | null;
-    estimateRefinementQa?: Array<{ question: string; answer: string }>;
-    allowTinyLineShare?: boolean;
-  }): BallparkEstimateResult {
+  private generateFallback(input: BallparkGenerateInput): BallparkEstimateResult {
     const narrative = collectEstimateNarrative({
       title: input.title,
       description: input.description,
@@ -287,6 +264,9 @@ ${scopeRules}`;
     }
     for (const line of input.previousLines ?? []) {
       trades.add(line.trade);
+    }
+    for (const ref of input.clientScopePreferences?.addedLines ?? []) {
+      trades.add(ref.trade);
     }
     if (trades.size === 0) {
       trades.add('finishing');
@@ -355,6 +335,7 @@ ${scopeRules}`;
       description: input.description,
       brief: input.brief,
       tagSlugs: input.tagSlugs,
+      excludedLines: input.clientScopePreferences?.excludedLines,
     });
     const adjustedLines = finalizeEstimateLines({
       lines: mergedLines,
@@ -393,19 +374,7 @@ ${scopeRules}`;
 
   private normalizeResult(
     raw: Record<string, unknown>,
-    input: {
-      title: string;
-      projectType: string;
-      propertyType: string | null;
-      description: string | null;
-      brief: ProjectBriefV1;
-      tagSlugs: string[];
-      previousLines?: EstimateLine[];
-      clarificationQa?: Array<{ question: string; answer: string }>;
-      clarificationSummary?: string | null;
-      scopeSummary?: string | null;
-      estimateRefinementQa?: Array<{ question: string; answer: string }>;
-    },
+    input: BallparkGenerateInput,
   ): BallparkEstimateResult {
     const rawLines = Array.isArray(raw.lines)
       ? raw.lines
@@ -437,6 +406,7 @@ ${scopeRules}`;
       description: input.description,
       brief: input.brief,
       tagSlugs: input.tagSlugs,
+      excludedLines: input.clientScopePreferences?.excludedLines,
     });
 
     const narrative = collectEstimateNarrative({

@@ -1075,6 +1075,23 @@ export const thExtended = {
     addLineTooLarge: "จำนวนมากเกินไป",
     adjustFailed: "อัปเดตประมาณการไม่สำเร็จ",
     tradeAlreadyAdded: "trade นี้มีในประมาณการแล้ว",
+    excludeCoreTitle: "ลบงานหลักออก?",
+    excludeCoreMessage:
+      "การลบ {trade} ({description}) อาจทำให้ประมาณการไม่น่าเชื่อถือ ลบเฉพาะเมื่องานนี้ไม่อยู่ในขอบเขตจริงๆ",
+    excludeCoreConfirm: "ลบอยู่ดี",
+    recalcReviewTitle: "สรุปหลังคำนวณใหม่",
+    recalcReviewLead:
+      "การแก้ไขรายการของคุณยังอยู่ ตรวจสอบสิ่งที่เปลี่ยนหลังจากตอบคำถามใหม่",
+    recalcCoreExcludedWarning:
+      "คุณได้ลบงานหลักของอาคารออก จุดกลางอาจต่ำกว่าต้นทุนโครงการเต็มรูปแบบมาก",
+    recalcTotalsChange: "จุดกลาง: {previous} → {next} ({delta})",
+    recalcStillExcluded: "ยังถูกคุณลบอยู่",
+    recalcRepricedAdditions: "รายการที่คุณเพิ่ม (ปรับราคาใหม่)",
+    recalcNewSuggestions: "ข้อเสนอใหม่จากระบบ",
+    recalcNewSuggestionsHint:
+      "รายการเหล่านี้ถูกเพิ่มจากการคำนวณใหม่ ลบรายการที่ไม่เกี่ยวกับโครงการของคุณ",
+    recalcExcludeSuggestion: "ลบ",
+    recalcRemovedBySystem: "ไม่มีในประมาณการแล้ว",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",

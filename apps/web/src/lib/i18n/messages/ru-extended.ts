@@ -1078,6 +1078,23 @@ export const ruExtended = {
     addLineTooLarge: "Слишком большая сумма",
     adjustFailed: "Не удалось обновить ballpark",
     tradeAlreadyAdded: "Этот trade уже есть в оценке",
+    excludeCoreTitle: "Убрать важный вид работ?",
+    excludeCoreMessage:
+      "Исключение {trade} ({description}) может сделать ориентир ненадёжным. Убирайте только если этих работ точно нет в объёме.",
+    excludeCoreConfirm: "Всё равно исключить",
+    recalcReviewTitle: "Итог пересчёта",
+    recalcReviewLead:
+      "Ваши правки строк сохранены. Проверьте, что изменилось после новых ответов.",
+    recalcCoreExcludedWarning:
+      "Вы исключили базовые виды работ. Средняя сумма может быть заметно ниже полной стоимости проекта.",
+    recalcTotalsChange: "Средняя точка: {previous} → {next} ({delta})",
+    recalcStillExcluded: "По-прежнему исключено вами",
+    recalcRepricedAdditions: "Ваши добавления (переоценены)",
+    recalcNewSuggestions: "Новые предложения системы",
+    recalcNewSuggestionsHint:
+      "Эти строки добавил пересчёт. Уберите те, которые не относятся к вашему проекту.",
+    recalcExcludeSuggestion: "Убрать",
+    recalcRemovedBySystem: "Больше нет в оценке",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
