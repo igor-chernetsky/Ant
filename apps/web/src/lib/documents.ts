@@ -28,6 +28,8 @@ export interface PresignUploadInput {
   contentType: string;
   sizeBytes: number;
   category?: DocumentCategory;
+  defectId?: string;
+  defectEventId?: string;
 }
 
 export interface PresignUploadResult {

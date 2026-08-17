@@ -1,5 +1,8 @@
 import type { ProjectBriefV1 } from '../projects/project-brief';
-import { scaleEstimateByPercent } from '../projects/design-fee-estimate';
+import {
+  isDesignScaledEstimate,
+  scaleEstimateByPercent,
+} from '../projects/design-fee-estimate';
 import { computeTotals } from './ballpark-estimate.service';
 import { resolveEstimateAreaSqm } from './estimate-scope.utils';
 import { TH_REGIONAL_CATALOG } from './regional-catalog';
@@ -331,7 +334,8 @@ export function applyEstimateAdjustments(input: {
   if (
     input.isDesignProject &&
     input.designFeePercent != null &&
-    input.designFeePercent > 0
+    input.designFeePercent > 0 &&
+    !isDesignScaledEstimate(merged)
   ) {
     const scaled = scaleEstimateByPercent(
       merged,

@@ -99,6 +99,27 @@ export const th: Messages = {
       contractorProgressClaimRejectedTitle: 'progress claim ถูกปฏิเสธ',
       contractorProgressClaimRejectedBody:
         'Claim #{n} ของ {project} ถูกปฏิเสธ',
+      contractorDefectReportedTitle: 'มีการรายงานข้อบกพร่อง',
+      contractorDefectReportedBody:
+        'มีการรายงานข้อบกพร่อง #{n} ใน {project}',
+      contractorDefectResubmittedTitle: 'ส่งข้อบกพร่องใหม่',
+      contractorDefectResubmittedBody:
+        'ข้อบกพร่อง #{n} ใน {project} ถูกส่งใหม่',
+      contractorDefectCompletionRejectedTitle: 'ปฏิเสธการแก้ไข',
+      contractorDefectCompletionRejectedBody:
+        'การแก้ไขข้อบกพร่อง #{n} ใน {project} ถูกปฏิเสธ',
+      contractorDefectClosedTitle: 'ปิดข้อบกพร่องแล้ว',
+      contractorDefectClosedBody:
+        'ข้อบกพร่อง #{n} ใน {project} ถูกปิดแล้ว',
+      clientDefectDeclinedTitle: 'ปฏิเสธข้อบกพร่อง',
+      clientDefectDeclinedBody:
+        'ข้อบกพร่อง #{n} ใน {project} ถูกปฏิเสธ',
+      clientDefectAcceptedTitle: 'รับข้อบกพร่องเข้าทำงาน',
+      clientDefectAcceptedBody:
+        'ข้อบกพร่อง #{n} ใน {project} ถูกรับเข้าทำงาน',
+      clientDefectCompletedTitle: 'ทำเครื่องหมายว่าแก้เสร็จ',
+      clientDefectCompletedBody:
+        'ข้อบกพร่อง #{n} ใน {project} ถูกทำเครื่องหมายว่าแก้เสร็จ',
       genericProjectBody: 'เกี่ยวข้องกับ {project}',
     },
   },

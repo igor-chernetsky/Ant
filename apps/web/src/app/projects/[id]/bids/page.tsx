@@ -328,6 +328,7 @@ export default function ProjectBidsPage() {
                               busy={busy}
                               currentUserId={me.id}
                               projectId={projectId}
+                              isDesign={project?.projectType === 'design'}
                               onSelect={handleSelectBid}
                               defaultExpanded={
                                 tenderAwarded

@@ -122,10 +122,14 @@ export function ClientCommercialProposalPanel({
   };
 
   const hintKey = readOnly
-    ? 'commercialProposal.reviewHint'
+    ? isDesign
+      ? 'commercialProposal.reviewHintDesign'
+      : 'commercialProposal.reviewHint'
     : audience === 'contractor'
       ? 'commercialProposal.contractorEditableHint'
-      : 'commercialProposal.editableHint';
+      : isDesign
+        ? 'commercialProposal.editableHintDesign'
+        : 'commercialProposal.editableHint';
 
   return (
     <div className="client-commercial-proposal-panel">

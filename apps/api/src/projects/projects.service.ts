@@ -37,8 +37,6 @@ import {
 } from './discover-filters';
 import {
   canEditConstructionProjectType,
-  canResumeConstruction,
-  DEFAULT_CONSTRUCTION_TYPE_FROM_DESIGN,
   isConvertibleToDesign,
 } from './design-permits.utils';
 import {
@@ -162,10 +160,6 @@ export class ProjectsService {
   toResponse(
     project: ProjectWithTags,
     estimate: ProjectResponse['estimate'] = null,
-    linkedConstruction?: {
-      status: ProjectStatus;
-      linkKind: ProjectLinkKind;
-    } | null,
   ): ProjectResponse {
 
     return {
@@ -209,10 +203,6 @@ export class ProjectsService {
         ).includes(project.status) &&
         project.linkKind !== ProjectLinkKind.design_active &&
         project.linkKind !== ProjectLinkKind.construction_pending,
-      canResumeConstruction: canResumeConstruction(
-        project,
-        linkedConstruction,
-      ),
 
       brief: project.briefJson as ProjectResponse['brief'],
 
@@ -268,33 +258,8 @@ export class ProjectsService {
 
     });
 
-    const linkedIds = projects
-      .filter(
-        (project) =>
-          project.projectType === ProjectType.design && project.linkedProjectId,
-      )
-      .map((project) => project.linkedProjectId as string);
-
-    const linkedRows =
-      linkedIds.length > 0
-        ? await this.prisma.project.findMany({
-            where: { id: { in: linkedIds } },
-            select: { id: true, status: true, linkKind: true },
-          })
-        : [];
-
-    const linkedById = new Map(
-      linkedRows.map((row) => [row.id, row] as const),
-    );
-
     return projects.map((project) =>
-      this.toResponse(
-        project,
-        null,
-        project.linkedProjectId
-          ? (linkedById.get(project.linkedProjectId) ?? null)
-          : null,
-      ),
+      this.toResponse(project, null),
     );
 
   }
@@ -706,14 +671,12 @@ export class ProjectsService {
   ): Promise<PublicProjectCard[]> {
     const projectIds = projects.map((p) => p.id);
     // Ballpark is client-private: only include totals for projects the viewer owns.
-    const estimateProjectIds = viewer?.userId
-      ? projects
-          .filter((project) => project.clientId === viewer.userId)
-          .map((project) => project.id)
+    const ownedProjects = viewer?.userId
+      ? projects.filter((project) => project.clientId === viewer.userId)
       : [];
     const [coverByProject, estimateByProject] = await Promise.all([
       this.loadCoverUrls(projectIds),
-      this.loadEstimateSummaries(estimateProjectIds),
+      this.loadEstimateSummaries(ownedProjects),
     ]);
 
     return Promise.all(
@@ -1068,52 +1031,57 @@ export class ProjectsService {
   }
 
   private async loadEstimateSummaries(
-    projectIds: string[],
+    projects: Array<{
+      id: string;
+      status: ProjectStatus;
+      projectType: ProjectType;
+      title: string;
+      description: string | null;
+      briefJson: unknown;
+      estimateAdjustmentsJson: unknown;
+      designFeePercent: number | null;
+    }>,
   ): Promise<Map<string, PublicProjectEstimateSummary>> {
     const result = new Map<string, PublicProjectEstimateSummary>();
-    if (projectIds.length === 0) {
+    if (projects.length === 0) {
       return result;
     }
+
+    const projectIds = projects.map((project) => project.id);
+    const projectById = new Map(projects.map((project) => [project.id, project]));
 
     const estimates = await this.prisma.estimate.findMany({
       where: { projectId: { in: projectIds } },
       orderBy: { createdAt: 'desc' },
-      select: {
-        projectId: true,
-        confidence: true,
-        totalsJson: true,
-      },
     });
 
     for (const estimate of estimates) {
       if (result.has(estimate.projectId)) continue;
-      const totals = estimate.totalsJson as {
-        minAmount?: unknown;
-        maxAmount?: unknown;
-        midAmount?: unknown;
-        currency?: unknown;
-      } | null;
-      const minAmount =
-        typeof totals?.minAmount === 'number' ? totals.minAmount : null;
-      const maxAmount =
-        typeof totals?.maxAmount === 'number' ? totals.maxAmount : null;
-      const midAmount =
-        typeof totals?.midAmount === 'number' ? totals.midAmount : null;
-      const currency =
-        typeof totals?.currency === 'string' && totals.currency.trim()
-          ? totals.currency.trim()
-          : 'THB';
-      if (minAmount == null || maxAmount == null || midAmount == null) {
+      const project = projectById.get(estimate.projectId);
+      if (!project) continue;
+
+      const presented = this.estimatesService.presentForProject(
+        project,
+        this.estimatesService.toResponse(estimate),
+      );
+      const { totals } = presented;
+      if (
+        typeof totals?.minAmount !== 'number' ||
+        typeof totals?.maxAmount !== 'number' ||
+        typeof totals?.midAmount !== 'number'
+      ) {
         continue;
       }
+
       result.set(estimate.projectId, {
-        minAmount,
-        maxAmount,
-        midAmount,
-        currency,
-        confidence: this.estimatesService.adjustStoredConfidence(
-          estimate.confidence,
-        ),
+        minAmount: totals.minAmount,
+        maxAmount: totals.maxAmount,
+        midAmount: totals.midAmount,
+        currency:
+          typeof totals.currency === 'string' && totals.currency.trim()
+            ? totals.currency.trim()
+            : presented.currency || 'THB',
+        confidence: presented.confidence,
       });
     }
 
@@ -1312,20 +1280,6 @@ export class ProjectsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    let linkedConstruction: {
-      status: ProjectStatus;
-      linkKind: ProjectLinkKind;
-    } | null = null;
-    if (
-      project.projectType === ProjectType.design &&
-      project.linkedProjectId
-    ) {
-      linkedConstruction = await this.prisma.project.findUnique({
-        where: { id: project.linkedProjectId },
-        select: { status: true, linkKind: true },
-      });
-    }
-
     const response = this.toResponse(
       project,
       estimate
@@ -1339,7 +1293,6 @@ export class ProjectsService {
             ),
           )
         : null,
-      linkedConstruction,
     );
 
     return this.applyViewerLocale(response, project, viewerLocale);
@@ -1565,8 +1518,9 @@ export class ProjectsService {
   }
 
   /**
-   * Convert a construction/modernization/repair card into Design & Permits.
-   * Clones the current construction state into a linked Pending sibling.
+   * Convert a construction/modernization/repair card into Design & Permits
+   * in place. After design is complete, the client starts a new construction
+   * project with the updated scope and drawings.
    */
   async convertToDesign(
     clientId: string,
@@ -1577,9 +1531,6 @@ export class ProjectsService {
       where: { id: projectId },
       include: {
         tags: true,
-        documents: {
-          where: { status: { not: DocumentStatus.deleted } },
-        },
         estimates: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
     });
@@ -1615,93 +1566,21 @@ export class ProjectsService {
       throw new BadRequestException('Project is already linked to a design conversion');
     }
 
-    const statusBeforePending = project.status;
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
+    const designBrief: ProjectBriefV1 = {
+      ...brief,
+      design: {
+        ...(brief.design ?? {}),
+        needsDesignTender: true,
+      },
+    };
 
-    const snapshot = await this.prisma.$transaction(async (tx) => {
-      const clone = await tx.project.create({
-        data: {
-          clientId: project.clientId,
-          title: project.title,
-          description: project.description,
-          projectType: project.projectType,
-          propertyType: project.propertyType,
-          propertyOwnershipForm: project.propertyOwnershipForm,
-          district: project.district,
-          locationRegionSlug: project.locationRegionSlug,
-          locationAreaSlug: project.locationAreaSlug,
-          locationNote: project.locationNote,
-          regionCode: project.regionCode,
-          status: ProjectStatus.pending,
-          statusBeforePending,
-          isHidden: true,
-          readinessScore: project.readinessScore,
-          briefJson: project.briefJson ?? Prisma.JsonNull,
-          clarificationMode: project.clarificationMode,
-          clarificationSummary: project.clarificationSummary,
-          scopeSummary: project.scopeSummary,
-          sourceLocale: project.sourceLocale,
-          tenderContractTermsJson: project.tenderContractTermsJson ?? Prisma.JsonNull,
-          estimateRefinementQaJson:
-            (project.estimateRefinementQaJson ?? undefined) as
-              | Prisma.InputJsonValue
-              | undefined,
-          linkKind: ProjectLinkKind.construction_pending,
-        },
-      });
-
-      if (project.tags.length) {
-        await tx.projectTag.createMany({
-          data: project.tags.map((tag) => ({
-            projectId: clone.id,
-            tagId: tag.tagId,
-            source: tag.source,
-          })),
-        });
-      }
-
-      for (const estimate of project.estimates) {
-        await tx.estimate.create({
-          data: {
-            projectId: clone.id,
-            version: estimate.version,
-            type: estimate.type,
-            currency: estimate.currency,
-            totalsJson: estimate.totalsJson as Prisma.InputJsonValue,
-            linesJson: estimate.linesJson as Prisma.InputJsonValue,
-            confidence: estimate.confidence,
-            disclaimer: estimate.disclaimer,
-            metaJson: (estimate.metaJson ?? undefined) as
-              | Prisma.InputJsonValue
-              | undefined,
-          },
-        });
-      }
-
-      const designBrief: ProjectBriefV1 = {
-        ...brief,
-        design: {
-          ...(brief.design ?? {}),
-          needsDesignTender: true,
-        },
-      };
-
-      await tx.project.update({
-        where: { id: project.id },
-        data: {
-          projectType: ProjectType.design,
-          linkKind: ProjectLinkKind.design_active,
-          linkedProjectId: clone.id,
-          briefJson: designBrief as unknown as Prisma.InputJsonValue,
-        },
-      });
-
-      await tx.project.update({
-        where: { id: clone.id },
-        data: { linkedProjectId: project.id },
-      });
-
-      return clone;
+    await this.prisma.project.update({
+      where: { id: project.id },
+      data: {
+        projectType: ProjectType.design,
+        briefJson: designBrief as unknown as Prisma.InputJsonValue,
+      },
     });
 
     const tagSlugs = project.tags.map((t) => t.tagId);
@@ -1729,196 +1608,6 @@ export class ProjectsService {
     } else {
       await this.estimatesService.generateAndStore(project.id);
     }
-
-    await this.documents.copyDocumentsToProject({
-      sourceProjectId: project.id,
-      targetProjectId: snapshot.id,
-    });
-
-    return this.getForClient(clientId, projectId, viewerLocale);
-  }
-
-  /**
-   * Open construction from a Design & Permits card: resume a linked Pending
-   * snapshot or create a new construction card when none exists yet.
-   */
-  async resumeConstructionFromDesign(
-    clientId: string,
-    designProjectId: string,
-    viewerLocale?: SupportedLocale,
-  ): Promise<ProjectResponse> {
-    const design = await this.prisma.project.findUnique({
-      where: { id: designProjectId },
-      include: {
-        tags: true,
-        estimates: { orderBy: { createdAt: 'desc' }, take: 1 },
-      },
-    });
-    if (!design) {
-      throw new NotFoundException('Project not found');
-    }
-    if (design.clientId !== clientId) {
-      throw new ForbiddenException('Access denied');
-    }
-    if (design.projectType !== ProjectType.design) {
-      throw new BadRequestException(
-        'Only Design & Permits cards can open construction',
-      );
-    }
-
-    const linkedConstruction = design.linkedProjectId
-      ? await this.prisma.project.findUnique({
-          where: { id: design.linkedProjectId },
-        })
-      : null;
-
-    if (!canResumeConstruction(design, linkedConstruction)) {
-      throw new BadRequestException(
-        linkedConstruction
-          ? 'Construction card already exists for this design project'
-          : 'Cannot open construction for this design project',
-      );
-    }
-
-    if (!design.linkedProjectId) {
-      return this.createConstructionFromDesign(clientId, design, viewerLocale);
-    }
-
-    if (!linkedConstruction || linkedConstruction.clientId !== clientId) {
-      throw new NotFoundException('Linked construction card not found');
-    }
-
-    await this.documents.copyDocumentsToProject({
-      sourceProjectId: design.id,
-      targetProjectId: linkedConstruction.id,
-      skipIfExists: true,
-    });
-
-    return this.resumePending(clientId, linkedConstruction.id, viewerLocale);
-  }
-
-  private async createConstructionFromDesign(
-    clientId: string,
-    design: Project & {
-      tags: ProjectTag[];
-      estimates: Array<{
-        version: number;
-        type: string;
-        currency: string;
-        totalsJson: Prisma.JsonValue;
-        linesJson: Prisma.JsonValue;
-        confidence: number;
-        disclaimer: string;
-      }>;
-    },
-    viewerLocale?: SupportedLocale,
-  ): Promise<ProjectResponse> {
-    const brief = (design.briefJson ?? {}) as unknown as ProjectBriefV1;
-    const constructionBrief: ProjectBriefV1 = {
-      ...brief,
-      design: {
-        ...(brief.design ?? {}),
-        needsDesignTender: false,
-      },
-    };
-
-    const construction = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.project.create({
-        data: {
-          clientId: design.clientId,
-          title: design.title,
-          description: design.description,
-          projectType: DEFAULT_CONSTRUCTION_TYPE_FROM_DESIGN,
-          propertyType: design.propertyType,
-          propertyOwnershipForm: design.propertyOwnershipForm,
-          district: design.district,
-          locationRegionSlug: design.locationRegionSlug,
-          locationAreaSlug: design.locationAreaSlug,
-          locationNote: design.locationNote,
-          regionCode: design.regionCode,
-          status: design.status,
-          isHidden: false,
-          readinessScore: design.readinessScore,
-          briefJson: constructionBrief as unknown as Prisma.InputJsonValue,
-          clarificationMode: design.clarificationMode,
-          clarificationSummary: design.clarificationSummary,
-          scopeSummary: design.scopeSummary,
-          sourceLocale: design.sourceLocale,
-          tenderContractTermsJson:
-            design.tenderContractTermsJson ?? Prisma.JsonNull,
-          linkKind: ProjectLinkKind.none,
-        },
-      });
-
-      if (design.tags.length) {
-        await tx.projectTag.createMany({
-          data: design.tags.map((tag) => ({
-            projectId: created.id,
-            tagId: tag.tagId,
-            source: tag.source,
-          })),
-        });
-      }
-
-      await tx.project.update({
-        where: { id: design.id },
-        data: {
-          linkKind: ProjectLinkKind.design_active,
-          linkedProjectId: created.id,
-        },
-      });
-
-      await tx.project.update({
-        where: { id: created.id },
-        data: { linkedProjectId: design.id },
-      });
-
-      return created;
-    });
-
-    await this.documents.copyDocumentsToProject({
-      sourceProjectId: design.id,
-      targetProjectId: construction.id,
-    });
-
-    if (
-      design.status === ProjectStatus.estimated ||
-      design.status === ProjectStatus.ready_for_estimate
-    ) {
-      await this.estimatesService.generateAndStore(construction.id);
-    }
-
-    return this.getForClient(clientId, construction.id, viewerLocale);
-  }
-
-  /**
-   * Resume a Pending construction snapshot after Design conversion.
-   */
-  async resumePending(
-    clientId: string,
-    projectId: string,
-    viewerLocale?: SupportedLocale,
-  ): Promise<ProjectResponse> {
-    const project = await this.assertClientProject(clientId, projectId);
-    if (project.status !== ProjectStatus.pending) {
-      throw new BadRequestException('Project is not pending');
-    }
-
-    const nextStatus =
-      project.statusBeforePending &&
-      project.statusBeforePending !== ProjectStatus.pending
-        ? project.statusBeforePending
-        : ProjectStatus.estimated;
-
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: {
-        status: nextStatus,
-        statusBeforePending: null,
-        isHidden: false,
-        linkKind: ProjectLinkKind.none,
-      },
-    });
 
     return this.getForClient(clientId, projectId, viewerLocale);
   }

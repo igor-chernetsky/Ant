@@ -98,6 +98,27 @@ export const en = {
       contractorProgressClaimRejectedTitle: 'Progress claim rejected',
       contractorProgressClaimRejectedBody:
         'Claim #{n} on {project} was rejected.',
+      contractorDefectReportedTitle: 'Defect reported',
+      contractorDefectReportedBody:
+        'Defect #{n} was reported on {project}.',
+      contractorDefectResubmittedTitle: 'Defect resubmitted',
+      contractorDefectResubmittedBody:
+        'Defect #{n} was resubmitted on {project}.',
+      contractorDefectCompletionRejectedTitle: 'Defect fix rejected',
+      contractorDefectCompletionRejectedBody:
+        'Fix for defect #{n} on {project} was rejected.',
+      contractorDefectClosedTitle: 'Defect closed',
+      contractorDefectClosedBody:
+        'Defect #{n} on {project} was closed.',
+      clientDefectDeclinedTitle: 'Defect declined',
+      clientDefectDeclinedBody:
+        'Defect #{n} on {project} was declined.',
+      clientDefectAcceptedTitle: 'Defect accepted',
+      clientDefectAcceptedBody:
+        'Defect #{n} on {project} was accepted for work.',
+      clientDefectCompletedTitle: 'Defect marked complete',
+      clientDefectCompletedBody:
+        'Defect #{n} on {project} was marked complete.',
       genericProjectBody: 'Related to {project}.',
     },
   },

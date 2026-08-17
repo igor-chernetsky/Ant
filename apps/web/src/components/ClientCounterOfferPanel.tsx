@@ -24,6 +24,7 @@ interface ClientCounterOfferPanelProps {
   projectDescription?: string | null;
   projectScopeSummary?: string | null;
   projectContractTerms?: BidContractTerms;
+  isDesign?: boolean;
 }
 
 export function ClientCounterOfferPanel({
@@ -36,6 +37,7 @@ export function ClientCounterOfferPanel({
   projectDescription,
   projectScopeSummary,
   projectContractTerms,
+  isDesign = false,
 }: ClientCounterOfferPanelProps) {
   const { t } = useTranslation();
   const [offers, setOffers] = useState<BidOffer[]>([]);
@@ -81,7 +83,12 @@ export function ClientCounterOfferPanel({
       await loadOffers();
       if (result.sentToBidCount > 1) {
         setSuccess(
-          t('negotiation.sentToMany', { count: result.sentToBidCount }),
+          t(
+            isDesign
+              ? 'negotiation.sentToManyDesign'
+              : 'negotiation.sentToMany',
+            { count: result.sentToBidCount },
+          ),
         );
       } else {
         setSuccess(t('negotiation.sent'));
@@ -116,7 +123,7 @@ export function ClientCounterOfferPanel({
               <p className="bid-offer-meta muted">
                 {offer.authorRole === 'client'
                   ? t('negotiation.yourCounterOffer')
-                  : t('common.contractor')}{' '}
+                  : t(isDesign ? 'common.designer' : 'common.contractor')}{' '}
                 · {new Date(offer.createdAt).toLocaleString()}
               </p>
               <p className="bid-offer-amount">{formatThb(Number(offer.amount))}</p>
@@ -145,13 +152,27 @@ export function ClientCounterOfferPanel({
             contractTermsVariant="counter-offer"
             contractTermsPlacement="afterMetrics"
             durationInputMode="hidden"
-            notesLabel={t('negotiation.commentLabel')}
+            notesLabel={t(
+              isDesign
+                ? 'negotiation.commentLabelDesign'
+                : 'negotiation.commentLabel',
+            )}
             scopeLabel={t('bid.scopeOfWorks')}
-            scopeHint={t('negotiation.scopeHint')}
+            scopeHint={t(
+              isDesign
+                ? 'negotiation.scopeHintDesign'
+                : 'negotiation.scopeHint',
+            )}
             breakdownMode="adjust"
+            isDesign={isDesign}
             submitLabel={
               applyToAllPending && canBulkSend
-                ? t('negotiation.sendToMany', { count: pendingTargetCount })
+                ? t(
+                    isDesign
+                      ? 'negotiation.sendToManyDesign'
+                      : 'negotiation.sendToMany',
+                    { count: pendingTargetCount },
+                  )
                 : t('negotiation.sendCounterOffer')
             }
             footerExtra={
@@ -166,9 +187,14 @@ export function ClientCounterOfferPanel({
                     disabled={busy}
                   />
                   <span>
-                    {t('negotiation.bulkOption', {
-                      count: pendingTargetCount,
-                    })}
+                    {t(
+                      isDesign
+                        ? 'negotiation.bulkOptionDesign'
+                        : 'negotiation.bulkOption',
+                      {
+                        count: pendingTargetCount,
+                      },
+                    )}
                   </span>
                 </label>
               ) : null

@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { ProjectLocationMap } from '@/components/ProjectLocationMap';
@@ -13,8 +12,6 @@ import {
   convertProjectToDesign,
   formatDateTime,
   PROPERTY_TYPE_OPTIONS,
-  resumeConstructionFromDesign,
-  resumePendingProject,
   updateProjectCard,
   type Project,
   type ProjectTag,
@@ -140,7 +137,6 @@ export function ProjectHero({
   includeSidebar = true,
 }: ProjectHeroProps & { includeSidebar?: boolean }) {
   const { t } = useTranslation();
-  const router = useRouter();
   const { formatProjectType, formatPropertyType } = useAppFormatters();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(project.title);
@@ -165,10 +161,12 @@ export function ProjectHero({
     ? 'designPermits.convertHintNewBuild'
     : 'designPermits.convertHint';
   const canConvert = Boolean(canEditCard && project.canConvertToDesign);
-  const canResume = Boolean(canEditCard && project.status === 'pending');
-  const canResumeConstruction = Boolean(
-    canEditCard && project.canResumeConstruction,
-  );
+  const showNextConstructionHint =
+    canEditCard &&
+    isDesignTrack &&
+    (project.status === 'awarded' ||
+      project.status === 'active' ||
+      project.status === 'completed');
   const canEditType = Boolean(
     canEditCard && canEditConstructionProjectType(project),
   );
@@ -244,40 +242,6 @@ export function ProjectHero({
         err instanceof Error
           ? err.message
           : t('designPermits.convertFailed'),
-      );
-    } finally {
-      setConverting(false);
-    }
-  };
-
-  const handleResume = async () => {
-    setConverting(true);
-    setError(null);
-    try {
-      const updated = await resumePendingProject(project.id);
-      onCardUpdated?.(updated);
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t('designPermits.resumeFailed'),
-      );
-    } finally {
-      setConverting(false);
-    }
-  };
-
-  const handleResumeConstruction = async () => {
-    setConverting(true);
-    setError(null);
-    try {
-      const construction = await resumeConstructionFromDesign(project.id);
-      router.push(`/projects/${construction.id}`);
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t('designPermits.resumeConstructionFailed'),
       );
     } finally {
       setConverting(false);
@@ -421,11 +385,7 @@ export function ProjectHero({
             </>
           )}
 
-          {(canConvert ||
-            canResume ||
-            canResumeConstruction ||
-            showDesignHint ||
-            project.linkedProjectId) && (
+          {(canConvert || showDesignHint || showNextConstructionHint) && (
             <div className="project-hero-design-actions">
               {showDesignHint && (
                 <p
@@ -450,40 +410,10 @@ export function ProjectHero({
                     : t('designPermits.convertButton')}
                 </button>
               )}
-              {canResumeConstruction && (
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={() => void handleResumeConstruction()}
-                  disabled={converting || saving}
-                  title={t('designPermits.resumeConstructionTooltip')}
-                >
-                  {converting
-                    ? t('common.saving')
-                    : t('designPermits.resumeConstructionButton')}
-                </button>
-              )}
-              {canResume && (
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={() => void handleResume()}
-                  disabled={converting || saving}
-                >
-                  {converting
-                    ? t('common.saving')
-                    : t('designPermits.resumeButton')}
-                </button>
-              )}
-              {project.linkedProjectId && (
-                <Link
-                  href={`/projects/${project.linkedProjectId}`}
-                  className="project-hero-linked"
-                >
-                  {project.linkKind === 'design_active'
-                    ? t('designPermits.linkedConstruction')
-                    : t('designPermits.linkedDesign')}
-                </Link>
+              {showNextConstructionHint && (
+                <p className="muted project-hero-design-hint">
+                  {t('designPermits.nextConstructionHint')}
+                </p>
               )}
               {error && !editing && (
                 <p className="project-hero-edit-error" role="alert">

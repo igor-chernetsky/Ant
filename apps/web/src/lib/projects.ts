@@ -124,7 +124,6 @@ export interface Project {
   linkKind?: 'none' | 'design_active' | 'construction_pending';
   designFeePercent?: number | null;
   canConvertToDesign?: boolean;
-  canResumeConstruction?: boolean;
   brief: ProjectBriefV1 | null;
   clarificationMode: ClarificationMode;
   clarificationSummary: string | null;
@@ -310,34 +309,6 @@ export async function convertProjectToDesign(id: string): Promise<Project> {
       message?: string;
     } | null;
     throw new Error(body?.message ?? 'Failed to convert project');
-  }
-  return response.json() as Promise<Project>;
-}
-
-export async function resumePendingProject(id: string): Promise<Project> {
-  const response = await fetchWithAuth(
-    `/api/projects/${encodeURIComponent(id)}/resume-pending`,
-    { method: 'POST' },
-  );
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as {
-      message?: string;
-    } | null;
-    throw new Error(body?.message ?? 'Failed to resume project');
-  }
-  return response.json() as Promise<Project>;
-}
-
-export async function resumeConstructionFromDesign(id: string): Promise<Project> {
-  const response = await fetchWithAuth(
-    `/api/projects/${encodeURIComponent(id)}/resume-construction`,
-    { method: 'POST' },
-  );
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as {
-      message?: string;
-    } | null;
-    throw new Error(body?.message ?? 'Failed to resume construction');
   }
   return response.json() as Promise<Project>;
 }

@@ -2,8 +2,30 @@ import type { EstimateLine, EstimateTotals } from '../estimation/estimates.types
 import { designFeePercentFor } from './design-permits.utils';
 import type { PropertyType } from '@prisma/client';
 
-function roundMoney(value: number): number {
+const PUBLIC_DESIGN_DISCLAIMER =
+  'Ballpark estimate only — not a binding quote. Final pricing requires a detailed design brief and scope review.';
+
+const DESIGN_LINE_PREFIX = 'Design:';
+
+/** Do not expose the internal % of construction shortcut in client-facing copy. */
+export function sanitizeDesignFeeDisclaimer(disclaimer: string): string {
+  if (
+    /design fee ballpark/i.test(disclaimer) ||
+    /\d+\s*%\s*of estimated construction/i.test(disclaimer) ||
+    /construction amounts are not shown/i.test(disclaimer)
+  ) {
+    return PUBLIC_DESIGN_DISCLAIMER;
+  }
+  return disclaimer;
+}
+
+export function roundMoney(value: number): number {
   return Math.round(value);
+}
+
+/** Stored design-fee rows are prefixed so we do not scale them twice on read. */
+export function isDesignScaledEstimate(lines: EstimateLine[]): boolean {
+  return lines.some((line) => line.description.startsWith(DESIGN_LINE_PREFIX));
 }
 
 export function scaleEstimateByPercent(
@@ -15,9 +37,9 @@ export function scaleEstimateByPercent(
   return {
     lines: lines.map((line) => ({
       ...line,
-      description: line.description.startsWith('Design:')
+      description: line.description.startsWith(DESIGN_LINE_PREFIX)
         ? line.description
-        : `Design: ${line.description}`,
+        : `${DESIGN_LINE_PREFIX} ${line.description}`,
       unitPriceMin: roundMoney(line.unitPriceMin * factor),
       unitPriceMax: roundMoney(line.unitPriceMax * factor),
       lineMin: roundMoney(line.lineMin * factor),
@@ -55,8 +77,8 @@ export function buildDesignFeeEstimate(input: {
     lines: scaled.lines,
     totals: scaled.totals,
     baseTotals: input.totals,
-    disclaimer:
-      input.disclaimer ??
-      `Design fee ballpark (${percent}% of estimated construction works). Construction amounts are not shown at this stage.`,
+    disclaimer: sanitizeDesignFeeDisclaimer(
+      input.disclaimer ?? PUBLIC_DESIGN_DISCLAIMER,
+    ),
   };
 }

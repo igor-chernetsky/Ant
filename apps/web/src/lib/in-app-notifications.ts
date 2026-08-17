@@ -20,7 +20,14 @@ export type InAppNotificationKind =
   | 'contractor_signature_request_rejected'
   | 'client_progress_claim_submitted'
   | 'contractor_progress_claim_approved'
-  | 'contractor_progress_claim_rejected';
+  | 'contractor_progress_claim_rejected'
+  | 'contractor_defect_reported'
+  | 'contractor_defect_resubmitted'
+  | 'contractor_defect_completion_rejected'
+  | 'contractor_defect_closed'
+  | 'client_defect_declined'
+  | 'client_defect_accepted'
+  | 'client_defect_completed';
 
 export interface InAppNotification {
   id: string;

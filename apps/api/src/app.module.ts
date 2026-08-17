@@ -19,6 +19,7 @@ import { UsersModule } from './users/users.module';
 import { VerificationModule } from './verification/verification.module';
 import { SupplyDirectoryModule } from './supply-directory/supply-directory.module';
 import { ProgressModule } from './progress/progress.module';
+import { DefectsModule } from './defects/defects.module';
 import { SentryModule } from '@sentry/nestjs/setup';
 
 @Module({
@@ -42,6 +43,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     VerificationModule,
     SupplyDirectoryModule,
     ProgressModule,
+    DefectsModule,
   ],
   providers: [
     {

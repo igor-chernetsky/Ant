@@ -555,14 +555,18 @@ export function BidProposalForm({
         <div className="bid-line-items">
           <p className="tag-section-label">
             {breakdownMode === 'adjust'
-              ? t('bid.contractorBreakdown')
+              ? t(isDesign ? 'bid.designerBreakdown' : 'bid.contractorBreakdown')
               : projectTemplateBreakdown
                 ? t('bid.projectBreakdown')
                 : t('bid.costBreakdownOptional')}
           </p>
           {breakdownMode === 'adjust' && (
             <p className="muted bid-line-items-hint">
-              {t('bid.adjustBreakdownHint')}
+              {t(
+                isDesign
+                  ? 'bid.adjustBreakdownHintDesign'
+                  : 'bid.adjustBreakdownHint',
+              )}
             </p>
           )}
           {breakdownMode === 'create' && projectTemplateBreakdown && (

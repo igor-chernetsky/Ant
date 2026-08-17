@@ -44,6 +44,7 @@ interface BidApplicationCardProps {
   };
   clarificationMode?: 'open_chat' | 'structured_qa';
   onContractSigned?: () => void;
+  isDesign?: boolean;
 }
 
 export function BidApplicationCard({
@@ -59,6 +60,7 @@ export function BidApplicationCard({
   clientCounterOffer,
   clarificationMode = 'open_chat',
   onContractSigned,
+  isDesign = false,
 }: BidApplicationCardProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -121,7 +123,8 @@ export function BidApplicationCard({
     <>
       <span className="bid-application-card-primary">
         <strong className="bid-application-card-company">
-          {bid.companyName ?? t('common.contractor')}
+          {bid.companyName ??
+            t(isDesign ? 'common.designer' : 'common.contractor')}
         </strong>
             <span className="bid-application-card-amount">
               {isDeclined
@@ -220,6 +223,7 @@ export function BidApplicationCard({
                 projectDistrict={clientCounterOffer.projectDistrict}
                 projectContractTerms={clientCounterOffer.projectContractTerms}
                 readOnly
+                isDesign={isDesign}
                 onBidUpdated={clientCounterOffer.onBidUpdated}
               />
             )}
@@ -280,7 +284,9 @@ export function BidApplicationCard({
               projectId={projectId}
               currentUserId={currentUserId!}
               title={t('bidApplication.chatWith', {
-                name: bid.companyName ?? t('common.contractor'),
+                name:
+                  bid.companyName ??
+                  t(isDesign ? 'common.designer' : 'common.contractor'),
               })}
             />
           )}
@@ -296,6 +302,7 @@ export function BidApplicationCard({
               projectScopeSummary={clientCounterOffer.projectScopeSummary}
               projectContractTerms={clientCounterOffer.projectContractTerms}
               defaultCostBreakdown={clientCounterOffer.defaultCostBreakdown}
+              isDesign={isDesign}
             />
           )}
         </div>

@@ -524,7 +524,6 @@ export class ProjectLocalizationService implements OnModuleInit {
       linkKind: project.linkKind ?? 'none',
       designFeePercent: project.designFeePercent ?? null,
       canConvertToDesign: false,
-      canResumeConstruction: false,
       brief: (project.briefJson ?? null) as ProjectBriefV1 | null,
       clarificationMode: project.clarificationMode,
       clarificationSummary: project.clarificationSummary,

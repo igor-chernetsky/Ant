@@ -327,6 +327,7 @@ export function PublishTenderPackageModal({
                     <CostBreakdownTemplateEditor
                       items={preview.defaultCostBreakdown}
                       disabled={busy}
+                      isDesign={isDesign}
                       onChange={(defaultCostBreakdown) =>
                         setPreview((current) => ({
                           ...current,

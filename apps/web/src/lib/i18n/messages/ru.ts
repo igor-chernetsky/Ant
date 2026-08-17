@@ -99,6 +99,27 @@ export const ru: Messages = {
       contractorProgressClaimRejectedTitle: 'Progress claim отклонён',
       contractorProgressClaimRejectedBody:
         'Claim #{n} по проекту {project} отклонён.',
+      contractorDefectReportedTitle: 'Сообщён дефект',
+      contractorDefectReportedBody:
+        'По проекту {project} сообщён дефект №{n}.',
+      contractorDefectResubmittedTitle: 'Дефект отправлен снова',
+      contractorDefectResubmittedBody:
+        'Дефект №{n} по проекту {project} отправлен снова.',
+      contractorDefectCompletionRejectedTitle: 'Исправление отклонено',
+      contractorDefectCompletionRejectedBody:
+        'Исправление дефекта №{n} по проекту {project} отклонено.',
+      contractorDefectClosedTitle: 'Дефект закрыт',
+      contractorDefectClosedBody:
+        'Дефект №{n} по проекту {project} закрыт.',
+      clientDefectDeclinedTitle: 'Дефект отклонён',
+      clientDefectDeclinedBody:
+        'Дефект №{n} по проекту {project} отклонён.',
+      clientDefectAcceptedTitle: 'Дефект принят в работу',
+      clientDefectAcceptedBody:
+        'Дефект №{n} по проекту {project} принят в работу.',
+      clientDefectCompletedTitle: 'Дефект отмечен выполненным',
+      clientDefectCompletedBody:
+        'Дефект №{n} по проекту {project} отмечен выполненным.',
       genericProjectBody: 'Связано с проектом {project}.',
     },
   },

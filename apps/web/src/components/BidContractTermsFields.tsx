@@ -127,7 +127,11 @@ export function BidContractTermsFields({
             {isCounterOffer
               ? t('contractTerms.counterOfferHint')
               : audience === 'client'
-                ? t('contractTerms.clientHint')
+                ? t(
+                    isDesign
+                      ? 'contractTerms.clientHintDesign'
+                      : 'contractTerms.clientHint',
+                  )
                 : isDesign
                   ? t('contractTerms.designerHint')
                   : t('contractTerms.contractorHint')}
@@ -408,7 +412,11 @@ export function BidContractTermsFields({
         </label>
 
         <p className="tag-section-label bid-contract-terms-legal-label">
-          {t('contractTerms.contractorLegalDetails')}
+          {t(
+            isDesign
+              ? 'contractTerms.designerLegalDetails'
+              : 'contractTerms.contractorLegalDetails',
+          )}
         </p>
         <label>
           {isDesign

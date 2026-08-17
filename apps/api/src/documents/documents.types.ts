@@ -6,6 +6,8 @@ export interface PresignUploadDto {
   contentType: string;
   sizeBytes: number;
   category?: DocumentCategory;
+  defectId?: string;
+  defectEventId?: string;
 }
 
 export interface DocumentResponse {

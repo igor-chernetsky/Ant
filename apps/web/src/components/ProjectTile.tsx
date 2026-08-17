@@ -211,7 +211,9 @@ export function ProjectTile({
             <div className="project-tile-estimate">
               <div className="project-tile-estimate-main">
                 <p className="project-tile-estimate-label">
-                  {t('projectTile.ballpark')}
+                  {isDesignPhase
+                    ? t('projectTile.ballparkDesign')
+                    : t('projectTile.ballpark')}
                 </p>
                 <p className="project-tile-estimate-range">
                   {formatThb(project.estimate.minAmount)} –{' '}

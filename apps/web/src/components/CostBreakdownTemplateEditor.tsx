@@ -7,6 +7,7 @@ interface CostBreakdownTemplateEditorProps {
   items: DefaultCostBreakdownItem[];
   onChange: (items: DefaultCostBreakdownItem[]) => void;
   disabled?: boolean;
+  isDesign?: boolean;
 }
 
 const emptyRow = (): DefaultCostBreakdownItem => ({
@@ -18,6 +19,7 @@ export function CostBreakdownTemplateEditor({
   items,
   onChange,
   disabled = false,
+  isDesign = false,
 }: CostBreakdownTemplateEditorProps) {
   const { t } = useTranslation();
 
@@ -34,7 +36,9 @@ export function CostBreakdownTemplateEditor({
   return (
     <div className="cost-breakdown-template-editor">
       <p className="tag-section-label">{t('costBreakdown.title')}</p>
-      <p className="muted cost-breakdown-template-hint">{t('costBreakdown.hint')}</p>
+      <p className="muted cost-breakdown-template-hint">
+        {t(isDesign ? 'costBreakdown.hintDesign' : 'costBreakdown.hint')}
+      </p>
       <ul className="bid-line-items-list">
         {items.map((item, index) => (
           <li key={index} className="bid-line-item-row bid-line-item-row--template">

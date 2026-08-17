@@ -54,6 +54,20 @@ export function formatInAppNotificationTitle(
       return t('notifications.kinds.contractorProgressClaimApprovedTitle');
     case 'contractor_progress_claim_rejected':
       return t('notifications.kinds.contractorProgressClaimRejectedTitle');
+    case 'contractor_defect_reported':
+      return t('notifications.kinds.contractorDefectReportedTitle');
+    case 'contractor_defect_resubmitted':
+      return t('notifications.kinds.contractorDefectResubmittedTitle');
+    case 'contractor_defect_completion_rejected':
+      return t('notifications.kinds.contractorDefectCompletionRejectedTitle');
+    case 'contractor_defect_closed':
+      return t('notifications.kinds.contractorDefectClosedTitle');
+    case 'client_defect_declined':
+      return t('notifications.kinds.clientDefectDeclinedTitle');
+    case 'client_defect_accepted':
+      return t('notifications.kinds.clientDefectAcceptedTitle');
+    case 'client_defect_completed':
+      return t('notifications.kinds.clientDefectCompletedTitle');
     default:
       return t('notifications.title');
   }
@@ -158,6 +172,41 @@ export function formatInAppNotificationBody(
       return t('notifications.kinds.contractorProgressClaimRejectedBody', {
         project: projectTitle || t('common.dash'),
         n: payloadString(item.payload, 'sequenceNumber') || '—',
+      });
+    case 'contractor_defect_reported':
+      return t('notifications.kinds.contractorDefectReportedBody', {
+        project: projectTitle || t('common.dash'),
+        n: payloadString(item.payload, 'defectNumber') || '—',
+      });
+    case 'contractor_defect_resubmitted':
+      return t('notifications.kinds.contractorDefectResubmittedBody', {
+        project: projectTitle || t('common.dash'),
+        n: payloadString(item.payload, 'defectNumber') || '—',
+      });
+    case 'contractor_defect_completion_rejected':
+      return t('notifications.kinds.contractorDefectCompletionRejectedBody', {
+        project: projectTitle || t('common.dash'),
+        n: payloadString(item.payload, 'defectNumber') || '—',
+      });
+    case 'contractor_defect_closed':
+      return t('notifications.kinds.contractorDefectClosedBody', {
+        project: projectTitle || t('common.dash'),
+        n: payloadString(item.payload, 'defectNumber') || '—',
+      });
+    case 'client_defect_declined':
+      return t('notifications.kinds.clientDefectDeclinedBody', {
+        project: projectTitle || t('common.dash'),
+        n: payloadString(item.payload, 'defectNumber') || '—',
+      });
+    case 'client_defect_accepted':
+      return t('notifications.kinds.clientDefectAcceptedBody', {
+        project: projectTitle || t('common.dash'),
+        n: payloadString(item.payload, 'defectNumber') || '—',
+      });
+    case 'client_defect_completed':
+      return t('notifications.kinds.clientDefectCompletedBody', {
+        project: projectTitle || t('common.dash'),
+        n: payloadString(item.payload, 'defectNumber') || '—',
       });
     default:
       return projectTitle

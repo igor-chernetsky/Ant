@@ -1721,6 +1721,230 @@ export class NotificationsService {
     });
   }
 
+  async notifyContractorDefectReported(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+    defectNumber: number;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.contractor_defect_reported,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        defectNumber: params.defectNumber,
+      },
+    });
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.contractor_defect_reported,
+      projectId: params.projectId,
+      subject: `Defect reported — ${params.projectTitle}`,
+      title: 'New defect reported',
+      bodyHtml: `<p>The client reported defect <strong>#${params.defectNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Review it on the project page and accept or decline the work.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'View defect',
+      textBody: `Defect #${params.defectNumber} was reported on ${params.projectTitle}. Review on the project page.`,
+    });
+  }
+
+  async notifyContractorDefectResubmitted(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+    defectNumber: number;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.contractor_defect_resubmitted,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        defectNumber: params.defectNumber,
+      },
+    });
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.contractor_defect_resubmitted,
+      projectId: params.projectId,
+      subject: `Defect resubmitted — ${params.projectTitle}`,
+      title: 'Defect resubmitted',
+      bodyHtml: `<p>The client resubmitted defect <strong>#${params.defectNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong>.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'View defect',
+      textBody: `Defect #${params.defectNumber} was resubmitted on ${params.projectTitle}.`,
+    });
+  }
+
+  async notifyContractorDefectCompletionRejected(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+    defectNumber: number;
+    reason?: string | null;
+  }): Promise<void> {
+    const reason = params.reason?.trim();
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.contractor_defect_completion_rejected,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        defectNumber: params.defectNumber,
+        reason: params.reason ?? null,
+      },
+    });
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.contractor_defect_completion_rejected,
+      projectId: params.projectId,
+      subject: `Defect fix rejected — ${params.projectTitle}`,
+      title: 'Defect fix rejected',
+      bodyHtml: `<p>The client rejected the fix for defect <strong>#${params.defectNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong>.</p>${
+        reason
+          ? `<p style="background:#f8fafc;padding:12px;border-radius:8px;white-space:pre-wrap;"><strong>Reason:</strong> ${escapeHtml(reason)}</p>`
+          : ''
+      }<p>Continue work and mark done again when ready.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'View defect',
+      textBody: `Fix for defect #${params.defectNumber} on ${params.projectTitle} was rejected.${reason ? ` Reason: ${reason}` : ''}`,
+    });
+  }
+
+  async notifyContractorDefectClosed(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+    defectNumber: number;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.contractor_defect_closed,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        defectNumber: params.defectNumber,
+      },
+    });
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.contractor_defect_closed,
+      projectId: params.projectId,
+      subject: `Defect closed — ${params.projectTitle}`,
+      title: 'Defect accepted and closed',
+      bodyHtml: `<p>The client accepted the fix for defect <strong>#${params.defectNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong>.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'View project',
+      textBody: `Defect #${params.defectNumber} on ${params.projectTitle} was closed.`,
+    });
+  }
+
+  async notifyClientDefectDeclined(params: {
+    clientUserId: string;
+    projectId: string;
+    projectTitle: string;
+    defectNumber: number;
+    reason?: string | null;
+  }): Promise<void> {
+    const reason = params.reason?.trim();
+    await this.createInAppNotification({
+      userId: params.clientUserId,
+      kind: InAppNotificationKind.client_defect_declined,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        defectNumber: params.defectNumber,
+        reason: params.reason ?? null,
+      },
+    });
+    await this.sendToUser({
+      userId: params.clientUserId,
+      prefFlag: 'emailClientBidActivity',
+      kind: NotificationEmailKind.client_defect_declined,
+      projectId: params.projectId,
+      subject: `Defect declined — ${params.projectTitle}`,
+      title: 'Defect declined',
+      bodyHtml: `<p>Your defect <strong>#${params.defectNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong> was declined.</p>${
+        reason
+          ? `<p style="background:#f8fafc;padding:12px;border-radius:8px;white-space:pre-wrap;"><strong>Reason:</strong> ${escapeHtml(reason)}</p>`
+          : ''
+      }<p>You can resubmit with more details if needed.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'View defect',
+      textBody: `Defect #${params.defectNumber} on ${params.projectTitle} was declined.${reason ? ` Reason: ${reason}` : ''}`,
+    });
+  }
+
+  async notifyClientDefectAccepted(params: {
+    clientUserId: string;
+    projectId: string;
+    projectTitle: string;
+    defectNumber: number;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.clientUserId,
+      kind: InAppNotificationKind.client_defect_accepted,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        defectNumber: params.defectNumber,
+      },
+    });
+    await this.sendToUser({
+      userId: params.clientUserId,
+      prefFlag: 'emailClientBidActivity',
+      kind: NotificationEmailKind.client_defect_accepted,
+      projectId: params.projectId,
+      subject: `Defect accepted for work — ${params.projectTitle}`,
+      title: 'Defect accepted',
+      bodyHtml: `<p>Defect <strong>#${params.defectNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong> was accepted and is now in progress.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'View defect',
+      textBody: `Defect #${params.defectNumber} on ${params.projectTitle} was accepted for work.`,
+    });
+  }
+
+  async notifyClientDefectCompleted(params: {
+    clientUserId: string;
+    projectId: string;
+    projectTitle: string;
+    defectNumber: number;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.clientUserId,
+      kind: InAppNotificationKind.client_defect_completed,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        defectNumber: params.defectNumber,
+      },
+    });
+    await this.sendToUser({
+      userId: params.clientUserId,
+      prefFlag: 'emailClientBidActivity',
+      kind: NotificationEmailKind.client_defect_completed,
+      projectId: params.projectId,
+      subject: `Defect fix submitted — ${params.projectTitle}`,
+      title: 'Defect marked complete',
+      bodyHtml: `<p>The contractor marked defect <strong>#${params.defectNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong> as complete.</p><p>Review the fix and accept or reject it on the project page.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'Review defect',
+      textBody: `Defect #${params.defectNumber} on ${params.projectTitle} was marked complete. Review on the project page.`,
+    });
+  }
+
   dispatch(promise: Promise<void>): void {
     void promise.catch((error) => {
       this.logger.warn('Notification dispatch failed', error);

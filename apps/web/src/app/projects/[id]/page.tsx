@@ -23,6 +23,7 @@ import { TenderSummaryCard } from '@/components/TenderSummaryCard';
 import { InviteFromDirectoryModal } from '@/components/InviteFromDirectoryModal';
 import { ClientContractPanel, isContractProjectStatus } from '@/components/ClientContractPanel';
 import { ProgressClaimsPanel } from '@/components/ProgressClaimsPanel';
+import { DefectsPanel } from '@/components/DefectsPanel';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
@@ -673,10 +674,16 @@ export default function ProjectDetailPage() {
                   (project.projectType === 'design'
                     ? isDesignerUser(me)
                     : isContractorUser(me))) && (
-                  <ProgressClaimsPanel
-                    projectId={projectId}
-                    projectStatus={project.status}
-                  />
+                  <div className="project-detail-duo">
+                    <ProgressClaimsPanel
+                      projectId={projectId}
+                      projectStatus={project.status}
+                    />
+                    <DefectsPanel
+                      projectId={projectId}
+                      projectStatus={project.status}
+                    />
+                  </div>
                 )}
 
               {!isOwner &&

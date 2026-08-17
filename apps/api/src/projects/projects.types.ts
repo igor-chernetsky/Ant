@@ -56,7 +56,6 @@ export interface ProjectResponse {
   linkKind: 'none' | 'design_active' | 'construction_pending';
   designFeePercent: number | null;
   canConvertToDesign: boolean;
-  canResumeConstruction: boolean;
   brief: ProjectBriefV1 | null;
   clarificationMode: ClarificationMode;
   clarificationSummary: string | null;

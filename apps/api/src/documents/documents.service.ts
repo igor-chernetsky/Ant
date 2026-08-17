@@ -22,6 +22,7 @@ import {
 } from '../projects/project-brief';
 import { ProjectsService } from '../projects/projects.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { DefectsService } from '../defects/defects.service';
 import { ImageThumbnailService } from '../storage/image-thumbnail.service';
 import { StorageService } from '../storage/storage.service';
 import {
@@ -57,6 +58,8 @@ export class DocumentsService {
     private readonly thumbnails: ImageThumbnailService,
     @Inject(forwardRef(() => ProjectsService))
     private readonly projects: ProjectsService,
+    @Inject(forwardRef(() => DefectsService))
+    private readonly defects: DefectsService,
   ) {}
 
   private toResponse(doc: Document): DocumentResponse {
@@ -143,6 +146,7 @@ export class DocumentsService {
     const docs = await this.prisma.document.findMany({
       where: {
         projectId,
+        defectId: null,
         status: isOwner
           ? { not: DocumentStatus.deleted }
           : DocumentStatus.uploaded,
@@ -168,6 +172,7 @@ export class DocumentsService {
     const docs = await this.prisma.document.findMany({
       where: {
         projectId,
+        defectId: null,
         status: DocumentStatus.uploaded,
       },
       orderBy: { createdAt: 'desc' },
@@ -181,13 +186,38 @@ export class DocumentsService {
     userId: string,
     dto: PresignUploadDto,
   ): Promise<PresignUploadResponse> {
-    await this.assertProjectOwner(projectId, userId);
     this.validateUploadInput(dto);
+
+    let defectId: string | undefined;
+    let defectEventId: string | undefined;
+
+    if (dto.defectEventId?.trim()) {
+      const linked = await this.defects.assertCanAttachToEvent(
+        projectId,
+        userId,
+        dto.defectEventId.trim(),
+      );
+      defectId = linked.defectId;
+      defectEventId = linked.defectEventId;
+    } else if (dto.defectId?.trim()) {
+      throw new BadRequestException(
+        'defectEventId is required when uploading defect attachments',
+      );
+    } else {
+      await this.assertProjectOwner(projectId, userId);
+    }
 
     const documentId = randomUUID();
     const fileName = dto.fileName.trim();
     const contentType = dto.contentType.trim().toLowerCase();
     const storageKey = buildStorageKey(projectId, documentId, fileName);
+    const category =
+      dto.category ??
+      (defectEventId
+        ? contentType.startsWith('image/')
+          ? 'photo'
+          : 'other'
+        : 'other');
 
     await this.prisma.document.create({
       data: {
@@ -198,8 +228,10 @@ export class DocumentsService {
         contentType,
         sizeBytes: dto.sizeBytes,
         storageKey,
-        category: dto.category ?? 'other',
+        category,
         status: DocumentStatus.pending,
+        defectId: defectId ?? null,
+        defectEventId: defectEventId ?? null,
       },
     });
 
@@ -222,14 +254,22 @@ export class DocumentsService {
     documentId: string,
     userId: string,
   ): Promise<DocumentResponse> {
-    await this.assertProjectOwner(projectId, userId);
-
     const doc = await this.prisma.document.findFirst({
       where: { id: documentId, projectId },
     });
 
     if (!doc) {
       throw new NotFoundException('Document not found');
+    }
+
+    if (doc.defectEventId) {
+      await this.defects.assertCanAttachToEvent(
+        projectId,
+        userId,
+        doc.defectEventId,
+      );
+    } else {
+      await this.assertProjectOwner(projectId, userId);
     }
 
     if (doc.status === DocumentStatus.uploaded) {
@@ -259,7 +299,10 @@ export class DocumentsService {
     });
 
     this.scheduleThumbnailGeneration(updated);
-    if (!isReferenceOnlyDocumentCategory(updated.category)) {
+    if (
+      !doc.defectId &&
+      !isReferenceOnlyDocumentCategory(updated.category)
+    ) {
       this.documentAnalysis.scheduleAnalysis(projectId, documentId);
     }
 

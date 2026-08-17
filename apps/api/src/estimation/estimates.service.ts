@@ -8,7 +8,8 @@ import { Prisma, ProjectStatus, ProjectType, PropertyType } from '@prisma/client
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeSourceLocale } from '../localization/locale.utils';
 import { ProjectBriefV1 } from '../projects/project-brief';
-import { buildDesignFeeEstimate } from '../projects/design-fee-estimate';
+import { sanitizeDesignFeeDisclaimer } from '../projects/design-fee-estimate';
+import { designFeePercentFor } from '../projects/design-permits.utils';
 import { BallparkEstimateService } from './ballpark-estimate.service';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import {
@@ -127,7 +128,7 @@ export class EstimatesService {
       totals: record.totalsJson as EstimateResponse['totals'],
       lines: record.linesJson as EstimateResponse['lines'],
       confidence: adjustEstimateConfidence(record.confidence),
-      disclaimer: record.disclaimer,
+      disclaimer: sanitizeDesignFeeDisclaimer(record.disclaimer),
       improvementQuestions,
       refinementAnswers,
       createdAt: record.createdAt.toISOString(),
@@ -511,25 +512,20 @@ export class EstimatesService {
       clientScopePreferences,
     });
 
-    let lines = result.lines;
-    let totals = result.totals;
+    const lines = result.lines;
+    const totals = result.totals;
     let disclaimer = result.disclaimer;
     let designFeePercent: number | null = null;
     let baseConstructionTotals: EstimateTotals | null = null;
 
     if (project.projectType === ProjectType.design) {
-      const design = buildDesignFeeEstimate({
-        lines: result.lines,
-        totals: result.totals,
+      // Persist construction-scale lines; presentForProject applies the design fee.
+      designFeePercent = designFeePercentFor({
         propertyType: project.propertyType,
         tagSlugs,
-        disclaimer: result.disclaimer,
       });
-      lines = design.lines;
-      totals = design.totals;
-      disclaimer = design.disclaimer;
-      designFeePercent = design.percent;
-      baseConstructionTotals = design.baseTotals;
+      baseConstructionTotals = result.totals;
+      disclaimer = sanitizeDesignFeeDisclaimer(result.disclaimer);
     }
 
     const meta: EstimateMeta = {
@@ -617,11 +613,8 @@ export class EstimatesService {
       select: { estimateRefinementQaJson: true },
     });
 
-    const baseLines = previous.linesJson as unknown as EstimateLine[];
     const baseTotals = previous.totalsJson as unknown as EstimateTotals;
-    const design = buildDesignFeeEstimate({
-      lines: baseLines,
-      totals: baseTotals,
+    const percent = designFeePercentFor({
       propertyType,
       tagSlugs,
     });
@@ -631,11 +624,11 @@ export class EstimatesService {
       data: {
         projectId,
         type: 'ballpark',
-        currency: design.totals.currency,
-        totalsJson: design.totals as unknown as Prisma.InputJsonValue,
-        linesJson: design.lines as unknown as Prisma.InputJsonValue,
+        currency: previous.currency,
+        totalsJson: previous.totalsJson as Prisma.InputJsonValue,
+        linesJson: previous.linesJson as Prisma.InputJsonValue,
         confidence: previous.confidence,
-        disclaimer: design.disclaimer,
+        disclaimer: sanitizeDesignFeeDisclaimer(previous.disclaimer),
         metaJson: previousMeta as unknown as Prisma.InputJsonValue,
       },
     });
@@ -645,8 +638,8 @@ export class EstimatesService {
         record,
         parseRefinementQa(project?.estimateRefinementQaJson),
       ),
-      percent: design.percent,
-      baseTotals: design.baseTotals,
+      percent,
+      baseTotals,
     };
   }
 

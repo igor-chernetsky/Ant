@@ -191,6 +191,7 @@ model User {
   signatureRequestsReviewed ContractSignatureRequest[] @relation("SignatureRequestReviewedBy")
   progressClaimsSubmitted  ProgressClaim[] @relation("ProgressClaimSubmittedBy")
   progressClaimsReviewed   ProgressClaim[] @relation("ProgressClaimReviewedBy")
+  defectEvents             DefectEvent[]
 
   @@map("users")
 }
@@ -238,6 +239,13 @@ enum NotificationEmailKind {
   client_progress_claim_submitted
   contractor_progress_claim_approved
   contractor_progress_claim_rejected
+  contractor_defect_reported
+  contractor_defect_resubmitted
+  contractor_defect_completion_rejected
+  contractor_defect_closed
+  client_defect_declined
+  client_defect_accepted
+  client_defect_completed
 }
 
 model NotificationEmailLog {
@@ -273,12 +281,37 @@ enum InAppNotificationKind {
   client_progress_claim_submitted
   contractor_progress_claim_approved
   contractor_progress_claim_rejected
+  contractor_defect_reported
+  contractor_defect_resubmitted
+  contractor_defect_completion_rejected
+  contractor_defect_closed
+  client_defect_declined
+  client_defect_accepted
+  client_defect_completed
 }
 
 enum ContractSignatureRequestStatus {
   pending
   approved
   rejected
+}
+
+enum DefectStatus {
+  reported
+  declined
+  in_progress
+  submitted
+  closed
+}
+
+enum DefectEventKind {
+  created
+  declined
+  accepted
+  resubmitted
+  completed
+  completion_rejected
+  closed
 }
 
 model InAppNotification {
@@ -370,6 +403,7 @@ model Project {
   tenderInvites   TenderInvite[]
   signatureRequests ContractSignatureRequest[]
   progressClaims  ProgressClaim[]
+  defects         Defect[]
 
   @@index([clientId])
   @@index([clientId, isHidden])
@@ -422,11 +456,17 @@ model Document {
   thumbnailStorageKey String?          @unique @map("thumbnail_storage_key")
   category            DocumentCategory @default(other)
   status              DocumentStatus   @default(pending)
+  defectId            String?          @map("defect_id")
+  defect              Defect?          @relation(fields: [defectId], references: [id], onDelete: Cascade)
+  defectEventId       String?          @map("defect_event_id")
+  defectEvent         DefectEvent?     @relation(fields: [defectEventId], references: [id], onDelete: Cascade)
   createdAt           DateTime         @default(now()) @map("created_at")
   uploadedAt          DateTime?        @map("uploaded_at")
 
   @@index([projectId])
   @@index([uploaderId])
+  @@index([defectId])
+  @@index([defectEventId])
   @@map("documents")
 }
 
@@ -957,4 +997,36 @@ model ProgressClaimLine {
 
   @@index([claimId, sortOrder])
   @@map("progress_claim_lines")
+}
+
+model Defect {
+  id             String       @id @default(uuid())
+  projectId      String       @map("project_id")
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sequenceNumber Int          @map("sequence_number")
+  description    String       @db.Text
+  status         DefectStatus @default(reported)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  events         DefectEvent[]
+  documents      Document[]
+
+  @@unique([projectId, sequenceNumber])
+  @@index([projectId])
+  @@map("defects")
+}
+
+model DefectEvent {
+  id          String          @id @default(uuid())
+  defectId    String          @map("defect_id")
+  defect      Defect          @relation(fields: [defectId], references: [id], onDelete: Cascade)
+  kind        DefectEventKind
+  comment     String?         @db.Text
+  actorUserId String          @map("actor_user_id")
+  actor       User            @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  attachments Document[]
+
+  @@index([defectId, createdAt])
+  @@map("defect_events")
 }
