@@ -1050,6 +1050,7 @@ pre {
 
 .home-results .project-grid {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+  container-type: inline-size;
 }
 
 .project-grid > * {
@@ -1057,12 +1058,29 @@ pre {
   height: 100%;
 }
 
-.home-ad-card {
+/* Stretch to sibling tiles without contributing to row height. */
+.project-grid > .home-ad-slot {
   position: relative;
+  height: 0;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+/* One column: this cell is the whole row and needs its own height. */
+@container (max-width: 959px) {
+  .project-grid > .home-ad-slot {
+    height: auto;
+    min-height: 22.5rem;
+  }
+}
+
+.home-ad-card {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: 100%;
+  height: auto;
   padding: 1rem 1rem 1.7rem;
   border-radius: 16px;
   border: 1px solid rgba(139, 92, 246, 0.22);

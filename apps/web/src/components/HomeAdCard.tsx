@@ -73,59 +73,57 @@ export function HomeAdCard({ slides }: { slides: PublicHomeAdSlide[] }) {
   );
 
   return (
-    <article
-      className="home-ad-card"
-      aria-roledescription="carousel"
-      aria-label={t('homeAds.ariaLabel')}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
-      <span className="home-ad-sponsored">{t('homeAds.sponsored')}</span>
-      <div className="home-ad-body">
-        <div className="home-ad-copy">
-          <h3 className="home-ad-title">{title}</h3>
-          <p className="home-ad-description">{description}</p>
-          {external ? (
-            <a
-              className={ctaClassName}
-              href={slide.href}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {ctaInner}
-            </a>
-          ) : (
-            <Link className={ctaClassName} href={slide.href}>
-              {ctaInner}
-            </Link>
-          )}
+    <div className="home-ad-slot">
+      <article
+        className="home-ad-card"
+        aria-roledescription="carousel"
+        aria-label={t('homeAds.ariaLabel')}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        <span className="home-ad-sponsored">{t('homeAds.sponsored')}</span>
+        <div className="home-ad-body">
+          <div className="home-ad-copy">
+            <h3 className="home-ad-title">{title}</h3>
+            <p className="home-ad-description">{description}</p>
+            {external ? (
+              <a
+                className={ctaClassName}
+                href={slide.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {ctaInner}
+              </a>
+            ) : (
+              <Link className={ctaClassName} href={slide.href}>
+                {ctaInner}
+              </Link>
+            )}
+          </div>
+          <div className="home-ad-media">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="home-ad-image" src={slide.imageUrl} alt="" />
+          </div>
         </div>
-        <div className="home-ad-media">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className="home-ad-image"
-            src={slide.imageUrl}
-            alt=""
-          />
-        </div>
-      </div>
-      {slides.length > 1 && (
-        <div className="home-ad-dots" role="tablist">
-          {slides.map((item, itemIndex) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              className={`home-ad-dot${
-                itemIndex === index ? ' is-active' : ''
-              }`}
-              aria-label={t('homeAds.slideN', { n: String(itemIndex + 1) })}
-              aria-selected={itemIndex === index}
-              onClick={() => setIndex(itemIndex)}
-            />
-          ))}
-        </div>
-      )}
-    </article>
+        {slides.length > 1 && (
+          <div className="home-ad-dots" role="tablist">
+            {slides.map((item, itemIndex) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                className={`home-ad-dot${
+                  itemIndex === index ? ' is-active' : ''
+                }`}
+                aria-label={t('homeAds.slideN', { n: String(itemIndex + 1) })}
+                aria-selected={itemIndex === index}
+                onClick={() => setIndex(itemIndex)}
+              />
+            ))}
+          </div>
+        )}
+      </article>
+    </div>
   );
 }
