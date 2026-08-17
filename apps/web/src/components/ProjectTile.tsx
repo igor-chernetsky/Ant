@@ -147,7 +147,6 @@ export function ProjectTile({
             <span className="project-tile-placeholder-icon">
               {isDesignPhase ? <DesignPhaseIcon /> : <ConstructionPhaseIcon />}
             </span>
-            <span className="project-tile-placeholder-label">{phaseLabel}</span>
           </div>
         )}
         <span className={`project-tile-status project-tile-status--${statusTone}`}>
@@ -179,29 +178,24 @@ export function ProjectTile({
             {participationLabel}
           </span>
         )}
+        <span
+          className={`project-tile-phase-chip project-tile-phase-chip--${
+            isDesignPhase ? 'design' : 'construction'
+          }`}
+          title={phaseAria}
+          aria-label={phaseAria}
+        >
+          <span className="project-tile-phase-chip-icon" aria-hidden>
+            {isDesignPhase ? <DesignPhaseIcon /> : <ConstructionPhaseIcon />}
+          </span>
+          {phaseLabel}
+        </span>
       </div>
       <div className="project-tile-body">
         <h3 className="project-tile-title">{project.title}</h3>
-        <p className="project-tile-meta muted">
-          <span
-            className={`project-tile-phase-chip project-tile-phase-chip--${
-              isDesignPhase ? 'design' : 'construction'
-            }`}
-            title={phaseAria}
-            aria-label={phaseAria}
-          >
-            <span className="project-tile-phase-chip-icon" aria-hidden>
-              {isDesignPhase ? <DesignPhaseIcon /> : <ConstructionPhaseIcon />}
-            </span>
-            {phaseLabel}
-          </span>
-          {project.district ? (
-            <span className="project-tile-meta-district">
-              {' '}
-              · {project.district}
-            </span>
-          ) : null}
-        </p>
+        {project.district ? (
+          <p className="project-tile-meta muted">{project.district}</p>
+        ) : null}
         {participationLabel && (
           <p className="project-tile-participation muted">{participationLabel}</p>
         )}

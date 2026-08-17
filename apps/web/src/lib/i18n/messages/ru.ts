@@ -24,6 +24,7 @@ export const ru: Messages = {
     supplyRegistry: 'Реестр',
     signatureRequests: 'Запросы на подпись',
     settings: 'Настройки',
+    ads: 'Реклама',
     contractor: 'Подрядчик',
     designer: 'Проектировщик',
     account: 'Аккаунт',

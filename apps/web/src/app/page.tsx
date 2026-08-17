@@ -7,6 +7,7 @@ import { HelpTip } from '@/components/help/HelpTip';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
+import { HomeAdCard } from '@/components/HomeAdCard';
 import { useSession } from '@/components/SessionProvider';
 import { useTranslation } from '@/components/LocaleProvider';
 import { canCreateProject, isSupplySideUser } from '@/lib/session';
@@ -39,6 +40,11 @@ import { canOpenProjectDetail } from '@/lib/project-open-access';
 import { HELP_TIP_IDS } from '@/lib/help-tips';
 import { AntSpinner } from '@/components/AntSpinner';
 import { SupplyVerificationBanner } from '@/components/SupplyVerificationBanner';
+import {
+  adInsertIndex,
+  fetchPublicHomeAds,
+  type PublicHomeAdSlide,
+} from '@/lib/home-ads';
 
 const EMPTY_HOME_FILTERS: HomeProjectFilterState = {
   tags: [],
@@ -80,7 +86,10 @@ export default function HomePage() {
   const [pendingCreate, setPendingCreate] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
+  const [adSlides, setAdSlides] = useState<PublicHomeAdSlide[]>([]);
+  const [gridColumns, setGridColumns] = useState(1);
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const gridRef = useRef<HTMLElement | null>(null);
   const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
   const lastResultsScrollTop = useRef(0);
   const loadSeqRef = useRef(0);
@@ -337,6 +346,12 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, [loading, hasMore, loadingMore, projects.length, loadMoreProjects]);
 
+  useEffect(() => {
+    void fetchPublicHomeAds()
+      .then(setAdSlides)
+      .catch(() => setAdSlides([]));
+  }, []);
+
   const handleAddProject = () => {
     if (me && !canCreateProject(me)) return;
     if (me) {
@@ -435,6 +450,22 @@ export default function HomePage() {
     ownedProjectIds,
     contractorParticipationByProjectId,
   ]);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const measure = () => {
+      const template = getComputedStyle(grid).gridTemplateColumns;
+      const count = template.split(' ').filter(Boolean).length;
+      setGridColumns(Math.max(1, count));
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, [loading, sortedProjects.length, adSlides.length, canAddProject]);
 
   const activeFilterCount = countHomeActiveFilters(filters, searchQuery);
   const displayCount =
@@ -567,37 +598,63 @@ export default function HomePage() {
 
             {!loading && sortedProjects.length > 0 && (
               <>
-                <section className="project-grid" aria-label={t('home.projectsAria')}>
-                  {canAddProject && (
-                    <button
-                      type="button"
-                      className="project-tile project-tile-add"
-                      onClick={handleAddProject}
-                    >
-                      <div
-                        className="project-tile-media project-tile-add-media"
-                        aria-hidden
-                      >
-                        <span className="project-tile-add-icon">+</span>
-                      </div>
-                      <div className="project-tile-body">
-                        <h3 className="project-tile-title">{t('home.addProject')}</h3>
-                        <p className="project-tile-description">
-                          {t('home.addProjectDescription')}
-                        </p>
-                      </div>
-                    </button>
-                  )}
-                  {sortedProjects.map((project) => (
-                    <ProjectTile
-                      key={project.id}
-                      project={project}
-                      isOwned={ownedProjectIds.has(project.id)}
-                      contractorParticipation={
-                        contractorParticipationByProjectId.get(project.id) ?? null
-                      }
-                    />
-                  ))}
+                <section
+                  ref={gridRef}
+                  className="project-grid"
+                  aria-label={t('home.projectsAria')}
+                >
+                  {(() => {
+                    const tiles = [
+                      ...(canAddProject
+                        ? [
+                            <button
+                              key="add-project"
+                              type="button"
+                              className="project-tile project-tile-add"
+                              onClick={handleAddProject}
+                            >
+                              <div
+                                className="project-tile-media project-tile-add-media"
+                                aria-hidden
+                              >
+                                <span className="project-tile-add-icon">+</span>
+                              </div>
+                              <div className="project-tile-body">
+                                <h3 className="project-tile-title">
+                                  {t('home.addProject')}
+                                </h3>
+                                <p className="project-tile-description">
+                                  {t('home.addProjectDescription')}
+                                </p>
+                              </div>
+                            </button>,
+                          ]
+                        : []),
+                      ...sortedProjects.map((project) => (
+                        <ProjectTile
+                          key={project.id}
+                          project={project}
+                          isOwned={ownedProjectIds.has(project.id)}
+                          contractorParticipation={
+                            contractorParticipationByProjectId.get(project.id) ??
+                            null
+                          }
+                        />
+                      )),
+                    ];
+                    if (adSlides.length > 0) {
+                      const index = Math.min(
+                        adInsertIndex(gridColumns),
+                        tiles.length,
+                      );
+                      tiles.splice(
+                        index,
+                        0,
+                        <HomeAdCard key="home-ad" slides={adSlides} />,
+                      );
+                    }
+                    return tiles;
+                  })()}
                 </section>
                 <div
                   ref={loadMoreSentinelRef}

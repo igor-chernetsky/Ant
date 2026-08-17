@@ -250,6 +250,17 @@ export function SiteHeader({
                 >
                   {t('header.settings')}
                 </Link>
+                <Link
+                  href="/admin/ads"
+                  className={headerNavClass(pathname, '/admin/ads')}
+                  aria-current={
+                    isHeaderNavActive(pathname, '/admin/ads')
+                      ? 'page'
+                      : undefined
+                  }
+                >
+                  {t('header.ads')}
+                </Link>
               </>
             )}
           </nav>

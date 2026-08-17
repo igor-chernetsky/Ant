@@ -942,6 +942,28 @@ model PlatformSettings {
   @@map("platform_settings")
 }
 
+model HomeAdSlide {
+  id             String   @id @default(uuid())
+  sortOrder      Int      @default(0) @map("sort_order")
+  enabled        Boolean  @default(true)
+  href           String
+  imageUrl       String   @map("image_url")
+  titleEn        String   @map("title_en")
+  titleRu        String   @map("title_ru")
+  titleTh        String   @map("title_th")
+  descriptionEn  String   @map("description_en") @db.Text
+  descriptionRu  String   @map("description_ru") @db.Text
+  descriptionTh  String   @map("description_th") @db.Text
+  ctaEn          String   @map("cta_en")
+  ctaRu          String   @map("cta_ru")
+  ctaTh          String   @map("cta_th")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([enabled, sortOrder])
+  @@map("home_ad_slides")
+}
+
 /// Contractor progress / payment claim against the awarded bid.
 model ProgressClaim {
   id                      String              @id @default(uuid())

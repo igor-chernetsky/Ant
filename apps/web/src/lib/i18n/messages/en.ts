@@ -23,6 +23,7 @@ export const en = {
     supplyRegistry: 'Supply registry',
     signatureRequests: 'Signature requests',
     settings: 'Settings',
+    ads: 'Ads',
     contractor: 'Contractor',
     designer: 'Designer',
     account: 'Account',

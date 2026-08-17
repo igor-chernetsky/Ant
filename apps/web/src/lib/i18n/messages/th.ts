@@ -24,6 +24,7 @@ export const th: Messages = {
     supplyRegistry: 'ทะเบียน',
     signatureRequests: 'คำขอลงนาม',
     settings: 'การตั้งค่า',
+    ads: 'โฆษณา',
     contractor: 'ผู้รับเหมา',
     designer: 'ผู้ออกแบบ',
     account: 'บัญชี',
