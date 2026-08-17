@@ -23,16 +23,6 @@ import type {
   DefectsOverviewDto,
 } from './defects.types';
 
-const CLIENT_ATTACHMENT_EVENT_KINDS: DefectEventKind[] = [
-  DefectEventKind.created,
-  DefectEventKind.resubmitted,
-  DefectEventKind.completion_rejected,
-];
-
-const EXECUTOR_ATTACHMENT_EVENT_KINDS: DefectEventKind[] = [
-  DefectEventKind.completed,
-];
-
 @Injectable()
 export class DefectsService {
   constructor(
@@ -391,75 +381,6 @@ export class DefectsService {
     );
 
     return this.toDefectDto(updated);
-  }
-
-  async assertCanAttachToEvent(
-    projectId: string,
-    userId: string,
-    defectEventId: string,
-  ): Promise<{ defectId: string; defectEventId: string }> {
-    const event = await this.prisma.defectEvent.findFirst({
-      where: { id: defectEventId },
-      include: {
-        defect: {
-          include: {
-            project: {
-              include: {
-                tender: {
-                  include: {
-                    awardedBid: {
-                      include: {
-                        contractor: {
-                          select: { id: true, userId: true },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!event || event.defect.projectId !== projectId) {
-      throw new NotFoundException('Defect event not found');
-    }
-
-    if (event.defect.project.status !== ProjectStatus.active) {
-      throw new BadRequestException(
-        'Defect attachments are only allowed on active projects',
-      );
-    }
-
-    const bid = event.defect.project.tender?.awardedBid;
-    if (!bid || bid.status !== BidStatus.selected) {
-      throw new BadRequestException('No awarded contractor on this project');
-    }
-
-    const isClient = event.defect.project.clientId === userId;
-    let isContractor = false;
-    if (!isClient) {
-      const profile = await this.contractorProfiles.getByUserId(userId);
-      isContractor = Boolean(profile && profile.id === bid.contractorId);
-    }
-
-    if (CLIENT_ATTACHMENT_EVENT_KINDS.includes(event.kind)) {
-      if (!isClient) {
-        throw new ForbiddenException('Only the project owner can attach here');
-      }
-    } else if (EXECUTOR_ATTACHMENT_EVENT_KINDS.includes(event.kind)) {
-      if (!isContractor) {
-        throw new ForbiddenException(
-          'Only the awarded contractor can attach here',
-        );
-      }
-    } else {
-      throw new BadRequestException('This event does not accept attachments');
-    }
-
-    return { defectId: event.defectId, defectEventId: event.id };
   }
 
   private defectInclude() {

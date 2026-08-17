@@ -5,22 +5,22 @@ CREATE TYPE "DefectStatus" AS ENUM ('reported', 'declined', 'in_progress', 'subm
 CREATE TYPE "DefectEventKind" AS ENUM ('created', 'declined', 'accepted', 'resubmitted', 'completed', 'completion_rejected', 'closed');
 
 -- AlterEnum
-ALTER TYPE "InAppNotificationKind" ADD VALUE 'contractor_defect_reported';
-ALTER TYPE "InAppNotificationKind" ADD VALUE 'contractor_defect_resubmitted';
-ALTER TYPE "InAppNotificationKind" ADD VALUE 'contractor_defect_completion_rejected';
-ALTER TYPE "InAppNotificationKind" ADD VALUE 'contractor_defect_closed';
-ALTER TYPE "InAppNotificationKind" ADD VALUE 'client_defect_declined';
-ALTER TYPE "InAppNotificationKind" ADD VALUE 'client_defect_accepted';
-ALTER TYPE "InAppNotificationKind" ADD VALUE 'client_defect_completed';
+ALTER TYPE "InAppNotificationKind" ADD VALUE IF NOT EXISTS 'contractor_defect_reported';
+ALTER TYPE "InAppNotificationKind" ADD VALUE IF NOT EXISTS 'contractor_defect_resubmitted';
+ALTER TYPE "InAppNotificationKind" ADD VALUE IF NOT EXISTS 'contractor_defect_completion_rejected';
+ALTER TYPE "InAppNotificationKind" ADD VALUE IF NOT EXISTS 'contractor_defect_closed';
+ALTER TYPE "InAppNotificationKind" ADD VALUE IF NOT EXISTS 'client_defect_declined';
+ALTER TYPE "InAppNotificationKind" ADD VALUE IF NOT EXISTS 'client_defect_accepted';
+ALTER TYPE "InAppNotificationKind" ADD VALUE IF NOT EXISTS 'client_defect_completed';
 
 -- AlterEnum
-ALTER TYPE "NotificationEmailKind" ADD VALUE 'contractor_defect_reported';
-ALTER TYPE "NotificationEmailKind" ADD VALUE 'contractor_defect_resubmitted';
-ALTER TYPE "NotificationEmailKind" ADD VALUE 'contractor_defect_completion_rejected';
-ALTER TYPE "NotificationEmailKind" ADD VALUE 'contractor_defect_closed';
-ALTER TYPE "NotificationEmailKind" ADD VALUE 'client_defect_declined';
-ALTER TYPE "NotificationEmailKind" ADD VALUE 'client_defect_accepted';
-ALTER TYPE "NotificationEmailKind" ADD VALUE 'client_defect_completed';
+ALTER TYPE "NotificationEmailKind" ADD VALUE IF NOT EXISTS 'contractor_defect_reported';
+ALTER TYPE "NotificationEmailKind" ADD VALUE IF NOT EXISTS 'contractor_defect_resubmitted';
+ALTER TYPE "NotificationEmailKind" ADD VALUE IF NOT EXISTS 'contractor_defect_completion_rejected';
+ALTER TYPE "NotificationEmailKind" ADD VALUE IF NOT EXISTS 'contractor_defect_closed';
+ALTER TYPE "NotificationEmailKind" ADD VALUE IF NOT EXISTS 'client_defect_declined';
+ALTER TYPE "NotificationEmailKind" ADD VALUE IF NOT EXISTS 'client_defect_accepted';
+ALTER TYPE "NotificationEmailKind" ADD VALUE IF NOT EXISTS 'client_defect_completed';
 
 -- CreateTable
 CREATE TABLE "defects" (

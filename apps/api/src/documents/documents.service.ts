@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
+  BidStatus,
+  DefectEventKind,
   Document,
   DocumentCategory,
   DocumentStatus,
@@ -22,7 +24,6 @@ import {
 } from '../projects/project-brief';
 import { ProjectsService } from '../projects/projects.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { DefectsService } from '../defects/defects.service';
 import { ImageThumbnailService } from '../storage/image-thumbnail.service';
 import { StorageService } from '../storage/storage.service';
 import {
@@ -47,6 +48,16 @@ const DELETABLE_DOCUMENT_PROJECT_STATUSES: ProjectStatus[] = [
   ProjectStatus.estimated,
 ];
 
+const CLIENT_DEFECT_ATTACHMENT_EVENT_KINDS: DefectEventKind[] = [
+  DefectEventKind.created,
+  DefectEventKind.resubmitted,
+  DefectEventKind.completion_rejected,
+];
+
+const EXECUTOR_DEFECT_ATTACHMENT_EVENT_KINDS: DefectEventKind[] = [
+  DefectEventKind.completed,
+];
+
 @Injectable()
 export class DocumentsService {
   private readonly thumbnailJobs = new Set<string>();
@@ -58,8 +69,6 @@ export class DocumentsService {
     private readonly thumbnails: ImageThumbnailService,
     @Inject(forwardRef(() => ProjectsService))
     private readonly projects: ProjectsService,
-    @Inject(forwardRef(() => DefectsService))
-    private readonly defects: DefectsService,
   ) {}
 
   private toResponse(doc: Document): DocumentResponse {
@@ -88,6 +97,76 @@ export class DocumentsService {
       throw new ForbiddenException('Access denied');
     }
     return project;
+  }
+
+  private async assertCanAttachToDefectEvent(
+    projectId: string,
+    userId: string,
+    defectEventId: string,
+  ): Promise<{ defectId: string; defectEventId: string }> {
+    const event = await this.prisma.defectEvent.findFirst({
+      where: { id: defectEventId },
+      include: {
+        defect: {
+          include: {
+            project: {
+              include: {
+                tender: {
+                  include: {
+                    awardedBid: {
+                      include: {
+                        contractor: { select: { id: true, userId: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!event || event.defect.projectId !== projectId) {
+      throw new NotFoundException('Defect event not found');
+    }
+
+    if (event.defect.project.status !== ProjectStatus.active) {
+      throw new BadRequestException(
+        'Defect attachments are only allowed on active projects',
+      );
+    }
+
+    const bid = event.defect.project.tender?.awardedBid;
+    if (!bid || bid.status !== BidStatus.selected) {
+      throw new BadRequestException('No awarded contractor on this project');
+    }
+
+    const isClient = event.defect.project.clientId === userId;
+    let isContractor = false;
+    if (!isClient) {
+      const profile = await this.prisma.contractorProfile.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+      isContractor = Boolean(profile && profile.id === bid.contractorId);
+    }
+
+    if (CLIENT_DEFECT_ATTACHMENT_EVENT_KINDS.includes(event.kind)) {
+      if (!isClient) {
+        throw new ForbiddenException('Only the project owner can attach here');
+      }
+    } else if (EXECUTOR_DEFECT_ATTACHMENT_EVENT_KINDS.includes(event.kind)) {
+      if (!isContractor) {
+        throw new ForbiddenException(
+          'Only the awarded contractor can attach here',
+        );
+      }
+    } else {
+      throw new BadRequestException('This event does not accept attachments');
+    }
+
+    return { defectId: event.defectId, defectEventId: event.id };
   }
 
   private async assertPublicProjectView(
@@ -192,7 +271,7 @@ export class DocumentsService {
     let defectEventId: string | undefined;
 
     if (dto.defectEventId?.trim()) {
-      const linked = await this.defects.assertCanAttachToEvent(
+      const linked = await this.assertCanAttachToDefectEvent(
         projectId,
         userId,
         dto.defectEventId.trim(),
@@ -263,7 +342,7 @@ export class DocumentsService {
     }
 
     if (doc.defectEventId) {
-      await this.defects.assertCanAttachToEvent(
+      await this.assertCanAttachToDefectEvent(
         projectId,
         userId,
         doc.defectEventId,
