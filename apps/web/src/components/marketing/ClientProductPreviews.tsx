@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { ProjectHeroSidebar } from '@/components/ProjectHero';
 import { ProjectBriefCard } from '@/components/ProjectBriefCard';
 import { BidsCompareTable } from '@/components/BidsCompareTable';
@@ -21,6 +22,8 @@ import {
   demoProject,
   demoProjectTags,
   demoTenderMeta,
+  DEMO_ESTIMATE_AFTER_MID,
+  DEMO_ESTIMATE_BEFORE_MID,
   DEMO_PROJECT_ID,
 } from '@/lib/marketing/demo-fixtures';
 import { ProductPreviewFrame, PreviewCallout } from '@/components/marketing/ProductPreviewFrame';
@@ -83,40 +86,63 @@ export function ClientAnalyzePreview() {
 
   return (
     <ProductPreviewFrame>
-      <div className="product-preview-stack">
-        {demoDocuments.map((doc) => (
-          <article key={doc.id} className="card doc-tile product-preview-doc-tile">
-            <div className="doc-tile-header">
-              <span className="doc-tile-ext">pdf</span>
-              <strong>{doc.fileName}</strong>
-            </div>
-            <p className="muted doc-tile-meta">
-              {(doc.sizeBytes / 1_000_000).toFixed(1)} MB
-            </p>
-            {doc.id === 'demo-doc-1' && demoBrief.packages && (
-              <div className="doc-tile-scope">
-                <p className="doc-tile-scope-label">{t('documents.inferredScope')}</p>
-                <ul className="doc-tile-scope-list">
-                  {demoBrief.packages.map((pkg, index) => (
-                    <li key={`${pkg.trade}-${index}`} className="doc-tile-scope-item">
-                      <span className="package-trade">{pkg.trade}</span>
-                      <span>{pkg.description}</span>
-                    </li>
-                  ))}
-                </ul>
+      <div className="product-preview-ai-flow">
+        <div className="product-preview-ai-flow-col">
+          {demoDocuments.map((doc) => (
+            <article key={doc.id} className="card doc-tile product-preview-doc-tile">
+              <div className="doc-tile-header">
+                <span className="doc-tile-ext">
+                  {doc.fileName.split('.').pop()}
+                </span>
+                <strong>{doc.fileName}</strong>
               </div>
-            )}
-          </article>
-        ))}
-        <div className="product-preview-tag-row">
-          {demoProjectTags.map((tag) => (
-            <span
-              key={tag.slug}
-              className={`tag-pill${tag.source === 'client' ? ' tag-pill-client' : ' tag-pill-ai'}`}
-            >
-              {tag.label}
-            </span>
+              <p className="muted doc-tile-meta">
+                {(doc.sizeBytes / 1_000_000).toFixed(1)} MB
+              </p>
+            </article>
           ))}
+        </div>
+        <div className="product-preview-ai-flow-bridge" aria-hidden>
+          <span className="product-preview-ai-flow-node-label">
+            {t('explainer.clients.previews.analyzeAi')}
+          </span>
+        </div>
+        <div className="product-preview-ai-flow-col">
+          <article className="card product-preview-ai-output">
+            <p className="product-preview-field-label">
+              {t('explainer.clients.previews.analyzeScope')}
+            </p>
+            {demoBrief.packages && (
+              <ul className="doc-tile-scope-list">
+                {demoBrief.packages.map((pkg, index) => (
+                  <li key={`${pkg.trade}-${index}`} className="doc-tile-scope-item">
+                    <span className="package-trade">{pkg.trade}</span>
+                    <span>{pkg.description}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="product-preview-tag-row">
+              {demoProjectTags.map((tag) => (
+                <span
+                  key={tag.slug}
+                  className={`tag-pill${tag.source === 'client' ? ' tag-pill-client' : ' tag-pill-ai'}`}
+                >
+                  {tag.label}
+                </span>
+              ))}
+            </div>
+          </article>
+          <article className="card product-preview-ai-output">
+            <p className="product-preview-field-label">
+              {t('explainer.clients.previews.analyzeQuestions')}
+            </p>
+            <ul className="product-preview-ai-questions">
+              {demoClarificationQuestions.slice(0, 2).map((question) => (
+                <li key={question.id}>{question.questionText}</li>
+              ))}
+            </ul>
+          </article>
         </div>
       </div>
     </ProductPreviewFrame>
@@ -124,53 +150,66 @@ export function ClientAnalyzePreview() {
 }
 
 export function ClientClarifyPreview() {
-  const { t } = useTranslation();
-  const answeredCount = demoClarificationQuestions.filter((q) => q.answer?.trim()).length;
+  const { t, locale } = useTranslation();
+  const [choice, setChoice] = useState<'renovate' | 'replace'>('replace');
+  const money = (amount: number) =>
+    new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'THB',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  const nextMid =
+    choice === 'replace' ? DEMO_ESTIMATE_AFTER_MID : DEMO_ESTIMATE_BEFORE_MID;
 
   return (
-    <ProductPreviewFrame>
-      <div className="client-clarification-panel client-clarification-panel--readonly product-preview-clarification">
-        <h3 className="tender-subsection-title">{t('clarificationClient.qaTitle')}</h3>
-        <p className="muted client-clarification-hint">
-          {t('clarificationClient.readonlyHint')}
-        </p>
-        <p className="muted client-clarification-readonly-meta">
-          {t('clarificationClient.answeredOf', {
-            answered: answeredCount,
-            total: demoClarificationQuestions.length,
-          })}
-        </p>
-        <ul className="client-clarification-readonly-list">
-          {demoClarificationQuestions.map((question, index) => {
-            const answered = Boolean(question.answer?.trim());
-            return (
-              <li key={question.id}>
-                <div className="client-clarification-readonly-item product-preview-clarification-item">
-                  <span className="client-clarification-readonly-question">
-                    <span className="client-clarification-index">{index + 1}.</span>
-                    {question.questionText}
-                  </span>
-                  <span
-                    className={`client-clarification-readonly-status${
-                      answered ? ' client-clarification-readonly-status--answered' : ''
-                    }`}
-                  >
-                    {answered
-                      ? t('clarificationClient.answered')
-                      : t('clarificationClient.noAnswer')}
-                  </span>
-                  {answered && question.askedByCount && question.askedByCount > 1 && (
-                    <p className="muted client-clarification-asked-by product-preview-grouped-note">
-                      {t('clarificationClient.askedBy')}{' '}
-                      <strong>{question.askedByCount}</strong>{' '}
-                      {t('clarificationClient.contractor_other')}
-                    </p>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+    <ProductPreviewFrame interactive>
+        <article className="card product-preview-refine-question">
+          <p className="product-preview-field-label">
+            {t('estimateSection.refineTitle')}
+          </p>
+          <p className="product-preview-refine-prompt">
+            {t('explainer.clients.previews.refineQuestion')}
+          </p>
+          <div className="product-preview-refine-options">
+            <button
+              type="button"
+              className={`product-preview-refine-option${
+                choice === 'renovate' ? ' product-preview-refine-option--active' : ''
+              }`}
+              onClick={() => setChoice('renovate')}
+            >
+              {t('explainer.clients.previews.optionRenovate')}
+            </button>
+            <button
+              type="button"
+              className={`product-preview-refine-option${
+                choice === 'replace' ? ' product-preview-refine-option--active' : ''
+              }`}
+              onClick={() => setChoice('replace')}
+            >
+              {t('explainer.clients.previews.optionReplace')}
+            </button>
+          </div>
+        </article>
+        <article className="card product-preview-refine-result">
+          <p className="product-preview-field-label">
+            {t('explainer.clients.previews.estimateUpdated')}
+          </p>
+          <p className="product-preview-refine-delta">
+            <span className="product-preview-refine-previous">
+              {money(DEMO_ESTIMATE_BEFORE_MID)}
+            </span>
+            <span aria-hidden>→</span>
+            <strong>{money(nextMid)}</strong>
+          </p>
+          <p className="muted product-preview-estimate-note">
+            {formatConfidence(choice === 'replace' ? 0.8 : 0.64)}{' '}
+            {t('estimateSection.confidence')}
+          </p>
+          <p className="product-preview-refine-brief">
+            {t('explainer.clients.previews.briefUpdated')}
+          </p>
+        </article>
       </div>
     </ProductPreviewFrame>
   );
@@ -178,40 +217,49 @@ export function ClientClarifyPreview() {
 
 export function ClientEstimatePreview() {
   const { t, locale } = useTranslation();
-  const estimate = demoProject.estimate!.totals;
+  const estimate = demoProject.estimate!;
+  const money = (amount: number) =>
+    new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'THB',
+      maximumFractionDigits: 0,
+    }).format(amount);
 
   return (
     <ProductPreviewFrame>
       <div className="card product-preview-estimate-card">
         <p className="product-preview-field-label">{t('projectHero.ballparkMidpoint')}</p>
         <p className="product-preview-estimate-value">
-          {new Intl.NumberFormat(locale, {
-            style: 'currency',
-            currency: 'THB',
-            maximumFractionDigits: 0,
-          }).format(estimate.midAmount)}
+          {money(estimate.totals.midAmount)}
         </p>
-        <p className="muted product-preview-estimate-range">
-          {new Intl.NumberFormat(locale, {
-            style: 'currency',
-            currency: 'THB',
-            maximumFractionDigits: 0,
-          }).format(estimate.minAmount)}
+        <p className="product-preview-estimate-range">
+          {money(estimate.totals.minAmount)}
           {' – '}
-          {new Intl.NumberFormat(locale, {
-            style: 'currency',
-            currency: 'THB',
-            maximumFractionDigits: 0,
-          }).format(estimate.maxAmount)}
+          {money(estimate.totals.maxAmount)}
         </p>
         <p className="muted product-preview-estimate-note">
           {t('projectHero.ballparkExcludesAdjustments')}
         </p>
         <div className="product-preview-confidence">
           <span className="readiness-badge">
-            {formatConfidence(demoProject.estimate?.confidence ?? 0)} confidence
+            {formatConfidence(estimate.confidence)} {t('estimateSection.confidence')}
           </span>
         </div>
+        <ul className="estimate-lines product-preview-estimate-lines">
+          {estimate.lines.map((line, index) => (
+            <li key={`${line.trade}-${index}`} className="estimate-line">
+              <div>
+                <strong>{line.description}</strong>
+                <span className="muted estimate-line-trade">{line.trade}</span>
+              </div>
+              <div className="estimate-line-actions">
+                <span className="estimate-line-amount">
+                  {money(line.lineMin)} – {money(line.lineMax)}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </ProductPreviewFrame>
   );
@@ -249,12 +297,17 @@ export function ClientTenderPreview() {
           })}
         </p>
         <ul className="client-clarification-readonly-list product-preview-tender-questions">
-          {demoClarificationQuestions.slice(0, 2).map((question, index) => (
+          {demoClarificationQuestions.map((question, index) => (
             <li key={question.id}>
               <span className="client-clarification-readonly-question">
                 <span className="client-clarification-index">{index + 1}.</span>
                 {question.questionText}
               </span>
+              {question.askedByCount && question.askedByCount > 1 ? (
+                <span className="muted product-preview-grouped-note">
+                  {t('clarificationClient.askedBy')} {question.askedByCount}
+                </span>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -308,14 +361,20 @@ export function ClientSignFlowPreview({
   steps: string[];
 }) {
   return (
-    <div className="product-tour-flow product-tour-flow--vertical">
+    <div className="product-tour-flow product-tour-flow--horizontal product-tour-flow--sign">
       {steps.map((step, index) => (
         <div key={step} className="product-tour-flow-step">
-          <span className="product-tour-flow-node">{index + 1}</span>
+          <span
+            className={`product-tour-flow-node${
+              index === 0 ? ' product-tour-flow-node--active' : ''
+            }`}
+          >
+            {index + 1}
+          </span>
           <span className="product-tour-flow-label">{step}</span>
           {index < steps.length - 1 && (
             <span className="product-tour-flow-arrow" aria-hidden>
-              ↓
+              →
             </span>
           )}
         </div>

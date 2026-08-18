@@ -209,14 +209,20 @@ export function ContractorSignFlowPreview({
   steps: string[];
 }) {
   return (
-    <div className="product-tour-flow product-tour-flow--vertical">
+    <div className="product-tour-flow product-tour-flow--horizontal product-tour-flow--sign">
       {steps.map((step, index) => (
         <div key={step} className="product-tour-flow-step">
-          <span className="product-tour-flow-node">{index + 1}</span>
+          <span
+            className={`product-tour-flow-node${
+              index === 0 ? ' product-tour-flow-node--active' : ''
+            }`}
+          >
+            {index + 1}
+          </span>
           <span className="product-tour-flow-label">{step}</span>
           {index < steps.length - 1 && (
             <span className="product-tour-flow-arrow" aria-hidden>
-              ↓
+              →
             </span>
           )}
         </div>

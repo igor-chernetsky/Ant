@@ -7,17 +7,20 @@ interface ProductPreviewFrameProps {
   className?: string;
   /** Scale down on smaller viewports */
   compact?: boolean;
+  /** Allow clicks inside the framed demo (e.g. refine options). */
+  interactive?: boolean;
 }
 
 export function ProductPreviewFrame({
   children,
   className = '',
   compact = false,
+  interactive = false,
 }: ProductPreviewFrameProps) {
   return (
     <div
       className={`product-preview-frame${compact ? ' product-preview-frame--compact' : ''}${className ? ` ${className}` : ''}`}
-      aria-hidden="true"
+      aria-hidden={interactive ? undefined : true}
     >
       <div className="product-preview-frame-window">
         <div className="product-preview-frame-toolbar">
@@ -25,7 +28,9 @@ export function ProductPreviewFrame({
           <span />
           <span />
         </div>
-        <div className="product-preview-frame-body pointer-events-none">
+        <div
+          className={`product-preview-frame-body${interactive ? '' : ' pointer-events-none'}`}
+        >
           {children}
         </div>
       </div>

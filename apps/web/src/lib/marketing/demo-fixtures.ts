@@ -8,58 +8,113 @@ import type {
   DefaultCostBreakdownItem,
 } from '@/lib/tendering';
 
-export const DEMO_PROJECT_ID = 'demo-villa-renovation';
+export const DEMO_PROJECT_ID = 'demo-hotel-boh';
 export const DEMO_TENDER_ID = 'demo-tender-1';
+export const DEMO_ESTIMATE_BEFORE_MID = 4_200_000;
+export const DEMO_ESTIMATE_AFTER_MID = 5_100_000;
 
 export const demoProjectTags: ProjectTag[] = [
-  { slug: 'tiling', label: 'Tiling', source: 'ai', groupSlug: 'finishes' },
-  { slug: 'plumbing', label: 'Plumbing', source: 'ai', groupSlug: 'mep' },
   { slug: 'joinery', label: 'Joinery', source: 'client', groupSlug: 'finishes' },
+  { slug: 'hvac', label: 'HVAC', source: 'ai', groupSlug: 'mep' },
+  { slug: 'plumbing', label: 'Plumbing', source: 'ai', groupSlug: 'mep' },
   { slug: 'electrical', label: 'Electrical', source: 'ai', groupSlug: 'mep' },
 ];
 
 export const demoBrief: ProjectBriefV1 = {
   schemaVersion: 1,
   summary:
-    '180 sqm pool villa refresh: new kitchen, three ensuite upgrades, landscaping, and MEP updates.',
-  property: { areaSqm: 180, floors: 2, rooms: 4 },
+    'Back-of-house refresh for a 4-star Bangkok hotel: commercial kitchen, staff areas, MEP, and wet-area finishes.',
+  property: { areaSqm: 420, floors: 2, rooms: 18 },
   design: { hasPlans: true, needsDesignTender: false },
-  constraints: 'Work during low season; noise limits 08:00–18:00.',
-  ai: { missingFields: ['electrical_panel_photo'] },
+  constraints: 'Live hotel operations; noisy works 22:00–06:00 only.',
+  ai: { missingFields: ['kitchen_equipment_schedule'] },
   packages: [
     {
       trade: 'Kitchen',
-      description: 'Full kitchen replacement incl. cabinetry and stone tops',
-      areaSqm: 18,
+      description: 'Commercial kitchen replacement incl. extraction and cold rooms',
+      areaSqm: 85,
     },
     {
-      trade: 'Tiling',
-      description: 'Floor and wet-area tiling from plans sheet A-02',
-      areaSqm: 95,
+      trade: 'MEP',
+      description: 'HVAC, plumbing and electrical from plans sheet M-01',
+      areaSqm: 420,
     },
   ],
 };
 
+export const demoEstimateLines = [
+  {
+    trade: 'Kitchen',
+    description: 'Commercial kitchen fit-out',
+    quantity: 85,
+    unit: 'sqm',
+    unitPriceMin: 8_200,
+    unitPriceMax: 11_400,
+    lineMin: 697_000,
+    lineMax: 969_000,
+  },
+  {
+    trade: 'HVAC',
+    description: 'Extraction and staff-area AC',
+    quantity: 1,
+    unit: 'ls',
+    unitPriceMin: 620_000,
+    unitPriceMax: 840_000,
+    lineMin: 620_000,
+    lineMax: 840_000,
+  },
+  {
+    trade: 'Plumbing',
+    description: 'Kitchen and wet-area plumbing',
+    quantity: 1,
+    unit: 'ls',
+    unitPriceMin: 410_000,
+    unitPriceMax: 560_000,
+    lineMin: 410_000,
+    lineMax: 560_000,
+  },
+  {
+    trade: 'Electrical',
+    description: 'Power and lighting for BOH',
+    quantity: 1,
+    unit: 'ls',
+    unitPriceMin: 380_000,
+    unitPriceMax: 510_000,
+    lineMin: 380_000,
+    lineMax: 510_000,
+  },
+  {
+    trade: 'Finishes',
+    description: 'Floors, walls and wet-area tiling',
+    quantity: 220,
+    unit: 'sqm',
+    unitPriceMin: 2_400,
+    unitPriceMax: 3_200,
+    lineMin: 528_000,
+    lineMax: 704_000,
+  },
+];
+
 export const demoProject: Project = {
   id: DEMO_PROJECT_ID,
-  title: 'Pool villa renovation — Bang Tao',
+  title: 'Hotel Bangkok back of house renovation',
   description:
-    'Full interior refresh, kitchen, three bathrooms, landscaping, and pool deck repairs.',
-  projectType: 'repair',
-  propertyType: 'residential',
-  district: 'Cherng Talay, Phuket',
-  locationRegionSlug: '',
-  locationAreaSlug: null,
+    'Commercial kitchen, staff areas, MEP upgrades and wet-area finishes while the hotel stays in operation.',
+  projectType: 'commercial_fitout',
+  propertyType: 'commercial',
+  district: 'Sathorn, Bangkok',
+  locationRegionSlug: 'bangkok',
+  locationAreaSlug: 'sathorn',
   locationNote: null,
-  regionCode: 'TH-83',
+  regionCode: 'TH-10',
   status: 'in_tender',
   isHidden: false,
-  readinessScore: 78,
+  readinessScore: 80,
   brief: demoBrief,
   clarificationMode: 'structured_qa',
   clarificationSummary:
-    'Client confirmed tile spec, kitchen layout, and phased access for occupied rooms.',
-  scopeSummary: 'Turnkey interior refresh with wet-area waterproofing and landscaping.',
+    'Client confirmed kitchen replacement, night-work window, and phased staff-area access.',
+  scopeSummary: 'Turnkey back-of-house fit-out with kitchen replacement and MEP.',
   tags: demoProjectTags,
   estimate: {
     id: 'demo-estimate-1',
@@ -67,14 +122,24 @@ export const demoProject: Project = {
     type: 'ballpark',
     currency: 'THB',
     totals: {
-      minAmount: 2_800_000,
-      maxAmount: 3_400_000,
-      midAmount: 3_100_000,
+      minAmount: 4_200_000,
+      maxAmount: 5_100_000,
+      midAmount: DEMO_ESTIMATE_AFTER_MID,
       currency: 'THB',
     },
-    lines: [],
-    confidence: 0.72,
+    lines: demoEstimateLines,
+    confidence: 0.8,
     disclaimer: '',
+    improvementQuestions: [
+      'Will the existing commercial kitchen be renovated or replaced?',
+    ],
+    refinementAnswers: [
+      {
+        question: 'Will the existing commercial kitchen be renovated or replaced?',
+        answer: 'Replace',
+        answeredAt: '2026-07-08T10:00:00Z',
+      },
+    ],
     createdAt: '2026-07-01T10:00:00Z',
   },
   createdAt: '2026-06-15T08:00:00Z',
@@ -96,11 +161,11 @@ export const demoOwnedProjectTile: PublicProjectCard = {
   updatedAt: demoProject.updatedAt,
   canOpenDetail: true,
   estimate: {
-    minAmount: 2_800_000,
-    maxAmount: 3_400_000,
-    midAmount: 3_100_000,
+    minAmount: 4_200_000,
+    maxAmount: 5_100_000,
+    midAmount: DEMO_ESTIMATE_AFTER_MID,
     currency: 'THB',
-    confidence: 0.72,
+    confidence: 0.8,
   },
 };
 
@@ -147,9 +212,9 @@ export const demoMarketplaceTiles: PublicProjectCard[] = [
 export const demoClarificationQuestions: ClarificationQuestion[] = [
   {
     id: 'demo-q1',
-    questionText: 'Which tile collection should be used for wet areas?',
+    questionText: 'Which commercial kitchen equipment stays owner-supplied?',
     sortOrder: 1,
-    answer: 'Porcelanosa Dover Acero 600×600 — supply by client, install by contractor.',
+    answer: 'Cooking line and cold rooms by owner; extraction and services by contractor.',
     answeredAt: '2026-07-12T11:30:00Z',
     sourceBidIds: ['demo-bid-a', 'demo-bid-b'],
     askedByCount: 2,
@@ -159,9 +224,9 @@ export const demoClarificationQuestions: ClarificationQuestion[] = [
   },
   {
     id: 'demo-q2',
-    questionText: 'Can kitchen work proceed while the villa is occupied?',
+    questionText: 'Can kitchen strip-out proceed while the hotel is occupied?',
     sortOrder: 2,
-    answer: 'Yes — kitchen first, then phased bathroom work with dust barriers.',
+    answer: 'Yes — night shift only, with a temporary staff kitchen on level B1.',
     answeredAt: '2026-07-13T08:15:00Z',
     sourceBidIds: ['demo-bid-a'],
     askedByCount: 1,
@@ -171,7 +236,7 @@ export const demoClarificationQuestions: ClarificationQuestion[] = [
   },
   {
     id: 'demo-q3',
-    questionText: 'Is the existing electrical panel sufficient for added AC loads?',
+    questionText: 'Is the existing electrical capacity enough for the new kitchen load?',
     sortOrder: 3,
     answer: null,
     answeredAt: null,
@@ -197,8 +262,8 @@ export const demoBids: Bid[] = [
     durationDays: 95,
     contractorProposalCount: 1,
     terms: {
-      scopeSummary: 'Turnkey fit-out incl. MEP rough-in, tiling, joinery, and landscaping.',
-      notes: 'Phased access plan included. Client-supplied tiles and sanitary ware excluded.',
+      scopeSummary: 'Turnkey BOH fit-out incl. kitchen replacement, MEP, and wet-area finishes.',
+      notes: 'Night-work plan included. Owner-supplied kitchen equipment excluded.',
       contractTerms: {
         worksStartDate: '2026-09-01',
         worksFinishDate: '2026-12-05',
@@ -234,7 +299,7 @@ export const demoBids: Bid[] = [
     contractorProposalCount: 2,
     terms: {
       scopeSummary: 'Interior works package; landscaping quoted separately.',
-      notes: 'Pool deck structural repairs excluded from this proposal.',
+      notes: 'Staff-area ceiling replacement excluded from this proposal.',
       contractTerms: {
         worksStartDate: '2026-09-15',
         worksFinishDate: '2026-12-12',
@@ -333,9 +398,9 @@ export const demoContractorApplication: ContractorApplicationItem = {
   tenderId: DEMO_TENDER_ID,
   projectId: DEMO_PROJECT_ID,
   projectTitle: demoProject.title,
-  projectDistrict: 'Cherng Talay',
+  projectDistrict: 'Sathorn',
   projectStatus: 'in_tender',
-  projectType: 'repair',
+  projectType: 'commercial_fitout',
   description: 'Published 3 days ago · structured Q&A complete',
   coverImageUrl: null,
   tenderStatus: 'open',
@@ -378,17 +443,24 @@ export const demoTenderMeta = {
 export const demoDocuments = [
   {
     id: 'demo-doc-1',
-    fileName: 'Floor-plans-A02.pdf',
+    fileName: 'Floor-plans-BOH.pdf',
     mimeType: 'application/pdf',
     sizeBytes: 2_450_000,
     uploadedAt: '2026-06-20T10:00:00Z',
   },
   {
     id: 'demo-doc-2',
-    fileName: 'Kitchen-moodboard.jpg',
+    fileName: 'Kitchen-interior-photos.jpg',
     mimeType: 'image/jpeg',
     sizeBytes: 890_000,
     uploadedAt: '2026-06-21T14:00:00Z',
+  },
+  {
+    id: 'demo-doc-3',
+    fileName: 'MEP-specifications.pdf',
+    mimeType: 'application/pdf',
+    sizeBytes: 1_120_000,
+    uploadedAt: '2026-06-22T09:00:00Z',
   },
 ];
 

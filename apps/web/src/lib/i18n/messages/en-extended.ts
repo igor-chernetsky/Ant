@@ -1789,6 +1789,16 @@ export const enExtended = {
         estimate: "Ballpark estimate",
         tender: "Contractor tender",
       },
+      previews: {
+        analyzeAi: "AI analysis",
+        analyzeScope: "Informed scope",
+        analyzeQuestions: "Clarification questions",
+        refineQuestion: "Will the existing commercial kitchen be renovated or replaced?",
+        optionRenovate: "Renovate",
+        optionReplace: "Replace",
+        estimateUpdated: "Estimate updated",
+        briefUpdated: "Project brief updated",
+      },
       workflow: {
         step1: "Create",
         step2: "Analyze",
@@ -1805,9 +1815,9 @@ export const enExtended = {
         analyzeTitle: "Upload documents — scope becomes clearer",
         analyzeBody:
           "BuilTHAI reads your plans and files to infer scope packages and suggest work tags. The project brief stays linked to the source documents.",
-        clarifyTitle: "Answer clarification questions once",
+        clarifyTitle: "Answer once — the brief and estimate move with you",
         clarifyBody:
-          "Contractors ask what they need before pricing. Similar questions are grouped so you respond once and every contender sees the same answers.",
+          "Open gaps become targeted questions. Choosing replace versus renovate updates the living project brief and recalculates the ballpark before contractors price the work.",
         clarifyNote:
           "Dynamic clarification updates the living project brief — not a static PDF stuck in email.",
         estimateTitle: "Get a ballpark before the tender opens",
@@ -1817,7 +1827,7 @@ export const enExtended = {
           "Ballpark estimates, contractor proposals and the final agreed price are three different numbers. BuilTHAI keeps them separate.",
         tenderTitle: "Publish a structured contractor tender",
         tenderBody:
-          "Open the project for applications, collect clarification answers, then receive structured commercial proposals instead of scattered messages.",
+          "Open the project for applications. Similar contractor questions are grouped so you answer once — then receive structured commercial proposals instead of scattered messages.",
         compareTitle: "Compare proposals in one place",
         compareBody:
           "Review contractor, total price, scope, timeline, commercial terms and documents side by side — against the same project brief and ballpark.",
