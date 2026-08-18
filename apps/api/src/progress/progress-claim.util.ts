@@ -33,6 +33,9 @@ export interface ProgressClaimTotals {
   overheadProfitPeriod: number;
   vatPeriod: number;
   grandPeriod: number;
+  retentionPercent: number;
+  retentionPeriod: number;
+  payablePeriod: number;
 }
 
 function clampPercent(value: number): number {
@@ -42,6 +45,25 @@ function clampPercent(value: number): number {
 
 export function roundMoney(value: number): number {
   return Math.round(value);
+}
+
+/** Retention on works executed this period, capped by contract retention limit. */
+export function computeRetentionPeriod(input: {
+  worksPeriod: number;
+  retentionPercent: number;
+  retentionLimitPercent: number;
+  contractGrandTotal: number;
+  retentionHeldToDate: number;
+}): number {
+  const worksPeriod = Math.max(0, roundMoney(input.worksPeriod));
+  const retentionPercent = Math.max(0, input.retentionPercent);
+  const retentionLimitPercent = Math.max(0, input.retentionLimitPercent);
+  const raw = roundMoney((worksPeriod * retentionPercent) / 100);
+  const cap = roundMoney(
+    (Math.max(0, input.contractGrandTotal) * retentionLimitPercent) / 100,
+  );
+  const room = Math.max(0, cap - Math.max(0, input.retentionHeldToDate));
+  return Math.min(raw, room);
 }
 
 export function computeLineAmounts(input: {
@@ -65,6 +87,17 @@ export function computeProgressClaim(
     vatPercent: number;
   },
   previousGrandCumulative = 0,
+  retention: {
+    retentionPercent: number;
+    retentionLimitPercent: number;
+    contractGrandTotal: number;
+    retentionHeldToDate: number;
+  } = {
+    retentionPercent: 0,
+    retentionLimitPercent: 0,
+    contractGrandTotal: 0,
+    retentionHeldToDate: 0,
+  },
 ): { lines: ProgressLineComputed[]; totals: ProgressClaimTotals } {
   const computedLines: ProgressLineComputed[] = lines.map((line) => {
     const amounts = computeLineAmounts(line);
@@ -118,6 +151,15 @@ export function computeProgressClaim(
     vatPeriod += drift;
   }
 
+  const retentionPeriod = computeRetentionPeriod({
+    worksPeriod,
+    retentionPercent: retention.retentionPercent,
+    retentionLimitPercent: retention.retentionLimitPercent,
+    contractGrandTotal: retention.contractGrandTotal,
+    retentionHeldToDate: retention.retentionHeldToDate,
+  });
+  const payablePeriod = Math.max(0, grandPeriod - retentionPeriod);
+
   return {
     lines: computedLines,
     totals: {
@@ -131,6 +173,9 @@ export function computeProgressClaim(
       overheadProfitPeriod,
       vatPeriod,
       grandPeriod,
+      retentionPercent: retention.retentionPercent,
+      retentionPeriod,
+      payablePeriod,
     },
   };
 }

@@ -7,18 +7,62 @@ import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
 import {
-  ExplainerBenefits,
-  ExplainerCta,
-  ExplainerFaq,
-  ExplainerHero,
-  ExplainerMockup,
-  ExplainerSteps,
-  type ExplainerBenefitItem,
-  type ExplainerFaqItem,
-  type ExplainerStepItem,
-} from '@/components/explainer/ExplainerSections';
+  ProductTourCta,
+  ProductTourDifferentiators,
+  ProductTourFaq,
+  ProductTourHero,
+  ProductTourSection,
+  ProductTourWorkflowNav,
+  useWorkflowScrollSpy,
+  type TourDifferentiatorItem,
+  type TourFaqItem,
+  type TourWorkflowStep,
+} from '@/components/explainer/ProductTourSections';
+import {
+  ClientAnalyzePreview,
+  ClientClarifyPreview,
+  ClientComparePreview,
+  ClientCreatePreview,
+  ClientEstimatePreview,
+  ClientHeroPreview,
+  ClientSignFlowPreview,
+  ClientSignPreview,
+  ClientTenderPreview,
+} from '@/components/marketing/ClientProductPreviews';
+import {
+  ContractorApplicationsPreview,
+  ContractorClarifyPreview,
+  ContractorDiscoverPreview,
+  ContractorHeroPreview,
+  ContractorProfilePreview,
+  ContractorProjectPreview,
+  ContractorProposalPreview,
+  ContractorSignFlowPreview,
+  ContractorSignPreview,
+  ContractorTrackPreview,
+} from '@/components/marketing/ContractorProductPreviews';
 
 type Audience = 'clients' | 'contractors';
+
+const CLIENT_SECTION_IDS = [
+  'step-create',
+  'step-analyze',
+  'step-clarify',
+  'step-estimate',
+  'step-tender',
+  'step-compare',
+  'step-sign',
+] as const;
+
+const CONTRACTOR_SECTION_IDS = [
+  'step-profile',
+  'step-discover',
+  'step-review',
+  'step-clarify',
+  'step-proposal',
+  'step-track',
+  'step-sign',
+] as const;
 
 function itemsFromKeys<T>(
   count: number,
@@ -27,40 +71,286 @@ function itemsFromKeys<T>(
   return Array.from({ length: count }, (_, index) => map(index + 1));
 }
 
-export function ExplainerLandingPage({ audience }: { audience: Audience }) {
+function ClientTourPage({ base }: { base: string }) {
   const { t } = useTranslation();
-  const { me, refreshSession, signOut } = useSession();
-  const [loginOpen, setLoginOpen] = useState(false);
-  const base = `explainer.${audience}`;
-  const primaryHref = audience === 'clients' ? '/' : '/contractor';
-  const secondaryHref = '/help';
+  const { activeId, scrollTo } = useWorkflowScrollSpy([...CLIENT_SECTION_IDS]);
 
-  const steps = useMemo(
+  const workflowSteps = useMemo<TourWorkflowStep[]>(
     () =>
-      itemsFromKeys<ExplainerStepItem>(4, (index) => ({
-        title: t(`${base}.steps.step${index}Title`),
-        body: t(`${base}.steps.step${index}Body`),
+      itemsFromKeys(7, (index) => ({
+        id: CLIENT_SECTION_IDS[index - 1],
+        number: String(index).padStart(2, '0'),
+        label: t(`${base}.workflow.step${index}`),
       })),
     [base, t],
   );
 
-  const benefits = useMemo(
+  const differentiators = useMemo<TourDifferentiatorItem[]>(
     () =>
-      itemsFromKeys<ExplainerBenefitItem>(4, (index) => ({
-        title: t(`${base}.benefits.item${index}Title`),
-        body: t(`${base}.benefits.item${index}Body`),
+      itemsFromKeys(5, (index) => ({
+        title: t(`${base}.why.item${index}Title`),
+        body: t(`${base}.why.item${index}Body`),
       })),
     [base, t],
   );
 
-  const faq = useMemo(
+  const faq = useMemo<TourFaqItem[]>(
     () =>
-      itemsFromKeys<ExplainerFaqItem>(3, (index) => ({
+      itemsFromKeys(6, (index) => ({
         question: t(`${base}.faq.item${index}Question`),
         answer: t(`${base}.faq.item${index}Answer`),
       })),
     [base, t],
   );
+
+  const signFlowSteps = useMemo(
+    () => itemsFromKeys(4, (index) => t(`${base}.sections.signFlow${index}`)),
+    [base, t],
+  );
+
+  const sectionConfigs = useMemo(
+    () => [
+      {
+        id: 'step-create',
+        key: 'create',
+        reverse: false,
+        preview: <ClientCreatePreview />,
+      },
+      {
+        id: 'step-analyze',
+        key: 'analyze',
+        reverse: true,
+        preview: <ClientAnalyzePreview />,
+      },
+      {
+        id: 'step-clarify',
+        key: 'clarify',
+        reverse: false,
+        note: true,
+        preview: <ClientClarifyPreview />,
+      },
+      {
+        id: 'step-estimate',
+        key: 'estimate',
+        reverse: true,
+        note: true,
+        preview: <ClientEstimatePreview />,
+      },
+      {
+        id: 'step-tender',
+        key: 'tender',
+        reverse: false,
+        preview: <ClientTenderPreview />,
+      },
+      {
+        id: 'step-compare',
+        key: 'compare',
+        reverse: true,
+        preview: <ClientComparePreview />,
+      },
+      {
+        id: 'step-sign',
+        key: 'sign',
+        reverse: false,
+        preview: (
+          <div className="product-tour-sign-layout">
+            <ClientSignFlowPreview steps={signFlowSteps} />
+            <ClientSignPreview />
+          </div>
+        ),
+      },
+    ],
+    [signFlowSteps],
+  );
+
+  return (
+    <>
+      <ProductTourHero
+        kicker={t(`${base}.heroKicker`)}
+        title={t(`${base}.heroTitle`)}
+        lead={t(`${base}.heroLead`)}
+        primaryLabel={t(`${base}.heroPrimaryCta`)}
+        primaryHref="/"
+        secondaryLabel={t(`${base}.heroSecondaryCta`)}
+        secondaryHref="#tour-workflow"
+        visual={
+          <ClientHeroPreview
+            callouts={{
+              scope: t(`${base}.callouts.scope`),
+              estimate: t(`${base}.callouts.estimate`),
+              tender: t(`${base}.callouts.tender`),
+            }}
+          />
+        }
+      />
+
+      <ProductTourWorkflowNav
+        steps={workflowSteps}
+        activeId={activeId}
+        onSelect={scrollTo}
+      />
+
+      {sectionConfigs.map((section) => (
+          <ProductTourSection
+            key={section.id}
+            id={section.id}
+            title={t(`${base}.sections.${section.key}Title`)}
+            body={t(`${base}.sections.${section.key}Body`)}
+            note={
+              section.note
+                ? t(`${base}.sections.${section.key}Note`)
+                : undefined
+            }
+            preview={section.preview}
+            reverse={section.reverse}
+          />
+        ))}
+
+      <ProductTourDifferentiators
+        title={t(`${base}.whyTitle`)}
+        items={differentiators}
+      />
+
+      <ProductTourFaq title={t(`${base}.faqTitle`)} items={faq} />
+
+      <ProductTourCta
+        title={t(`${base}.finalTitle`)}
+        primaryLabel={t(`${base}.finalPrimaryCta`)}
+        primaryHref="/"
+        secondaryLabel={t(`${base}.finalSecondaryCta`)}
+        secondaryHref="/"
+      />
+    </>
+  );
+}
+
+function ContractorTourPage({ base }: { base: string }) {
+  const { t } = useTranslation();
+  const { activeId, scrollTo } = useWorkflowScrollSpy([...CONTRACTOR_SECTION_IDS]);
+
+  const workflowSteps = useMemo<TourWorkflowStep[]>(
+    () =>
+      itemsFromKeys(7, (index) => ({
+        id: CONTRACTOR_SECTION_IDS[index - 1],
+        number: String(index).padStart(2, '0'),
+        label: t(`${base}.workflow.step${index}`),
+      })),
+    [base, t],
+  );
+
+  const differentiators = useMemo<TourDifferentiatorItem[]>(
+    () =>
+      itemsFromKeys(5, (index) => ({
+        title: t(`${base}.why.item${index}Title`),
+        body: t(`${base}.why.item${index}Body`),
+      })),
+    [base, t],
+  );
+
+  const faq = useMemo<TourFaqItem[]>(
+    () =>
+      itemsFromKeys(6, (index) => ({
+        question: t(`${base}.faq.item${index}Question`),
+        answer: t(`${base}.faq.item${index}Answer`),
+      })),
+    [base, t],
+  );
+
+  const signFlowSteps = useMemo(
+    () => itemsFromKeys(3, (index) => t(`${base}.sections.signFlow${index}`)),
+    [base, t],
+  );
+
+  const contractorSections = useMemo(
+    () => [
+      { id: 'step-profile', key: 'profile', reverse: false, preview: <ContractorProfilePreview /> },
+      { id: 'step-discover', key: 'discover', reverse: true, preview: <ContractorDiscoverPreview /> },
+      { id: 'step-review', key: 'review', reverse: false, preview: <ContractorProjectPreview /> },
+      { id: 'step-clarify', key: 'clarify', reverse: true, note: true, preview: <ContractorClarifyPreview /> },
+      { id: 'step-proposal', key: 'proposal', reverse: false, preview: <ContractorProposalPreview /> },
+      {
+        id: 'step-track',
+        key: 'track',
+        reverse: true,
+        preview: (
+          <div className="product-tour-track-layout">
+            <ContractorTrackPreview />
+            <ContractorApplicationsPreview />
+          </div>
+        ),
+      },
+      {
+        id: 'step-sign',
+        key: 'sign',
+        reverse: false,
+        preview: (
+          <div className="product-tour-sign-layout">
+            <ContractorSignFlowPreview steps={signFlowSteps} />
+            <ContractorSignPreview />
+          </div>
+        ),
+      },
+    ],
+    [signFlowSteps],
+  );
+
+  return (
+    <>
+      <ProductTourHero
+        kicker={t(`${base}.heroKicker`)}
+        title={t(`${base}.heroTitle`)}
+        lead={t(`${base}.heroLead`)}
+        primaryLabel={t(`${base}.heroPrimaryCta`)}
+        primaryHref="/contractor"
+        secondaryLabel={t(`${base}.heroSecondaryCta`)}
+        secondaryHref="/"
+        visual={<ContractorHeroPreview />}
+      />
+
+      <ProductTourWorkflowNav
+        steps={workflowSteps}
+        activeId={activeId}
+        onSelect={scrollTo}
+      />
+
+      {contractorSections.map((section) => (
+          <ProductTourSection
+            key={section.id}
+            id={section.id}
+            title={t(`${base}.sections.${section.key}Title`)}
+            body={t(`${base}.sections.${section.key}Body`)}
+            note={
+              section.note
+                ? t(`${base}.sections.${section.key}Note`)
+                : undefined
+            }
+            preview={section.preview}
+            reverse={section.reverse}
+          />
+        ))}
+
+      <ProductTourDifferentiators
+        title={t(`${base}.whyTitle`)}
+        items={differentiators}
+      />
+
+      <ProductTourFaq title={t(`${base}.faqTitle`)} items={faq} />
+
+      <ProductTourCta
+        title={t(`${base}.finalTitle`)}
+        primaryLabel={t(`${base}.finalPrimaryCta`)}
+        primaryHref="/contractor"
+        secondaryLabel={t(`${base}.finalSecondaryCta`)}
+        secondaryHref="/"
+      />
+    </>
+  );
+}
+
+export function ExplainerLandingPage({ audience }: { audience: Audience }) {
+  const { me, refreshSession, signOut } = useSession();
+  const [loginOpen, setLoginOpen] = useState(false);
+  const base = `explainer.${audience}`;
 
   return (
     <PageShell>
@@ -69,59 +359,12 @@ export function ExplainerLandingPage({ audience }: { audience: Audience }) {
         onSignIn={() => setLoginOpen(true)}
         onSignOut={() => void signOut()}
       />
-      <main className="content-container main-content explainer-page">
-        <ExplainerHero
-          kicker={t(`${base}.heroKicker`)}
-          title={t(`${base}.heroTitle`)}
-          lead={t(`${base}.heroLead`)}
-          primaryLabel={t(`${base}.heroPrimaryCta`)}
-          primaryHref={primaryHref}
-          secondaryLabel={t(`${base}.heroSecondaryCta`)}
-          secondaryHref={secondaryHref}
-          mockup={
-            <ExplainerMockup
-              audience={audience}
-              eyebrow={t(`${base}.mockupEyebrow`)}
-              headline={t(`${base}.mockupHeadline`)}
-              detail={t(`${base}.mockupDetail`)}
-              metricTitle={t(`${base}.mockupMetricTitle`)}
-              metricBody={t(`${base}.mockupMetricBody`)}
-              pills={[
-                t(`${base}.mockupPill1`),
-                t(`${base}.mockupPill2`),
-                t(`${base}.mockupPill3`),
-                t(`${base}.mockupPill4`),
-              ]}
-            />
-          }
-        />
-
-        <ExplainerSteps
-          title={t(`${base}.stepsTitle`)}
-          lead={t(`${base}.stepsLead`)}
-          items={steps}
-        />
-
-        <ExplainerBenefits
-          title={t(`${base}.benefitsTitle`)}
-          lead={t(`${base}.benefitsLead`)}
-          items={benefits}
-        />
-
-        <ExplainerFaq
-          title={t(`${base}.faqTitle`)}
-          lead={t(`${base}.faqLead`)}
-          items={faq}
-        />
-
-        <ExplainerCta
-          title={t(`${base}.finalTitle`)}
-          body={t(`${base}.finalBody`)}
-          primaryLabel={t(`${base}.finalPrimaryCta`)}
-          primaryHref={primaryHref}
-          secondaryLabel={t(`${base}.finalSecondaryCta`)}
-          secondaryHref={secondaryHref}
-        />
+      <main className="content-container main-content product-tour-page">
+        {audience === 'clients' ? (
+          <ClientTourPage base={base} />
+        ) : (
+          <ContractorTourPage base={base} />
+        )}
       </main>
       <LoginModal
         isOpen={loginOpen}

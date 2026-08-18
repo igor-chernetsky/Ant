@@ -12,12 +12,16 @@ import {
 } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { DocumentsService } from '../documents/documents.service';
 import { ContractorProfilesService } from '../tendering/contractor-profiles.service';
 import type { BidTermsV1 } from '../tendering/tendering.types';
-import { computeProgressClaim } from './progress-claim.util';
+import { computeProgressClaim, roundMoney } from './progress-claim.util';
 import type {
+  PaymentSlipCompleteDto,
+  PaymentSlipPresignDto,
   ProgressClaimDto,
   ProgressOverviewDto,
+  ProgressPaymentSlipDto,
   RejectProgressClaimDto,
   UpdateProgressClaimDto,
 } from './progress.types';
@@ -27,12 +31,37 @@ function dec(value: Prisma.Decimal | number | null | undefined): number {
   return Number(value);
 }
 
+function resolveAdvancePayment(
+  bid: { amount: Prisma.Decimal | null },
+  terms: BidTermsV1,
+  contractGrandTotal: number,
+): { percent: number; amount: number } {
+  const ct = terms.contractTerms;
+  const contractAmount =
+    contractGrandTotal > 0 ? contractGrandTotal : Number(bid.amount) || 0;
+  if (ct?.advancePaymentAmount != null && ct.advancePaymentAmount > 0) {
+    return {
+      amount: roundMoney(ct.advancePaymentAmount),
+      percent:
+        contractAmount > 0
+          ? (ct.advancePaymentAmount / contractAmount) * 100
+          : 0,
+    };
+  }
+  const percent = ct?.advancePaymentPercent ?? 0;
+  return {
+    percent,
+    amount: percent > 0 ? roundMoney((contractAmount * percent) / 100) : 0,
+  };
+}
+
 @Injectable()
 export class ProgressService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly notifications: NotificationsService,
+    private readonly documents: DocumentsService,
   ) {}
 
   async getOverview(
@@ -42,8 +71,16 @@ export class ProgressService {
     const ctx = await this.loadContext(userId, projectId);
     const claims = await this.prisma.progressClaim.findMany({
       where: { projectId },
-      include: { lines: { orderBy: { sortOrder: 'asc' } } },
+      include: {
+        lines: { orderBy: { sortOrder: 'asc' } },
+        paymentSlipDocument: true,
+      },
       orderBy: { sequenceNumber: 'desc' },
+    });
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: { advancePaymentSlipDocument: true },
     });
 
     const mapped = claims.map((claim) => this.toClaimDto(claim));
@@ -72,6 +109,14 @@ export class ProgressService {
       preliminaryPercent: ctx.adjustments.preliminaryPercent,
       overheadProfitPercent: ctx.adjustments.overheadProfitPercent,
       vatPercent: ctx.adjustments.vatPercent,
+      retentionPercent: ctx.retentionPercent,
+      retentionLimitPercent: ctx.retentionLimitPercent,
+      retentionHeldToDate: ctx.retentionHeldToDate,
+      advancePaymentPercent: ctx.advancePaymentPercent,
+      advancePaymentAmount: ctx.advancePaymentAmount,
+      advancePaymentSlip: this.toPaymentSlipDto(
+        project?.advancePaymentSlipDocument ?? null,
+      ),
       baselineLines: ctx.baselineLines.map((line) => ({
         trade: line.trade,
         description: line.description ?? null,
@@ -99,7 +144,10 @@ export class ProgressService {
           in: [ProgressClaimStatus.draft, ProgressClaimStatus.submitted],
         },
       },
-      include: { lines: { orderBy: { sortOrder: 'asc' } } },
+      include: {
+        lines: { orderBy: { sortOrder: 'asc' } },
+        paymentSlipDocument: true,
+      },
     });
     if (existing) {
       if (existing.status === ProgressClaimStatus.submitted) {
@@ -112,7 +160,10 @@ export class ProgressService {
 
     const lastApproved = await this.prisma.progressClaim.findFirst({
       where: { projectId, status: ProgressClaimStatus.approved },
-      include: { lines: { orderBy: { sortOrder: 'asc' } } },
+      include: {
+        lines: { orderBy: { sortOrder: 'asc' } },
+        paymentSlipDocument: true,
+      },
       orderBy: { sequenceNumber: 'desc' },
     });
     const previousGrand = lastApproved ? dec(lastApproved.grandCumulative) : 0;
@@ -133,6 +184,12 @@ export class ProgressService {
       lineInputs,
       ctx.adjustments,
       previousGrand,
+      {
+        retentionPercent: ctx.retentionPercent,
+        retentionLimitPercent: ctx.retentionLimitPercent,
+        contractGrandTotal: ctx.contractGrandTotal,
+        retentionHeldToDate: ctx.retentionHeldToDate,
+      },
     );
 
     const created = await this.prisma.progressClaim.create({
@@ -154,6 +211,9 @@ export class ProgressService {
         overheadProfitPeriod: computed.totals.overheadProfitPeriod,
         vatPeriod: computed.totals.vatPeriod,
         grandPeriod: computed.totals.grandPeriod,
+        retentionPercent: computed.totals.retentionPercent,
+        retentionPeriod: computed.totals.retentionPeriod,
+        payablePeriod: computed.totals.payablePeriod,
         lines: {
           create: computed.lines.map((line, index) => ({
             sortOrder: index,
@@ -167,7 +227,7 @@ export class ProgressService {
           })),
         },
       },
-      include: { lines: { orderBy: { sortOrder: 'asc' } } },
+      include: { lines: { orderBy: { sortOrder: 'asc' } }, paymentSlipDocument: true },
     });
 
     return this.toClaimDto(created);
@@ -233,6 +293,12 @@ export class ProgressService {
       lineInputs,
       ctx.adjustments,
       previousGrand,
+      {
+        retentionPercent: ctx.retentionPercent,
+        retentionLimitPercent: ctx.retentionLimitPercent,
+        contractGrandTotal: ctx.contractGrandTotal,
+        retentionHeldToDate: ctx.retentionHeldToDate,
+      },
     );
 
     await this.prisma.$transaction([
@@ -256,6 +322,9 @@ export class ProgressService {
           overheadProfitPeriod: computed.totals.overheadProfitPeriod,
           vatPeriod: computed.totals.vatPeriod,
           grandPeriod: computed.totals.grandPeriod,
+          retentionPercent: computed.totals.retentionPercent,
+          retentionPeriod: computed.totals.retentionPeriod,
+          payablePeriod: computed.totals.payablePeriod,
           lines: {
             create: computed.lines.map((line, index) => ({
               sortOrder: index,
@@ -302,7 +371,7 @@ export class ProgressService {
         submittedAt: new Date(),
         submittedById: userId,
       },
-      include: { lines: { orderBy: { sortOrder: 'asc' } } },
+      include: { lines: { orderBy: { sortOrder: 'asc' } }, paymentSlipDocument: true },
     });
 
     void this.notifications.dispatch(
@@ -311,7 +380,7 @@ export class ProgressService {
         projectId,
         projectTitle: ctx.project.title,
         companyName: ctx.companyName,
-        amount: dec(updated.grandPeriod),
+        amount: dec(updated.payablePeriod),
         sequenceNumber: updated.sequenceNumber,
       }),
     );
@@ -340,7 +409,7 @@ export class ProgressService {
         reviewedById: userId,
         rejectionReason: null,
       },
-      include: { lines: { orderBy: { sortOrder: 'asc' } } },
+      include: { lines: { orderBy: { sortOrder: 'asc' } }, paymentSlipDocument: true },
     });
 
     void this.notifications.dispatch(
@@ -348,12 +417,116 @@ export class ProgressService {
         contractorUserId: ctx.bid.contractor.userId,
         projectId,
         projectTitle: ctx.project.title,
-        amount: dec(updated.grandPeriod),
+        amount: dec(updated.payablePeriod),
         sequenceNumber: updated.sequenceNumber,
       }),
     );
 
     return this.toClaimDto(updated);
+  }
+
+  async presignClaimPaymentSlip(
+    userId: string,
+    projectId: string,
+    claimId: string,
+    dto: PaymentSlipPresignDto,
+  ) {
+    const ctx = await this.loadContext(userId, projectId);
+    this.assertClient(ctx);
+    const claim = await this.requireClaim(projectId, claimId);
+    if (claim.status !== ProgressClaimStatus.approved) {
+      throw new BadRequestException(
+        'Payment slip can be attached only after the claim is approved',
+      );
+    }
+    return this.documents.presignUpload(projectId, userId, {
+      fileName: dto.fileName,
+      contentType: dto.contentType,
+      sizeBytes: dto.sizeBytes,
+      category: 'payment_slip',
+    });
+  }
+
+  async completeClaimPaymentSlip(
+    userId: string,
+    projectId: string,
+    claimId: string,
+    dto: PaymentSlipCompleteDto,
+  ): Promise<ProgressClaimDto> {
+    const ctx = await this.loadContext(userId, projectId);
+    this.assertClient(ctx);
+    const claim = await this.requireClaim(projectId, claimId);
+    if (claim.status !== ProgressClaimStatus.approved) {
+      throw new BadRequestException(
+        'Payment slip can be attached only after the claim is approved',
+      );
+    }
+
+    const doc = await this.documents.completeUpload(
+      projectId,
+      dto.documentId,
+      userId,
+    );
+
+    const updated = await this.prisma.progressClaim.update({
+      where: { id: claimId },
+      data: {
+        paymentSlipDocumentId: doc.id,
+        paymentSlipUploadedAt: new Date(),
+      },
+      include: {
+        lines: { orderBy: { sortOrder: 'asc' } },
+        paymentSlipDocument: true,
+      },
+    });
+
+    return this.toClaimDto(updated);
+  }
+
+  async presignAdvancePaymentSlip(
+    userId: string,
+    projectId: string,
+    dto: PaymentSlipPresignDto,
+  ) {
+    const ctx = await this.loadContext(userId, projectId);
+    this.assertClient(ctx);
+    if (ctx.advancePaymentAmount <= 0 && ctx.advancePaymentPercent <= 0) {
+      throw new BadRequestException('This contract has no advance payment');
+    }
+    return this.documents.presignUpload(projectId, userId, {
+      fileName: dto.fileName,
+      contentType: dto.contentType,
+      sizeBytes: dto.sizeBytes,
+      category: 'payment_slip',
+    });
+  }
+
+  async completeAdvancePaymentSlip(
+    userId: string,
+    projectId: string,
+    dto: PaymentSlipCompleteDto,
+  ): Promise<ProgressOverviewDto> {
+    const ctx = await this.loadContext(userId, projectId);
+    this.assertClient(ctx);
+    if (ctx.advancePaymentAmount <= 0 && ctx.advancePaymentPercent <= 0) {
+      throw new BadRequestException('This contract has no advance payment');
+    }
+
+    const doc = await this.documents.completeUpload(
+      projectId,
+      dto.documentId,
+      userId,
+    );
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        advancePaymentSlipDocumentId: doc.id,
+        advancePaymentSlipUploadedAt: new Date(),
+      },
+    });
+
+    return this.getOverview(userId, projectId);
   }
 
   async reject(
@@ -380,7 +553,10 @@ export class ProgressService {
           ? dto.reason.trim().slice(0, 2000)
           : null,
       },
-      include: { lines: { orderBy: { sortOrder: 'asc' } } },
+      include: {
+        lines: { orderBy: { sortOrder: 'asc' } },
+        paymentSlipDocument: true,
+      },
     });
 
     void this.notifications.dispatch(
@@ -419,7 +595,10 @@ export class ProgressService {
   private async requireClaim(projectId: string, claimId: string) {
     const claim = await this.prisma.progressClaim.findFirst({
       where: { id: claimId, projectId },
-      include: { lines: { orderBy: { sortOrder: 'asc' } } },
+      include: {
+        lines: { orderBy: { sortOrder: 'asc' } },
+        paymentSlipDocument: true,
+      },
     });
     if (!claim) {
       throw new NotFoundException('Progress claim not found');
@@ -471,10 +650,16 @@ export class ProgressService {
       overheadProfitPercent: terms.costAdjustments?.overheadProfitPercent ?? 0,
       vatPercent: terms.costAdjustments?.vatPercent ?? 0,
     };
+    const retentionPercent = terms.contractTerms?.retentionPercent ?? 10;
+    const retentionLimitPercent =
+      terms.contractTerms?.retentionLimitPercent ?? 10;
 
     const lastApproved = await this.prisma.progressClaim.findFirst({
       where: { projectId, status: ProgressClaimStatus.approved },
-      include: { lines: { orderBy: { sortOrder: 'asc' } } },
+      include: {
+        lines: { orderBy: { sortOrder: 'asc' } },
+        paymentSlipDocument: true,
+      },
       orderBy: { sequenceNumber: 'desc' },
     });
 
@@ -541,7 +726,32 @@ export class ProgressService {
       })),
       adjustments,
       0,
+      {
+        retentionPercent,
+        retentionLimitPercent,
+        contractGrandTotal:
+          Number(bid.amount) > 0
+            ? Number(bid.amount)
+            : 0,
+        retentionHeldToDate: 0,
+      },
     );
+
+    const contractGrandTotal =
+      Number(bid.amount) > 0
+        ? Number(bid.amount)
+        : contractTotals.totals.grandCumulative || worksTotal;
+
+    const approvedClaims = await this.prisma.progressClaim.findMany({
+      where: { projectId, status: ProgressClaimStatus.approved },
+      select: { retentionPeriod: true },
+    });
+    const retentionHeldToDate = approvedClaims.reduce(
+      (sum, claim) => sum + dec(claim.retentionPeriod),
+      0,
+    );
+
+    const advance = resolveAdvancePayment(bid, terms, contractGrandTotal);
 
     return {
       project,
@@ -550,16 +760,29 @@ export class ProgressService {
       companyName: bid.contractor.companyName ?? 'Contractor',
       adjustments,
       baselineLines,
-      contractGrandTotal:
-        Number(bid.amount) > 0
-          ? Number(bid.amount)
-          : contractTotals.totals.grandCumulative || worksTotal,
+      contractGrandTotal,
+      retentionPercent,
+      retentionLimitPercent,
+      retentionHeldToDate,
+      advancePaymentPercent: advance.percent,
+      advancePaymentAmount: advance.amount,
+    };
+  }
+
+  private toPaymentSlipDto(
+    doc: { id: string; originalName: string; uploadedAt: Date | null } | null,
+  ): ProgressPaymentSlipDto | null {
+    if (!doc?.uploadedAt) return null;
+    return {
+      documentId: doc.id,
+      originalName: doc.originalName,
+      uploadedAt: doc.uploadedAt.toISOString(),
     };
   }
 
   private toClaimDto(
     claim: Prisma.ProgressClaimGetPayload<{
-      include: { lines: true };
+      include: { lines: true; paymentSlipDocument: true };
     }>,
   ): ProgressClaimDto {
     return {
@@ -583,6 +806,10 @@ export class ProgressService {
       overheadProfitPeriod: dec(claim.overheadProfitPeriod),
       vatPeriod: dec(claim.vatPeriod),
       grandPeriod: dec(claim.grandPeriod),
+      retentionPercent: claim.retentionPercent,
+      retentionPeriod: dec(claim.retentionPeriod),
+      payablePeriod: dec(claim.payablePeriod),
+      paymentSlip: this.toPaymentSlipDto(claim.paymentSlipDocument ?? null),
       submittedAt: claim.submittedAt?.toISOString() ?? null,
       reviewedAt: claim.reviewedAt?.toISOString() ?? null,
       createdAt: claim.createdAt.toISOString(),

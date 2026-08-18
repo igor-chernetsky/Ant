@@ -14,6 +14,8 @@ import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
 import { ProgressService } from './progress.service';
 import type {
+  PaymentSlipCompleteDto,
+  PaymentSlipPresignDto,
   RejectProgressClaimDto,
   UpdateProgressClaimDto,
 } from './progress.types';
@@ -89,5 +91,65 @@ export class ProgressController {
     return this.progressService.reject(user.id, projectId, claimId, {
       reason: body?.reason,
     });
+  }
+
+  @Post('claims/:claimId/payment-slip/presign')
+  async presignClaimPaymentSlip(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('claimId') claimId: string,
+    @Body() body: PaymentSlipPresignDto,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.progressService.presignClaimPaymentSlip(
+      user.id,
+      projectId,
+      claimId,
+      body,
+    );
+  }
+
+  @Post('claims/:claimId/payment-slip/complete')
+  async completeClaimPaymentSlip(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('claimId') claimId: string,
+    @Body() body: PaymentSlipCompleteDto,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.progressService.completeClaimPaymentSlip(
+      user.id,
+      projectId,
+      claimId,
+      body,
+    );
+  }
+
+  @Post('advance-payment-slip/presign')
+  async presignAdvancePaymentSlip(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: PaymentSlipPresignDto,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.progressService.presignAdvancePaymentSlip(
+      user.id,
+      projectId,
+      body,
+    );
+  }
+
+  @Post('advance-payment-slip/complete')
+  async completeAdvancePaymentSlip(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Body() body: PaymentSlipCompleteDto,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.progressService.completeAdvancePaymentSlip(
+      user.id,
+      projectId,
+      body,
+    );
   }
 }

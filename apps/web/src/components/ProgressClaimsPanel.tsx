@@ -1,14 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { formatThb } from '@/lib/estimate';
 import { computeBidCostAdjustments } from '@/lib/bid-cost-adjustments';
+import { computeRetentionPeriod } from '@/lib/progress-claim';
 import {
   approveProgressClaim,
+  attachAdvancePaymentSlip,
+  attachProgressClaimPaymentSlip,
   createProgressClaimDraft,
   fetchProjectProgress,
+  getProgressDocumentDownloadUrl,
   rejectProgressClaim,
   submitProgressClaim,
   updateProgressClaimDraft,
@@ -38,6 +42,11 @@ export function ProgressClaimsPanel({
   const [percentDraft, setPercentDraft] = useState<Record<string, string>>({});
   const [noteDraft, setNoteDraft] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const claimPaymentSlipInputRef = useRef<HTMLInputElement>(null);
+  const advancePaymentSlipInputRef = useRef<HTMLInputElement>(null);
+  const [paymentSlipClaimId, setPaymentSlipClaimId] = useState<string | null>(
+    null,
+  );
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -118,6 +127,14 @@ export function ProgressClaimsPanel({
       0,
       cum.grandTotal - overview.approvedGrandCumulative,
     );
+    const retentionPeriod = computeRetentionPeriod({
+      worksPeriod,
+      retentionPercent: overview.retentionPercent,
+      retentionLimitPercent: overview.retentionLimitPercent,
+      contractGrandTotal: overview.contractGrandTotal,
+      retentionHeldToDate: overview.retentionHeldToDate,
+    });
+    const payablePeriod = Math.max(0, grandPeriod - retentionPeriod);
     return {
       lines,
       worksPeriod,
@@ -125,6 +142,8 @@ export function ProgressClaimsPanel({
       overheadProfitPeriod: period.overheadProfitAmount,
       vatPeriod: period.vatAmount,
       grandPeriod,
+      retentionPeriod,
+      payablePeriod,
       grandCumulative: cum.grandTotal,
     };
   }, [overview, isDraft, percentDraft]);
@@ -234,6 +253,67 @@ export function ProgressClaimsPanel({
     }
   };
 
+  const handleDownloadPaymentSlip = async (documentId: string) => {
+    setError(null);
+    try {
+      const { downloadUrl } = await getProgressDocumentDownloadUrl(
+        projectId,
+        documentId,
+      );
+      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('progressSection.loadFailed'),
+      );
+    }
+  };
+
+  const handleClaimPaymentSlipSelected = async (
+    claimId: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await attachProgressClaimPaymentSlip(projectId, claimId, file);
+      await reload();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('progressSection.paymentSlipUploadFailed'),
+      );
+    } finally {
+      setBusy(false);
+      setPaymentSlipClaimId(null);
+    }
+  };
+
+  const handleAdvancePaymentSlipSelected = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await attachAdvancePaymentSlip(projectId, file);
+      setOverview(data);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('progressSection.paymentSlipUploadFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const statusLabel = (status: string) => {
     switch (status) {
       case 'draft':
@@ -276,6 +356,19 @@ export function ProgressClaimsPanel({
     isDraft && preview ? preview.vatPeriod : openClaim?.vatPeriod ?? 0;
   const periodGrand =
     isDraft && preview ? preview.grandPeriod : openClaim?.grandPeriod ?? 0;
+  const periodRetention =
+    isDraft && preview
+      ? preview.retentionPeriod
+      : openClaim?.retentionPeriod ?? 0;
+  const periodPayable =
+    isDraft && preview
+      ? preview.payablePeriod
+      : openClaim?.payablePeriod ?? periodGrand;
+  const retentionPercent =
+    openClaim?.retentionPercent ?? overview?.retentionPercent ?? 0;
+  const showAdvanceSection =
+    overview != null &&
+    (overview.advancePaymentAmount > 0 || overview.advancePaymentPercent > 0);
 
   return (
     <section className="card progress-claims-panel" id="progress-claims">
@@ -308,6 +401,82 @@ export function ProgressClaimsPanel({
 
       {!loading && overview && (
         <>
+          {showAdvanceSection && (
+            <div className="progress-advance-payment-card">
+              <div className="progress-advance-payment-header">
+                <h3>{t('progressSection.advancePaymentTitle')}</h3>
+                <strong>{formatThb(overview.advancePaymentAmount)}</strong>
+              </div>
+              <p className="muted progress-advance-payment-hint">
+                {t('progressSection.paymentSlipHint')}
+              </p>
+              {overview.advancePaymentSlip ? (
+                <div className="progress-payment-slip-actions">
+                  <span className="progress-payment-slip-status">
+                    {t('progressSection.advancePaymentSlipAttached')}
+                  </span>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      void handleDownloadPaymentSlip(
+                        overview.advancePaymentSlip!.documentId,
+                      )
+                    }
+                  >
+                    {t('progressSection.downloadPaymentSlip')}
+                  </button>
+                  {isClient && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => advancePaymentSlipInputRef.current?.click()}
+                    >
+                      {t('progressSection.attachAdvancePaymentSlip')}
+                    </button>
+                  )}
+                </div>
+              ) : isClient ? (
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => advancePaymentSlipInputRef.current?.click()}
+                >
+                  {t('progressSection.attachAdvancePaymentSlip')}
+                </button>
+              ) : (
+                <p className="muted">{t('progressSection.paymentSlipHint')}</p>
+              )}
+            </div>
+          )}
+
+          <input
+            ref={advancePaymentSlipInputRef}
+            type="file"
+            accept="image/*,.pdf,application/pdf"
+            className="sr-only"
+            disabled={busy}
+            onChange={(event) => void handleAdvancePaymentSlipSelected(event)}
+          />
+          <input
+            ref={claimPaymentSlipInputRef}
+            type="file"
+            accept="image/*,.pdf,application/pdf"
+            className="sr-only"
+            disabled={busy}
+            onChange={(event) => {
+              if (paymentSlipClaimId) {
+                void handleClaimPaymentSlipSelected(
+                  paymentSlipClaimId,
+                  event,
+                );
+              }
+            }}
+          />
+
           {isContractor && !openClaim && (
             <div className="progress-claims-actions">
               <button
@@ -430,9 +599,19 @@ export function ProgressClaimsPanel({
                   </dt>
                   <dd>{formatThb(periodVat)}</dd>
                 </div>
+                {retentionPercent > 0 && (
+                  <div className="progress-claim-totals-deduction">
+                    <dt>
+                      {t('progressSection.retentionPeriod', {
+                        percent: retentionPercent,
+                      })}
+                    </dt>
+                    <dd>−{formatThb(periodRetention)}</dd>
+                  </div>
+                )}
                 <div className="progress-claim-totals-grand">
-                  <dt>{t('progressSection.dueThisPeriod')}</dt>
-                  <dd>{formatThb(periodGrand)}</dd>
+                  <dt>{t('progressSection.payableThisPeriod')}</dt>
+                  <dd>{formatThb(periodPayable)}</dd>
                 </div>
               </dl>
 
@@ -535,10 +714,62 @@ export function ProgressClaimsPanel({
                       <span className={`progress-claim-status progress-claim-status--${claim.status}`}>
                         {statusLabel(claim.status)}
                       </span>
-                      <strong>{formatThb(claim.grandPeriod)}</strong>
+                      <strong>{formatThb(claim.payablePeriod)}</strong>
                       {claim.rejectionReason ? (
                         <span className="muted">{claim.rejectionReason}</span>
                       ) : null}
+                      {claim.status === 'approved' && (
+                        <div className="progress-payment-slip-actions">
+                          {claim.paymentSlip ? (
+                            <>
+                              <span className="progress-payment-slip-status">
+                                {t('progressSection.paymentSlipAttached')}
+                              </span>
+                              <button
+                                type="button"
+                                className="secondary"
+                                disabled={busy}
+                                onClick={() =>
+                                  void handleDownloadPaymentSlip(
+                                    claim.paymentSlip!.documentId,
+                                  )
+                                }
+                              >
+                                {t('progressSection.downloadPaymentSlip')}
+                              </button>
+                              {isClient && (
+                                <button
+                                  type="button"
+                                  className="secondary"
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setPaymentSlipClaimId(claim.id);
+                                    claimPaymentSlipInputRef.current?.click();
+                                  }}
+                                >
+                                  {t('progressSection.attachPaymentSlip')}
+                                </button>
+                              )}
+                            </>
+                          ) : isClient ? (
+                            <button
+                              type="button"
+                              className="secondary"
+                              disabled={busy}
+                              onClick={() => {
+                                setPaymentSlipClaimId(claim.id);
+                                claimPaymentSlipInputRef.current?.click();
+                              }}
+                            >
+                              {t('progressSection.attachPaymentSlip')}
+                            </button>
+                          ) : (
+                            <span className="muted">
+                              {t('progressSection.paymentSlipHint')}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </li>
                   ))}
               </ul>

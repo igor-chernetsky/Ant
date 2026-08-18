@@ -98,6 +98,7 @@ enum DocumentCategory {
   contract
   ownership_certificate
   owners_id
+  payment_slip
   other
 }
 
@@ -404,6 +405,9 @@ model Project {
   signatureRequests ContractSignatureRequest[]
   progressClaims  ProgressClaim[]
   defects         Defect[]
+  advancePaymentSlipDocumentId String?   @unique @map("advance_payment_slip_document_id")
+  advancePaymentSlipDocument   Document? @relation("ProjectAdvancePaymentSlip", fields: [advancePaymentSlipDocumentId], references: [id], onDelete: SetNull)
+  advancePaymentSlipUploadedAt DateTime? @map("advance_payment_slip_uploaded_at")
 
   @@index([clientId])
   @@index([clientId, isHidden])
@@ -462,6 +466,8 @@ model Document {
   defectEvent         DefectEvent?     @relation(fields: [defectEventId], references: [id], onDelete: Cascade)
   createdAt           DateTime         @default(now()) @map("created_at")
   uploadedAt          DateTime?        @map("uploaded_at")
+  progressClaimPaymentSlip ProgressClaim? @relation("ProgressClaimPaymentSlip")
+  projectAdvancePaymentSlip Project?    @relation("ProjectAdvancePaymentSlip")
 
   @@index([projectId])
   @@index([uploaderId])
@@ -988,6 +994,12 @@ model ProgressClaim {
   overheadProfitPeriod    Decimal             @map("overhead_profit_period") @db.Decimal(14, 2)
   vatPeriod               Decimal             @map("vat_period") @db.Decimal(14, 2)
   grandPeriod             Decimal             @map("grand_period") @db.Decimal(14, 2)
+  retentionPercent        Float               @default(0) @map("retention_percent")
+  retentionPeriod         Decimal             @default(0) @map("retention_period") @db.Decimal(14, 2)
+  payablePeriod           Decimal             @default(0) @map("payable_period") @db.Decimal(14, 2)
+  paymentSlipDocumentId   String?             @unique @map("payment_slip_document_id")
+  paymentSlipDocument     Document?           @relation("ProgressClaimPaymentSlip", fields: [paymentSlipDocumentId], references: [id], onDelete: SetNull)
+  paymentSlipUploadedAt   DateTime?           @map("payment_slip_uploaded_at")
   submittedAt             DateTime?           @map("submitted_at")
   submittedById           String?             @map("submitted_by_id")
   submittedBy             User?               @relation("ProgressClaimSubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
