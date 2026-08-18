@@ -490,10 +490,16 @@ export const thExtended = {
     adsTitle: "โฆษณา",
     adsLead:
       "สไลด์โปรโมตบนหน้าแรก ถ้าไม่มีสไลด์ที่เปิดใช้ การ์ดจะไม่แสดง",
+    adsCount: "{count} สไลด์",
     adsSlides: "สไลด์",
     adsEmpty: "ยังไม่มีสไลด์ เพิ่มสไลด์เพื่อแสดงการ์ดบนหน้าแรก",
     adsAddSlide: "เพิ่มสไลด์",
     adsEditSlide: "แก้ไขสไลด์",
+    adsNewSlide: "สไลด์ใหม่",
+    adsSettingsSection: "การตั้งค่าสไลด์",
+    adsCopySection: "ข้อความและป้ายกำกับ",
+    adsCopySectionLead:
+      "กรอกข้อความสำหรับแต่ละภาษา ใช้แท็บเพื่อสลับภาษา",
     adsHref: "ลิงก์ (พาธหรือ URL)",
     adsImageUrl: "URL รูปภาพ",
     adsTitleField: "หัวข้อ",

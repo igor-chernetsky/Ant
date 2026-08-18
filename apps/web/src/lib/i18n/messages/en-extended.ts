@@ -492,10 +492,16 @@ export const enExtended = {
     adsTitle: "Ads",
     adsLead:
       "Home-page promo slides. If there are no enabled slides, the ad card is hidden.",
+    adsCount: "{count} slides",
     adsSlides: "Slides",
     adsEmpty: "No slides yet. Add one to show the card on the home page.",
     adsAddSlide: "Add slide",
     adsEditSlide: "Edit slide",
+    adsNewSlide: "New slide",
+    adsSettingsSection: "Slide settings",
+    adsCopySection: "Text & labels",
+    adsCopySectionLead:
+      "Fill in copy for each language. Use the tabs to switch between locales.",
     adsHref: "Link (path or URL)",
     adsImageUrl: "Image URL",
     adsTitleField: "Title",

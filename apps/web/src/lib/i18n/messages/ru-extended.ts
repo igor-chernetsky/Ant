@@ -493,10 +493,16 @@ export const ruExtended = {
     adsTitle: "Реклама",
     adsLead:
       "Промо-слайды на главной. Если включённых слайдов нет, карточка скрыта.",
+    adsCount: "Слайдов: {count}",
     adsSlides: "Слайды",
     adsEmpty: "Слайдов пока нет. Добавьте слайд, чтобы показать карточку на главной.",
     adsAddSlide: "Добавить слайд",
     adsEditSlide: "Редактировать слайд",
+    adsNewSlide: "Новый слайд",
+    adsSettingsSection: "Настройки слайда",
+    adsCopySection: "Тексты и подписи",
+    adsCopySectionLead:
+      "Заполните тексты для каждого языка. Переключайтесь между вкладками.",
     adsHref: "Ссылка (путь или URL)",
     adsImageUrl: "URL изображения",
     adsTitleField: "Заголовок",
