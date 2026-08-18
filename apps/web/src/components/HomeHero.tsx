@@ -43,6 +43,14 @@ export function HomeHero({
               </Link>
             )}
           </div>
+          <div className="home-hero-inline-links">
+            <Link href="/for-clients" className="text-link">
+              {t('explainer.clients.navLabel')}
+            </Link>
+            <Link href="/for-contractors" className="text-link">
+              {t('explainer.contractors.navLabel')}
+            </Link>
+          </div>
         </div>
       </div>
     </section>

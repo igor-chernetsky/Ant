@@ -404,6 +404,11 @@ export default function ContractorPage() {
         {ready && !me && (
           <section className="card cta">
             <p>{t('contractor.signInPrompt')}</p>
+            <p className="muted contractor-signin-marketing-link">
+              <Link href="/for-contractors" className="text-link">
+                {t('explainer.contractors.quickLead')}
+              </Link>
+            </p>
             <button
               type="button"
               className="primary"

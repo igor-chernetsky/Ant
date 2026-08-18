@@ -132,6 +132,8 @@ export const en = {
     contractorAgreement: 'Contractor Agreement',
     materials: 'Materials marketplaces',
     help: 'Help',
+    forClients: 'For clients',
+    forContractors: 'For contractors',
   },
   auth: {
     welcomeBack: 'Welcome back',

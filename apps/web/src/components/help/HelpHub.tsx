@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { HelpScenario } from '@/components/help/HelpScenario';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -51,6 +52,25 @@ export function HelpHub() {
       <section className="page-hero">
         <h1>{t('help.title')}</h1>
         <p className="page-hero-lead muted">{t('help.lead')}</p>
+      </section>
+
+      <section className="help-marketing-links">
+        <div className="help-marketing-links-head">
+          <h2 className="section-title">{t('explainer.quickTitle')}</h2>
+          <p className="muted">{t('explainer.quickLead')}</p>
+        </div>
+        <div className="help-marketing-links-grid">
+          <LinkCard
+            href="/for-clients"
+            title={t('explainer.clients.navLabel')}
+            body={t('explainer.clients.quickLead')}
+          />
+          <LinkCard
+            href="/for-contractors"
+            title={t('explainer.contractors.navLabel')}
+            body={t('explainer.contractors.quickLead')}
+          />
+        </div>
       </section>
 
       <div
@@ -188,5 +208,22 @@ export function HelpHub() {
         </section>
       )}
     </div>
+  );
+}
+
+function LinkCard({
+  href,
+  title,
+  body,
+}: {
+  href: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <Link href={href} className="help-marketing-link-card">
+      <strong>{title}</strong>
+      <p className="muted">{body}</p>
+    </Link>
   );
 }

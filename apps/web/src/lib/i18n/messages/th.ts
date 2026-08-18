@@ -133,6 +133,8 @@ export const th: Messages = {
     contractorAgreement: 'ข้อตกลงผู้รับเหมา',
     materials: 'แพลตฟอร์มวัสดุ',
     help: 'ช่วยเหลือ',
+    forClients: 'สำหรับลูกค้า',
+    forContractors: 'สำหรับผู้รับเหมา',
   },
   auth: {
     welcomeBack: 'ยินดีต้อนรับกลับ',

@@ -133,6 +133,8 @@ export const ru: Messages = {
     contractorAgreement: 'Соглашение подрядчика',
     materials: 'Площадки стройматериалов',
     help: 'Помощь',
+    forClients: 'Для заказчиков',
+    forContractors: 'Для подрядчиков',
   },
   auth: {
     welcomeBack: 'С возвращением',

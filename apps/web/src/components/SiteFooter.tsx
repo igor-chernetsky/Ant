@@ -17,6 +17,12 @@ export function SiteFooter() {
           <Link href="/help" className="text-link">
             {t('footer.help')}
           </Link>
+          <Link href="/for-clients" className="text-link">
+            {t('footer.forClients')}
+          </Link>
+          <Link href="/for-contractors" className="text-link">
+            {t('footer.forContractors')}
+          </Link>
           <Link href="/materials" className="text-link">
             {t('footer.materials')}
           </Link>
