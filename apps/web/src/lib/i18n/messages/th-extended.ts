@@ -952,11 +952,11 @@ export const thExtended = {
     successFeeValue: "{percent}% ของสัญญา ({amount})",
     successFeePendingAmount: "คำนวณจากยอดสัญญาขั้นสุดท้าย",
     creditLabel: "ค่าธรรมเนียมลงนามนำไปหักกับ success fee",
-    remainingLabel: "ยอด success fee ที่เหลือ (ภายใน 1 เดือนปฏิทิน)",
+    remainingLabel: "ยอด success fee ที่เหลือ (ภายใน 2 สัปดาห์)",
     dueNowLabel: "ครบกำหนดชำระตอนนี้",
     dueNowTrial: "ตามราคา {listed} → ชำระจริง {payable}",
     timingNote:
-      "ยอด success fee ที่เหลือครบกำหนดภายในหนึ่งเดือนปฏิทินหลังลงนาม — โดยปกติหลังคุณได้รับเงินล่วงหน้าจากลูกค้า",
+      "ยอด success fee ที่เหลือครบกำหนดภายในสองสัปดาห์หลังลงนาม — โดยปกติหลังคุณได้รับเงินล่วงหน้าจากลูกค้า",
     fxNote:
       "ยอด USD แสดงด้วยอัตราโดยประมาณ 1 USD ≈ {rate} THB เพื่อการแสดงผลเท่านั้น",
     payerNote:

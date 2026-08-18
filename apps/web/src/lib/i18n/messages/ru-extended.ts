@@ -955,11 +955,11 @@ export const ruExtended = {
     successFeeValue: "{percent}% от суммы договора ({amount})",
     successFeePendingAmount: "Рассчитывается от итоговой суммы договора",
     creditLabel: "Сбор за подписание засчитывается в success fee",
-    remainingLabel: "Остаток success fee (в течение 1 календарного месяца)",
+    remainingLabel: "Остаток success fee (в течение 2 недель)",
     dueNowLabel: "К оплате сейчас",
     dueNowTrial: "По прайсу {listed} → к оплате {payable}",
     timingNote:
-      "Остаток success fee подлежит оплате в течение одного календарного месяца после подписания — обычно после получения аванса от заказчика.",
+      "Остаток success fee подлежит оплате в течение двух недель после подписания — обычно после получения аванса от заказчика.",
     fxNote:
       "Суммы в USD показаны по индикативному курсу 1 USD ≈ {rate} THB только для отображения.",
     payerNote:

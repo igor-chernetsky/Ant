@@ -954,11 +954,11 @@ export const enExtended = {
     successFeeValue: "{percent}% of contract ({amount})",
     successFeePendingAmount: "Calculated from the final contract amount",
     creditLabel: "Signing fee credited toward success fee",
-    remainingLabel: "Remaining success fee (within 1 calendar month)",
+    remainingLabel: "Remaining success fee (within 2 weeks)",
     dueNowLabel: "Due now",
     dueNowTrial: "Listed {listed} → payable {payable}",
     timingNote:
-      "The remaining success fee is due within one calendar month after signing — typically after you receive the client’s advance payment.",
+      "The remaining success fee is due within two weeks after signing — typically after you receive the client’s advance payment.",
     fxNote:
       "USD amounts are shown at an indicative rate of 1 USD ≈ {rate} THB for display only.",
     payerNote:

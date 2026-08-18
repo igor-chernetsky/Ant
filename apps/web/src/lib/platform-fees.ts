@@ -5,7 +5,7 @@
  * - Platform access / signing fee: USD 20 (or 2% of contract if 2% is lower),
  *   credited toward the success fee — disclosed before the contractor signs.
  * - Success fee: 2% of the awarded contract amount, minus the access-fee credit,
- *   due within one calendar month (typically after the contractor receives the
+ *   due within two weeks (typically after the contractor receives the
  *   client’s advance payment).
  * - Clients use the core platform for free until premium services are enabled.
  */
