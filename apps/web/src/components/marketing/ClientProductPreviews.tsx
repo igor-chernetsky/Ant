@@ -163,6 +163,7 @@ export function ClientClarifyPreview() {
 
   return (
     <ProductPreviewFrame interactive>
+      <div className="product-preview-refine">
         <article className="card product-preview-refine-question">
           <p className="product-preview-field-label">
             {t('estimateSection.refineTitle')}
