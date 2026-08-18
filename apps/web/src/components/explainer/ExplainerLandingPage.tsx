@@ -28,6 +28,8 @@ import {
   ClientHeroPreview,
   ClientSignFlowPreview,
   ClientSignPreview,
+  ClientProgressPreview,
+  ClientReviewsPreview,
   ClientTenderPreview,
 } from '@/components/marketing/ClientProductPreviews';
 import {
@@ -53,6 +55,8 @@ const CLIENT_SECTION_IDS = [
   'step-tender',
   'step-compare',
   'step-sign',
+  'step-progress',
+  'step-reviews',
 ] as const;
 
 const CONTRACTOR_SECTION_IDS = [
@@ -78,7 +82,7 @@ function ClientTourPage({ base }: { base: string }) {
 
   const workflowSteps = useMemo<TourWorkflowStep[]>(
     () =>
-      itemsFromKeys(7, (index) => ({
+      itemsFromKeys(9, (index) => ({
         id: CLIENT_SECTION_IDS[index - 1],
         number: String(index).padStart(2, '0'),
         label: t(`${base}.workflow.step${index}`),
@@ -97,7 +101,7 @@ function ClientTourPage({ base }: { base: string }) {
 
   const faq = useMemo<TourFaqItem[]>(
     () =>
-      itemsFromKeys(6, (index) => ({
+      itemsFromKeys(8, (index) => ({
         question: t(`${base}.faq.item${index}Question`),
         answer: t(`${base}.faq.item${index}Answer`),
       })),
@@ -162,6 +166,21 @@ function ClientTourPage({ base }: { base: string }) {
             <ClientSignPreview />
           </div>
         ),
+      },
+      {
+        id: 'step-progress',
+        key: 'progress',
+        reverse: true,
+        band: true,
+        note: true,
+        preview: <ClientProgressPreview />,
+      },
+      {
+        id: 'step-reviews',
+        key: 'reviews',
+        reverse: false,
+        note: true,
+        preview: <ClientReviewsPreview />,
       },
     ],
     [signFlowSteps],

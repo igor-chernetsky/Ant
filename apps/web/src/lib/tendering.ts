@@ -618,6 +618,72 @@ export async function fetchBidContractorDocumentDownload(
   }>;
 }
 
+export interface BidContractorReviewAttachment {
+  id: string;
+  originalName: string;
+  contentType: string;
+  sizeBytes: number;
+  previewUrl: string | null;
+}
+
+export interface BidContractorReviewItem {
+  id: string;
+  projectType: string;
+  district: string | null;
+  completedAt: string;
+  averageRating: number;
+  ratings: Record<string, number>;
+  comment: string | null;
+  attachments: BidContractorReviewAttachment[];
+}
+
+export interface BidContractorReviewsView {
+  summary: {
+    reviewCount: number;
+    averageRating: number | null;
+    categoryAverages: Record<string, number>;
+  };
+  reviews: BidContractorReviewItem[];
+}
+
+export async function fetchBidContractorReviews(
+  projectId: string,
+  bidId: string,
+): Promise<BidContractorReviewsView> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/contractor-reviews`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to load contractor reviews');
+  }
+  return response.json() as Promise<BidContractorReviewsView>;
+}
+
+export async function fetchBidContractorReviewAttachmentDownload(
+  projectId: string,
+  bidId: string,
+  reviewId: string,
+  attachmentId: string,
+): Promise<{
+  downloadUrl: string;
+  expiresInSeconds: number;
+  originalName: string;
+  contentType: string;
+}> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/tender/bids/${encodeURIComponent(bidId)}/contractor-reviews/${encodeURIComponent(reviewId)}/attachments/${encodeURIComponent(attachmentId)}`,
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to get review attachment download URL');
+  }
+  return response.json() as Promise<{
+    downloadUrl: string;
+    expiresInSeconds: number;
+    originalName: string;
+    contentType: string;
+  }>;
+}
+
 export async function updateBidContractTerms(
   projectId: string,
   bidId: string,

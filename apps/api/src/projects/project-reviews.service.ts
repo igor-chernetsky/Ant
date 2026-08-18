@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 import {
   DocumentStatus,
   ProjectStatus,
+  BidStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -25,6 +26,7 @@ import { assertCompletedUploadLimits } from '../documents/documents.types';
 import {
   CompleteProjectDto,
   ContractorReviewItem,
+  BidContractorReviewsView,
   PresignProjectReviewAttachmentDto,
   ProjectCompletionContext,
   ProjectReviewAttachmentResponse,
@@ -97,16 +99,7 @@ export class ProjectReviewsService {
 
     return reviews.map((review) => {
       const ratings = review.ratingsJson as Record<string, number>;
-      const values = REVIEW_RATING_KEYS.map((key) => ratings[key]).filter(
-        (value) => typeof value === 'number' && Number.isFinite(value),
-      );
-      const averageRating =
-        values.length > 0
-          ? Math.round(
-              (values.reduce((sum, value) => sum + value, 0) / values.length) *
-                10,
-            ) / 10
-          : 0;
+      const averageRating = this.computeAverageRating(ratings);
 
       return {
         id: review.id,
@@ -119,6 +112,156 @@ export class ProjectReviewsService {
         clientName: review.client.displayName ?? review.client.email,
       };
     });
+  }
+
+  async listForBidClient(
+    clientUserId: string,
+    projectId: string,
+    bidId: string,
+  ): Promise<BidContractorReviewsView> {
+    const contractorId = await this.assertClientMayViewBidContractor(
+      clientUserId,
+      projectId,
+      bidId,
+    );
+
+    const reviews = await this.prisma.contractorProjectReview.findMany({
+      where: { contractorId },
+      include: {
+        project: {
+          select: { projectType: true, district: true },
+        },
+        attachments: {
+          where: { status: DocumentStatus.uploaded },
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const categoryTotals = Object.fromEntries(
+      REVIEW_RATING_KEYS.map((key) => [key, { sum: 0, count: 0 }]),
+    ) as Record<string, { sum: number; count: number }>;
+
+    let overallSum = 0;
+    const mappedReviews = await Promise.all(
+      reviews.map(async (review) => {
+        const ratings = review.ratingsJson as Record<string, number>;
+        const averageRating = this.computeAverageRating(ratings);
+
+        overallSum += averageRating;
+        for (const key of REVIEW_RATING_KEYS) {
+          const value = ratings[key];
+          if (typeof value === 'number' && Number.isFinite(value)) {
+            categoryTotals[key].sum += value;
+            categoryTotals[key].count += 1;
+          }
+        }
+
+        const attachments = await Promise.all(
+          review.attachments.map(async (attachment) => {
+            let previewUrl: string | null = null;
+            if (
+              attachment.contentType.startsWith('image/') &&
+              this.storage.isConfigured()
+            ) {
+              try {
+                const presigned = await this.storage.createPresignedDownload(
+                  attachment.storageKey,
+                );
+                previewUrl = presigned.downloadUrl;
+              } catch {
+                previewUrl = null;
+              }
+            }
+
+            return {
+              id: attachment.id,
+              originalName: attachment.originalName,
+              contentType: attachment.contentType,
+              sizeBytes: attachment.sizeBytes,
+              previewUrl,
+            };
+          }),
+        );
+
+        return {
+          id: review.id,
+          projectType: review.project.projectType,
+          district: review.project.district,
+          completedAt: review.createdAt.toISOString(),
+          averageRating,
+          ratings,
+          comment: review.comment,
+          attachments,
+        };
+      }),
+    );
+
+    const categoryAverages: Record<string, number> = {};
+    for (const key of REVIEW_RATING_KEYS) {
+      const { sum, count } = categoryTotals[key];
+      if (count > 0) {
+        categoryAverages[key] = Math.round((sum / count) * 10) / 10;
+      }
+    }
+
+    return {
+      summary: {
+        reviewCount: mappedReviews.length,
+        averageRating:
+          mappedReviews.length > 0
+            ? Math.round((overallSum / mappedReviews.length) * 10) / 10
+            : null,
+        categoryAverages,
+      },
+      reviews: mappedReviews,
+    };
+  }
+
+  async getReviewAttachmentDownloadForBidClient(
+    clientUserId: string,
+    projectId: string,
+    bidId: string,
+    reviewId: string,
+    attachmentId: string,
+  ): Promise<{
+    downloadUrl: string;
+    expiresInSeconds: number;
+    originalName: string;
+    contentType: string;
+  }> {
+    const contractorId = await this.assertClientMayViewBidContractor(
+      clientUserId,
+      projectId,
+      bidId,
+    );
+
+    const attachment = await this.prisma.projectReviewAttachment.findFirst({
+      where: {
+        id: attachmentId,
+        reviewId,
+        status: DocumentStatus.uploaded,
+        review: { contractorId },
+      },
+    });
+    if (!attachment) {
+      throw new NotFoundException('Attachment not found');
+    }
+
+    if (!this.storage.isConfigured()) {
+      throw new BadRequestException('File storage is not configured');
+    }
+
+    const presigned = await this.storage.createPresignedDownload(
+      attachment.storageKey,
+    );
+    return {
+      downloadUrl: presigned.downloadUrl,
+      expiresInSeconds: presigned.expiresInSeconds,
+      originalName: attachment.originalName,
+      contentType: attachment.contentType,
+    };
   }
 
   async presignAttachment(
@@ -322,6 +465,57 @@ export class ProjectReviewsService {
         },
       });
     });
+  }
+
+  private computeAverageRating(ratings: Record<string, number>): number {
+    const values = REVIEW_RATING_KEYS.map((key) => ratings[key]).filter(
+      (value) => typeof value === 'number' && Number.isFinite(value),
+    );
+    return values.length > 0
+      ? Math.round(
+          (values.reduce((sum, value) => sum + value, 0) / values.length) * 10,
+        ) / 10
+      : 0;
+  }
+
+  private async assertClientMayViewBidContractor(
+    clientUserId: string,
+    projectId: string,
+    bidId: string,
+  ): Promise<string> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, clientId: true },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.clientId !== clientUserId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    const bid = await this.prisma.bid.findFirst({
+      where: {
+        id: bidId,
+        tender: { projectId },
+        status: {
+          in: [
+            BidStatus.clarifying,
+            BidStatus.enrolled,
+            BidStatus.submitted,
+            BidStatus.selected,
+            BidStatus.rejected,
+            BidStatus.withdrawn,
+          ],
+        },
+      },
+      select: { contractorId: true },
+    });
+    if (!bid) {
+      throw new NotFoundException('Bid not found');
+    }
+
+    return bid.contractorId;
   }
 
   private normalizeRatings(

@@ -9,6 +9,7 @@ import { ProjectTile } from '@/components/ProjectTile';
 import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPill';
 import { ContractSigningPartiesInline } from '@/components/ContractSigningPartiesInline';
 import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { formatConfidence } from '@/lib/estimate';
 import {
   demoBids,
@@ -16,9 +17,11 @@ import {
   demoCompareBreakdown,
   demoContractAwaitingContractor,
   demoClarificationQuestions,
+  demoContractorReviewPreview,
   demoDocuments,
   demoMarketplaceTiles,
   demoOwnedProjectTile,
+  demoProgressPreviewLines,
   demoProject,
   demoProjectTags,
   demoTenderMeta,
@@ -27,6 +30,9 @@ import {
   DEMO_PROJECT_ID,
 } from '@/lib/marketing/demo-fixtures';
 import { ProductPreviewFrame, PreviewCallout } from '@/components/marketing/ProductPreviewFrame';
+import { ContractorReviewStars } from '@/components/ContractorReviewStars';
+import { REVIEW_RATING_CATEGORIES } from '@/lib/project-reviews';
+import { formatDateTime } from '@/lib/projects';
 
 export function ClientHeroPreview({
   callouts,
@@ -393,6 +399,173 @@ export function ClientMarketplacePreview() {
             <ProjectTile project={project} isOwned={project.id === DEMO_PROJECT_ID} />
           </div>
         ))}
+      </div>
+    </ProductPreviewFrame>
+  );
+}
+
+export function ClientProgressPreview() {
+  const { t, locale } = useTranslation();
+  const money = (amount: number) =>
+    new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'THB',
+      maximumFractionDigits: 0,
+    }).format(amount);
+
+  const worksTotal = demoProgressPreviewLines.reduce(
+    (sum, line) => sum + line.worksPeriod,
+    0,
+  );
+  const retentionTotal = demoProgressPreviewLines.reduce(
+    (sum, line) => sum + line.retentionPeriod,
+    0,
+  );
+  const payableTotal = demoProgressPreviewLines.reduce(
+    (sum, line) => sum + line.payablePeriod,
+    0,
+  );
+
+  return (
+    <ProductPreviewFrame>
+      <div className="card product-preview-progress">
+        <div className="product-preview-progress-header">
+          <div>
+            <p className="product-preview-field-label">{t('progressSection.title')}</p>
+            <p className="muted product-preview-progress-claim">
+              {t('progressSection.claimNumber', { n: '2' })} ·{' '}
+              {t('progressSection.statusApproved')}
+            </p>
+          </div>
+          <div className="product-preview-progress-totals">
+            <span className="muted">{t('progressSection.approvedToDate')}</span>
+            <strong>{money(2_180_000)}</strong>
+          </div>
+        </div>
+
+        <div className="product-preview-progress-table-wrap">
+          <table className="product-preview-progress-table">
+            <thead>
+              <tr>
+                <th>{t('progressSection.colTrade')}</th>
+                <th>{t('progressSection.colPercent')}</th>
+                <th>{t('progressSection.worksPeriod')}</th>
+                <th>{t('progressSection.retentionPeriod', { percent: '5' })}</th>
+                <th>{t('progressSection.payableThisPeriod')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {demoProgressPreviewLines.map((line) => (
+                <tr key={line.trade}>
+                  <td>{line.trade}</td>
+                  <td>{line.percentComplete}%</td>
+                  <td>{money(line.worksPeriod)}</td>
+                  <td>{money(line.retentionPeriod)}</td>
+                  <td>{money(line.payablePeriod)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={2}>{t('explainer.clients.previews.progressTotal')}</td>
+                <td>{money(worksTotal)}</td>
+                <td>{money(retentionTotal)}</td>
+                <td>{money(payableTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <p className="muted product-preview-progress-slip">
+          {t('progressSection.paymentSlipAttached')}
+        </p>
+      </div>
+    </ProductPreviewFrame>
+  );
+}
+
+export function ClientReviewsPreview() {
+  const { t } = useTranslation();
+  const { formatProjectType } = useAppFormatters();
+  const review = demoContractorReviewPreview;
+
+  return (
+    <ProductPreviewFrame>
+      <div className="card product-preview-reviews">
+        <p className="product-preview-field-label">
+          {t('bidContractorProfile.reviewsHeading')}
+        </p>
+        <p className="contractor-reviews-summary muted">
+          {t('bidContractorProfile.reviewsSummary', {
+            average: String(review.averageRating),
+            count: String(review.reviewCount),
+            reviewsLabel: t('common.reviews'),
+          })}
+        </p>
+
+        <article className="contractor-review-item product-preview-review-item">
+          <div className="contractor-review-item-header">
+            <div>
+              <p className="contractor-review-project">
+                {formatProjectType(review.projectType)}
+              </p>
+              <p className="muted contractor-review-meta">
+                {t('bidContractorProfile.reviewMetaWithDistrict', {
+                  district: review.district,
+                  date: formatDateTime(review.completedAt),
+                })}
+              </p>
+            </div>
+            <div className="contractor-review-average">
+              <ContractorReviewStars
+                value={review.averageRating}
+                ariaLabel={t('reviews.starsAria', {
+                  value: review.averageRating,
+                })}
+              />
+              <span className="contractor-review-average-value">
+                {review.averageRating.toFixed(1)}
+              </span>
+            </div>
+          </div>
+
+          <p className="contractor-review-comment">{review.comment}</p>
+
+          <dl className="contractor-review-ratings product-preview-review-ratings">
+            {REVIEW_RATING_CATEGORIES.slice(0, 3).map((category) => {
+              const score = review.ratings[category.key as keyof typeof review.ratings];
+              if (typeof score !== 'number') {
+                return null;
+              }
+              return (
+                <div key={category.key} className="contractor-review-rating-row">
+                  <dt>{category.label}</dt>
+                  <dd>
+                    <ContractorReviewStars
+                      value={score}
+                      ariaLabel={t('reviews.starsAria', { value: score })}
+                    />
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+
+          <ul className="contractor-portfolio-preview-grid product-preview-review-photos">
+            {[1, 2].map((index) => (
+              <li key={index} className="contractor-portfolio-preview-item">
+                <div
+                  className="product-preview-review-photo-placeholder"
+                  aria-hidden
+                />
+              </li>
+            ))}
+          </ul>
+        </article>
+
+        <p className="muted product-preview-review-note">
+          {t('explainer.clients.previews.reviewsAnonymousNote')}
+        </p>
       </div>
     </ProductPreviewFrame>
   );

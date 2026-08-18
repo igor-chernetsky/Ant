@@ -8,6 +8,7 @@ import {
   fetchBidContractorProfile,
   type BidContractorProfileView,
 } from '@/lib/tendering';
+import { BidContractorReviewsSection } from '@/components/BidContractorReviewsSection';
 
 interface ClientContractorProfilePanelProps {
   projectId: string;
@@ -190,6 +191,8 @@ export function ClientContractorProfilePanel({
             ))}
           </ul>
         )}
+
+        <BidContractorReviewsSection projectId={projectId} bidId={bidId} />
 
         {error ? <p className="form-error">{error}</p> : null}
       </div>

@@ -19,6 +19,7 @@ import { TenderClarificationsService } from './tender-clarifications.service';
 import { TendersService } from './tenders.service';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
+import { ProjectReviewsService } from '../projects/project-reviews.service';
 import { parseCommercialProposalLocales } from './commercial-proposal.i18n';
 
 @Controller('v1/projects/:projectId/tender')
@@ -34,6 +35,7 @@ export class ProjectTenderController {
     private readonly clarifications: TenderClarificationsService,
     private readonly tenderInvites: TenderInvitesService,
     private readonly contractorProfiles: ContractorProfilesService,
+    private readonly projectReviews: ProjectReviewsService,
   ) {}
 
   private async resolveUser(req: Request & { user: JwtPayload }) {
@@ -281,6 +283,36 @@ export class ProjectTenderController {
       projectId,
       bidId,
       documentId,
+    );
+  }
+
+  @Get('bids/:bidId/contractor-reviews')
+  async getBidContractorReviews(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('bidId') bidId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.projectReviews.listForBidClient(user.id, projectId, bidId);
+  }
+
+  @Get(
+    'bids/:bidId/contractor-reviews/:reviewId/attachments/:attachmentId/download-url',
+  )
+  async getBidContractorReviewAttachmentDownload(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('bidId') bidId: string,
+    @Param('reviewId') reviewId: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.projectReviews.getReviewAttachmentDownloadForBidClient(
+      user.id,
+      projectId,
+      bidId,
+      reviewId,
+      attachmentId,
     );
   }
 

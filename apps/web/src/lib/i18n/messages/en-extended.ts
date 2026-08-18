@@ -839,6 +839,15 @@ export const enExtended = {
     noPortfolio: "No portfolio photos yet.",
     noDocuments: "No profile documents attached.",
     download: "Download",
+    reviewsHeading: "Client reviews",
+    reviewsSummary: "{average} / 5 average · {count} {reviewsLabel}",
+    reviewsLoading: "Loading reviews…",
+    reviewsLoadFailed: "Failed to load reviews",
+    reviewsEmpty: "No client reviews yet.",
+    reviewMeta: "{date}",
+    reviewMetaWithDistrict: "{district} · {date}",
+    reviewPhotoAlt: "Review photo",
+    reviewDownloadFailed: "Failed to download attachment",
   },
   reviews: {
     title: "Client reviews",
@@ -1798,6 +1807,9 @@ export const enExtended = {
         optionReplace: "Replace",
         estimateUpdated: "Estimate updated",
         briefUpdated: "Project brief updated",
+        progressTotal: "Period total",
+        reviewsAnonymousNote:
+          "Past reviews show project type and district only — client names stay private.",
       },
       workflow: {
         step1: "Create",
@@ -1807,6 +1819,8 @@ export const enExtended = {
         step5: "Tender",
         step6: "Compare",
         step7: "Sign",
+        step8: "Track",
+        step9: "Reviews",
       },
       sections: {
         createTitle: "Describe your project once",
@@ -1830,7 +1844,7 @@ export const enExtended = {
           "Open the project for applications. Similar contractor questions are grouped so you answer once — then receive structured commercial proposals instead of scattered messages.",
         compareTitle: "Compare proposals in one place",
         compareBody:
-          "Review contractor, total price, scope, timeline, commercial terms and documents side by side — against the same project brief and ballpark.",
+          "Review contractor, total price, scope, timeline, commercial terms and documents side by side — against the same project brief and ballpark. Open each bidder's profile to see anonymous ratings from completed projects.",
         signTitle: "Select your contractor and move to signing",
         signBody:
           "Choose a proposal, confirm contract terms, and sign in the same project record. Both parties see status without chasing files in chat.",
@@ -1838,6 +1852,16 @@ export const enExtended = {
         signFlow2: "Agreement",
         signFlow3: "Signing",
         signFlow4: "Project starts",
+        progressTitle: "Track work progress on site",
+        progressBody:
+          "After signing, the contractor submits periodic progress claims by trade. You approve certified amounts, see retention held back, and attach payment slips so both parties keep a clear record.",
+        progressNote:
+          "Progress claims recalculate with preliminary, OH&P and VAT — previously approved totals are deducted from each new period.",
+        reviewsTitle: "See contractor ratings before you choose",
+        reviewsBody:
+          "When comparing commercial proposals, open a contractor's full profile to read anonymous client reviews: star ratings by category, comments and photos from past hotel, retail and fit-out projects.",
+        reviewsNote:
+          "After your project is complete, leave your own review to help the next client — your name is not shown publicly.",
       },
       whyTitle: "Why BuilTHAI",
       why: {
@@ -1872,6 +1896,12 @@ export const enExtended = {
         item6Question: "Is the estimate a contractor quotation?",
         item6Answer:
           "No. The ballpark is an AI-assisted planning range. Contractor proposals are formal commercial offers; the signed contract sets the final price.",
+        item7Question: "How does progress tracking work?",
+        item7Answer:
+          "During an active project the contractor reports completion by trade. You approve each claim, see retention and the payable amount, and can attach bank transfer slips for your records.",
+        item8Question: "Where do contractor ratings come from?",
+        item8Answer:
+          "Ratings are left by clients after a project is marked complete. When you compare bids, past reviews appear anonymously — project type, district and date, not the client's name.",
       },
       finalTitle: "Ready to turn your project into a structured tender?",
       finalPrimaryCta: "Create your project",

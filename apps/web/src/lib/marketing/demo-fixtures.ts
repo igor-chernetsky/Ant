@@ -473,3 +473,48 @@ export const demoContractorProfilePreview = {
   documentsCount: 4,
   portfolioCount: 6,
 };
+
+export const demoProgressPreviewLines = [
+  {
+    trade: 'Kitchen',
+    contractAmount: 1_850_000,
+    percentComplete: 72,
+    worksPeriod: 420_000,
+    retentionPeriod: 21_000,
+    payablePeriod: 399_000,
+  },
+  {
+    trade: 'MEP',
+    contractAmount: 980_000,
+    percentComplete: 55,
+    worksPeriod: 215_000,
+    retentionPeriod: 10_750,
+    payablePeriod: 204_250,
+  },
+  {
+    trade: 'Finishes',
+    contractAmount: 640_000,
+    percentComplete: 40,
+    worksPeriod: 96_000,
+    retentionPeriod: 4_800,
+    payablePeriod: 91_200,
+  },
+];
+
+export const demoContractorReviewPreview = {
+  averageRating: 4.6,
+  reviewCount: 3,
+  projectType: 'commercial_fitout',
+  district: 'Sathorn',
+  completedAt: '2025-11-14T10:30:00.000Z',
+  comment:
+    'Kitchen and MEP phases stayed on schedule. Site was kept clean during live hotel operations.',
+  ratings: {
+    quality: 5,
+    timeline: 4,
+    communication: 5,
+    professionalism: 5,
+    value: 4,
+    siteConduct: 5,
+  },
+};

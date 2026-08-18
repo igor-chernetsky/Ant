@@ -160,6 +160,34 @@ export interface ContractorReviewItem {
   clientName: string | null;
 }
 
+export interface BidContractorReviewAttachment {
+  id: string;
+  originalName: string;
+  contentType: string;
+  sizeBytes: number;
+  previewUrl: string | null;
+}
+
+export interface BidContractorReviewItem {
+  id: string;
+  projectType: string;
+  district: string | null;
+  completedAt: string;
+  averageRating: number;
+  ratings: Record<string, number>;
+  comment: string | null;
+  attachments: BidContractorReviewAttachment[];
+}
+
+export interface BidContractorReviewsView {
+  summary: {
+    reviewCount: number;
+    averageRating: number | null;
+    categoryAverages: Record<string, number>;
+  };
+  reviews: BidContractorReviewItem[];
+}
+
 export interface ProjectReviewAttachmentResponse {
   id: string;
   originalName: string;

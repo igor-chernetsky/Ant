@@ -3,39 +3,13 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
+import { ContractorReviewStars } from '@/components/ContractorReviewStars';
 import { REVIEW_RATING_CATEGORIES } from '@/lib/project-reviews';
 import { formatDateTime } from '@/lib/projects';
 import {
   fetchContractorReviews,
   type ContractorReviewItem,
 } from '@/lib/tendering';
-
-function StarRatingDisplay({
-  value,
-  ariaLabel,
-}: {
-  value: number;
-  ariaLabel: string;
-}) {
-  const rounded = Math.round(value);
-  return (
-    <span className="contractor-review-stars" aria-label={ariaLabel}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <span
-          key={star}
-          className={
-            star <= rounded
-              ? 'contractor-review-star contractor-review-star-active'
-              : 'contractor-review-star'
-          }
-          aria-hidden
-        >
-          ★
-        </span>
-      ))}
-    </span>
-  );
-}
 
 export function ContractorReviewsPanel() {
   const { t } = useTranslation();
@@ -108,7 +82,7 @@ export function ContractorReviewsPanel() {
                   </p>
                 </div>
                 <div className="contractor-review-average">
-                  <StarRatingDisplay
+                  <ContractorReviewStars
                     value={review.averageRating}
                     ariaLabel={t('reviews.starsAria', {
                       value: review.averageRating,
@@ -134,7 +108,7 @@ export function ContractorReviewsPanel() {
                     <div key={category.key} className="contractor-review-rating-row">
                       <dt>{category.label}</dt>
                       <dd>
-                        <StarRatingDisplay
+                        <ContractorReviewStars
                           value={score}
                           ariaLabel={t('reviews.starsAria', { value: score })}
                         />
