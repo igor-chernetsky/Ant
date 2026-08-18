@@ -13,6 +13,7 @@ import {
   ProductTourHero,
   ProductTourSection,
   ProductTourWorkflowNav,
+  useProductTourLayout,
   useWorkflowScrollSpy,
   type TourDifferentiatorItem,
   type TourFaqItem,
@@ -73,7 +74,7 @@ function itemsFromKeys<T>(
 
 function ClientTourPage({ base }: { base: string }) {
   const { t } = useTranslation();
-  const { activeId, scrollTo } = useWorkflowScrollSpy([...CLIENT_SECTION_IDS]);
+  const { activeId, scrollTo } = useWorkflowScrollSpy(CLIENT_SECTION_IDS);
 
   const workflowSteps = useMemo<TourWorkflowStep[]>(
     () =>
@@ -120,6 +121,7 @@ function ClientTourPage({ base }: { base: string }) {
         id: 'step-analyze',
         key: 'analyze',
         reverse: true,
+        band: true,
         preview: <ClientAnalyzePreview />,
       },
       {
@@ -134,6 +136,7 @@ function ClientTourPage({ base }: { base: string }) {
         key: 'estimate',
         reverse: true,
         note: true,
+        band: true,
         preview: <ClientEstimatePreview />,
       },
       {
@@ -146,6 +149,7 @@ function ClientTourPage({ base }: { base: string }) {
         id: 'step-compare',
         key: 'compare',
         reverse: true,
+        band: true,
         preview: <ClientComparePreview />,
       },
       {
@@ -165,6 +169,13 @@ function ClientTourPage({ base }: { base: string }) {
 
   return (
     <>
+      <ProductTourWorkflowNav
+        steps={workflowSteps}
+        activeId={activeId}
+        onSelect={scrollTo}
+        ariaLabel={t('explainer.workflowNavAria')}
+      />
+
       <ProductTourHero
         kicker={t(`${base}.heroKicker`)}
         title={t(`${base}.heroTitle`)}
@@ -172,7 +183,7 @@ function ClientTourPage({ base }: { base: string }) {
         primaryLabel={t(`${base}.heroPrimaryCta`)}
         primaryHref="/"
         secondaryLabel={t(`${base}.heroSecondaryCta`)}
-        secondaryHref="#tour-workflow"
+        secondaryHref="#step-create"
         visual={
           <ClientHeroPreview
             callouts={{
@@ -182,12 +193,6 @@ function ClientTourPage({ base }: { base: string }) {
             }}
           />
         }
-      />
-
-      <ProductTourWorkflowNav
-        steps={workflowSteps}
-        activeId={activeId}
-        onSelect={scrollTo}
       />
 
       {sectionConfigs.map((section) => (
@@ -203,6 +208,7 @@ function ClientTourPage({ base }: { base: string }) {
             }
             preview={section.preview}
             reverse={section.reverse}
+            band={section.band}
           />
         ))}
 
@@ -226,7 +232,7 @@ function ClientTourPage({ base }: { base: string }) {
 
 function ContractorTourPage({ base }: { base: string }) {
   const { t } = useTranslation();
-  const { activeId, scrollTo } = useWorkflowScrollSpy([...CONTRACTOR_SECTION_IDS]);
+  const { activeId, scrollTo } = useWorkflowScrollSpy(CONTRACTOR_SECTION_IDS);
 
   const workflowSteps = useMemo<TourWorkflowStep[]>(
     () =>
@@ -264,14 +270,15 @@ function ContractorTourPage({ base }: { base: string }) {
   const contractorSections = useMemo(
     () => [
       { id: 'step-profile', key: 'profile', reverse: false, preview: <ContractorProfilePreview /> },
-      { id: 'step-discover', key: 'discover', reverse: true, preview: <ContractorDiscoverPreview /> },
+      { id: 'step-discover', key: 'discover', reverse: true, band: true, preview: <ContractorDiscoverPreview /> },
       { id: 'step-review', key: 'review', reverse: false, preview: <ContractorProjectPreview /> },
-      { id: 'step-clarify', key: 'clarify', reverse: true, note: true, preview: <ContractorClarifyPreview /> },
+      { id: 'step-clarify', key: 'clarify', reverse: true, note: true, band: true, preview: <ContractorClarifyPreview /> },
       { id: 'step-proposal', key: 'proposal', reverse: false, preview: <ContractorProposalPreview /> },
       {
         id: 'step-track',
         key: 'track',
         reverse: true,
+        band: true,
         preview: (
           <div className="product-tour-track-layout">
             <ContractorTrackPreview />
@@ -296,6 +303,13 @@ function ContractorTourPage({ base }: { base: string }) {
 
   return (
     <>
+      <ProductTourWorkflowNav
+        steps={workflowSteps}
+        activeId={activeId}
+        onSelect={scrollTo}
+        ariaLabel={t('explainer.workflowNavAria')}
+      />
+
       <ProductTourHero
         kicker={t(`${base}.heroKicker`)}
         title={t(`${base}.heroTitle`)}
@@ -305,12 +319,6 @@ function ContractorTourPage({ base }: { base: string }) {
         secondaryLabel={t(`${base}.heroSecondaryCta`)}
         secondaryHref="/"
         visual={<ContractorHeroPreview />}
-      />
-
-      <ProductTourWorkflowNav
-        steps={workflowSteps}
-        activeId={activeId}
-        onSelect={scrollTo}
       />
 
       {contractorSections.map((section) => (
@@ -326,6 +334,7 @@ function ContractorTourPage({ base }: { base: string }) {
             }
             preview={section.preview}
             reverse={section.reverse}
+            band={section.band}
           />
         ))}
 
@@ -351,15 +360,16 @@ export function ExplainerLandingPage({ audience }: { audience: Audience }) {
   const { me, refreshSession, signOut } = useSession();
   const [loginOpen, setLoginOpen] = useState(false);
   const base = `explainer.${audience}`;
+  useProductTourLayout();
 
   return (
-    <PageShell>
+    <PageShell className="page-shell--product-tour">
       <SiteHeader
         me={me}
         onSignIn={() => setLoginOpen(true)}
         onSignOut={() => void signOut()}
       />
-      <main className="content-container main-content product-tour-page">
+      <main className="main-content product-tour-page">
         {audience === 'clients' ? (
           <ClientTourPage base={base} />
         ) : (

@@ -1771,6 +1771,7 @@ export const enExtended = {
     designerScenario2Step3: "Submit your design proposal and wait for award.",
   },
   explainer: {
+    workflowNavAria: "Workflow steps",
     quickTitle: "See how BuilTHAI works",
     quickLead: "Open a short guide tailored to your role.",
     quickCompare: "Compare guides",

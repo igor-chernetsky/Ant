@@ -1769,6 +1769,7 @@ export const thExtended = {
     designerScenario2Step3: "ส่งข้อเสนอออกแบบและรอการคัดเลือก",
   },
   explainer: {
+    workflowNavAria: "ขั้นตอนการทำงาน",
     quickTitle: "ดูว่า BuilTHAI ทำงานอย่างไร",
     quickLead: "เปิดคู่มือสั้นตามบทบาทของคุณ",
     quickCompare: "เปรียบเทียบคู่มือ",

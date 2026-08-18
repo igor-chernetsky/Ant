@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 
 export interface TourWorkflowStep {
   id: string;
@@ -27,6 +27,7 @@ export interface TourSectionConfig {
   preview: ReactNode;
   reverse?: boolean;
   fullWidth?: boolean;
+  band?: boolean;
 }
 
 export function ProductTourHero({
@@ -49,7 +50,7 @@ export function ProductTourHero({
   visual: ReactNode;
 }) {
   return (
-    <section className="product-tour-hero">
+    <section className="product-tour-hero product-tour-wrap">
       <div className="product-tour-hero-copy">
         <p className="product-tour-kicker">{kicker}</p>
         <h1>{title}</h1>
@@ -72,37 +73,91 @@ export function ProductTourWorkflowNav({
   steps,
   activeId,
   onSelect,
+  ariaLabel,
 }: {
   steps: TourWorkflowStep[];
   activeId: string | null;
   onSelect: (id: string) => void;
+  ariaLabel: string;
 }) {
+  const activeIndex = Math.max(
+    0,
+    steps.findIndex((step) => step.id === activeId),
+  );
+  const progress =
+    steps.length <= 1 ? 100 : (activeIndex / (steps.length - 1)) * 100;
+
   return (
     <nav
       id="tour-workflow"
       className="product-tour-workflow-nav"
-      aria-label="Workflow steps"
+      aria-label={ariaLabel}
     >
-      <div className="product-tour-workflow-track">
-        {steps.map((step) => (
-          <button
-            key={step.id}
-            type="button"
-            className={`product-tour-workflow-step${
-              activeId === step.id ? ' product-tour-workflow-step--active' : ''
-            }`}
-            onClick={() => onSelect(step.id)}
-          >
-            <span className="product-tour-workflow-number">{step.number}</span>
-            <span className="product-tour-workflow-label">{step.label}</span>
-          </button>
-        ))}
+      <div className="product-tour-workflow-inner">
+        <div className="product-tour-workflow-track">
+          <div className="product-tour-workflow-rail" aria-hidden>
+            <span
+              className="product-tour-workflow-rail-fill"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          {steps.map((step, index) => {
+            const isActive = activeId === step.id;
+            const isDone = index < activeIndex;
+            return (
+              <button
+                key={step.id}
+                type="button"
+                className={`product-tour-workflow-step${
+                  isActive ? ' product-tour-workflow-step--active' : ''
+                }${isDone ? ' product-tour-workflow-step--done' : ''}`}
+                aria-current={isActive ? 'step' : undefined}
+                onClick={() => onSelect(step.id)}
+              >
+                <span className="product-tour-workflow-number">{step.number}</span>
+                <span className="product-tour-workflow-label">{step.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );
 }
 
-export function useWorkflowScrollSpy(sectionIds: string[]) {
+export function useProductTourLayout() {
+  useEffect(() => {
+    const header = document.querySelector<HTMLElement>('.site-header');
+    const nav = document.querySelector<HTMLElement>('.product-tour-workflow-nav');
+    const root = document.documentElement;
+
+    const apply = () => {
+      root.style.setProperty(
+        '--product-tour-header-height',
+        `${header?.offsetHeight ?? 0}px`,
+      );
+      root.style.setProperty(
+        '--product-tour-nav-height',
+        `${nav?.offsetHeight ?? 0}px`,
+      );
+    };
+
+    apply();
+    const observer = new ResizeObserver(apply);
+    if (header) observer.observe(header);
+    if (nav) observer.observe(nav);
+    window.addEventListener('resize', apply);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', apply);
+      root.style.removeProperty('--product-tour-header-height');
+      root.style.removeProperty('--product-tour-nav-height');
+    };
+  }, []);
+}
+
+export function useWorkflowScrollSpy(sectionIds: readonly string[]) {
   const [activeId, setActiveId] = useState<string | null>(sectionIds[0] ?? null);
 
   useEffect(() => {
@@ -111,6 +166,21 @@ export function useWorkflowScrollSpy(sectionIds: string[]) {
       .filter((el): el is HTMLElement => el != null);
 
     if (elements.length === 0) return;
+
+    const headerH = Number.parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue(
+        '--product-tour-header-height',
+      ),
+    );
+    const navH = Number.parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue(
+        '--product-tour-nav-height',
+      ),
+    );
+    const topOffset =
+      (Number.isFinite(headerH) ? headerH : 64) +
+      (Number.isFinite(navH) ? navH : 88) +
+      8;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -121,7 +191,10 @@ export function useWorkflowScrollSpy(sectionIds: string[]) {
           setActiveId(visible[0].target.id);
         }
       },
-      { rootMargin: '-20% 0px -55% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] },
+      {
+        rootMargin: `-${topOffset}px 0px -45% 0px`,
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      },
     );
 
     for (const el of elements) {
@@ -132,7 +205,10 @@ export function useWorkflowScrollSpy(sectionIds: string[]) {
   }, [sectionIds]);
 
   const scrollTo = useCallback((id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById(id)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
     setActiveId(id);
   }, []);
 
@@ -147,12 +223,15 @@ export function ProductTourSection({
   preview,
   reverse = false,
   fullWidth = false,
+  band = false,
 }: TourSectionConfig) {
   return (
     <section
       id={id}
-      className={`product-tour-section${reverse ? ' product-tour-section--reverse' : ''}${
-        fullWidth ? ' product-tour-section--full' : ''
+      className={`product-tour-section product-tour-wrap${
+        reverse ? ' product-tour-section--reverse' : ''
+      }${fullWidth ? ' product-tour-section--full' : ''}${
+        band ? ' product-tour-section--band' : ''
       }`}
     >
       <div className="product-tour-section-copy">
@@ -173,7 +252,7 @@ export function ProductTourDifferentiators({
   items: TourDifferentiatorItem[];
 }) {
   return (
-    <section className="product-tour-differentiators">
+    <section className="product-tour-differentiators product-tour-wrap">
       <h2 className="section-title product-tour-differentiators-title">{title}</h2>
       <div className="product-tour-differentiators-grid">
         {items.map((item) => (
@@ -198,7 +277,7 @@ export function ProductTourFaq({
   items: TourFaqItem[];
 }) {
   return (
-    <section className="product-tour-faq">
+    <section className="product-tour-faq product-tour-wrap">
       <h2 className="section-title">{title}</h2>
       <div className="product-tour-faq-list">
         {items.map((item) => (
@@ -226,15 +305,17 @@ export function ProductTourCta({
   secondaryHref: string;
 }) {
   return (
-    <section className="product-tour-cta">
-      <h2 className="section-title">{title}</h2>
-      <div className="product-tour-cta-actions">
-        <Link href={primaryHref} className="primary">
-          {primaryLabel}
-        </Link>
-        <Link href={secondaryHref} className="secondary">
-          {secondaryLabel}
-        </Link>
+    <section className="product-tour-cta-slot product-tour-wrap">
+      <div className="product-tour-cta">
+        <h2 className="section-title">{title}</h2>
+        <div className="product-tour-cta-actions">
+          <Link href={primaryHref} className="primary">
+            {primaryLabel}
+          </Link>
+          <Link href={secondaryHref} className="secondary">
+            {secondaryLabel}
+          </Link>
+        </div>
       </div>
     </section>
   );
@@ -256,7 +337,10 @@ export function ProductTourSplitSection({
   right: ReactNode;
 }) {
   return (
-    <section id={id} className="product-tour-section product-tour-section--split">
+    <section
+      id={id}
+      className="product-tour-section product-tour-section--split product-tour-wrap"
+    >
       <div className="product-tour-section-copy">
         <h2 className="section-title">{title}</h2>
         <p className="product-tour-section-body">{body}</p>

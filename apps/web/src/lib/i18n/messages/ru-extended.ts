@@ -1773,6 +1773,7 @@ export const ruExtended = {
     designerScenario2Step3: "Отправьте предложение по проектированию и дождитесь выбора.",
   },
   explainer: {
+    workflowNavAria: "Этапы процесса",
     quickTitle: "Посмотрите, как работает BuilTHAI",
     quickLead: "Откройте короткий гид под свою роль.",
     quickCompare: "Сравнить гайды",
