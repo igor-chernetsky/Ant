@@ -53,6 +53,7 @@ export const ruExtended = {
   },
   homePage: {
     addProjectDescription: "Опубликуйте новый проект, чтобы получать предложения подрядчиков.",
+    addProjectAction: "Начать",
     loadingProjects: "Загрузка проектов…",
     loadingMoreProjects: "Загрузка ещё…",
     loadFailed: "Не удалось загрузить проекты",

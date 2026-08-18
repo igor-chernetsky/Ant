@@ -53,6 +53,7 @@ export const thExtended = {
   },
   homePage: {
     addProjectDescription: "เผยแพร่โครงการใหม่เพื่อรับข้อเสนอจากผู้รับเหมา",
+    addProjectAction: "เริ่มต้น",
     loadingProjects: "กำลังโหลดโครงการ…",
     loadingMoreProjects: "กำลังโหลดเพิ่ม…",
     loadFailed: "โหลดโครงการไม่สำเร็จ",

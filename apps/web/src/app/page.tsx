@@ -613,19 +613,24 @@ export default function HomePage() {
                               className="project-tile project-tile-add"
                               onClick={handleAddProject}
                             >
-                              <div
-                                className="project-tile-media project-tile-add-media"
-                                aria-hidden
-                              >
-                                <span className="project-tile-add-icon">+</span>
-                              </div>
-                              <div className="project-tile-body">
-                                <h3 className="project-tile-title">
-                                  {t('home.addProject')}
-                                </h3>
-                                <p className="project-tile-description">
-                                  {t('home.addProjectDescription')}
-                                </p>
+                              <div className="project-tile-add-inner">
+                                <span
+                                  className="project-tile-add-icon-wrap"
+                                  aria-hidden
+                                >
+                                  <span className="project-tile-add-icon">+</span>
+                                </span>
+                                <div className="project-tile-add-copy">
+                                  <h3 className="project-tile-title">
+                                    {t('home.addProject')}
+                                  </h3>
+                                  <p className="project-tile-add-lead">
+                                    {t('home.addProjectDescription')}
+                                  </p>
+                                </div>
+                                <span className="project-tile-add-action">
+                                  {t('home.addProjectAction')}
+                                </span>
                               </div>
                             </button>,
                           ]

@@ -53,6 +53,7 @@ export const enExtended = {
   },
   homePage: {
     addProjectDescription: "Publish a new project to receive contractor bids.",
+    addProjectAction: "Get started",
     loadingProjects: "Loading projects…",
     loadingMoreProjects: "Loading more…",
     loadFailed: "Failed to load projects",
