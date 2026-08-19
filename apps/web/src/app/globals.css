@@ -12440,9 +12440,6 @@ main.product-tour-page {
 
 .product-tour-wrap {
   width: 100%;
-  max-width: 72rem;
-  margin-left: auto;
-  margin-right: auto;
   padding-left: var(--product-tour-gutter);
   padding-right: var(--product-tour-gutter);
   box-sizing: border-box;
@@ -12509,9 +12506,6 @@ main.product-tour-page {
 
 .product-tour-workflow-inner {
   width: 100%;
-  max-width: 72rem;
-  margin-left: auto;
-  margin-right: auto;
   padding-left: var(--product-tour-gutter);
   padding-right: var(--product-tour-gutter);
   box-sizing: border-box;
@@ -12662,6 +12656,17 @@ main.product-tour-page {
 
 .product-tour-section-visual {
   min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.product-tour-section-visual .product-preview-frame {
+  max-width: min(100%, 54rem);
+}
+
+.product-tour-hero-visual .product-preview-frame {
+  max-width: min(100%, 58rem);
+  margin-left: auto;
 }
 
 .product-tour-differentiators {
@@ -13207,10 +13212,11 @@ main.product-tour-page {
 .product-preview-tile-grid {
   display: grid;
   gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .product-preview-tile-grid--marketplace {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .product-preview-tile-wrap .project-tile,
@@ -13273,6 +13279,11 @@ main.product-tour-page {
 
   .product-tour-differentiators-grid,
   .product-tour-faq-list {
+    grid-template-columns: 1fr;
+  }
+
+  .product-preview-tile-grid,
+  .product-preview-tile-grid--marketplace {
     grid-template-columns: 1fr;
   }
 
