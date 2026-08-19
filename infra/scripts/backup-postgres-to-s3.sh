@@ -28,6 +28,17 @@ set +a
 : "${POSTGRES_USER:?POSTGRES_USER is required in ${ENV_FILE}}"
 : "${POSTGRES_DB:?POSTGRES_DB is required in ${ENV_FILE}}"
 
+# AWS CLI credential mapping (see setup-s3-backup-lifecycle.sh)
+if [[ -z "${AWS_ACCESS_KEY_ID:-}" && -n "${S3_ACCESS_KEY_ID:-}" ]]; then
+  export AWS_ACCESS_KEY_ID="${S3_ACCESS_KEY_ID}"
+fi
+if [[ -z "${AWS_SECRET_ACCESS_KEY:-}" && -n "${S3_SECRET_ACCESS_KEY:-}" ]]; then
+  export AWS_SECRET_ACCESS_KEY="${S3_SECRET_ACCESS_KEY}"
+fi
+if [[ -z "${AWS_DEFAULT_REGION:-}" && -n "${S3_REGION:-}" ]]; then
+  export AWS_DEFAULT_REGION="${S3_REGION}"
+fi
+
 BACKUP_S3_PREFIX="${BACKUP_S3_PREFIX:-backups/postgres}"
 BACKUP_S3_PREFIX="${BACKUP_S3_PREFIX#/}"
 TIMESTAMP="$(date -u +%Y-%m-%dT%H-%M-%SZ)"

@@ -22,6 +22,19 @@ set +a
 
 : "${S3_BUCKET:?S3_BUCKET is required in ${ENV_FILE}}"
 
+# AWS CLI credential mapping:
+# Many of our env vars are named for app S3 access, not AWS CLI.
+# If the instance has no IAM role, map them to AWS_* so awscli works.
+if [[ -z "${AWS_ACCESS_KEY_ID:-}" && -n "${S3_ACCESS_KEY_ID:-}" ]]; then
+  export AWS_ACCESS_KEY_ID="${S3_ACCESS_KEY_ID}"
+fi
+if [[ -z "${AWS_SECRET_ACCESS_KEY:-}" && -n "${S3_SECRET_ACCESS_KEY:-}" ]]; then
+  export AWS_SECRET_ACCESS_KEY="${S3_SECRET_ACCESS_KEY}"
+fi
+if [[ -z "${AWS_DEFAULT_REGION:-}" && -n "${S3_REGION:-}" ]]; then
+  export AWS_DEFAULT_REGION="${S3_REGION}"
+fi
+
 BACKUP_S3_PREFIX="${BACKUP_S3_PREFIX:-backups/postgres/}"
 BACKUP_S3_PREFIX="${BACKUP_S3_PREFIX#/}"
 [[ "${BACKUP_S3_PREFIX}" == */ ]] || BACKUP_S3_PREFIX="${BACKUP_S3_PREFIX}/"
