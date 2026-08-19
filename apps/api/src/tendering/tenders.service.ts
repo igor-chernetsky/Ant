@@ -527,6 +527,17 @@ export class TendersService {
     this.notifications.dispatch(
       this.notifications.notifyMatchingContractorsForProject(projectId),
     );
+    if (!structuredClarification) {
+      this.notifications.dispatch(
+        this.notifications.notifyAdminTenderPublished({
+          projectId,
+          projectTitle: project.title,
+          projectType: project.projectType,
+          district: project.district,
+          clarificationMode: 'none',
+        }),
+      );
+    }
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
     return this.mapTender(await this.loadTender(tender.id));
@@ -622,6 +633,15 @@ export class TendersService {
 
     this.notifications.dispatch(
       this.notifications.notifyMatchingContractorsTenderOpened(projectId),
+    );
+    this.notifications.dispatch(
+      this.notifications.notifyAdminTenderPublished({
+        projectId,
+        projectTitle: project.title,
+        projectType: project.projectType,
+        district: project.district,
+        clarificationMode: 'structured_qa',
+      }),
     );
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 

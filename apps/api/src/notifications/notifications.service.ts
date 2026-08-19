@@ -87,6 +87,13 @@ export class NotificationsService {
     return Math.round(amount).toLocaleString('en-US');
   }
 
+  private trimOrFallback(
+    value: string | null | undefined,
+    fallback: string,
+  ): string {
+    return value?.trim() || fallback;
+  }
+
   private mapInAppNotification(row: {
     id: string;
     kind: InAppNotificationKind;
@@ -133,6 +140,53 @@ export class NotificationsService {
     } catch (err: unknown) {
       this.logger.warn(
         `Failed to create in-app notification ${params.kind}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  private telegramBotToken(): string | null {
+    return this.config.get<string>('TELEGRAM_BOT_TOKEN')?.trim() || null;
+  }
+
+  private telegramAdminChatId(): string | null {
+    return this.config.get<string>('TELEGRAM_ADMIN_CHAT_ID')?.trim() || null;
+  }
+
+  private async sendTelegramMessage(params: {
+    text: string;
+    disableWebPagePreview?: boolean;
+  }): Promise<void> {
+    const token = this.telegramBotToken();
+    const chatId = this.telegramAdminChatId();
+    if (!token || !chatId) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${token}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: params.text,
+            parse_mode: 'HTML',
+            disable_web_page_preview: params.disableWebPagePreview ?? true,
+          }),
+        },
+      );
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        this.logger.warn(
+          `Failed to send Telegram message: ${response.status} ${body}`,
+        );
+      }
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to send Telegram message: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
@@ -1068,6 +1122,79 @@ export class NotificationsService {
         `Failed to send platform fee invoice email for project ${params.projectId}`,
       );
     }
+
+    await this.sendTelegramMessage({
+      text: [
+        `<b>Invoice contractor — platform fee 2%</b>`,
+        '',
+        `<b>Project:</b> ${escapeHtml(params.projectTitle)}`,
+        `<b>Contractor:</b> ${escapeHtml(company)}`,
+        `<b>Contractor email:</b> ${escapeHtml(contractorEmailLabel)}`,
+        `<b>Contract amount:</b> ${escapeHtml(amountLabel)}`,
+        `<b>Platform fee:</b> ${escapeHtml(feeLabel)}`,
+        '',
+        `<a href="${projectHref}">Open project</a>`,
+      ].join('\n'),
+    });
+  }
+
+  async notifyAdminVerificationRequested(params: {
+    profileKind: 'contractor' | 'designer';
+    companyName: string | null;
+    contactName: string | null;
+    email: string | null;
+    phone: string | null;
+  }): Promise<void> {
+    const kindLabel =
+      params.profileKind === 'designer' ? 'Designer' : 'Contractor';
+    const company = this.trimOrFallback(
+      params.companyName,
+      `${kindLabel} (name not set)`,
+    );
+    const contactName = this.trimOrFallback(params.contactName, 'not available');
+    const email = this.trimOrFallback(params.email, 'not available');
+    const phone = this.trimOrFallback(params.phone, 'not available');
+
+    await this.sendTelegramMessage({
+      text: [
+        `<b>${kindLabel} verification requested</b>`,
+        '',
+        `<b>Company:</b> ${escapeHtml(company)}`,
+        `<b>Contact:</b> ${escapeHtml(contactName)}`,
+        `<b>Email:</b> ${escapeHtml(email)}`,
+        `<b>Phone:</b> ${escapeHtml(phone)}`,
+        '',
+        `<a href="${this.appUrl()}/admin/contractors">Open admin verification queue</a>`,
+      ].join('\n'),
+    });
+  }
+
+  async notifyAdminTenderPublished(params: {
+    projectId: string;
+    projectTitle: string;
+    projectType: string | null;
+    district: string | null;
+    clarificationMode: 'structured_qa' | 'none';
+  }): Promise<void> {
+    const projectType = this.trimOrFallback(params.projectType, 'not available');
+    const district = this.trimOrFallback(params.district, 'not available');
+    const modeLabel =
+      params.clarificationMode === 'structured_qa'
+        ? 'Structured clarification'
+        : 'Direct tender';
+
+    await this.sendTelegramMessage({
+      text: [
+        `<b>Project published to tender</b>`,
+        '',
+        `<b>Project:</b> ${escapeHtml(params.projectTitle)}`,
+        `<b>Type:</b> ${escapeHtml(projectType)}`,
+        `<b>District:</b> ${escapeHtml(district)}`,
+        `<b>Flow:</b> ${escapeHtml(modeLabel)}`,
+        '',
+        `<a href="${this.projectUrl(params.projectId)}">Open project</a>`,
+      ].join('\n'),
+    });
   }
 
   async notifyContractDocumentUpdated(params: {
@@ -1562,6 +1689,26 @@ export class NotificationsService {
         ),
       );
     }
+
+    await this.sendTelegramMessage({
+      text: [
+        `<b>Signature authorization request</b>`,
+        '',
+        `<b>Project:</b> ${escapeHtml(params.projectTitle)}`,
+        `<b>Contractor:</b> ${escapeHtml(company)}`,
+        `<b>Email:</b> ${escapeHtml(
+          this.trimOrFallback(params.contractorEmail, 'not available'),
+        )}`,
+        `<b>Bank:</b> ${escapeHtml(
+          `${params.bankName?.trim() || '—'} / ${params.bankAccount?.trim() || '—'}`,
+        )}`,
+        `<b>Contract amount:</b> ${escapeHtml(amountLabel)}`,
+        `<b>Listed due now:</b> ${escapeHtml(dueListed)}`,
+        `<b>Payable now:</b> ${escapeHtml(duePayable)}`,
+        '',
+        `<a href="${adminUrl}">Open signature requests</a>`,
+      ].join('\n'),
+    });
   }
 
   async notifyContractorSignatureRequestDecision(params: {

@@ -15,6 +15,7 @@ import {
   assertCompletedUploadLimits,
   MAX_UPLOAD_BYTES,
 } from '../documents/documents.types';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { ContractorProfilesService } from '../tendering/contractor-profiles.service';
@@ -31,6 +32,7 @@ export class ContractorVerificationService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly contractorProfiles: ContractorProfilesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private toDocResponse(
@@ -195,6 +197,10 @@ export class ContractorVerificationService {
 
   async requestApproval(userId: string) {
     const profile = await this.contractorProfiles.requireByUserId(userId);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { displayName: true, email: true },
+    });
     if (
       profile.verificationStatus !== ContractorVerificationStatus.pending &&
       profile.verificationStatus !== ContractorVerificationStatus.rejected
@@ -251,6 +257,16 @@ export class ContractorVerificationService {
         verificationComment: null,
       },
     });
+
+    this.notifications.dispatch(
+      this.notifications.notifyAdminVerificationRequested({
+        profileKind: profile.kind === 'designer' ? 'designer' : 'contractor',
+        companyName: updated.companyName,
+        contactName: user?.displayName ?? null,
+        email: user?.email ?? null,
+        phone: updated.phone,
+      }),
+    );
 
     return this.contractorProfiles.toResponse(updated);
   }
