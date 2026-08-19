@@ -1463,8 +1463,29 @@ export class ProjectsService {
       );
     }
 
+    await this.deleteProjectWithDocuments(project.id, project.documents);
+  }
+
+  async deleteForAdmin(projectId: string): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: { documents: true },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    await this.deleteProjectWithDocuments(project.id, project.documents);
+  }
+
+  private async deleteProjectWithDocuments(
+    projectId: string,
+    documents: Array<{ storageKey: string }>,
+  ): Promise<void> {
+
     if (this.storage.isConfigured()) {
-      for (const doc of project.documents) {
+      for (const doc of documents) {
         try {
           await this.storage.deleteObject(doc.storageKey);
         } catch {

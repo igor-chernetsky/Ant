@@ -407,6 +407,11 @@ export const thExtended = {
     verificationLead: "ตรวจสอบโปรไฟล์ผู้รับเหมา เอกสาร และอนุมัติหรือปฏิเสธพร้อมข้อเสนอแนะ",
     signInPrompt: "เข้าสู่ระบบด้วยบัญชีผู้ดูแล",
     roleRequired: "ต้องมีบทบาทผู้ดูแล",
+    removeProjectTitle: "ลบโครงการออกจากแพลตฟอร์ม",
+    removeProjectLead:
+      "ผู้ดูแลสามารถลบโครงการนี้ออกจากแพลตฟอร์มอย่างถาวรได้ แม้การประมูลจะเริ่มแล้วก็ตาม การกระทำนี้ไม่สามารถย้อนกลับได้",
+    removeProjectButton: "ลบโครงการ",
+    removeProjectFailed: "ลบโครงการออกจากแพลตฟอร์มไม่สำเร็จ",
     filterAwaitingReview: "รอตรวจสอบ",
     filterVerified: "ยืนยันแล้ว",
     filterPending: "รอดำเนินการ",

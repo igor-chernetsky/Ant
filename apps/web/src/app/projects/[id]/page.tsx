@@ -45,6 +45,7 @@ import type { BallparkEstimate } from '@/lib/estimate';
 import { isIntakeActive } from '@/lib/intake';
 import { isSessionExpiredError } from '@/lib/auth-client';
 import {
+  adminDeleteProject,
   fetchProject,
   formatDateTime,
   deleteProject,
@@ -378,6 +379,7 @@ export default function ProjectDetailPage() {
   const showAdminInvite =
     Boolean(me && isAdminUser(me) && project) &&
     (project?.status === 'in_tender' || project?.status === 'clarification');
+  const showAdminDelete = Boolean(me && isAdminUser(me) && project);
 
   const handleDelete = async () => {
     if (!projectId || !project) return;
@@ -398,6 +400,30 @@ export default function ProjectDetailPage() {
       setError(
         err instanceof Error ? err.message : t('projectDetail.deleteProjectFailed'),
       );
+      setDeleting(false);
+    }
+  };
+
+  const handleAdminDelete = async () => {
+    if (!projectId || !project) return;
+    const confirmed = await confirm({
+      title: t('confirm.deleteProjectTitle'),
+      message: t('confirm.deleteProjectMessage', { title: project.title }),
+      confirmLabel: t('admin.removeProjectButton'),
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    setError(null);
+    setDeleting(true);
+    try {
+      await adminDeleteProject(projectId);
+      router.push('/');
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('admin.removeProjectFailed'),
+      );
+    } finally {
       setDeleting(false);
     }
   };
@@ -554,6 +580,25 @@ export default function ProjectDetailPage() {
                     onClick={() => setAdminInviteOpen(true)}
                   >
                     {t('directory.adminInviteButton')}
+                  </button>
+                </section>
+              )}
+
+              {showAdminDelete && (
+                <section className="card admin-invite-card">
+                  <h2 className="section-title">
+                    {t('admin.removeProjectTitle')}
+                  </h2>
+                  <p className="muted">
+                    {t('admin.removeProjectLead')}
+                  </p>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={deleting}
+                    onClick={() => void handleAdminDelete()}
+                  >
+                    {deleting ? t('common.loading') : t('admin.removeProjectButton')}
                   </button>
                 </section>
               )}

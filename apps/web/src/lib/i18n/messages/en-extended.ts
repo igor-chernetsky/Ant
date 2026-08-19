@@ -409,6 +409,11 @@ export const enExtended = {
     verificationLead: "Review contractor profiles, documents, and approve or reject with feedback.",
     signInPrompt: "Sign in with an admin account.",
     roleRequired: "Admin role required.",
+    removeProjectTitle: "Remove project from platform",
+    removeProjectLead:
+      "Admins can permanently remove this project from the platform, even after tendering has started. This cannot be undone.",
+    removeProjectButton: "Remove project",
+    removeProjectFailed: "Failed to remove project",
     filterAwaitingReview: "Awaiting review",
     filterVerified: "Verified",
     filterPending: "Pending",

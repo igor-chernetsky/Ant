@@ -403,6 +403,20 @@ export async function deleteProject(id: string): Promise<void> {
   }
 }
 
+export async function adminDeleteProject(id: string): Promise<void> {
+  const response = await fetchWithAuth(
+    `/api/admin/projects/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to delete project');
+  }
+}
+
 export function formatProjectStatus(status: string): string {
   if (status === 'hidden') {
     return 'Hidden projects';

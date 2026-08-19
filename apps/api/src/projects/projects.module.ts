@@ -10,6 +10,7 @@ import { UsersModule } from '../users/users.module';
 import { DocumentsModule } from '../documents/documents.module';
 import { SupplyDirectoryModule } from '../supply-directory/supply-directory.module';
 
+import { AdminProjectsController } from './admin-projects.controller';
 import { ProjectsController } from './projects.controller';
 import { PublicProjectsController } from './public-projects.controller';
 import { ProjectsService } from './projects.service';
@@ -28,7 +29,7 @@ import { ProjectScopeSyncService } from './project-scope-sync.service';
     forwardRef(() => IntakeModule),
     forwardRef(() => DocumentsModule),
   ],
-  controllers: [ProjectsController, PublicProjectsController],
+  controllers: [AdminProjectsController, ProjectsController, PublicProjectsController],
   providers: [ProjectsService, ProjectReviewsService, ProjectScopeSyncService],
   exports: [ProjectsService, ProjectReviewsService, ProjectScopeSyncService],
 })

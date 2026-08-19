@@ -410,6 +410,11 @@ export const ruExtended = {
     verificationLead: "Проверяйте профили подрядчиков, документы, одобряйте или отклоняйте с комментарием.",
     signInPrompt: "Войдите с аккаунтом администратора.",
     roleRequired: "Требуется роль администратора.",
+    removeProjectTitle: "Удалить проект с платформы",
+    removeProjectLead:
+      "Администратор может окончательно удалить этот проект с платформы, даже если тендер уже начался. Это действие нельзя отменить.",
+    removeProjectButton: "Удалить проект",
+    removeProjectFailed: "Не удалось удалить проект с платформы",
     filterAwaitingReview: "На проверке",
     filterVerified: "Подтверждён",
     filterPending: "Ожидает",
