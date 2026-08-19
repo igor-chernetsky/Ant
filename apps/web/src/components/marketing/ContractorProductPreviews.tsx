@@ -8,24 +8,21 @@ import { ProjectBriefCard } from '@/components/ProjectBriefCard';
 import { ContractSigningStatusPill } from '@/components/ContractSigningStatusPill';
 import { ContractSigningPartiesInline } from '@/components/ContractSigningPartiesInline';
 import { useTranslation } from '@/components/LocaleProvider';
+import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
-  demoBids,
-  demoBrief,
-  demoClarificationQuestions,
   demoContractFullySigned,
-  demoContractorApplications,
   demoContractorProfilePreview,
-  demoMarketplaceTiles,
-  demoProject,
-  demoProjectTags,
 } from '@/lib/marketing/demo-fixtures';
+import { useLocalizedDemoContent } from '@/lib/marketing/useLocalizedDemoContent';
 import { ProductPreviewFrame } from '@/components/marketing/ProductPreviewFrame';
 
 export function ContractorHeroPreview() {
+  const { marketplaceTiles } = useLocalizedDemoContent();
+
   return (
     <ProductPreviewFrame className="product-preview-frame--hero">
       <div className="product-preview-tile-grid product-preview-tile-grid--marketplace">
-        {demoMarketplaceTiles.map((project) => (
+        {marketplaceTiles.map((project) => (
           <div key={project.id} className="product-preview-tile-wrap">
             <ProjectTile project={project} />
           </div>
@@ -37,6 +34,7 @@ export function ContractorHeroPreview() {
 
 export function ContractorProfilePreview() {
   const { t } = useTranslation();
+  const { formatTagLabel, formatProjectType } = useAppFormatters();
   const profile = demoContractorProfilePreview;
 
   return (
@@ -53,14 +51,18 @@ export function ContractorProfilePreview() {
             <div className="product-preview-tag-row">
               {profile.tagSlugs.map((slug) => (
                 <span key={slug} className="tag-pill">
-                  {slug}
+                  {formatTagLabel(slug, slug)}
                 </span>
               ))}
             </div>
           </div>
           <div>
             <span className="muted">{t('contractor.projectTypesLegend')}</span>
-            <strong>{profile.projectTypes.length}</strong>
+            <strong>
+              {profile.projectTypes
+                .map((type) => formatProjectType(type))
+                .join(', ')}
+            </strong>
           </div>
           <div>
             <span className="muted">{t('verification.yourDocuments')}</span>
@@ -73,10 +75,12 @@ export function ContractorProfilePreview() {
 }
 
 export function ContractorDiscoverPreview() {
+  const { marketplaceTiles } = useLocalizedDemoContent();
+
   return (
     <ProductPreviewFrame>
       <div className="product-preview-tile-grid">
-        {demoMarketplaceTiles.map((project) => (
+        {marketplaceTiles.map((project) => (
           <div key={project.id} className="product-preview-tile-wrap">
             <ProjectTile project={project} />
           </div>
@@ -87,18 +91,20 @@ export function ContractorDiscoverPreview() {
 }
 
 export function ContractorProjectPreview() {
+  const { project, brief, tags } = useLocalizedDemoContent();
+
   return (
     <ProductPreviewFrame>
       <div className="product-preview-hero-layout product-preview-hero-layout--contractor">
         <div className="product-preview-hero-main">
-          <h3 className="product-preview-project-title">{demoProject.title}</h3>
-          <p className="muted product-preview-project-desc">{demoProject.description}</p>
-          <ProjectBriefCard brief={demoBrief} compact />
+          <h3 className="product-preview-project-title">{project.title}</h3>
+          <p className="muted product-preview-project-desc">{project.description}</p>
+          <ProjectBriefCard brief={brief} compact />
         </div>
         <ProjectHeroSidebar
-          project={demoProject}
-          estimateMidAmountThb={demoProject.estimate?.totals.midAmount}
-          tags={demoProjectTags}
+          project={project}
+          estimateMidAmountThb={project.estimate?.totals.midAmount}
+          tags={tags}
           showTags
         />
       </div>
@@ -108,6 +114,7 @@ export function ContractorProjectPreview() {
 
 export function ContractorClarifyPreview() {
   const { t } = useTranslation();
+  const { questions } = useLocalizedDemoContent();
 
   return (
     <ProductPreviewFrame>
@@ -115,7 +122,7 @@ export function ContractorClarifyPreview() {
         <h3 className="tender-subsection-title">{t('contractor.yourQuestionList')}</h3>
         <p className="muted">{t('clarification.composeDisclaimer')}</p>
         <ul className="product-preview-question-form">
-          {demoClarificationQuestions.slice(0, 2).map((q, index) => (
+          {questions.slice(0, 2).map((q, index) => (
             <li key={q.id} className="card product-preview-question-field">
               <label>
                 <span className="product-preview-field-label">
@@ -134,12 +141,14 @@ export function ContractorClarifyPreview() {
 }
 
 export function ContractorProposalPreview() {
+  const { bids, project } = useLocalizedDemoContent();
+
   return (
     <ProductPreviewFrame>
       <div className="card bid-application-card product-preview-proposal">
         <BidProposalSummary
-          bid={demoBids[0]}
-          ballparkMid={demoProject.estimate?.totals.midAmount}
+          bid={bids[0]}
+          ballparkMid={project.estimate?.totals.midAmount}
           detailsOnly
         />
       </div>
@@ -179,10 +188,12 @@ export function ContractorTrackPreview() {
 }
 
 export function ContractorApplicationsPreview() {
+  const { applications } = useLocalizedDemoContent();
+
   return (
     <ProductPreviewFrame>
       <div className="product-preview-stack">
-        {demoContractorApplications.map((app) => (
+        {applications.map((app) => (
           <div key={app.bidId} className="product-preview-tile-wrap">
             <ContractorApplicationTile application={app} />
           </div>

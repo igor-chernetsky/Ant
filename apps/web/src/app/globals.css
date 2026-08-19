@@ -12440,6 +12440,9 @@ main.product-tour-page {
 
 .product-tour-wrap {
   width: 100%;
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
   padding-left: var(--product-tour-gutter);
   padding-right: var(--product-tour-gutter);
   box-sizing: border-box;
@@ -12506,6 +12509,9 @@ main.product-tour-page {
 
 .product-tour-workflow-inner {
   width: 100%;
+  max-width: 72rem;
+  margin-left: auto;
+  margin-right: auto;
   padding-left: var(--product-tour-gutter);
   padding-right: var(--product-tour-gutter);
   box-sizing: border-box;
@@ -12514,7 +12520,7 @@ main.product-tour-page {
 .product-tour-workflow-track {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 0.35rem;
   align-items: start;
 }
@@ -12671,7 +12677,7 @@ main.product-tour-page {
 
 .product-tour-differentiators-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -12722,10 +12728,9 @@ main.product-tour-page {
 }
 
 .product-tour-faq-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
-  max-width: 52rem;
 }
 
 .product-tour-faq-item {
@@ -13263,6 +13268,11 @@ main.product-tour-page {
 @media (max-width: 980px) {
   .product-tour-hero,
   .product-tour-section {
+    grid-template-columns: 1fr;
+  }
+
+  .product-tour-differentiators-grid,
+  .product-tour-faq-list {
     grid-template-columns: 1fr;
   }
 

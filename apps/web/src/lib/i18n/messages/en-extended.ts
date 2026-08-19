@@ -887,6 +887,7 @@ export const enExtended = {
       flooring: "Flooring",
       tiling: "Tiling",
       carpentry: "Carpentry",
+      joinery: "Joinery",
       landscaping: "Landscaping",
       insulation: "Insulation",
       "windows-doors": "Windows & doors",
@@ -1781,6 +1782,65 @@ export const enExtended = {
   },
   explainer: {
     workflowNavAria: "Workflow steps",
+    demo: {
+      projectTitle: "Hotel Bangkok back of house renovation",
+      projectDescription:
+        "Commercial kitchen, staff areas, MEP upgrades and wet-area finishes while the hotel stays in operation.",
+      briefSummary:
+        "Back-of-house refresh for a 4-star Bangkok hotel: commercial kitchen, staff areas, MEP, and wet-area finishes.",
+      constraints: "Live hotel operations; noisy works 22:00–06:00 only.",
+      clarificationSummary:
+        "Client confirmed kitchen replacement, night-work window, and phased staff-area access.",
+      scopeSummary: "Turnkey back-of-house fit-out with kitchen replacement and MEP.",
+      packageKitchen: "Kitchen",
+      packageKitchenDesc:
+        "Commercial kitchen replacement incl. extraction and cold rooms",
+      packageMep: "MEP",
+      packageMepDesc: "HVAC, plumbing and electrical from plans sheet M-01",
+      estimateKitchen: "Commercial kitchen fit-out",
+      estimateHvac: "Extraction and staff-area AC",
+      estimatePlumbing: "Kitchen and wet-area plumbing",
+      estimateElectrical: "Power and lighting for BOH",
+      estimateFinishes: "Floors, walls and wet-area tiling",
+      tradeKitchen: "Kitchen",
+      tradeHvac: "HVAC",
+      tradePlumbing: "Plumbing",
+      tradeElectrical: "Electrical",
+      tradeFinishes: "Finishes",
+      tradeDemolition: "Demolition",
+      tradeTiling: "Tiling",
+      tradeJoinery: "Joinery",
+      tradeMep: "MEP",
+      tilingDesc: "Floor & wet areas",
+      condoTitle: "Condo fit-out — Sukhumvit",
+      condoDescription:
+        "Two-bedroom renovation with built-in joinery and lighting package.",
+      resortTitle: "Resort wing extension — Krabi",
+      resortDescription:
+        "New guest wing shell, MEP rough-in, and pool deck extension.",
+      q1: "Which commercial kitchen equipment stays owner-supplied?",
+      q1Answer:
+        "Cooking line and cold rooms by owner; extraction and services by contractor.",
+      q2: "Can kitchen strip-out proceed while the hotel is occupied?",
+      q2Answer:
+        "Yes — night shift only, with a temporary staff kitchen on level B1.",
+      q3: "Is the existing electrical capacity enough for the new kitchen load?",
+      bidAScope:
+        "Turnkey BOH fit-out incl. kitchen replacement, MEP, and wet-area finishes.",
+      bidANotes:
+        "Night-work plan included. Owner-supplied kitchen equipment excluded.",
+      bidBScope: "Interior works package; landscaping quoted separately.",
+      bidBNotes: "Staff-area ceiling replacement excluded from this proposal.",
+      bidCScope: "Premium joinery-led package with extended warranty.",
+      appPublished: "Published 3 days ago · structured Q&A complete",
+      appEnrolled: "Enrolled yesterday",
+      reviewComment:
+        "Kitchen and MEP phases stayed on schedule. Site was kept clean during live hotel operations.",
+      docFloorPlans: "Floor-plans-BOH.pdf",
+      docKitchenPhotos: "Kitchen-interior-photos.jpg",
+      docMep: "MEP-specifications.pdf",
+      missingKitchenSchedule: "Kitchen equipment schedule",
+    },
     quickTitle: "See how BuilTHAI works",
     quickLead: "Open a short guide tailored to your role.",
     quickCompare: "Compare guides",

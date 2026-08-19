@@ -157,7 +157,7 @@ export function BidContractorReviewsSection({
                         key={category.key}
                         className="contractor-review-rating-row"
                       >
-                        <dt>{category.label}</dt>
+                        <dt>{t(`projectReview.${category.key}`)}</dt>
                         <dd>
                           <ContractorReviewStars
                             value={score}

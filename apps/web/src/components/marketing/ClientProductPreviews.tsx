@@ -12,23 +12,13 @@ import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { formatConfidence } from '@/lib/estimate';
 import {
-  demoBids,
-  demoBrief,
-  demoCompareBreakdown,
   demoContractAwaitingContractor,
-  demoClarificationQuestions,
-  demoContractorReviewPreview,
-  demoDocuments,
-  demoMarketplaceTiles,
-  demoOwnedProjectTile,
-  demoProgressPreviewLines,
-  demoProject,
-  demoProjectTags,
   demoTenderMeta,
   DEMO_ESTIMATE_AFTER_MID,
   DEMO_ESTIMATE_BEFORE_MID,
   DEMO_PROJECT_ID,
 } from '@/lib/marketing/demo-fixtures';
+import { useLocalizedDemoContent } from '@/lib/marketing/useLocalizedDemoContent';
 import { ProductPreviewFrame, PreviewCallout } from '@/components/marketing/ProductPreviewFrame';
 import { ContractorReviewStars } from '@/components/ContractorReviewStars';
 import { REVIEW_RATING_CATEGORIES } from '@/lib/project-reviews';
@@ -39,6 +29,8 @@ export function ClientHeroPreview({
 }: {
   callouts: { scope: string; estimate: string; tender: string };
 }) {
+  const { project, brief, tags } = useLocalizedDemoContent();
+
   return (
     <ProductPreviewFrame className="product-preview-frame--hero">
       <div className="product-preview-hero-layout">
@@ -46,14 +38,14 @@ export function ClientHeroPreview({
         <PreviewCallout label={callouts.estimate} position="top-right" />
         <PreviewCallout label={callouts.tender} position="bottom-right" />
         <div className="product-preview-hero-main">
-          <h3 className="product-preview-project-title">{demoProject.title}</h3>
-          <p className="muted product-preview-project-desc">{demoProject.description}</p>
-          <ProjectBriefCard brief={demoBrief} compact />
+          <h3 className="product-preview-project-title">{project.title}</h3>
+          <p className="muted product-preview-project-desc">{project.description}</p>
+          <ProjectBriefCard brief={brief} compact />
         </div>
         <ProjectHeroSidebar
-          project={demoProject}
-          estimateMidAmountThb={demoProject.estimate?.totals.midAmount}
-          tags={demoProjectTags}
+          project={project}
+          estimateMidAmountThb={project.estimate?.totals.midAmount}
+          tags={tags}
           showTags
         />
       </div>
@@ -63,19 +55,20 @@ export function ClientHeroPreview({
 
 export function ClientCreatePreview() {
   const { t } = useTranslation();
+  const { project, tags } = useLocalizedDemoContent();
 
   return (
     <ProductPreviewFrame>
       <div className="product-preview-stack">
         <div className="card product-preview-intake-card">
           <p className="product-preview-field-label">{t('createProject.titleLabel')}</p>
-          <p className="product-preview-field-value">{demoProject.title}</p>
+          <p className="product-preview-field-value">{project.title}</p>
           <p className="product-preview-field-label">{t('createProject.descriptionLabel')}</p>
           <p className="muted product-preview-field-value product-preview-field-value--multiline">
-            {demoProject.description}
+            {project.description}
           </p>
           <div className="product-preview-tag-row">
-            {demoProjectTags.slice(0, 3).map((tag) => (
+            {tags.slice(0, 3).map((tag) => (
               <span key={tag.slug} className="tag-pill tag-pill-client">
                 {tag.label}
               </span>
@@ -89,12 +82,13 @@ export function ClientCreatePreview() {
 
 export function ClientAnalyzePreview() {
   const { t } = useTranslation();
+  const { documents, brief, tags, questions } = useLocalizedDemoContent();
 
   return (
     <ProductPreviewFrame>
       <div className="product-preview-ai-flow">
         <div className="product-preview-ai-flow-col">
-          {demoDocuments.map((doc) => (
+          {documents.map((doc) => (
             <article key={doc.id} className="card doc-tile product-preview-doc-tile">
               <div className="doc-tile-header">
                 <span className="doc-tile-ext">
@@ -118,9 +112,9 @@ export function ClientAnalyzePreview() {
             <p className="product-preview-field-label">
               {t('explainer.clients.previews.analyzeScope')}
             </p>
-            {demoBrief.packages && (
+            {brief.packages && (
               <ul className="doc-tile-scope-list">
-                {demoBrief.packages.map((pkg, index) => (
+                {brief.packages.map((pkg, index) => (
                   <li key={`${pkg.trade}-${index}`} className="doc-tile-scope-item">
                     <span className="package-trade">{pkg.trade}</span>
                     <span>{pkg.description}</span>
@@ -129,7 +123,7 @@ export function ClientAnalyzePreview() {
               </ul>
             )}
             <div className="product-preview-tag-row">
-              {demoProjectTags.map((tag) => (
+              {tags.map((tag) => (
                 <span
                   key={tag.slug}
                   className={`tag-pill${tag.source === 'client' ? ' tag-pill-client' : ' tag-pill-ai'}`}
@@ -144,7 +138,7 @@ export function ClientAnalyzePreview() {
               {t('explainer.clients.previews.analyzeQuestions')}
             </p>
             <ul className="product-preview-ai-questions">
-              {demoClarificationQuestions.slice(0, 2).map((question) => (
+              {questions.slice(0, 2).map((question) => (
                 <li key={question.id}>{question.questionText}</li>
               ))}
             </ul>
@@ -224,7 +218,8 @@ export function ClientClarifyPreview() {
 
 export function ClientEstimatePreview() {
   const { t, locale } = useTranslation();
-  const estimate = demoProject.estimate!;
+  const { project } = useLocalizedDemoContent();
+  const estimate = project.estimate!;
   const money = (amount: number) =>
     new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -274,7 +269,8 @@ export function ClientEstimatePreview() {
 
 export function ClientTenderPreview() {
   const { t } = useTranslation();
-  const answeredCount = demoClarificationQuestions.filter((q) => q.answer?.trim()).length;
+  const { questions } = useLocalizedDemoContent();
+  const answeredCount = questions.filter((q) => q.answer?.trim()).length;
 
   return (
     <ProductPreviewFrame>
@@ -300,11 +296,11 @@ export function ClientTenderPreview() {
         <p className="muted client-clarification-readonly-meta">
           {t('clarificationClient.answeredOf', {
             answered: answeredCount,
-            total: demoClarificationQuestions.length,
+            total: questions.length,
           })}
         </p>
         <ul className="client-clarification-readonly-list product-preview-tender-questions">
-          {demoClarificationQuestions.map((question, index) => (
+          {questions.map((question, index) => (
             <li key={question.id}>
               <span className="client-clarification-readonly-question">
                 <span className="client-clarification-index">{index + 1}.</span>
@@ -324,13 +320,14 @@ export function ClientTenderPreview() {
 }
 
 export function ClientComparePreview() {
+  const { bids, project, compareBreakdown } = useLocalizedDemoContent();
   return (
     <ProductPreviewFrame compact>
       <div className="product-preview-compare">
         <BidsCompareTable
-          bids={demoBids}
-          ballparkMid={demoProject.estimate?.totals.midAmount}
-          defaultCostBreakdown={demoCompareBreakdown}
+          bids={bids}
+          ballparkMid={project.estimate?.totals.midAmount}
+          defaultCostBreakdown={compareBreakdown}
         />
       </div>
     </ProductPreviewFrame>
@@ -338,12 +335,13 @@ export function ClientComparePreview() {
 }
 
 export function ClientProposalDetailPreview() {
+  const { bids, project } = useLocalizedDemoContent();
   return (
     <ProductPreviewFrame>
       <div className="card bid-application-card product-preview-proposal">
         <BidProposalSummary
-          bid={demoBids[0]}
-          ballparkMid={demoProject.estimate?.totals.midAmount}
+          bid={bids[0]}
+          ballparkMid={project.estimate?.totals.midAmount}
           detailsOnly
         />
       </div>
@@ -391,10 +389,11 @@ export function ClientSignFlowPreview({
 }
 
 export function ClientMarketplacePreview() {
+  const { marketplaceTiles } = useLocalizedDemoContent();
   return (
     <ProductPreviewFrame>
       <div className="product-preview-tile-grid">
-        {demoMarketplaceTiles.slice(0, 2).map((project) => (
+        {marketplaceTiles.slice(0, 2).map((project) => (
           <div key={project.id} className="product-preview-tile-wrap">
             <ProjectTile project={project} isOwned={project.id === DEMO_PROJECT_ID} />
           </div>
@@ -406,6 +405,7 @@ export function ClientMarketplacePreview() {
 
 export function ClientProgressPreview() {
   const { t, locale } = useTranslation();
+  const { progressLines } = useLocalizedDemoContent();
   const money = (amount: number) =>
     new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -413,15 +413,15 @@ export function ClientProgressPreview() {
       maximumFractionDigits: 0,
     }).format(amount);
 
-  const worksTotal = demoProgressPreviewLines.reduce(
+  const worksTotal = progressLines.reduce(
     (sum, line) => sum + line.worksPeriod,
     0,
   );
-  const retentionTotal = demoProgressPreviewLines.reduce(
+  const retentionTotal = progressLines.reduce(
     (sum, line) => sum + line.retentionPeriod,
     0,
   );
-  const payableTotal = demoProgressPreviewLines.reduce(
+  const payableTotal = progressLines.reduce(
     (sum, line) => sum + line.payablePeriod,
     0,
   );
@@ -455,7 +455,7 @@ export function ClientProgressPreview() {
               </tr>
             </thead>
             <tbody>
-              {demoProgressPreviewLines.map((line) => (
+              {progressLines.map((line) => (
                 <tr key={line.trade}>
                   <td>{line.trade}</td>
                   <td>{line.percentComplete}%</td>
@@ -487,7 +487,7 @@ export function ClientProgressPreview() {
 export function ClientReviewsPreview() {
   const { t } = useTranslation();
   const { formatProjectType } = useAppFormatters();
-  const review = demoContractorReviewPreview;
+  const { review } = useLocalizedDemoContent();
 
   return (
     <ProductPreviewFrame>
@@ -539,7 +539,7 @@ export function ClientReviewsPreview() {
               }
               return (
                 <div key={category.key} className="contractor-review-rating-row">
-                  <dt>{category.label}</dt>
+                  <dt>{t(`projectReview.${category.key}`)}</dt>
                   <dd>
                     <ContractorReviewStars
                       value={score}
