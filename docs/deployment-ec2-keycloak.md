@@ -205,16 +205,45 @@ Set Keycloak `sslRequired` to `external` (already in realm export).
 
 ## 7. Backups (Trial Minimum)
 
-```bash
-# Postgres dump
-docker compose -f docker-compose.ec2.yml exec postgres \
-  pg_dump -U platform platform > backup-platform-$(date +%F).sql
+Set in `infra/.env`:
 
-# Keycloak realm export (after config changes)
-# Admin Console → Realm → Action → Partial export
+```env
+BACKUP_S3_PREFIX=backups/postgres
+BACKUP_RETENTION_DAYS=14
 ```
 
-Schedule weekly dumps to S3 (same AWS account) before trial ends.
+One-time setup on EC2:
+
+```bash
+cd ~/construction-platform/infra
+chmod +x scripts/backup-postgres-to-s3.sh \
+  scripts/setup-s3-backup-lifecycle.sh \
+  scripts/install-db-backup-cron.sh
+
+# Apply S3 lifecycle rule only to backups/postgres/*
+bash scripts/setup-s3-backup-lifecycle.sh
+
+# Install daily cron at 02:15 server time
+bash scripts/install-db-backup-cron.sh
+```
+
+Manual test:
+
+```bash
+cd ~/construction-platform/infra
+bash scripts/backup-postgres-to-s3.sh
+```
+
+This creates a compressed `pg_dump`, uploads it to:
+
+```text
+s3://<S3_BUCKET>/backups/postgres/
+```
+
+and S3 automatically expires only that prefix after `BACKUP_RETENTION_DAYS`.
+
+Keycloak realm export (after config changes):
+- Admin Console → Realm → Action → Partial export
 
 ---
 
