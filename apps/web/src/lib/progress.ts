@@ -19,9 +19,12 @@ export interface ProgressClaimLine {
 }
 
 export interface ProgressPaymentSlip {
+  id: string;
   documentId: string;
   originalName: string;
   uploadedAt: string;
+  status: 'draft' | 'submitted';
+  submittedAt: string | null;
 }
 
 export interface ProgressClaim {
@@ -48,7 +51,7 @@ export interface ProgressClaim {
   retentionPercent: number;
   retentionPeriod: number;
   payablePeriod: number;
-  paymentSlip: ProgressPaymentSlip | null;
+  paymentSlips: ProgressPaymentSlip[];
   submittedAt: string | null;
   reviewedAt: string | null;
   createdAt: string;
@@ -80,7 +83,7 @@ export interface ProgressOverview {
   retentionHeldToDate: number;
   advancePaymentPercent: number;
   advancePaymentAmount: number;
-  advancePaymentSlip: ProgressPaymentSlip | null;
+  advancePaymentSlips: ProgressPaymentSlip[];
   baselineLines: ProgressBaselineLine[];
   openClaim: ProgressClaim | null;
   claims: ProgressClaim[];
@@ -196,23 +199,20 @@ export async function rejectProgressClaim(
   return response.json() as Promise<ProgressClaim>;
 }
 
-export async function attachProgressClaimPaymentSlip(
-  projectId: string,
-  claimId: string,
+async function uploadPaymentSlipFile(
+  presignUrl: string,
+  completeUrl: string,
   file: File,
-): Promise<ProgressClaim> {
-  const presignResponse = await fetchWithAuth(
-    `/api/projects/${encodeURIComponent(projectId)}/progress/claims/${encodeURIComponent(claimId)}/payment-slip/presign`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fileName: file.name,
-        contentType: file.type || 'application/octet-stream',
-        sizeBytes: file.size,
-      }),
-    },
-  );
+): Promise<Response> {
+  const presignResponse = await fetchWithAuth(presignUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type || 'application/octet-stream',
+      sizeBytes: file.size,
+    }),
+  });
   if (!presignResponse.ok) {
     await parseError(presignResponse, 'Failed to prepare payment slip upload');
   }
@@ -228,13 +228,22 @@ export async function attachProgressClaimPaymentSlip(
   if (!putResponse.ok) {
     throw new Error('Failed to upload payment slip file');
   }
-  const completeResponse = await fetchWithAuth(
+  return fetchWithAuth(completeUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ documentId: presigned.documentId }),
+  });
+}
+
+export async function attachProgressClaimPaymentSlip(
+  projectId: string,
+  claimId: string,
+  file: File,
+): Promise<ProgressClaim> {
+  const completeResponse = await uploadPaymentSlipFile(
+    `/api/projects/${encodeURIComponent(projectId)}/progress/claims/${encodeURIComponent(claimId)}/payment-slip/presign`,
     `/api/projects/${encodeURIComponent(projectId)}/progress/claims/${encodeURIComponent(claimId)}/payment-slip/complete`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documentId: presigned.documentId }),
-    },
+    file,
   );
   if (!completeResponse.ok) {
     await parseError(completeResponse, 'Failed to attach payment slip');
@@ -242,49 +251,98 @@ export async function attachProgressClaimPaymentSlip(
   return completeResponse.json() as Promise<ProgressClaim>;
 }
 
+export async function attachProgressClaimPaymentSlips(
+  projectId: string,
+  claimId: string,
+  files: File[],
+): Promise<ProgressClaim | null> {
+  let last: ProgressClaim | null = null;
+  for (const file of files) {
+    last = await attachProgressClaimPaymentSlip(projectId, claimId, file);
+  }
+  return last;
+}
+
+export async function deleteProgressClaimPaymentSlip(
+  projectId: string,
+  claimId: string,
+  attachmentId: string,
+): Promise<ProgressClaim> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/progress/claims/${encodeURIComponent(claimId)}/payment-slips/${encodeURIComponent(attachmentId)}/delete`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to delete payment slip');
+  }
+  return response.json() as Promise<ProgressClaim>;
+}
+
+export async function submitProgressClaimPaymentSlips(
+  projectId: string,
+  claimId: string,
+): Promise<ProgressClaim> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/progress/claims/${encodeURIComponent(claimId)}/payment-slips/submit`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to send payment slips');
+  }
+  return response.json() as Promise<ProgressClaim>;
+}
+
 export async function attachAdvancePaymentSlip(
   projectId: string,
   file: File,
 ): Promise<ProgressOverview> {
-  const presignResponse = await fetchWithAuth(
+  const completeResponse = await uploadPaymentSlipFile(
     `/api/projects/${encodeURIComponent(projectId)}/progress/advance-payment-slip/presign`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fileName: file.name,
-        contentType: file.type || 'application/octet-stream',
-        sizeBytes: file.size,
-      }),
-    },
-  );
-  if (!presignResponse.ok) {
-    await parseError(presignResponse, 'Failed to prepare advance slip upload');
-  }
-  const presigned = (await presignResponse.json()) as {
-    documentId: string;
-    uploadUrl: string;
-  };
-  const putResponse = await fetch(presigned.uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
-    body: file,
-  });
-  if (!putResponse.ok) {
-    throw new Error('Failed to upload advance payment slip file');
-  }
-  const completeResponse = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/progress/advance-payment-slip/complete`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ documentId: presigned.documentId }),
-    },
+    file,
   );
   if (!completeResponse.ok) {
     await parseError(completeResponse, 'Failed to attach advance payment slip');
   }
   return completeResponse.json() as Promise<ProgressOverview>;
+}
+
+export async function attachAdvancePaymentSlips(
+  projectId: string,
+  files: File[],
+): Promise<ProgressOverview | null> {
+  let last: ProgressOverview | null = null;
+  for (const file of files) {
+    last = await attachAdvancePaymentSlip(projectId, file);
+  }
+  return last;
+}
+
+export async function deleteAdvancePaymentSlip(
+  projectId: string,
+  attachmentId: string,
+): Promise<ProgressOverview> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/progress/advance-payment-slips/${encodeURIComponent(attachmentId)}/delete`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to delete payment slip');
+  }
+  return response.json() as Promise<ProgressOverview>;
+}
+
+export async function submitAdvancePaymentSlips(
+  projectId: string,
+): Promise<ProgressOverview> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/progress/advance-payment-slips/submit`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to send payment slips');
+  }
+  return response.json() as Promise<ProgressOverview>;
 }
 
 export async function getProgressDocumentDownloadUrl(

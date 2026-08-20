@@ -1868,6 +1868,82 @@ export class NotificationsService {
     });
   }
 
+  async notifyContractorAdvancePaymentSlipAttached(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+    amount: number;
+    slipCount: number;
+  }): Promise<void> {
+    const amountLabel = `${this.formatThbAmount(params.amount)} THB`;
+    const count = Math.max(1, params.slipCount);
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.contractor_advance_payment_slip_attached,
+      href: this.progressClaimsPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        amount: params.amount,
+        slipCount: count,
+      },
+    });
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.contractor_advance_payment_slip_attached,
+      projectId: params.projectId,
+      subject: `Advance payment slip${count > 1 ? 's' : ''} attached — ${params.projectTitle}`,
+      title:
+        count > 1
+          ? 'Advance payment slips attached'
+          : 'Advance payment slip attached',
+      bodyHtml: `<p>The client sent <strong>${count}</strong> advance payment slip${count > 1 ? 's' : ''} on <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Contract advance: <strong>${escapeHtml(amountLabel)}</strong></p><p>Download ${count > 1 ? 'them' : 'it'} from the progress claims section on the project page.</p>`,
+      ctaHref: this.progressClaimsUrl(params.projectId),
+      ctaLabel: 'View progress claims',
+      textBody: `${count} advance payment slip${count > 1 ? 's' : ''} attached on ${params.projectTitle} (${amountLabel}). View on the project page.`,
+    });
+  }
+
+  async notifyContractorProgressClaimPaymentSlipAttached(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+    amount: number;
+    sequenceNumber: number;
+    slipCount: number;
+  }): Promise<void> {
+    const amountLabel = `${this.formatThbAmount(params.amount)} THB`;
+    const count = Math.max(1, params.slipCount);
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.contractor_progress_claim_payment_slip_attached,
+      href: this.progressClaimsPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+        amount: params.amount,
+        sequenceNumber: params.sequenceNumber,
+        slipCount: count,
+      },
+    });
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.contractor_progress_claim_payment_slip_attached,
+      projectId: params.projectId,
+      subject: `Payment slip${count > 1 ? 's' : ''} attached — ${params.projectTitle}`,
+      title:
+        count > 1
+          ? 'Progress claim payment slips attached'
+          : 'Progress claim payment slip attached',
+      bodyHtml: `<p>The client sent <strong>${count}</strong> payment slip${count > 1 ? 's' : ''} for progress claim <strong>#${params.sequenceNumber}</strong> on <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>Payable amount: <strong>${escapeHtml(amountLabel)}</strong></p><p>Download ${count > 1 ? 'them' : 'it'} from the progress claims section on the project page.</p>`,
+      ctaHref: this.progressClaimsUrl(params.projectId),
+      ctaLabel: 'View progress claims',
+      textBody: `${count} payment slip${count > 1 ? 's' : ''} attached for progress claim #${params.sequenceNumber} on ${params.projectTitle} (${amountLabel}). View on the project page.`,
+    });
+  }
+
   async notifyContractorDefectReported(params: {
     contractorUserId: string;
     projectId: string;

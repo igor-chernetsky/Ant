@@ -99,6 +99,12 @@ export const en = {
       contractorProgressClaimRejectedTitle: 'Progress claim rejected',
       contractorProgressClaimRejectedBody:
         'Claim #{n} on {project} was rejected.',
+      contractorAdvancePaymentSlipAttachedTitle: 'Advance payment slips attached',
+      contractorAdvancePaymentSlipAttachedBody:
+        'The client sent {count} advance payment slip(s) on {project} ({amount} THB).',
+      contractorProgressClaimPaymentSlipAttachedTitle: 'Payment slips attached',
+      contractorProgressClaimPaymentSlipAttachedBody:
+        'The client sent {count} payment slip(s) for claim #{n} on {project} ({amount} THB).',
       contractorDefectReportedTitle: 'Defect reported',
       contractorDefectReportedBody:
         'Defect #{n} was reported on {project}.',

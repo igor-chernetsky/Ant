@@ -54,6 +54,10 @@ export function formatInAppNotificationTitle(
       return t('notifications.kinds.contractorProgressClaimApprovedTitle');
     case 'contractor_progress_claim_rejected':
       return t('notifications.kinds.contractorProgressClaimRejectedTitle');
+    case 'contractor_advance_payment_slip_attached':
+      return t('notifications.kinds.contractorAdvancePaymentSlipAttachedTitle');
+    case 'contractor_progress_claim_payment_slip_attached':
+      return t('notifications.kinds.contractorProgressClaimPaymentSlipAttachedTitle');
     case 'contractor_defect_reported':
       return t('notifications.kinds.contractorDefectReportedTitle');
     case 'contractor_defect_resubmitted':
@@ -176,6 +180,19 @@ export function formatInAppNotificationBody(
       return t('notifications.kinds.contractorProgressClaimRejectedBody', {
         project: projectTitle || t('common.dash'),
         n: payloadString(item.payload, 'sequenceNumber') || '—',
+      });
+    case 'contractor_advance_payment_slip_attached':
+      return t('notifications.kinds.contractorAdvancePaymentSlipAttachedBody', {
+        project: projectTitle || t('common.dash'),
+        amount: amount || t('common.dash'),
+        count: payloadString(item.payload, 'slipCount') || '1',
+      });
+    case 'contractor_progress_claim_payment_slip_attached':
+      return t('notifications.kinds.contractorProgressClaimPaymentSlipAttachedBody', {
+        project: projectTitle || t('common.dash'),
+        amount: amount || t('common.dash'),
+        n: payloadString(item.payload, 'sequenceNumber') || '—',
+        count: payloadString(item.payload, 'slipCount') || '1',
       });
     case 'contractor_defect_reported':
       return t('notifications.kinds.contractorDefectReportedBody', {

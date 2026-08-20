@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   BidStatus,
+  DocumentStatus,
   Prisma,
   ProgressClaimStatus,
   ProjectStatus,
@@ -30,6 +31,14 @@ function dec(value: Prisma.Decimal | number | null | undefined): number {
   if (value == null) return 0;
   return Number(value);
 }
+
+const claimInclude = {
+  lines: { orderBy: { sortOrder: 'asc' as const } },
+  paymentSlipAttachments: {
+    include: { document: true },
+    orderBy: { createdAt: 'asc' as const },
+  },
+} satisfies Prisma.ProgressClaimInclude;
 
 function resolveAdvancePayment(
   bid: { amount: Prisma.Decimal | null },
@@ -71,19 +80,17 @@ export class ProgressService {
     const ctx = await this.loadContext(userId, projectId);
     const claims = await this.prisma.progressClaim.findMany({
       where: { projectId },
-      include: {
-        lines: { orderBy: { sortOrder: 'asc' } },
-        paymentSlipDocument: true,
-      },
+      include: claimInclude,
       orderBy: { sequenceNumber: 'desc' },
     });
 
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      include: { advancePaymentSlipDocument: true },
+    const advanceAttachments = await this.prisma.paymentSlipAttachment.findMany({
+      where: { projectId, progressClaimId: null },
+      include: { document: true },
+      orderBy: { createdAt: 'asc' },
     });
 
-    const mapped = claims.map((claim) => this.toClaimDto(claim));
+    const mapped = claims.map((claim) => this.toClaimDto(claim, ctx.role));
     const openClaim =
       mapped.find(
         (claim) => claim.status === 'draft' || claim.status === 'submitted',
@@ -114,9 +121,7 @@ export class ProgressService {
       retentionHeldToDate: ctx.retentionHeldToDate,
       advancePaymentPercent: ctx.advancePaymentPercent,
       advancePaymentAmount: ctx.advancePaymentAmount,
-      advancePaymentSlip: this.toPaymentSlipDto(
-        project?.advancePaymentSlipDocument ?? null,
-      ),
+      advancePaymentSlips: this.toPaymentSlipDtos(advanceAttachments, ctx.role),
       baselineLines: ctx.baselineLines.map((line) => ({
         trade: line.trade,
         description: line.description ?? null,
@@ -144,10 +149,7 @@ export class ProgressService {
           in: [ProgressClaimStatus.draft, ProgressClaimStatus.submitted],
         },
       },
-      include: {
-        lines: { orderBy: { sortOrder: 'asc' } },
-        paymentSlipDocument: true,
-      },
+      include: claimInclude,
     });
     if (existing) {
       if (existing.status === ProgressClaimStatus.submitted) {
@@ -155,15 +157,12 @@ export class ProgressService {
           'A progress claim is already awaiting client approval',
         );
       }
-      return this.toClaimDto(existing);
+      return this.toClaimDto(existing, ctx.role);
     }
 
     const lastApproved = await this.prisma.progressClaim.findFirst({
       where: { projectId, status: ProgressClaimStatus.approved },
-      include: {
-        lines: { orderBy: { sortOrder: 'asc' } },
-        paymentSlipDocument: true,
-      },
+      include: claimInclude,
       orderBy: { sequenceNumber: 'desc' },
     });
     const previousGrand = lastApproved ? dec(lastApproved.grandCumulative) : 0;
@@ -227,10 +226,10 @@ export class ProgressService {
           })),
         },
       },
-      include: { lines: { orderBy: { sortOrder: 'asc' } }, paymentSlipDocument: true },
+      include: claimInclude,
     });
 
-    return this.toClaimDto(created);
+    return this.toClaimDto(created, ctx.role);
   }
 
   async updateDraft(
@@ -342,7 +341,7 @@ export class ProgressService {
     ]);
 
     const updated = await this.requireClaim(projectId, claimId);
-    return this.toClaimDto(updated);
+    return this.toClaimDto(updated, ctx.role);
   }
 
   async submit(
@@ -371,7 +370,7 @@ export class ProgressService {
         submittedAt: new Date(),
         submittedById: userId,
       },
-      include: { lines: { orderBy: { sortOrder: 'asc' } }, paymentSlipDocument: true },
+      include: claimInclude,
     });
 
     void this.notifications.dispatch(
@@ -385,7 +384,7 @@ export class ProgressService {
       }),
     );
 
-    return this.toClaimDto(updated);
+    return this.toClaimDto(updated, ctx.role);
   }
 
   async approve(
@@ -409,7 +408,7 @@ export class ProgressService {
         reviewedById: userId,
         rejectionReason: null,
       },
-      include: { lines: { orderBy: { sortOrder: 'asc' } }, paymentSlipDocument: true },
+      include: claimInclude,
     });
 
     void this.notifications.dispatch(
@@ -422,7 +421,7 @@ export class ProgressService {
       }),
     );
 
-    return this.toClaimDto(updated);
+    return this.toClaimDto(updated, ctx.role);
   }
 
   async presignClaimPaymentSlip(
@@ -468,19 +467,83 @@ export class ProgressService {
       userId,
     );
 
-    const updated = await this.prisma.progressClaim.update({
-      where: { id: claimId },
+    await this.prisma.paymentSlipAttachment.create({
       data: {
-        paymentSlipDocumentId: doc.id,
-        paymentSlipUploadedAt: new Date(),
-      },
-      include: {
-        lines: { orderBy: { sortOrder: 'asc' } },
-        paymentSlipDocument: true,
+        projectId,
+        progressClaimId: claimId,
+        documentId: doc.id,
       },
     });
 
-    return this.toClaimDto(updated);
+    const updated = await this.requireClaim(projectId, claimId);
+    return this.toClaimDto(updated, ctx.role);
+  }
+
+  async deleteClaimPaymentSlip(
+    userId: string,
+    projectId: string,
+    claimId: string,
+    attachmentId: string,
+  ): Promise<ProgressClaimDto> {
+    const ctx = await this.loadContext(userId, projectId);
+    this.assertClient(ctx);
+    await this.deleteDraftAttachment({
+      projectId,
+      progressClaimId: claimId,
+      attachmentId,
+    });
+    const updated = await this.requireClaim(projectId, claimId);
+    return this.toClaimDto(updated, ctx.role);
+  }
+
+  async submitClaimPaymentSlips(
+    userId: string,
+    projectId: string,
+    claimId: string,
+  ): Promise<ProgressClaimDto> {
+    const ctx = await this.loadContext(userId, projectId);
+    this.assertClient(ctx);
+    const claim = await this.requireClaim(projectId, claimId);
+    if (claim.status !== ProgressClaimStatus.approved) {
+      throw new BadRequestException(
+        'Payment slips can be sent only after the claim is approved',
+      );
+    }
+
+    const drafts = await this.prisma.paymentSlipAttachment.findMany({
+      where: {
+        projectId,
+        progressClaimId: claimId,
+        submittedAt: null,
+      },
+    });
+    if (drafts.length === 0) {
+      throw new BadRequestException('Attach at least one payment slip before sending');
+    }
+
+    const submittedAt = new Date();
+    await this.prisma.paymentSlipAttachment.updateMany({
+      where: {
+        projectId,
+        progressClaimId: claimId,
+        submittedAt: null,
+      },
+      data: { submittedAt },
+    });
+
+    void this.notifications.dispatch(
+      this.notifications.notifyContractorProgressClaimPaymentSlipAttached({
+        contractorUserId: ctx.bid.contractor.userId,
+        projectId,
+        projectTitle: ctx.project.title,
+        amount: dec(claim.payablePeriod),
+        sequenceNumber: claim.sequenceNumber,
+        slipCount: drafts.length,
+      }),
+    );
+
+    const updated = await this.requireClaim(projectId, claimId);
+    return this.toClaimDto(updated, ctx.role);
   }
 
   async presignAdvancePaymentSlip(
@@ -518,13 +581,72 @@ export class ProgressService {
       userId,
     );
 
-    await this.prisma.project.update({
-      where: { id: projectId },
+    await this.prisma.paymentSlipAttachment.create({
       data: {
-        advancePaymentSlipDocumentId: doc.id,
-        advancePaymentSlipUploadedAt: new Date(),
+        projectId,
+        progressClaimId: null,
+        documentId: doc.id,
       },
     });
+
+    return this.getOverview(userId, projectId);
+  }
+
+  async deleteAdvancePaymentSlip(
+    userId: string,
+    projectId: string,
+    attachmentId: string,
+  ): Promise<ProgressOverviewDto> {
+    const ctx = await this.loadContext(userId, projectId);
+    this.assertClient(ctx);
+    await this.deleteDraftAttachment({
+      projectId,
+      progressClaimId: null,
+      attachmentId,
+    });
+    return this.getOverview(userId, projectId);
+  }
+
+  async submitAdvancePaymentSlips(
+    userId: string,
+    projectId: string,
+  ): Promise<ProgressOverviewDto> {
+    const ctx = await this.loadContext(userId, projectId);
+    this.assertClient(ctx);
+    if (ctx.advancePaymentAmount <= 0 && ctx.advancePaymentPercent <= 0) {
+      throw new BadRequestException('This contract has no advance payment');
+    }
+
+    const drafts = await this.prisma.paymentSlipAttachment.findMany({
+      where: {
+        projectId,
+        progressClaimId: null,
+        submittedAt: null,
+      },
+    });
+    if (drafts.length === 0) {
+      throw new BadRequestException('Attach at least one payment slip before sending');
+    }
+
+    const submittedAt = new Date();
+    await this.prisma.paymentSlipAttachment.updateMany({
+      where: {
+        projectId,
+        progressClaimId: null,
+        submittedAt: null,
+      },
+      data: { submittedAt },
+    });
+
+    void this.notifications.dispatch(
+      this.notifications.notifyContractorAdvancePaymentSlipAttached({
+        contractorUserId: ctx.bid.contractor.userId,
+        projectId,
+        projectTitle: ctx.project.title,
+        amount: ctx.advancePaymentAmount,
+        slipCount: drafts.length,
+      }),
+    );
 
     return this.getOverview(userId, projectId);
   }
@@ -553,10 +675,7 @@ export class ProgressService {
           ? dto.reason.trim().slice(0, 2000)
           : null,
       },
-      include: {
-        lines: { orderBy: { sortOrder: 'asc' } },
-        paymentSlipDocument: true,
-      },
+      include: claimInclude,
     });
 
     void this.notifications.dispatch(
@@ -569,7 +688,7 @@ export class ProgressService {
       }),
     );
 
-    return this.toClaimDto(updated);
+    return this.toClaimDto(updated, ctx.role);
   }
 
   private assertClient(ctx: { role: 'client' | 'contractor' | null }) {
@@ -595,15 +714,47 @@ export class ProgressService {
   private async requireClaim(projectId: string, claimId: string) {
     const claim = await this.prisma.progressClaim.findFirst({
       where: { id: claimId, projectId },
-      include: {
-        lines: { orderBy: { sortOrder: 'asc' } },
-        paymentSlipDocument: true,
-      },
+      include: claimInclude,
     });
     if (!claim) {
       throw new NotFoundException('Progress claim not found');
     }
     return claim;
+  }
+
+  private async deleteDraftAttachment(params: {
+    projectId: string;
+    progressClaimId: string | null;
+    attachmentId: string;
+  }) {
+    const attachment = await this.prisma.paymentSlipAttachment.findFirst({
+      where: {
+        id: params.attachmentId,
+        projectId: params.projectId,
+        progressClaimId: params.progressClaimId,
+      },
+    });
+    if (!attachment) {
+      throw new NotFoundException('Payment slip not found');
+    }
+    if (attachment.submittedAt) {
+      throw new BadRequestException(
+        'Submitted payment slips cannot be deleted',
+      );
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.paymentSlipAttachment.delete({
+        where: { id: attachment.id },
+      }),
+      this.prisma.document.update({
+        where: { id: attachment.documentId },
+        data: {
+          status: DocumentStatus.deleted,
+          thumbnailStorageKey: null,
+        },
+      }),
+    ]);
   }
 
   private async loadContext(userId: string, projectId: string) {
@@ -656,10 +807,7 @@ export class ProgressService {
 
     const lastApproved = await this.prisma.progressClaim.findFirst({
       where: { projectId, status: ProgressClaimStatus.approved },
-      include: {
-        lines: { orderBy: { sortOrder: 'asc' } },
-        paymentSlipDocument: true,
-      },
+      include: claimInclude,
       orderBy: { sequenceNumber: 'desc' },
     });
 
@@ -769,21 +917,40 @@ export class ProgressService {
     };
   }
 
-  private toPaymentSlipDto(
-    doc: { id: string; originalName: string; uploadedAt: Date | null } | null,
-  ): ProgressPaymentSlipDto | null {
-    if (!doc?.uploadedAt) return null;
-    return {
-      documentId: doc.id,
-      originalName: doc.originalName,
-      uploadedAt: doc.uploadedAt.toISOString(),
-    };
+  private toPaymentSlipDtos(
+    attachments: Array<{
+      id: string;
+      submittedAt: Date | null;
+      document: {
+        originalName: string;
+        uploadedAt: Date | null;
+        id: string;
+        status: DocumentStatus;
+      };
+    }>,
+    role: 'client' | 'contractor' | null,
+  ): ProgressPaymentSlipDto[] {
+    return attachments
+      .filter((item) => {
+        if (item.document.status === DocumentStatus.deleted) return false;
+        if (role === 'client') return true;
+        return item.submittedAt != null;
+      })
+      .map((item) => ({
+        id: item.id,
+        documentId: item.document.id,
+        originalName: item.document.originalName,
+        uploadedAt: (
+          item.document.uploadedAt ?? item.submittedAt ?? new Date(0)
+        ).toISOString(),
+        status: item.submittedAt ? ('submitted' as const) : ('draft' as const),
+        submittedAt: item.submittedAt?.toISOString() ?? null,
+      }));
   }
 
   private toClaimDto(
-    claim: Prisma.ProgressClaimGetPayload<{
-      include: { lines: true; paymentSlipDocument: true };
-    }>,
+    claim: Prisma.ProgressClaimGetPayload<{ include: typeof claimInclude }>,
+    role: 'client' | 'contractor' | null,
   ): ProgressClaimDto {
     return {
       id: claim.id,
@@ -809,7 +976,10 @@ export class ProgressService {
       retentionPercent: claim.retentionPercent,
       retentionPeriod: dec(claim.retentionPeriod),
       payablePeriod: dec(claim.payablePeriod),
-      paymentSlip: this.toPaymentSlipDto(claim.paymentSlipDocument ?? null),
+      paymentSlips: this.toPaymentSlipDtos(
+        claim.paymentSlipAttachments,
+        role,
+      ),
       submittedAt: claim.submittedAt?.toISOString() ?? null,
       reviewedAt: claim.reviewedAt?.toISOString() ?? null,
       createdAt: claim.createdAt.toISOString(),

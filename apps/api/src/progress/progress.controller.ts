@@ -125,6 +125,36 @@ export class ProgressController {
     );
   }
 
+  @Post('claims/:claimId/payment-slips/submit')
+  async submitClaimPaymentSlips(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('claimId') claimId: string,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.progressService.submitClaimPaymentSlips(
+      user.id,
+      projectId,
+      claimId,
+    );
+  }
+
+  @Post('claims/:claimId/payment-slips/:attachmentId/delete')
+  async deleteClaimPaymentSlip(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('claimId') claimId: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.progressService.deleteClaimPaymentSlip(
+      user.id,
+      projectId,
+      claimId,
+      attachmentId,
+    );
+  }
+
   @Post('advance-payment-slip/presign')
   async presignAdvancePaymentSlip(
     @Req() req: Request & { user: JwtPayload },
@@ -150,6 +180,29 @@ export class ProgressController {
       user.id,
       projectId,
       body,
+    );
+  }
+
+  @Post('advance-payment-slips/submit')
+  async submitAdvancePaymentSlips(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.progressService.submitAdvancePaymentSlips(user.id, projectId);
+  }
+
+  @Post('advance-payment-slips/:attachmentId/delete')
+  async deleteAdvancePaymentSlip(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('attachmentId') attachmentId: string,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.progressService.deleteAdvancePaymentSlip(
+      user.id,
+      projectId,
+      attachmentId,
     );
   }
 }

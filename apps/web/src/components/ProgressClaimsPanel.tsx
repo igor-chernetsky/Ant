@@ -8,16 +8,21 @@ import { computeBidCostAdjustments } from '@/lib/bid-cost-adjustments';
 import { computeRetentionPeriod } from '@/lib/progress-claim';
 import {
   approveProgressClaim,
-  attachAdvancePaymentSlip,
-  attachProgressClaimPaymentSlip,
+  attachAdvancePaymentSlips,
+  attachProgressClaimPaymentSlips,
   createProgressClaimDraft,
+  deleteAdvancePaymentSlip,
+  deleteProgressClaimPaymentSlip,
   fetchProjectProgress,
   getProgressDocumentDownloadUrl,
   rejectProgressClaim,
+  submitAdvancePaymentSlips,
   submitProgressClaim,
+  submitProgressClaimPaymentSlips,
   updateProgressClaimDraft,
   type ProgressClaim,
   type ProgressOverview,
+  type ProgressPaymentSlip,
 } from '@/lib/progress';
 
 interface ProgressClaimsPanelProps {
@@ -272,13 +277,13 @@ export function ProgressClaimsPanel({
     claimId: string,
     event: ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
     event.target.value = '';
-    if (!file) return;
+    if (files.length === 0) return;
     setBusy(true);
     setError(null);
     try {
-      await attachProgressClaimPaymentSlip(projectId, claimId, file);
+      await attachProgressClaimPaymentSlips(projectId, claimId, files);
       await reload();
     } catch (err: unknown) {
       setError(
@@ -295,14 +300,14 @@ export function ProgressClaimsPanel({
   const handleAdvancePaymentSlipSelected = async (
     event: ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
     event.target.value = '';
-    if (!file) return;
+    if (files.length === 0) return;
     setBusy(true);
     setError(null);
     try {
-      const data = await attachAdvancePaymentSlip(projectId, file);
-      setOverview(data);
+      const data = await attachAdvancePaymentSlips(projectId, files);
+      if (data) setOverview(data);
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -312,6 +317,174 @@ export function ProgressClaimsPanel({
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleDeleteAdvanceSlip = async (attachmentId: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await deleteAdvancePaymentSlip(projectId, attachmentId);
+      setOverview(data);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('progressSection.removePaymentSlipFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSubmitAdvanceSlips = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await submitAdvancePaymentSlips(projectId);
+      setOverview(data);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('progressSection.sendPaymentSlipsFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteClaimSlip = async (
+    claimId: string,
+    attachmentId: string,
+  ) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteProgressClaimPaymentSlip(projectId, claimId, attachmentId);
+      await reload();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('progressSection.removePaymentSlipFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSubmitClaimSlips = async (claimId: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await submitProgressClaimPaymentSlips(projectId, claimId);
+      await reload();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('progressSection.sendPaymentSlipsFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const renderPaymentSlips = (
+    slips: ProgressPaymentSlip[],
+    options: {
+      canEdit: boolean;
+      onAdd: () => void;
+      onDelete: (attachmentId: string) => void;
+      onSend: () => void;
+      addLabel: string;
+    },
+  ) => {
+    const draftCount = slips.filter((s) => s.status === 'draft').length;
+    const submittedCount = slips.filter((s) => s.status === 'submitted').length;
+
+    return (
+      <div className="progress-payment-slips">
+        <p className="muted progress-advance-payment-hint">
+          {t('progressSection.paymentSlipHint')}
+        </p>
+        {slips.length === 0 ? (
+          <p className="muted">
+            {options.canEdit
+              ? t('progressSection.noPaymentSlipsYet')
+              : t('progressSection.waitingForPaymentSlips')}
+          </p>
+        ) : (
+          <ul className="progress-payment-slip-list">
+            {slips.map((slip) => (
+              <li key={slip.id} className="progress-payment-slip-item">
+                <div className="progress-payment-slip-meta">
+                  <span className="progress-payment-slip-name">
+                    {slip.originalName}
+                  </span>
+                  <span className="muted">
+                    {slip.status === 'draft'
+                      ? t('progressSection.paymentSlipDraft')
+                      : t('progressSection.paymentSlipSent')}
+                  </span>
+                </div>
+                <div className="progress-payment-slip-actions">
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      void handleDownloadPaymentSlip(slip.documentId)
+                    }
+                  >
+                    {t('progressSection.downloadPaymentSlip')}
+                  </button>
+                  {options.canEdit && slip.status === 'draft' && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => options.onDelete(slip.id)}
+                    >
+                      {t('progressSection.removePaymentSlip')}
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {options.canEdit && (
+          <div className="progress-payment-slip-actions">
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={options.onAdd}
+            >
+              {options.addLabel}
+            </button>
+            {draftCount > 0 && (
+              <button
+                type="button"
+                className="primary"
+                disabled={busy}
+                onClick={() => options.onSend()}
+              >
+                {t('progressSection.sendPaymentSlips')}
+              </button>
+            )}
+            {submittedCount > 0 && draftCount === 0 && (
+              <span className="progress-payment-slip-status">
+                {t('progressSection.paymentSlipsCount', {
+                  count: submittedCount,
+                })}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const statusLabel = (status: string) => {
@@ -407,49 +580,14 @@ export function ProgressClaimsPanel({
                 <h3>{t('progressSection.advancePaymentTitle')}</h3>
                 <strong>{formatThb(overview.advancePaymentAmount)}</strong>
               </div>
-              <p className="muted progress-advance-payment-hint">
-                {t('progressSection.paymentSlipHint')}
-              </p>
-              {overview.advancePaymentSlip ? (
-                <div className="progress-payment-slip-actions">
-                  <span className="progress-payment-slip-status">
-                    {t('progressSection.advancePaymentSlipAttached')}
-                  </span>
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() =>
-                      void handleDownloadPaymentSlip(
-                        overview.advancePaymentSlip!.documentId,
-                      )
-                    }
-                  >
-                    {t('progressSection.downloadPaymentSlip')}
-                  </button>
-                  {isClient && (
-                    <button
-                      type="button"
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() => advancePaymentSlipInputRef.current?.click()}
-                    >
-                      {t('progressSection.attachAdvancePaymentSlip')}
-                    </button>
-                  )}
-                </div>
-              ) : isClient ? (
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={busy}
-                  onClick={() => advancePaymentSlipInputRef.current?.click()}
-                >
-                  {t('progressSection.attachAdvancePaymentSlip')}
-                </button>
-              ) : (
-                <p className="muted">{t('progressSection.paymentSlipHint')}</p>
-              )}
+              {renderPaymentSlips(overview.advancePaymentSlips, {
+                canEdit: isClient,
+                onAdd: () => advancePaymentSlipInputRef.current?.click(),
+                onDelete: (attachmentId) =>
+                  void handleDeleteAdvanceSlip(attachmentId),
+                onSend: () => void handleSubmitAdvanceSlips(),
+                addLabel: t('progressSection.attachAdvancePaymentSlip'),
+              })}
             </div>
           )}
 
@@ -457,6 +595,7 @@ export function ProgressClaimsPanel({
             ref={advancePaymentSlipInputRef}
             type="file"
             accept="image/*,.pdf,application/pdf"
+            multiple
             className="sr-only"
             disabled={busy}
             onChange={(event) => void handleAdvancePaymentSlipSelected(event)}
@@ -465,6 +604,7 @@ export function ProgressClaimsPanel({
             ref={claimPaymentSlipInputRef}
             type="file"
             accept="image/*,.pdf,application/pdf"
+            multiple
             className="sr-only"
             disabled={busy}
             onChange={(event) => {
@@ -718,58 +858,18 @@ export function ProgressClaimsPanel({
                       {claim.rejectionReason ? (
                         <span className="muted">{claim.rejectionReason}</span>
                       ) : null}
-                      {claim.status === 'approved' && (
-                        <div className="progress-payment-slip-actions">
-                          {claim.paymentSlip ? (
-                            <>
-                              <span className="progress-payment-slip-status">
-                                {t('progressSection.paymentSlipAttached')}
-                              </span>
-                              <button
-                                type="button"
-                                className="secondary"
-                                disabled={busy}
-                                onClick={() =>
-                                  void handleDownloadPaymentSlip(
-                                    claim.paymentSlip!.documentId,
-                                  )
-                                }
-                              >
-                                {t('progressSection.downloadPaymentSlip')}
-                              </button>
-                              {isClient && (
-                                <button
-                                  type="button"
-                                  className="secondary"
-                                  disabled={busy}
-                                  onClick={() => {
-                                    setPaymentSlipClaimId(claim.id);
-                                    claimPaymentSlipInputRef.current?.click();
-                                  }}
-                                >
-                                  {t('progressSection.attachPaymentSlip')}
-                                </button>
-                              )}
-                            </>
-                          ) : isClient ? (
-                            <button
-                              type="button"
-                              className="secondary"
-                              disabled={busy}
-                              onClick={() => {
-                                setPaymentSlipClaimId(claim.id);
-                                claimPaymentSlipInputRef.current?.click();
-                              }}
-                            >
-                              {t('progressSection.attachPaymentSlip')}
-                            </button>
-                          ) : (
-                            <span className="muted">
-                              {t('progressSection.paymentSlipHint')}
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      {claim.status === 'approved' &&
+                        renderPaymentSlips(claim.paymentSlips, {
+                          canEdit: isClient,
+                          onAdd: () => {
+                            setPaymentSlipClaimId(claim.id);
+                            claimPaymentSlipInputRef.current?.click();
+                          },
+                          onDelete: (attachmentId) =>
+                            void handleDeleteClaimSlip(claim.id, attachmentId),
+                          onSend: () => void handleSubmitClaimSlips(claim.id),
+                          addLabel: t('progressSection.attachPaymentSlip'),
+                        })}
                     </li>
                   ))}
               </ul>

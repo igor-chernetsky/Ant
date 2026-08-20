@@ -100,6 +100,12 @@ export const th: Messages = {
       contractorProgressClaimRejectedTitle: 'progress claim ถูกปฏิเสธ',
       contractorProgressClaimRejectedBody:
         'Claim #{n} ของ {project} ถูกปฏิเสธ',
+      contractorAdvancePaymentSlipAttachedTitle: 'ส่งสลิปเงินล่วงหน้าแล้ว',
+      contractorAdvancePaymentSlipAttachedBody:
+        'ลูกค้าส่งสลิปเงินล่วงหน้า {count} ไฟล์ใน {project} ({amount} THB)',
+      contractorProgressClaimPaymentSlipAttachedTitle: 'ส่งสลิปการชำระแล้ว',
+      contractorProgressClaimPaymentSlipAttachedBody:
+        'ลูกค้าส่งสลิป {count} ไฟล์สำหรับ claim #{n} ใน {project} ({amount} THB)',
       contractorDefectReportedTitle: 'มีการรายงานข้อบกพร่อง',
       contractorDefectReportedBody:
         'มีการรายงานข้อบกพร่อง #{n} ใน {project}',

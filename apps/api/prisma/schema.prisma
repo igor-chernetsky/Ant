@@ -240,6 +240,8 @@ enum NotificationEmailKind {
   client_progress_claim_submitted
   contractor_progress_claim_approved
   contractor_progress_claim_rejected
+  contractor_advance_payment_slip_attached
+  contractor_progress_claim_payment_slip_attached
   contractor_defect_reported
   contractor_defect_resubmitted
   contractor_defect_completion_rejected
@@ -289,6 +291,8 @@ enum InAppNotificationKind {
   client_progress_claim_submitted
   contractor_progress_claim_approved
   contractor_progress_claim_rejected
+  contractor_advance_payment_slip_attached
+  contractor_progress_claim_payment_slip_attached
   contractor_defect_reported
   contractor_defect_resubmitted
   contractor_defect_completion_rejected
@@ -414,9 +418,7 @@ model Project {
   signatureRequests ContractSignatureRequest[]
   progressClaims  ProgressClaim[]
   defects         Defect[]
-  advancePaymentSlipDocumentId String?   @unique @map("advance_payment_slip_document_id")
-  advancePaymentSlipDocument   Document? @relation("ProjectAdvancePaymentSlip", fields: [advancePaymentSlipDocumentId], references: [id], onDelete: SetNull)
-  advancePaymentSlipUploadedAt DateTime? @map("advance_payment_slip_uploaded_at")
+  paymentSlipAttachments PaymentSlipAttachment[]
   completionRequestedBy CompletionRequestRole? @map("completion_requested_by")
   completionRequestedAt DateTime? @map("completion_requested_at")
   completionDraftReviewJson Json? @map("completion_draft_review_json")
@@ -478,8 +480,7 @@ model Document {
   defectEvent         DefectEvent?     @relation(fields: [defectEventId], references: [id], onDelete: Cascade)
   createdAt           DateTime         @default(now()) @map("created_at")
   uploadedAt          DateTime?        @map("uploaded_at")
-  progressClaimPaymentSlip ProgressClaim? @relation("ProgressClaimPaymentSlip")
-  projectAdvancePaymentSlip Project?    @relation("ProjectAdvancePaymentSlip")
+  paymentSlipAttachment PaymentSlipAttachment?
 
   @@index([projectId])
   @@index([uploaderId])
@@ -1009,9 +1010,6 @@ model ProgressClaim {
   retentionPercent        Float               @default(0) @map("retention_percent")
   retentionPeriod         Decimal             @default(0) @map("retention_period") @db.Decimal(14, 2)
   payablePeriod           Decimal             @default(0) @map("payable_period") @db.Decimal(14, 2)
-  paymentSlipDocumentId   String?             @unique @map("payment_slip_document_id")
-  paymentSlipDocument     Document?           @relation("ProgressClaimPaymentSlip", fields: [paymentSlipDocumentId], references: [id], onDelete: SetNull)
-  paymentSlipUploadedAt   DateTime?           @map("payment_slip_uploaded_at")
   submittedAt             DateTime?           @map("submitted_at")
   submittedById           String?             @map("submitted_by_id")
   submittedBy             User?               @relation("ProgressClaimSubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
@@ -1021,11 +1019,29 @@ model ProgressClaim {
   createdAt               DateTime            @default(now()) @map("created_at")
   updatedAt               DateTime            @updatedAt @map("updated_at")
   lines                   ProgressClaimLine[]
+  paymentSlipAttachments  PaymentSlipAttachment[]
 
   @@unique([projectId, sequenceNumber])
   @@index([projectId, status])
   @@index([bidId])
   @@map("progress_claims")
+}
+
+model PaymentSlipAttachment {
+  id              String         @id @default(uuid())
+  projectId       String         @map("project_id")
+  project         Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  progressClaimId String?        @map("progress_claim_id")
+  progressClaim   ProgressClaim? @relation(fields: [progressClaimId], references: [id], onDelete: Cascade)
+  documentId      String         @unique @map("document_id")
+  document        Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  /// null = draft (client-only, deletable); set = sent to contractor and locked
+  submittedAt     DateTime?      @map("submitted_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  @@index([projectId, progressClaimId])
+  @@index([progressClaimId])
+  @@map("payment_slip_attachments")
 }
 
 model ProgressClaimLine {

@@ -5,9 +5,13 @@ export type ProgressClaimStatusDto =
   | 'rejected';
 
 export interface ProgressPaymentSlipDto {
+  id: string;
   documentId: string;
   originalName: string;
   uploadedAt: string;
+  /** draft = client-only, deletable; submitted = sent to contractor, locked */
+  status: 'draft' | 'submitted';
+  submittedAt: string | null;
 }
 
 export interface ProgressClaimLineDto {
@@ -46,7 +50,7 @@ export interface ProgressClaimDto {
   retentionPercent: number;
   retentionPeriod: number;
   payablePeriod: number;
-  paymentSlip: ProgressPaymentSlipDto | null;
+  paymentSlips: ProgressPaymentSlipDto[];
   submittedAt: string | null;
   reviewedAt: string | null;
   createdAt: string;
@@ -78,7 +82,7 @@ export interface ProgressOverviewDto {
   retentionHeldToDate: number;
   advancePaymentPercent: number;
   advancePaymentAmount: number;
-  advancePaymentSlip: ProgressPaymentSlipDto | null;
+  advancePaymentSlips: ProgressPaymentSlipDto[];
   baselineLines: ProgressBaselineLineDto[];
   openClaim: ProgressClaimDto | null;
   claims: ProgressClaimDto[];

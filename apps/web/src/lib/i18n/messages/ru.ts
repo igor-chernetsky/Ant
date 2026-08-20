@@ -100,6 +100,12 @@ export const ru: Messages = {
       contractorProgressClaimRejectedTitle: 'Progress claim отклонён',
       contractorProgressClaimRejectedBody:
         'Claim #{n} по проекту {project} отклонён.',
+      contractorAdvancePaymentSlipAttachedTitle: 'Платёжки по авансу отправлены',
+      contractorAdvancePaymentSlipAttachedBody:
+        'Заказчик отправил {count} платёжк(и) по авансу на {project} ({amount} THB).',
+      contractorProgressClaimPaymentSlipAttachedTitle: 'Платёжки отправлены',
+      contractorProgressClaimPaymentSlipAttachedBody:
+        'Заказчик отправил {count} платёжк(и) по claim #{n} на {project} ({amount} THB).',
       contractorDefectReportedTitle: 'Сообщён дефект',
       contractorDefectReportedBody:
         'По проекту {project} сообщён дефект №{n}.',

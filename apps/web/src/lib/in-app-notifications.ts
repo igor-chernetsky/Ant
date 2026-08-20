@@ -21,6 +21,8 @@ export type InAppNotificationKind =
   | 'client_progress_claim_submitted'
   | 'contractor_progress_claim_approved'
   | 'contractor_progress_claim_rejected'
+  | 'contractor_advance_payment_slip_attached'
+  | 'contractor_progress_claim_payment_slip_attached'
   | 'contractor_defect_reported'
   | 'contractor_defect_resubmitted'
   | 'contractor_defect_completion_rejected'

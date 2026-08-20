@@ -11868,6 +11868,43 @@ select:disabled {
   width: 100%;
 }
 
+.progress-payment-slips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.progress-payment-slip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progress-payment-slip-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--border, #d4d4d8) 80%, transparent);
+}
+
+.progress-payment-slip-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.progress-payment-slip-name {
+  font-weight: 500;
+  word-break: break-word;
+}
+
 .progress-payment-slip-status {
   font-size: 0.82rem;
   color: var(--success, #067647);
