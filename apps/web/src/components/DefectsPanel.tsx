@@ -32,10 +32,32 @@ import {
   type ProjectDocument,
 } from '@/lib/documents';
 import { formatDateTime } from '@/lib/projects';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 interface DefectsPanelProps {
   projectId: string;
   projectStatus: string;
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
 }
 
 function latestEvent(defect: Defect, kind: DefectEvent['kind']): DefectEvent | null {
@@ -230,6 +252,7 @@ function toProjectDocument(
 
 export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
   const { t } = useTranslation();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [overview, setOverview] = useState<DefectsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -304,15 +327,16 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
   };
 
   const handleDelete = async (defect: Defect) => {
-    if (
-      !window.confirm(
-        t('defectsSection.deleteConfirm', {
-          n: String(defect.sequenceNumber),
-        }),
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: t('defectsSection.deleteTitle'),
+      message: t('defectsSection.deleteConfirm', {
+        n: String(defect.sequenceNumber),
+      }),
+      confirmLabel: t('defectsSection.delete'),
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
     setBusy(true);
     setError(null);
     try {
@@ -446,32 +470,37 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                     {t(statusLabelKey(defect.status))}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() =>
-                    setExpandedId(expanded ? null : defect.id)
-                  }
-                >
-                  {expanded
-                    ? t('defectsSection.hideHistory')
-                    : t('defectsSection.showHistory')}
-                </button>
-              </div>
-              <p className="defect-description">{defect.description}</p>
-
-              {isClient && defect.status === 'reported' && (
-                <div className="defect-actions">
+                <div className="defect-item-header-actions">
+                  {isClient &&
+                    (defect.status === 'reported' ||
+                      defect.status === 'declined') && (
+                      <button
+                        type="button"
+                        className="icon-button defect-delete-btn"
+                        disabled={busy}
+                        aria-label={t('defectsSection.deleteAria', {
+                          n: String(defect.sequenceNumber),
+                        })}
+                        title={t('defectsSection.delete')}
+                        onClick={() => void handleDelete(defect)}
+                      >
+                        <TrashIcon />
+                      </button>
+                    )}
                   <button
                     type="button"
-                    className="danger"
-                    disabled={busy}
-                    onClick={() => void handleDelete(defect)}
+                    className="link-button"
+                    onClick={() =>
+                      setExpandedId(expanded ? null : defect.id)
+                    }
                   >
-                    {t('defectsSection.delete')}
+                    {expanded
+                      ? t('defectsSection.hideHistory')
+                      : t('defectsSection.showHistory')}
                   </button>
                 </div>
-              )}
+              </div>
+              <p className="defect-description">{defect.description}</p>
 
               {isContractor && defect.status === 'reported' && (
                 <div className="defect-actions">
@@ -579,14 +608,6 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                     }
                   >
                     {t('defectsSection.resubmit')}
-                  </button>
-                  <button
-                    type="button"
-                    className="danger"
-                    disabled={busy}
-                    onClick={() => void handleDelete(defect)}
-                  >
-                    {t('defectsSection.delete')}
                   </button>
                 </div>
               )}
@@ -751,6 +772,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
           );
         })}
       </ul>
+      {confirmDialog}
     </section>
   );
 }
