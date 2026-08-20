@@ -247,6 +247,13 @@ enum NotificationEmailKind {
   client_defect_declined
   client_defect_accepted
   client_defect_completed
+  client_project_completion_requested
+  contractor_project_completion_requested
+}
+
+enum CompletionRequestRole {
+  client
+  contractor
 }
 
 model NotificationEmailLog {
@@ -289,6 +296,8 @@ enum InAppNotificationKind {
   client_defect_declined
   client_defect_accepted
   client_defect_completed
+  client_project_completion_requested
+  contractor_project_completion_requested
 }
 
 enum ContractSignatureRequestStatus {
@@ -408,6 +417,9 @@ model Project {
   advancePaymentSlipDocumentId String?   @unique @map("advance_payment_slip_document_id")
   advancePaymentSlipDocument   Document? @relation("ProjectAdvancePaymentSlip", fields: [advancePaymentSlipDocumentId], references: [id], onDelete: SetNull)
   advancePaymentSlipUploadedAt DateTime? @map("advance_payment_slip_uploaded_at")
+  completionRequestedBy CompletionRequestRole? @map("completion_requested_by")
+  completionRequestedAt DateTime? @map("completion_requested_at")
+  completionDraftReviewJson Json? @map("completion_draft_review_json")
 
   @@index([clientId])
   @@index([clientId, isHidden])

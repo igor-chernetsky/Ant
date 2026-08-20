@@ -17,8 +17,13 @@ export type ReviewRatings = Record<ReviewRatingCategory, number>;
 export const MAX_REVIEW_ATTACHMENTS = 10;
 export const MAX_REVIEW_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
+export type CompletionRequestRole = 'client' | 'contractor';
+
 export interface ProjectCompletionContext {
-  canComplete: boolean;
+  canRequestCompletion: boolean;
+  canConfirmCompletion: boolean;
+  completionRequestedBy: CompletionRequestRole | null;
+  contractFullySigned: boolean;
   contractorName: string | null;
   reason: string | null;
 }
@@ -45,6 +50,21 @@ export async function fetchProjectCompletionContext(
 ): Promise<ProjectCompletionContext> {
   const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/completion`,
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to load completion details');
+  }
+  return response.json() as Promise<ProjectCompletionContext>;
+}
+
+export async function fetchContractorProjectCompletionContext(
+  projectId: string,
+): Promise<ProjectCompletionContext> {
+  const response = await fetchWithAuth(
+    `/api/contractor/projects/${encodeURIComponent(projectId)}/completion`,
   );
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
@@ -123,4 +143,82 @@ export async function uploadReviewAttachment(
   }
 
   return completeReviewAttachment(projectId, presigned.attachmentId);
+}
+
+export async function requestProjectCompletion(
+  projectId: string,
+  input: CompleteProjectInput,
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/close`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to request project completion');
+  }
+}
+
+export async function confirmProjectCompletion(
+  projectId: string,
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/confirm-completion`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to confirm project completion');
+  }
+}
+
+export async function requestContractorProjectCompletion(
+  projectId: string,
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `/api/contractor/projects/${encodeURIComponent(projectId)}/request-completion`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to request project completion');
+  }
+}
+
+export async function confirmContractorProjectCompletion(
+  projectId: string,
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `/api/contractor/projects/${encodeURIComponent(projectId)}/confirm-completion`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to confirm project completion');
+  }
+}
+
+export async function adminCompleteProject(projectId: string): Promise<void> {
+  const response = await fetchWithAuth(
+    `/api/admin/projects/${encodeURIComponent(projectId)}/complete`,
+    { method: 'POST' },
+  );
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to complete project');
+  }
 }

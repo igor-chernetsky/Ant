@@ -117,7 +117,7 @@ export class ProjectsController {
     @Param('id') id: string,
   ) {
     const user = await this.resolveClient(req);
-    return this.projectReviews.getCompletionContext(user.id, id);
+    return this.projectReviews.getCompletionContextForClient(user.id, id);
   }
 
   @Post(':id/review-attachments/presign')
@@ -148,5 +148,14 @@ export class ProjectsController {
   ) {
     const user = await this.resolveClient(req);
     return this.projectsService.closeForClient(user.id, id, body);
+  }
+
+  @Post(':id/confirm-completion')
+  async confirmCompletion(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('id') id: string,
+  ) {
+    const user = await this.resolveClient(req);
+    return this.projectsService.confirmCompletionForClient(user.id, id);
   }
 }

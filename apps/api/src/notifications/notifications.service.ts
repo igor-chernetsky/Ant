@@ -2092,6 +2092,83 @@ export class NotificationsService {
     });
   }
 
+  async notifyClientProjectCompletionRequested(params: {
+    clientUserId: string;
+    projectId: string;
+    projectTitle: string;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.clientUserId,
+      kind: InAppNotificationKind.contractor_project_completion_requested,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+      },
+    });
+    await this.sendToUser({
+      userId: params.clientUserId,
+      prefFlag: 'emailClientBidActivity',
+      kind: NotificationEmailKind.contractor_project_completion_requested,
+      projectId: params.projectId,
+      subject: `Project completion requested — ${params.projectTitle}`,
+      title: 'Contractor requested project completion',
+      bodyHtml: `<p>The contractor requested to mark <strong>${escapeHtml(params.projectTitle)}</strong> as complete.</p><p>Confirm completion on the project page when work is finished.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'Review project',
+      textBody: `The contractor requested completion for ${params.projectTitle}. Confirm on the project page.`,
+    });
+  }
+
+  async notifyContractorProjectCompletionRequested(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.client_project_completion_requested,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+      },
+    });
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.client_project_completion_requested,
+      projectId: params.projectId,
+      subject: `Project completion requested — ${params.projectTitle}`,
+      title: 'Client requested project completion',
+      bodyHtml: `<p>The client requested to mark <strong>${escapeHtml(params.projectTitle)}</strong> as complete.</p><p>Confirm completion on the project page when work is finished.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'Review project',
+      textBody: `The client requested completion for ${params.projectTitle}. Confirm on the project page.`,
+    });
+  }
+
+  async notifyAdminProjectCompletionRequested(params: {
+    projectId: string;
+    projectTitle: string;
+    requestedBy: 'client' | 'contractor';
+  }): Promise<void> {
+    const requester =
+      params.requestedBy === 'client' ? 'Client' : 'Contractor';
+    const projectHref = `${this.appUrl()}/projects/${encodeURIComponent(params.projectId)}`;
+
+    await this.sendTelegramMessage({
+      text: [
+        `<b>Project completion requested</b>`,
+        '',
+        `<b>Project:</b> ${escapeHtml(params.projectTitle)}`,
+        `<b>Requested by:</b> ${requester}`,
+        '',
+        `<a href="${projectHref}">Open project</a>`,
+      ].join('\n'),
+    });
+  }
+
   dispatch(promise: Promise<void>): void {
     void promise.catch((error) => {
       this.logger.warn('Notification dispatch failed', error);

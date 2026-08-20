@@ -8,6 +8,7 @@ import { ContractAddendaPanel } from '@/components/ContractAddendaPanel';
 import { ContractDocumentEditor } from '@/components/ContractDocumentEditor';
 import { CustomContractPreview } from '@/components/CustomContractPreview';
 import { ContractSigningPanel } from '@/components/ContractSigningPanel';
+import { ContractorProjectCompletionPanel } from '@/components/ContractorProjectCompletionPanel';
 import { BidProposalForm } from '@/components/BidProposalForm';
 import { BidOfferSummary } from '@/components/BidOfferSummary';
 import { BidProposalSummary } from '@/components/BidProposalSummary';
@@ -616,6 +617,12 @@ export function ContractorProjectPanel({
             reusedSignatureDataUrl={
               contract?.contractorSignatureDataUrl ?? null
             }
+          />
+          <ContractorProjectCompletionPanel
+            projectId={projectId}
+            projectStatus={participation.projectStatus}
+            contractFullySigned={participation.contractFullySigned}
+            onUpdated={() => void loadParticipation()}
           />
           {participation.canWithdrawFromAward && (
             <div className="participation-actions">

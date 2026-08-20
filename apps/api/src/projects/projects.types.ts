@@ -132,7 +132,10 @@ export interface PublicProjectListPage {
 }
 
 export interface ProjectCompletionContext {
-  canComplete: boolean;
+  canRequestCompletion: boolean;
+  canConfirmCompletion: boolean;
+  completionRequestedBy: 'client' | 'contractor' | null;
+  contractFullySigned: boolean;
   contractorName: string | null;
   reason: string | null;
 }

@@ -223,6 +223,38 @@ export class ContractorTenderController {
     return participation ?? { participation: null };
   }
 
+  @Get('projects/:projectId/completion')
+  async getProjectCompletion(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.projectReviews.getCompletionContextForContractor(
+      user.id,
+      projectId,
+    );
+  }
+
+  @Post('projects/:projectId/request-completion')
+  async requestProjectCompletion(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    await this.projectReviews.requestCompletionByContractor(user.id, projectId);
+    return { ok: true };
+  }
+
+  @Post('projects/:projectId/confirm-completion')
+  async confirmProjectCompletion(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+  ) {
+    const user = await this.resolveUser(req);
+    await this.projectReviews.confirmCompletionByContractor(user.id, projectId);
+    return { ok: true };
+  }
+
   @Get('projects/:projectId/contract')
   async getContract(
     @Req() req: Request & { user: JwtPayload },

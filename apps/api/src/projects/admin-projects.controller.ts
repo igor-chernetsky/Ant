@@ -1,4 +1,4 @@
-import { Controller, Delete, Param, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
@@ -13,6 +13,12 @@ export class AdminProjectsController {
   @Delete(':id')
   async deleteOne(@Param('id') id: string) {
     await this.projectsService.deleteForAdmin(id);
+    return { ok: true };
+  }
+
+  @Post(':id/complete')
+  async completeOne(@Param('id') id: string) {
+    await this.projectsService.completeForAdmin(id);
     return { ok: true };
   }
 }

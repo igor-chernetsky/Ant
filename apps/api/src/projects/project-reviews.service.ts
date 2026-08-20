@@ -6,12 +6,16 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import {
+  CompletionRequestRole,
+  ContractStatus,
   DocumentStatus,
+  Prisma,
   ProjectStatus,
   BidStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   ALLOWED_REVIEW_ATTACHMENT_TYPES,
   buildReviewAttachmentStorageKey,
@@ -34,49 +38,40 @@ import {
 
 const COMPLETABLE_STATUSES: ProjectStatus[] = [ProjectStatus.active];
 
+interface CompletionDraftReview {
+  comment: string | null;
+  ratings: Record<ReviewRatingCategory, number>;
+  attachmentIds: string[];
+}
+
 @Injectable()
 export class ProjectReviewsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly notifications: NotificationsService,
   ) {}
 
-  async getCompletionContext(
+  async getCompletionContextForClient(
     clientId: string,
     projectId: string,
   ): Promise<ProjectCompletionContext> {
     const project = await this.assertClientProject(clientId, projectId);
-
-    if (project.status === ProjectStatus.completed) {
-      return {
-        canComplete: false,
-        contractorName: null,
-        reason: 'Project is already completed',
-      };
-    }
-
-    if (!COMPLETABLE_STATUSES.includes(project.status)) {
-      return {
-        canComplete: false,
-        contractorName: null,
-        reason: 'Select a winning contractor before completing the project',
-      };
-    }
-
     const awarded = await this.loadAwardedBid(projectId);
-    if (!awarded) {
-      return {
-        canComplete: false,
-        contractorName: null,
-        reason: 'No winning contractor found for this project',
-      };
-    }
+    return this.buildCompletionContext(project, projectId, 'client', awarded);
+  }
 
-    return {
-      canComplete: true,
-      contractorName: awarded.contractor.companyName ?? 'Contractor',
-      reason: null,
-    };
+  async getCompletionContextForContractor(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectCompletionContext> {
+    const ctx = await this.loadContractorCompletionContext(userId, projectId);
+    return this.buildCompletionContext(
+      ctx.project,
+      projectId,
+      'contractor',
+      ctx.awarded,
+    );
   }
 
   async listForContractor(userId: string): Promise<ContractorReviewItem[]> {
@@ -275,6 +270,11 @@ export class ProjectReviewsService {
         'Review attachments can only be added before project completion',
       );
     }
+    if (project.completionRequestedBy) {
+      throw new BadRequestException(
+        'Review attachments cannot be added while completion is pending confirmation',
+      );
+    }
 
     const fileName = dto.fileName?.trim();
     if (!fileName) {
@@ -391,80 +391,143 @@ export class ProjectReviewsService {
     return this.toAttachmentResponse(updated);
   }
 
-  async completeProject(
+  async requestCompletionByClient(
     clientId: string,
     projectId: string,
     dto: CompleteProjectDto,
   ): Promise<void> {
     const project = await this.assertClientProject(clientId, projectId);
+    this.assertCanRequestCompletion(project);
+
+    const awarded = await this.requireAwardedBid(projectId);
+    const draft = this.buildDraftReview(clientId, projectId, dto);
+    await this.validateDraftAttachments(project.clientId, projectId, draft);
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        completionRequestedBy: CompletionRequestRole.client,
+        completionRequestedAt: new Date(),
+        completionDraftReviewJson: draft as unknown as Prisma.InputJsonValue,
+      },
+    });
+
+    void this.notifications.dispatch(
+      this.notifications.notifyContractorProjectCompletionRequested({
+        contractorUserId: awarded.contractor.userId,
+        projectId,
+        projectTitle: project.title,
+      }),
+    );
+    void this.notifications.dispatch(
+      this.notifications.notifyAdminProjectCompletionRequested({
+        projectId,
+        projectTitle: project.title,
+        requestedBy: 'client',
+      }),
+    );
+  }
+
+  async requestCompletionByContractor(
+    userId: string,
+    projectId: string,
+  ): Promise<void> {
+    const ctx = await this.loadContractorCompletionContext(userId, projectId);
+    this.assertCanRequestCompletion(ctx.project);
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        completionRequestedBy: CompletionRequestRole.contractor,
+        completionRequestedAt: new Date(),
+        completionDraftReviewJson: Prisma.DbNull,
+      },
+    });
+
+    void this.notifications.dispatch(
+      this.notifications.notifyClientProjectCompletionRequested({
+        clientUserId: ctx.project.clientId,
+        projectId,
+        projectTitle: ctx.project.title,
+      }),
+    );
+    void this.notifications.dispatch(
+      this.notifications.notifyAdminProjectCompletionRequested({
+        projectId,
+        projectTitle: ctx.project.title,
+        requestedBy: 'contractor',
+      }),
+    );
+  }
+
+  async confirmCompletionByClient(
+    clientId: string,
+    projectId: string,
+  ): Promise<void> {
+    const project = await this.assertClientProject(clientId, projectId);
+    if (project.status === ProjectStatus.completed) {
+      return;
+    }
+    if (project.completionRequestedBy !== CompletionRequestRole.contractor) {
+      throw new BadRequestException(
+        'No contractor completion request is pending confirmation',
+      );
+    }
+
+    const awarded = await this.requireAwardedBid(projectId);
+    await this.finalizeProjectCompletion(projectId, null, awarded);
+  }
+
+  async confirmCompletionByContractor(
+    userId: string,
+    projectId: string,
+  ): Promise<void> {
+    const ctx = await this.loadContractorCompletionContext(userId, projectId);
+    const project = ctx.project;
+    if (project.status === ProjectStatus.completed) {
+      return;
+    }
+    if (project.completionRequestedBy !== CompletionRequestRole.client) {
+      throw new BadRequestException(
+        'No client completion request is pending confirmation',
+      );
+    }
+
+    const draft = this.parseDraftReview(project.completionDraftReviewJson);
+    await this.finalizeProjectCompletion(projectId, draft, ctx.awarded);
+  }
+
+  async completeProjectByAdmin(projectId: string): Promise<void> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
     if (project.status === ProjectStatus.completed) {
       return;
     }
     if (!COMPLETABLE_STATUSES.includes(project.status)) {
       throw new BadRequestException(
-        'Project can only be completed after a contractor is selected',
+        'Project can only be completed while it is active',
       );
     }
 
-    const awarded = await this.loadAwardedBid(projectId);
-    if (!awarded) {
-      throw new BadRequestException('No winning contractor found');
-    }
+    const awarded = await this.requireAwardedBid(projectId);
+    const draft =
+      project.completionRequestedBy === CompletionRequestRole.client
+        ? this.parseDraftReview(project.completionDraftReviewJson)
+        : null;
+    await this.finalizeProjectCompletion(projectId, draft, awarded);
+  }
 
-    const ratings = this.normalizeRatings(dto.ratings);
-    const comment = dto.comment?.trim() || null;
-    const attachmentIds = [...new Set(dto.attachmentIds ?? [])];
-
-    if (attachmentIds.length > MAX_REVIEW_ATTACHMENTS) {
-      throw new BadRequestException(
-        `At most ${MAX_REVIEW_ATTACHMENTS} attachments allowed`,
-      );
-    }
-
-    const attachments =
-      attachmentIds.length > 0
-        ? await this.prisma.projectReviewAttachment.findMany({
-            where: {
-              id: { in: attachmentIds },
-              projectId,
-              clientId,
-              status: DocumentStatus.uploaded,
-              reviewId: null,
-            },
-          })
-        : [];
-
-    if (attachments.length !== attachmentIds.length) {
-      throw new BadRequestException('One or more review attachments are invalid');
-    }
-
-    await this.prisma.$transaction(async (tx) => {
-      const review = await tx.contractorProjectReview.create({
-        data: {
-          projectId,
-          clientId,
-          contractorId: awarded.contractorId,
-          bidId: awarded.id,
-          comment,
-          ratingsJson: ratings,
-        },
-      });
-
-      if (attachments.length > 0) {
-        await tx.projectReviewAttachment.updateMany({
-          where: { id: { in: attachments.map((item) => item.id) } },
-          data: { reviewId: review.id },
-        });
-      }
-
-      await tx.project.update({
-        where: { id: projectId },
-        data: {
-          status: ProjectStatus.completed,
-          isHidden: false,
-        },
-      });
-    });
+  /** @deprecated Use requestCompletionByClient */
+  async completeProject(
+    clientId: string,
+    projectId: string,
+    dto: CompleteProjectDto,
+  ): Promise<void> {
+    await this.requestCompletionByClient(clientId, projectId, dto);
   }
 
   private computeAverageRating(ratings: Record<string, number>): number {
@@ -543,7 +606,7 @@ export class ProjectReviewsService {
       where: { projectId },
       include: {
         awardedBid: {
-          include: { contractor: true },
+          include: { contractor: { include: { user: true } } },
         },
       },
     });
@@ -551,6 +614,280 @@ export class ProjectReviewsService {
       return null;
     }
     return tender.awardedBid;
+  }
+
+  private async requireAwardedBid(projectId: string) {
+    const awarded = await this.loadAwardedBid(projectId);
+    if (!awarded) {
+      throw new BadRequestException('No winning contractor found');
+    }
+    return awarded;
+  }
+
+  private async loadContractorCompletionContext(
+    userId: string,
+    projectId: string,
+  ) {
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!profile) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const awarded = await this.loadAwardedBid(projectId);
+    if (!awarded || awarded.contractorId !== profile.id) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    return { project, awarded };
+  }
+
+  private async buildCompletionContext(
+    project: {
+      id: string;
+      status: ProjectStatus;
+      completionRequestedBy: CompletionRequestRole | null;
+    },
+    projectId: string,
+    viewerRole: 'client' | 'contractor',
+    awarded: {
+      contractor: { companyName: string | null };
+    } | null,
+  ): Promise<ProjectCompletionContext> {
+    const contract = await this.prisma.contract.findUnique({
+      where: { projectId },
+      select: { status: true },
+    });
+    const contractFullySigned =
+      contract?.status === ContractStatus.fully_signed ||
+      project.status === ProjectStatus.active;
+
+    const completionRequestedBy = project.completionRequestedBy;
+    const contractorName = awarded?.contractor.companyName ?? null;
+
+    if (project.status === ProjectStatus.completed) {
+      return {
+        canRequestCompletion: false,
+        canConfirmCompletion: false,
+        completionRequestedBy: null,
+        contractFullySigned,
+        contractorName,
+        reason: 'Project is already completed',
+      };
+    }
+
+    if (!COMPLETABLE_STATUSES.includes(project.status)) {
+      return {
+        canRequestCompletion: false,
+        canConfirmCompletion: false,
+        completionRequestedBy,
+        contractFullySigned,
+        contractorName,
+        reason: 'Select a winning contractor before completing the project',
+      };
+    }
+
+    if (!awarded) {
+      return {
+        canRequestCompletion: false,
+        canConfirmCompletion: false,
+        completionRequestedBy,
+        contractFullySigned,
+        contractorName: null,
+        reason: 'No winning contractor found for this project',
+      };
+    }
+
+    const canRequestCompletion = !completionRequestedBy;
+    const canConfirmCompletion =
+      viewerRole === 'client'
+        ? completionRequestedBy === CompletionRequestRole.contractor
+        : completionRequestedBy === CompletionRequestRole.client;
+
+    return {
+      canRequestCompletion,
+      canConfirmCompletion,
+      completionRequestedBy,
+      contractFullySigned,
+      contractorName: contractorName ?? 'Contractor',
+      reason: null,
+    };
+  }
+
+  private assertCanRequestCompletion(project: {
+    status: ProjectStatus;
+    completionRequestedBy: CompletionRequestRole | null;
+  }) {
+    if (project.status === ProjectStatus.completed) {
+      throw new BadRequestException('Project is already completed');
+    }
+    if (!COMPLETABLE_STATUSES.includes(project.status)) {
+      throw new BadRequestException(
+        'Project can only be completed after work has started',
+      );
+    }
+    if (project.completionRequestedBy) {
+      throw new BadRequestException(
+        'A completion request is already pending confirmation',
+      );
+    }
+  }
+
+  private buildDraftReview(
+    _clientId: string,
+    _projectId: string,
+    dto: CompleteProjectDto,
+  ): CompletionDraftReview {
+    const ratings = this.normalizeRatings(dto.ratings);
+    const comment = dto.comment?.trim() || null;
+    const attachmentIds = [...new Set(dto.attachmentIds ?? [])];
+
+    if (attachmentIds.length > MAX_REVIEW_ATTACHMENTS) {
+      throw new BadRequestException(
+        `At most ${MAX_REVIEW_ATTACHMENTS} attachments allowed`,
+      );
+    }
+
+    return {
+      comment,
+      ratings,
+      attachmentIds,
+    };
+  }
+
+  private async validateDraftAttachments(
+    clientId: string,
+    projectId: string,
+    draft: CompletionDraftReview,
+  ) {
+    const attachmentIds = [...new Set(draft.attachmentIds)];
+    if (attachmentIds.length === 0) {
+      return;
+    }
+
+    const attachments = await this.prisma.projectReviewAttachment.findMany({
+      where: {
+        id: { in: attachmentIds },
+        projectId,
+        clientId,
+        status: DocumentStatus.uploaded,
+        reviewId: null,
+      },
+    });
+
+    if (attachments.length !== attachmentIds.length) {
+      throw new BadRequestException('One or more review attachments are invalid');
+    }
+  }
+
+  private parseDraftReview(
+    raw: unknown,
+  ): CompletionDraftReview | null {
+    if (!raw || typeof raw !== 'object') {
+      return null;
+    }
+    const draft = raw as Partial<CompletionDraftReview>;
+    if (!draft.ratings || typeof draft.ratings !== 'object') {
+      return null;
+    }
+    return {
+      comment:
+        typeof draft.comment === 'string' ? draft.comment.trim() || null : null,
+      ratings: this.normalizeRatings(
+        draft.ratings as Record<string, number>,
+      ),
+      attachmentIds: Array.isArray(draft.attachmentIds)
+        ? draft.attachmentIds.filter((id) => typeof id === 'string')
+        : [],
+    };
+  }
+
+  private async finalizeProjectCompletion(
+    projectId: string,
+    draft: CompletionDraftReview | null,
+    awarded: {
+      id: string;
+      contractorId: string;
+      contractor: { userId: string };
+    },
+  ) {
+    const project = await this.prisma.project.findUniqueOrThrow({
+      where: { id: projectId },
+    });
+
+    if (draft) {
+      const attachmentIds = [...new Set(draft.attachmentIds)];
+      const attachments =
+        attachmentIds.length > 0
+          ? await this.prisma.projectReviewAttachment.findMany({
+              where: {
+                id: { in: attachmentIds },
+                projectId,
+                clientId: project.clientId,
+                status: DocumentStatus.uploaded,
+                reviewId: null,
+              },
+            })
+          : [];
+
+      if (attachments.length !== attachmentIds.length) {
+        throw new BadRequestException(
+          'One or more review attachments are invalid',
+        );
+      }
+
+      await this.prisma.$transaction(async (tx) => {
+        const review = await tx.contractorProjectReview.create({
+          data: {
+            projectId,
+            clientId: project.clientId,
+            contractorId: awarded.contractorId,
+            bidId: awarded.id,
+            comment: draft.comment,
+            ratingsJson: draft.ratings,
+          },
+        });
+
+        if (attachments.length > 0) {
+          await tx.projectReviewAttachment.updateMany({
+            where: { id: { in: attachments.map((item) => item.id) } },
+            data: { reviewId: review.id },
+          });
+        }
+
+        await tx.project.update({
+          where: { id: projectId },
+          data: {
+            status: ProjectStatus.completed,
+            isHidden: false,
+            completionRequestedBy: null,
+            completionRequestedAt: null,
+            completionDraftReviewJson: Prisma.DbNull,
+          },
+        });
+      });
+      return;
+    }
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        status: ProjectStatus.completed,
+        isHidden: false,
+        completionRequestedBy: null,
+        completionRequestedAt: null,
+        completionDraftReviewJson: Prisma.DbNull,
+      },
+    });
   }
 
   private async assertClientProject(clientId: string, projectId: string) {

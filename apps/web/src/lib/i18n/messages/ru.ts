@@ -121,6 +121,12 @@ export const ru: Messages = {
       clientDefectCompletedTitle: 'Дефект отмечен выполненным',
       clientDefectCompletedBody:
         'Дефект №{n} по проекту {project} отмечен выполненным.',
+      clientProjectCompletionRequestedTitle: 'Заказчик запросил завершение проекта',
+      clientProjectCompletionRequestedBody:
+        'Заказчик запросил завершение проекта {project}. Подтвердите на странице проекта.',
+      contractorProjectCompletionRequestedTitle: 'Подрядчик запросил завершение проекта',
+      contractorProjectCompletionRequestedBody:
+        'Подрядчик запросил завершение проекта {project}. Подтвердите на странице проекта.',
       genericProjectBody: 'Связано с проектом {project}.',
     },
   },

@@ -9,6 +9,7 @@ import { TagsModule } from '../tags/tags.module';
 import { UsersModule } from '../users/users.module';
 import { DocumentsModule } from '../documents/documents.module';
 import { SupplyDirectoryModule } from '../supply-directory/supply-directory.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 import { AdminProjectsController } from './admin-projects.controller';
 import { ProjectsController } from './projects.controller';
@@ -26,6 +27,7 @@ import { ProjectScopeSyncService } from './project-scope-sync.service';
     LocalizationModule,
     AiModule,
     SupplyDirectoryModule,
+    NotificationsModule,
     forwardRef(() => IntakeModule),
     forwardRef(() => DocumentsModule),
   ],

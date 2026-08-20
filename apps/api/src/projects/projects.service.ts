@@ -14,7 +14,7 @@ import {
 
 } from '@nestjs/common';
 
-import { BidStatus, DocumentStatus, Prisma, Project, ProjectLinkKind, ProjectStatus, ProjectTag, ProjectType, Tag } from '@prisma/client';
+import { BidStatus, ContractStatus, DocumentStatus, Prisma, Project, ProjectLinkKind, ProjectStatus, ProjectTag, ProjectType, Tag } from '@prisma/client';
 import { IntakeService } from '../intake/intake.service';
 import { EstimatesService } from '../estimation/estimates.service';
 import { LocationsService } from '../locations/locations.service';
@@ -1505,6 +1505,19 @@ export class ProjectsService {
     if (project.status === ProjectStatus.completed) {
       throw new BadRequestException('Completed projects cannot be hidden');
     }
+    if (project.status === ProjectStatus.active) {
+      throw new BadRequestException(
+        'Signed projects cannot be hidden',
+      );
+    }
+
+    const contract = await this.prisma.contract.findUnique({
+      where: { projectId },
+      select: { status: true },
+    });
+    if (contract?.status === ContractStatus.fully_signed) {
+      throw new BadRequestException('Signed projects cannot be hidden');
+    }
 
     const updated = await this.prisma.project.update({
       where: { id: projectId },
@@ -1534,8 +1547,20 @@ export class ProjectsService {
     projectId: string,
     dto: CompleteProjectDto,
   ): Promise<ProjectResponse> {
-    await this.projectReviews.completeProject(clientId, projectId, dto);
+    await this.projectReviews.requestCompletionByClient(clientId, projectId, dto);
     return this.getForClient(clientId, projectId);
+  }
+
+  async confirmCompletionForClient(
+    clientId: string,
+    projectId: string,
+  ): Promise<ProjectResponse> {
+    await this.projectReviews.confirmCompletionByClient(clientId, projectId);
+    return this.getForClient(clientId, projectId);
+  }
+
+  async completeForAdmin(projectId: string): Promise<void> {
+    await this.projectReviews.completeProjectByAdmin(projectId);
   }
 
   /**

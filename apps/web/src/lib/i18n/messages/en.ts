@@ -120,6 +120,12 @@ export const en = {
       clientDefectCompletedTitle: 'Defect marked complete',
       clientDefectCompletedBody:
         'Defect #{n} on {project} was marked complete.',
+      clientProjectCompletionRequestedTitle: 'Client requested project completion',
+      clientProjectCompletionRequestedBody:
+        'The client requested to complete {project}. Confirm on the project page.',
+      contractorProjectCompletionRequestedTitle: 'Contractor requested project completion',
+      contractorProjectCompletionRequestedBody:
+        'The contractor requested to complete {project}. Confirm on the project page.',
       genericProjectBody: 'Related to {project}.',
     },
   },

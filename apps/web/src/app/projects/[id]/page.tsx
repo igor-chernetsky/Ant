@@ -55,6 +55,7 @@ import {
   type Project,
 } from '@/lib/projects';
 import { ProjectLifecyclePanel } from '@/components/ProjectLifecyclePanel';
+import { adminCompleteProject } from '@/lib/project-reviews';
 import { useSession } from '@/components/SessionProvider';
 import { isContractorUser, isDesignerUser, isAdminUser } from '@/lib/session';
 import {
@@ -100,6 +101,7 @@ export default function ProjectDetailPage() {
   const [docCategory, setDocCategory] = useState<DocumentCategory>('blueprint');
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -428,6 +430,30 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleAdminComplete = async () => {
+    if (!projectId || !project) return;
+    const confirmed = await confirm({
+      title: t('admin.completeProjectTitle'),
+      message: t('admin.completeProjectLead'),
+      confirmLabel: t('admin.completeProjectButton'),
+    });
+    if (!confirmed) return;
+
+    setError(null);
+    setCompleting(true);
+    try {
+      await adminCompleteProject(projectId);
+      const updated = await fetchProject(projectId);
+      setProject(updated);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('admin.completeProjectFailed'),
+      );
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   return (
     <PageShell className="page-shell--project">
       <SiteHeader
@@ -595,10 +621,29 @@ export default function ProjectDetailPage() {
                   <button
                     type="button"
                     className="danger"
-                    disabled={deleting}
+                    disabled={deleting || completing}
                     onClick={() => void handleAdminDelete()}
                   >
                     {deleting ? t('common.loading') : t('admin.removeProjectButton')}
+                  </button>
+                </section>
+              )}
+
+              {showAdminDelete && project.status === 'active' && (
+                <section className="card admin-invite-card">
+                  <h2 className="section-title">
+                    {t('admin.completeProjectTitle')}
+                  </h2>
+                  <p className="muted">{t('admin.completeProjectLead')}</p>
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={deleting || completing}
+                    onClick={() => void handleAdminComplete()}
+                  >
+                    {completing
+                      ? t('common.loading')
+                      : t('admin.completeProjectButton')}
                   </button>
                 </section>
               )}

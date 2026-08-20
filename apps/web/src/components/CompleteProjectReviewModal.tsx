@@ -59,7 +59,7 @@ export function CompleteProjectReviewModal({
       setLoading(true);
       try {
         const context = await fetchProjectCompletionContext(projectId);
-        if (!context.canComplete) {
+        if (!context.canRequestCompletion) {
           throw new Error(
             context.reason ?? t('projectReview.cannotCompleteYet'),
           );
@@ -241,8 +241,8 @@ export function CompleteProjectReviewModal({
               disabled={busy || loading || !allRated}
             >
               {submitting
-                ? t('projectReview.completing')
-                : t('projectReview.completeProject')}
+                ? t('projectReview.requestingCompletion')
+                : t('projectReview.requestCompletion')}
             </button>
             <button
               type="button"

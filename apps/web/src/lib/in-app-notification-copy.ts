@@ -68,6 +68,10 @@ export function formatInAppNotificationTitle(
       return t('notifications.kinds.clientDefectAcceptedTitle');
     case 'client_defect_completed':
       return t('notifications.kinds.clientDefectCompletedTitle');
+    case 'client_project_completion_requested':
+      return t('notifications.kinds.clientProjectCompletionRequestedTitle');
+    case 'contractor_project_completion_requested':
+      return t('notifications.kinds.contractorProjectCompletionRequestedTitle');
     default:
       return t('notifications.title');
   }
@@ -207,6 +211,14 @@ export function formatInAppNotificationBody(
       return t('notifications.kinds.clientDefectCompletedBody', {
         project: projectTitle || t('common.dash'),
         n: payloadString(item.payload, 'defectNumber') || '—',
+      });
+    case 'client_project_completion_requested':
+      return t('notifications.kinds.clientProjectCompletionRequestedBody', {
+        project: projectTitle || t('common.dash'),
+      });
+    case 'contractor_project_completion_requested':
+      return t('notifications.kinds.contractorProjectCompletionRequestedBody', {
+        project: projectTitle || t('common.dash'),
       });
     default:
       return projectTitle

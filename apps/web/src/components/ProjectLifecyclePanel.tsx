@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CompleteProjectReviewModal } from '@/components/CompleteProjectReviewModal';
 import { useTranslation } from '@/components/LocaleProvider';
-import { canCompleteProject } from '@/lib/project-reviews';
 import {
+  confirmProjectCompletion,
+  fetchProjectCompletionContext,
+  type ProjectCompletionContext,
+} from '@/lib/project-reviews';
+import {
+  fetchProject,
   hideProject,
   unhideProject,
   type Project,
@@ -23,13 +28,43 @@ export function ProjectLifecyclePanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [completion, setCompletion] = useState<ProjectCompletionContext | null>(
+    null,
+  );
+  const [completionLoading, setCompletionLoading] = useState(false);
 
-  const runAction = async (action: () => Promise<Project>) => {
+  const loadCompletion = useCallback(async () => {
+    if (project.status !== 'active' && project.status !== 'completed') {
+      setCompletion(null);
+      return;
+    }
+    setCompletionLoading(true);
+    try {
+      const context = await fetchProjectCompletionContext(project.id);
+      setCompletion(context);
+    } catch {
+      setCompletion(null);
+    } finally {
+      setCompletionLoading(false);
+    }
+  }, [project.id, project.status]);
+
+  useEffect(() => {
+    void loadCompletion();
+  }, [loadCompletion]);
+
+  const refreshProject = async () => {
+    const updated = await fetchProject(project.id);
+    onUpdated(updated);
+    await loadCompletion();
+  };
+
+  const runAction = async (action: () => Promise<void>) => {
     setBusy(true);
     setError(null);
     try {
-      const updated = await action();
-      onUpdated(updated);
+      await action();
+      await refreshProject();
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : t('lifecycle.actionFailed'),
@@ -41,20 +76,35 @@ export function ProjectLifecyclePanel({
 
   const isCompleted = project.status === 'completed';
   const isHidden = project.isHidden;
-  const canComplete = canCompleteProject(project);
+  const contractFullySigned = completion?.contractFullySigned ?? project.status === 'active';
+  const canHide = !isCompleted && !contractFullySigned;
+  const canRequestCompletion = completion?.canRequestCompletion ?? false;
+  const canConfirmCompletion = completion?.canConfirmCompletion ?? false;
+  const waitingForContractor =
+    completion?.completionRequestedBy === 'client' && !isCompleted;
+  const waitingForClient =
+    completion?.completionRequestedBy === 'contractor' && !isCompleted;
 
   return (
     <>
       <section className="card project-lifecycle-card">
         <h2 className="section-title">{t('lifecycle.title')}</h2>
-        {isHidden ? (
+        {completionLoading ? (
+          <p className="muted">{t('common.loading')}</p>
+        ) : isHidden ? (
           <p className="muted">{t('lifecycle.hiddenHint')}</p>
         ) : isCompleted ? (
           <p className="muted">{t('lifecycle.completedHint')}</p>
-        ) : canComplete ? (
+        ) : waitingForContractor ? (
+          <p className="muted">{t('lifecycle.waitingContractorHint')}</p>
+        ) : waitingForClient ? (
+          <p className="muted">{t('lifecycle.confirmContractorRequestHint')}</p>
+        ) : canRequestCompletion ? (
           <p className="muted">{t('lifecycle.canCompleteHint')}</p>
-        ) : (
+        ) : canHide ? (
           <p className="muted">{t('lifecycle.hideHint')}</p>
+        ) : (
+          <p className="muted">{t('lifecycle.signedNoHideHint')}</p>
         )}
 
         <div className="project-lifecycle-actions">
@@ -63,31 +113,54 @@ export function ProjectLifecyclePanel({
               type="button"
               className="secondary"
               disabled={busy}
-              onClick={() => void runAction(() => unhideProject(project.id))}
+              onClick={() => void runAction(async () => {
+                const updated = await unhideProject(project.id);
+                onUpdated(updated);
+              })}
             >
               {busy ? t('lifecycle.restoring') : t('lifecycle.showAgain')}
             </button>
           ) : (
-            !isCompleted && (
+            canHide && (
               <button
                 type="button"
                 className="secondary"
                 disabled={busy}
-                onClick={() => void runAction(() => hideProject(project.id))}
+                onClick={() => void runAction(async () => {
+                  const updated = await hideProject(project.id);
+                  onUpdated(updated);
+                })}
               >
                 {busy ? t('lifecycle.hiding') : t('lifecycle.hideProject')}
               </button>
             )
           )}
 
-          {canComplete && !isCompleted && (
+          {canRequestCompletion && !isCompleted && (
             <button
               type="button"
               className="primary"
               disabled={busy}
               onClick={() => setCompleteOpen(true)}
             >
-              {t('lifecycle.completeProject')}
+              {t('lifecycle.requestCompletion')}
+            </button>
+          )}
+
+          {canConfirmCompletion && !isCompleted && (
+            <button
+              type="button"
+              className="primary"
+              disabled={busy}
+              onClick={() =>
+                void runAction(async () => {
+                  await confirmProjectCompletion(project.id);
+                })
+              }
+            >
+              {busy
+                ? t('lifecycle.confirmingCompletion')
+                : t('lifecycle.confirmCompletion')}
             </button>
           )}
         </div>
@@ -99,7 +172,10 @@ export function ProjectLifecyclePanel({
         projectId={project.id}
         isOpen={completeOpen}
         onClose={() => setCompleteOpen(false)}
-        onCompleted={onUpdated}
+        onCompleted={(updated) => {
+          onUpdated(updated);
+          void loadCompletion();
+        }}
       />
     </>
   );

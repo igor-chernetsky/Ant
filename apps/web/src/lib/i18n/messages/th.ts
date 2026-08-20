@@ -121,6 +121,12 @@ export const th: Messages = {
       clientDefectCompletedTitle: 'ทำเครื่องหมายว่าแก้เสร็จ',
       clientDefectCompletedBody:
         'ข้อบกพร่อง #{n} ใน {project} ถูกทำเครื่องหมายว่าแก้เสร็จ',
+      clientProjectCompletionRequestedTitle: 'ลูกค้าขอปิดโครงการ',
+      clientProjectCompletionRequestedBody:
+        'ลูกค้าขอปิดโครงการ {project} ยืนยันบนหน้าโครงการ',
+      contractorProjectCompletionRequestedTitle: 'ผู้รับเหมาขอปิดโครงการ',
+      contractorProjectCompletionRequestedBody:
+        'ผู้รับเหมาขอปิดโครงการ {project} ยืนยันบนหน้าโครงการ',
       genericProjectBody: 'เกี่ยวข้องกับ {project}',
     },
   },

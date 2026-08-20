@@ -368,14 +368,10 @@ export async function closeProject(
   id: string,
   input: import('@/lib/project-reviews').CompleteProjectInput,
 ): Promise<Project> {
-  const response = await fetchWithAuth(
-    `/api/projects/${encodeURIComponent(id)}/close`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    },
+  await import('@/lib/project-reviews').then(({ requestProjectCompletion }) =>
+    requestProjectCompletion(id, input),
   );
+  const response = await fetchWithAuth(`/api/projects/${encodeURIComponent(id)}`);
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
       message?: string;
