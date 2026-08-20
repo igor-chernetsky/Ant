@@ -38,7 +38,7 @@ const en: LegalDocument = {
       paragraphs: [
         '3.1. Grace Period. During the Grace Period, the Partner may use the Platform without payment of any Platform Fee.',
         '3.2. Platform Fee. Following expiration of the Grace Period, the Partner shall pay the Platform a service fee equal to two percent (2%) of the total Contract Amount for every contract concluded with a Client introduced through the Platform. The Platform Fee becomes payable regardless of whether the contract is signed electronically, in writing, verbally confirmed, or otherwise concluded between the Partner and the Client introduced through the Platform.',
-        '3.3. Payment Schedule. For each contract concluded with a Client after expiration of the Grace Period, the Partner agrees to pay the Platform as follows: (a) a non-refundable down payment equivalent to Twenty United States Dollars (USD 20) immediately upon execution of the agreement between the Partner and the Client; and (b) the remaining balance of the applicable 2% Platform Fee no later than thirty (30) calendar days after the date the agreement with the Client is signed. If the total Platform Fee is less than USD 20, the Partner shall pay only the actual amount of the Platform Fee.',
+        '3.3. Payment Schedule. For each contract concluded with a Client after expiration of the Grace Period, the Partner agrees to pay the Platform as follows: (a) a non-refundable down payment equivalent to Twenty United States Dollars (USD 20) immediately upon execution of the agreement between the Partner and the Client; and (b) the remaining balance of the applicable 2% Platform Fee no later than two (2) weeks after the date the agreement with the Client is signed, typically after the Partner receives the Client’s advance payment under the construction contract. If the total Platform Fee is less than USD 20, the Partner shall pay only the actual amount of the Platform Fee.',
         '3.4. Late Payments. Any overdue payment may accrue interest at the rate of 0.05% for each day of delay. The Platform may suspend or terminate the Partner’s account until all outstanding amounts have been paid.',
       ],
     },
@@ -125,7 +125,7 @@ const ru: LegalDocument = {
       paragraphs: [
         '3.1. В Льготный период Партнёр может пользоваться Платформой без оплаты Платформенного сбора.',
         '3.2. После окончания Льготного периода Партнёр уплачивает Платформе сервисный сбор в размере двух процентов (2%) от Суммы договора по каждому договору с Клиентом, привлечённым через Платформу, независимо от формы заключения договора.',
-        '3.3. График оплаты: (a) невозвратный аванс, эквивалентный 20 USD, сразу после заключения соглашения с Клиентом; (b) остаток 2% сбора — не позднее 30 календарных дней после подписания. Если весь сбор меньше 20 USD, уплачивается только фактическая сумма сбора.',
+        '3.3. График оплаты: (a) невозвратный аванс, эквивалентный 20 USD, сразу после заключения соглашения с Клиентом; (b) остаток 2% сбора — не позднее двух (2) недель после подписания, обычно после получения аванса от Клиента по договору подряда. Если весь сбор меньше 20 USD, уплачивается только фактическая сумма сбора.',
         '3.4. Просрочка может облагаться процентами 0,05% за каждый день задержки. Платформа может приостановить или закрыть аккаунт до погашения задолженности.',
       ],
     },
@@ -211,7 +211,7 @@ const th: LegalDocument = {
       paragraphs: [
         '3.1. ในระยะเวลาผ่อนผัน พันธมิตรใช้แพลตฟอร์มได้โดยไม่ต้องชำระค่าธรรมเนียม',
         '3.2. หลังสิ้นสุดระยะเวลาผ่อนผัน พันธมิตรชำระค่าบริการร้อยละ 2 ของมูลค่าสัญญาสำหรับทุกสัญญาที่ทำกับลูกค้าซึ่งแนะนำผ่านแพลตฟอร์ม ไม่ว่าจะลงนามในรูปแบบใด',
-        '3.3. ตารางชำระ: (ก) เงินดาวน์ไม่คืนจำนวนเทียบเท่า 20 ดอลลาร์สหรัฐทันทีเมื่อทำสัญญากับลูกค้า และ (ข) ส่วนที่เหลือของค่าธรรมเนียม 2% ภายใน 30 วันปฏิทินหลังลงนาม หากค่าธรรมเนียมรวมน้อยกว่า 20 ดอลลาร์สหรัฐ ให้ชำระเฉพาะจำนวนจริง',
+        '3.3. ตารางชำระ: (ก) เงินดาวน์ไม่คืนจำนวนเทียบเท่า 20 ดอลลาร์สหรัฐทันทีเมื่อทำสัญญากับลูกค้า และ (ข) ส่วนที่เหลือของค่าธรรมเนียม 2% ภายในสอง (2) สัปดาห์หลังลงนาม โดยปกติหลังพันธมิตรได้รับเงินล่วงหน้าจากลูกค้าตามสัญญาก่อสร้าง หากค่าธรรมเนียมรวมน้อยกว่า 20 ดอลลาร์สหรัฐ ให้ชำระเฉพาะจำนวนจริง',
         '3.4. การชำระล่าช้าอาจคิดดอกเบี้ยร้อยละ 0.05 ต่อวัน แพลตฟอร์มอาจระงับหรือยกเลิกบัญชีจนกว่าจะชำระครบ',
       ],
     },
