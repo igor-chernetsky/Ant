@@ -1239,12 +1239,14 @@ pre {
 .admin-projects-filters {
   margin-bottom: 1rem;
   padding: 1rem 1.1rem;
+  overflow: visible;
 }
 
 .admin-projects-filters-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.75rem 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 0.85rem 1rem;
+  align-items: start;
 }
 
 .admin-projects-field {
@@ -1252,11 +1254,23 @@ pre {
   flex-direction: column;
   gap: 0.35rem;
   font-size: 0.85rem;
+  min-width: 0;
+}
+
+.admin-projects-field > span {
+  display: block;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-projects-field input,
 .admin-projects-field select {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .admin-projects-filters-actions {
@@ -1275,8 +1289,10 @@ pre {
 
 .admin-projects-table {
   width: 100%;
-  border-collapse: collapse;
-  min-width: 960px;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 1080px;
+  table-layout: auto;
 }
 
 .admin-projects-table th,
@@ -1293,10 +1309,12 @@ pre {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--muted, #64748b);
-  background: rgba(248, 250, 252, 0.9);
+  background: #f8fafc;
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
+  white-space: nowrap;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--border, #d4d4d8) 80%, transparent);
 }
 
 .admin-projects-sort {
@@ -1309,6 +1327,7 @@ pre {
   cursor: pointer;
   text-transform: inherit;
   letter-spacing: inherit;
+  white-space: nowrap;
 }
 
 .admin-projects-sort:hover {
@@ -1316,20 +1335,47 @@ pre {
 }
 
 .admin-projects-col-expand {
-  width: 2.5rem;
+  width: 2.25rem;
 }
 
 .admin-projects-col-thumb {
   width: 4.5rem;
 }
 
+.admin-projects-col-title {
+  min-width: 12rem;
+}
+
+.admin-projects-col-track {
+  min-width: 7.5rem;
+}
+
 .admin-projects-col-actions {
-  min-width: 14rem;
+  width: 7.5rem;
+  min-width: 7.5rem;
 }
 
 .admin-projects-expand-btn {
-  min-width: 2rem;
-  padding-inline: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  color: var(--muted, #64748b);
+}
+
+.admin-projects-expand-btn:hover:not(:disabled) {
+  color: var(--text, #0f172a);
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.admin-projects-chevron {
+  display: block;
+  transition: transform 0.15s ease;
+  transform: rotate(0deg);
+}
+
+.admin-projects-chevron--open {
+  transform: rotate(90deg);
 }
 
 .admin-projects-thumb {
@@ -1371,20 +1417,59 @@ pre {
   color: #991b1b;
 }
 
+.admin-projects-track {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.admin-projects-track--design {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.admin-projects-track--construction {
+  background: #ecfccb;
+  color: #3f6212;
+}
+
 .admin-projects-row--hidden {
   opacity: 0.72;
 }
 
 .admin-projects-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.15rem;
 }
 
-.admin-projects-actions a.secondary {
+.admin-projects-action-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border-radius: 6px;
+  color: var(--muted, #64748b);
   text-decoration: none;
+  line-height: 1;
+}
+
+.admin-projects-action-btn:hover:not(:disabled) {
+  color: var(--text, #0f172a);
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.admin-projects-action-btn--danger {
+  color: #b91c1c;
+}
+
+.admin-projects-action-btn--danger:hover:not(:disabled) {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .admin-projects-detail-row td {
@@ -1414,11 +1499,14 @@ pre {
   grid-column: 1 / -1;
 }
 
-.admin-projects-pager {
-  display: flex;
-  gap: 0.65rem;
-  justify-content: flex-end;
-  margin-top: 1rem;
+.admin-projects-load-more {
+  height: 1px;
+  margin-top: 0.5rem;
+}
+
+.admin-projects-load-status {
+  margin: 0.75rem 0 0;
+  text-align: center;
 }
 
 .admin-ads-page .admin-ads-hero {

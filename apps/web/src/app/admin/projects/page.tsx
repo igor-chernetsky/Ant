@@ -1,12 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import {
   adminHideProject,
   adminUnhideProject,
@@ -24,7 +32,7 @@ import {
 } from '@/lib/locations';
 import { isAdmin } from '@/lib/verification';
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 20;
 
 const PROJECT_STATUSES = [
   'draft',
@@ -52,9 +60,131 @@ const PROJECT_TYPES = [
 
 type TriFilter = '' | 'true' | 'false';
 
+type AppliedFilters = {
+  q: string;
+  status: string;
+  projectType: string;
+  hidden: TriFilter;
+  clientQ: string;
+  createdFrom: string;
+  createdTo: string;
+  locationRegionSlug: string;
+  hasEstimate: TriFilter;
+  sortBy: AdminProjectSortBy;
+  sortDir: AdminProjectSortDir;
+};
+
 function estimateLabel(item: AdminProjectListItem): string {
   if (!item.estimate) return '—';
   return `${formatThb(item.estimate.minAmount)} – ${formatThb(item.estimate.maxAmount)}`;
+}
+
+function isDesignProject(item: AdminProjectListItem): boolean {
+  return item.projectType === 'design';
+}
+
+function ChevronIcon({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={
+        expanded
+          ? 'admin-projects-chevron admin-projects-chevron--open'
+          : 'admin-projects-chevron'
+      }
+    >
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+function OpenIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M14 3h7v7" />
+      <path d="M10 14L21 3" />
+      <path d="M21 14v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h6" />
+    </svg>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 3l18 18" />
+      <path d="M10.6 10.6a3 3 0 0 0 4.2 4.2" />
+      <path d="M9.9 5.1A10.5 10.5 0 0 1 12 5c6.5 0 10 7 10 7a17.6 17.6 0 0 1-3.3 4.4" />
+      <path d="M6.1 6.1C3.7 7.8 2 12 2 12s3.5 7 10 7c1.4 0 2.7-.3 3.9-.8" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  );
 }
 
 export default function AdminProjectsTablePage() {
@@ -65,14 +195,17 @@ export default function AdminProjectsTablePage() {
     formatTenderStatus,
   } = useAppFormatters();
   const { me, ready: sessionReady, signOut } = useSession();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const [ready, setReady] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<AdminProjectListItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [locationCatalog, setLocationCatalog] =
     useState<LocationCatalog | null>(null);
@@ -89,55 +222,119 @@ export default function AdminProjectsTablePage() {
   const [sortBy, setSortBy] = useState<AdminProjectSortBy>('createdAt');
   const [sortDir, setSortDir] = useState<AdminProjectSortDir>('desc');
 
-  const [applied, setApplied] = useState({
+  const [applied, setApplied] = useState<AppliedFilters>({
     q: '',
     status: '',
     projectType: '',
-    hidden: '' as TriFilter,
+    hidden: '',
     clientQ: '',
     createdFrom: '',
     createdTo: '',
     locationRegionSlug: '',
-    hasEstimate: '' as TriFilter,
-    sortBy: 'createdAt' as AdminProjectSortBy,
-    sortDir: 'desc' as AdminProjectSortDir,
+    hasEstimate: '',
+    sortBy: 'createdAt',
+    sortDir: 'desc',
   });
 
+  const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
+  const loadSeqRef = useRef(0);
+  const loadingMoreRef = useRef(false);
+  const hasMoreRef = useRef(false);
+  const itemsLenRef = useRef(0);
+
+  const fetchPage = useCallback(
+    async (pageOffset: number, filters: AppliedFilters) => {
+      return fetchAdminProjects({
+        q: filters.q || undefined,
+        status: filters.status || undefined,
+        projectType: filters.projectType || undefined,
+        hidden: filters.hidden,
+        clientQ: filters.clientQ || undefined,
+        createdFrom: filters.createdFrom || undefined,
+        createdTo: filters.createdTo || undefined,
+        locationRegionSlug: filters.locationRegionSlug || undefined,
+        hasEstimate: filters.hasEstimate,
+        sortBy: filters.sortBy,
+        sortDir: filters.sortDir,
+        limit: PAGE_SIZE,
+        offset: pageOffset,
+      });
+    },
+    [],
+  );
+
   const load = useCallback(
-    async (pageOffset: number, filters = applied) => {
-      setBusy(true);
+    async (filters = applied) => {
+      const seq = ++loadSeqRef.current;
+      setLoading(true);
+      setLoadingMore(false);
+      loadingMoreRef.current = false;
       setError(null);
       try {
-        const page = await fetchAdminProjects({
-          q: filters.q || undefined,
-          status: filters.status || undefined,
-          projectType: filters.projectType || undefined,
-          hidden: filters.hidden,
-          clientQ: filters.clientQ || undefined,
-          createdFrom: filters.createdFrom || undefined,
-          createdTo: filters.createdTo || undefined,
-          locationRegionSlug: filters.locationRegionSlug || undefined,
-          hasEstimate: filters.hasEstimate,
-          sortBy: filters.sortBy,
-          sortDir: filters.sortDir,
-          limit: PAGE_SIZE,
-          offset: pageOffset,
-        });
+        const page = await fetchPage(0, filters);
+        if (seq !== loadSeqRef.current) return;
         setItems(page.items);
         setTotal(page.total);
-        setOffset(page.offset);
+        setHasMore(page.hasMore);
+        hasMoreRef.current = page.hasMore;
+        itemsLenRef.current = page.items.length;
       } catch (err: unknown) {
+        if (seq !== loadSeqRef.current) return;
         setError(
           err instanceof Error
             ? err.message
             : t('admin.projectsTableLoadFailed'),
         );
+        setItems([]);
+        setTotal(0);
+        setHasMore(false);
+        hasMoreRef.current = false;
+        itemsLenRef.current = 0;
       } finally {
-        setBusy(false);
+        if (seq === loadSeqRef.current) {
+          setLoading(false);
+        }
       }
     },
-    [applied, t],
+    [applied, fetchPage, t],
   );
+
+  const loadMore = useCallback(async () => {
+    if (loadingMoreRef.current || !hasMoreRef.current || loading) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    setError(null);
+    const seq = loadSeqRef.current;
+    const offset = itemsLenRef.current;
+    try {
+      const page = await fetchPage(offset, applied);
+      if (seq !== loadSeqRef.current) return;
+      setItems((prev) => {
+        const seen = new Set(prev.map((item) => item.id));
+        const merged = [
+          ...prev,
+          ...page.items.filter((item) => !seen.has(item.id)),
+        ];
+        itemsLenRef.current = merged.length;
+        return merged;
+      });
+      setTotal(page.total);
+      setHasMore(page.hasMore);
+      hasMoreRef.current = page.hasMore;
+    } catch (err: unknown) {
+      if (seq !== loadSeqRef.current) return;
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.projectsTableLoadMoreFailed'),
+      );
+    } finally {
+      if (seq === loadSeqRef.current) {
+        loadingMoreRef.current = false;
+        setLoadingMore(false);
+      }
+    }
+  }, [applied, fetchPage, loading, t]);
 
   useEffect(() => {
     if (!sessionReady) return;
@@ -146,13 +343,30 @@ export default function AdminProjectsTablePage() {
     void fetchLocationCatalog()
       .then(setLocationCatalog)
       .catch(() => setLocationCatalog(null));
-    void load(0);
-    // Initial admin load only — subsequent loads go through Apply / sort / pager.
+    void load();
+    // Initial admin load only — subsequent loads go through Apply / sort.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionReady, me]);
 
+  useEffect(() => {
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel || loading || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMore();
+        }
+      },
+      { root: null, rootMargin: '240px 0px', threshold: 0 },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loading, hasMore, loadingMore, items.length, loadMore]);
+
   const applyFilters = () => {
-    const next = {
+    const next: AppliedFilters = {
       q: q.trim(),
       status,
       projectType,
@@ -167,7 +381,7 @@ export default function AdminProjectsTablePage() {
     };
     setApplied(next);
     setExpandedId(null);
-    void load(0, next);
+    void load(next);
   };
 
   const toggleSort = (column: AdminProjectSortBy) => {
@@ -178,7 +392,7 @@ export default function AdminProjectsTablePage() {
     const next = { ...applied, sortBy: column, sortDir: nextDir };
     setApplied(next);
     setExpandedId(null);
-    void load(0, next);
+    void load(next);
   };
 
   const handleHideToggle = async (item: AdminProjectListItem) => {
@@ -187,10 +401,19 @@ export default function AdminProjectsTablePage() {
     try {
       if (item.isHidden) {
         await adminUnhideProject(item.id);
+        setItems((prev) =>
+          prev.map((row) =>
+            row.id === item.id ? { ...row, isHidden: false } : row,
+          ),
+        );
       } else {
         await adminHideProject(item.id);
+        setItems((prev) =>
+          prev.map((row) =>
+            row.id === item.id ? { ...row, isHidden: true } : row,
+          ),
+        );
       }
-      await load(offset);
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -203,18 +426,25 @@ export default function AdminProjectsTablePage() {
   };
 
   const handleDelete = async (item: AdminProjectListItem) => {
-    if (
-      !window.confirm(
-        t('admin.projectsTableDeleteConfirm', { title: item.title }),
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: t('admin.projectsTableDeleteTitle'),
+      message: t('admin.projectsTableDeleteConfirm', { title: item.title }),
+      confirmLabel: t('admin.projectsTableDelete'),
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
     setBusy(true);
     setError(null);
     try {
       await adminDeleteProject(item.id);
-      await load(offset);
+      setItems((prev) => {
+        const next = prev.filter((row) => row.id !== item.id);
+        itemsLenRef.current = next.length;
+        return next;
+      });
+      setTotal((prev) => Math.max(0, prev - 1));
+      if (expandedId === item.id) setExpandedId(null);
     } catch (err: unknown) {
       setError(
         err instanceof Error
@@ -228,10 +458,11 @@ export default function AdminProjectsTablePage() {
 
   const pageLabel = useMemo(() => {
     if (total === 0) return t('admin.projectsTableEmpty');
-    const from = offset + 1;
-    const to = Math.min(offset + items.length, total);
-    return t('admin.projectsTableRange', { from, to, total });
-  }, [items.length, offset, t, total]);
+    return t('admin.projectsTableLoaded', {
+      count: String(items.length),
+      total: String(total),
+    });
+  }, [items.length, t, total]);
 
   const sortMark = (column: AdminProjectSortBy) => {
     if (sortBy !== column) return '';
@@ -292,6 +523,8 @@ export default function AdminProjectsTablePage() {
       </>
     );
   }
+
+  const colCount = 8;
 
   return (
     <>
@@ -405,7 +638,7 @@ export default function AdminProjectsTablePage() {
             <button
               type="button"
               className="primary"
-              disabled={busy}
+              disabled={loading || busy}
               onClick={applyFilters}
             >
               {t('admin.projectsTableApply')}
@@ -419,11 +652,11 @@ export default function AdminProjectsTablePage() {
           <table className="admin-projects-table">
             <thead>
               <tr>
-                <th className="admin-projects-col-expand" aria-label="Expand" />
+                <th className="admin-projects-col-expand" aria-label={t('admin.projectsTableExpand')} />
                 <th className="admin-projects-col-thumb">
                   {t('admin.projectsTableColThumb')}
                 </th>
-                <th>
+                <th className="admin-projects-col-title">
                   <button
                     type="button"
                     className="admin-projects-sort"
@@ -432,6 +665,9 @@ export default function AdminProjectsTablePage() {
                     {t('admin.projectsTableColTitle')}
                     {sortMark('title')}
                   </button>
+                </th>
+                <th className="admin-projects-col-track">
+                  {t('admin.projectsTableColTrack')}
                 </th>
                 <th>{t('admin.projectsTableColStatus')}</th>
                 <th>
@@ -460,9 +696,9 @@ export default function AdminProjectsTablePage() {
               </tr>
             </thead>
             <tbody>
-              {items.length === 0 && !busy ? (
+              {items.length === 0 && !loading ? (
                 <tr>
-                  <td colSpan={7} className="muted">
+                  <td colSpan={colCount} className="muted">
                     {t('admin.projectsTableEmpty')}
                   </td>
                 </tr>
@@ -472,6 +708,7 @@ export default function AdminProjectsTablePage() {
                   const location = locationCatalog
                     ? formatProjectLocation(locationCatalog, item)
                     : item.locationRegionSlug;
+                  const design = isDesignProject(item);
                   return (
                     <Fragment key={item.id}>
                       <tr
@@ -484,13 +721,18 @@ export default function AdminProjectsTablePage() {
                         <td>
                           <button
                             type="button"
-                            className="secondary admin-projects-expand-btn"
+                            className="icon-button admin-projects-expand-btn"
                             aria-expanded={expanded}
+                            aria-label={
+                              expanded
+                                ? t('admin.projectsTableCollapse')
+                                : t('admin.projectsTableExpand')
+                            }
                             onClick={() =>
                               setExpandedId(expanded ? null : item.id)
                             }
                           >
-                            {expanded ? '−' : '+'}
+                            <ChevronIcon expanded={expanded} />
                           </button>
                         </td>
                         <td>
@@ -520,6 +762,19 @@ export default function AdminProjectsTablePage() {
                             </span>
                           </div>
                         </td>
+                        <td>
+                          <span
+                            className={
+                              design
+                                ? 'admin-projects-track admin-projects-track--design'
+                                : 'admin-projects-track admin-projects-track--construction'
+                            }
+                          >
+                            {design
+                              ? t('admin.projectsTableTrackDesign')
+                              : t('admin.projectsTableTrackConstruction')}
+                          </span>
+                        </td>
                         <td>{formatProjectStatus(item.status)}</td>
                         <td>{estimateLabel(item)}</td>
                         <td>{formatDateTime(item.createdAt)}</td>
@@ -527,34 +782,46 @@ export default function AdminProjectsTablePage() {
                           <div className="admin-projects-actions">
                             <Link
                               href={`/projects/${encodeURIComponent(item.id)}`}
-                              className="secondary"
+                              className="icon-button admin-projects-action-btn"
+                              aria-label={t('admin.projectsTableOpen')}
+                              title={t('admin.projectsTableOpen')}
                             >
-                              {t('admin.projectsTableOpen')}
+                              <OpenIcon />
                             </Link>
                             <button
                               type="button"
-                              className="secondary"
+                              className="icon-button admin-projects-action-btn"
                               disabled={busy}
+                              aria-label={
+                                item.isHidden
+                                  ? t('admin.projectsTableUnhide')
+                                  : t('admin.projectsTableHide')
+                              }
+                              title={
+                                item.isHidden
+                                  ? t('admin.projectsTableUnhide')
+                                  : t('admin.projectsTableHide')
+                              }
                               onClick={() => void handleHideToggle(item)}
                             >
-                              {item.isHidden
-                                ? t('admin.projectsTableUnhide')
-                                : t('admin.projectsTableHide')}
+                              {item.isHidden ? <EyeIcon /> : <EyeOffIcon />}
                             </button>
                             <button
                               type="button"
-                              className="danger"
+                              className="icon-button admin-projects-action-btn admin-projects-action-btn--danger"
                               disabled={busy}
+                              aria-label={t('admin.projectsTableDelete')}
+                              title={t('admin.projectsTableDelete')}
                               onClick={() => void handleDelete(item)}
                             >
-                              {t('admin.projectsTableDelete')}
+                              <TrashIcon />
                             </button>
                           </div>
                         </td>
                       </tr>
                       {expanded ? (
                         <tr className="admin-projects-detail-row">
-                          <td colSpan={7}>
+                          <td colSpan={colCount}>
                             <div className="admin-projects-detail">
                               <div>
                                 <h4>{t('admin.projectsTableDetailClient')}</h4>
@@ -663,25 +930,27 @@ export default function AdminProjectsTablePage() {
           </table>
         </div>
 
-        <div className="admin-projects-pager">
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy || offset <= 0}
-            onClick={() => void load(Math.max(0, offset - PAGE_SIZE))}
-          >
-            {t('admin.projectsTablePrev')}
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy || offset + items.length >= total}
-            onClick={() => void load(offset + PAGE_SIZE)}
-          >
-            {t('admin.projectsTableNext')}
-          </button>
-        </div>
+        {loading && items.length === 0 ? (
+          <p className="muted admin-projects-load-status">
+            {t('common.loading')}
+          </p>
+        ) : null}
+
+        {hasMore ? (
+          <div
+            ref={loadMoreSentinelRef}
+            className="admin-projects-load-more"
+            aria-hidden
+          />
+        ) : null}
+
+        {loadingMore ? (
+          <p className="muted admin-projects-load-status">
+            {t('admin.projectsTableLoadingMore')}
+          </p>
+        ) : null}
       </main>
+      {confirmDialog}
     </>
   );
 }
