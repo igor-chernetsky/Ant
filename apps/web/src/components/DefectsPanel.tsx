@@ -15,6 +15,7 @@ import {
   completeDefect,
   createDefect,
   declineDefect,
+  deleteDefect,
   fetchProjectDefects,
   rejectDefectCompletion,
   resubmitDefect,
@@ -302,6 +303,31 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
     }
   };
 
+  const handleDelete = async (defect: Defect) => {
+    if (
+      !window.confirm(
+        t('defectsSection.deleteConfirm', {
+          n: String(defect.sequenceNumber),
+        }),
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteDefect(projectId, defect.id);
+      if (expandedId === defect.id) setExpandedId(null);
+      await reload();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('defectsSection.deleteFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const runAction = async (
     defectId: string,
     action: () => Promise<Defect>,
@@ -434,6 +460,19 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
               </div>
               <p className="defect-description">{defect.description}</p>
 
+              {isClient && defect.status === 'reported' && (
+                <div className="defect-actions">
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={busy}
+                    onClick={() => void handleDelete(defect)}
+                  >
+                    {t('defectsSection.delete')}
+                  </button>
+                </div>
+              )}
+
               {isContractor && defect.status === 'reported' && (
                 <div className="defect-actions">
                   <button
@@ -540,6 +579,14 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                     }
                   >
                     {t('defectsSection.resubmit')}
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    disabled={busy}
+                    onClick={() => void handleDelete(defect)}
+                  >
+                    {t('defectsSection.delete')}
                   </button>
                 </div>
               )}

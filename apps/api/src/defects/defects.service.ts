@@ -106,6 +106,29 @@ export class DefectsService {
     return this.toDefectDto(created);
   }
 
+  async delete(
+    userId: string,
+    projectId: string,
+    defectId: string,
+  ): Promise<{ ok: true }> {
+    const ctx = await this.loadContext(userId, projectId);
+    this.assertClient(ctx);
+    this.assertActive(ctx.project.status);
+
+    const defect = await this.requireDefect(projectId, defectId);
+    if (
+      defect.status !== DefectStatus.reported &&
+      defect.status !== DefectStatus.declined
+    ) {
+      throw new BadRequestException(
+        'Only reported or declined defects can be deleted',
+      );
+    }
+
+    await this.prisma.defect.delete({ where: { id: defectId } });
+    return { ok: true };
+  }
+
   async accept(
     userId: string,
     projectId: string,

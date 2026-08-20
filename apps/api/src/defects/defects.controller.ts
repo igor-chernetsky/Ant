@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -41,6 +42,16 @@ export class DefectsController {
     return this.defectsService.create(user.id, projectId, {
       description: body?.description,
     });
+  }
+
+  @Delete(':defectId')
+  async delete(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('defectId') defectId: string,
+  ) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.defectsService.delete(user.id, projectId, defectId);
   }
 
   @Post(':defectId/accept')

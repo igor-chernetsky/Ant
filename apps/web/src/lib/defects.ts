@@ -104,6 +104,19 @@ export async function createDefect(
   return response.json() as Promise<Defect>;
 }
 
+export async function deleteDefect(
+  projectId: string,
+  defectId: string,
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/defects/${encodeURIComponent(defectId)}`,
+    { method: 'DELETE' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to delete defect');
+  }
+}
+
 export async function acceptDefect(
   projectId: string,
   defectId: string,
