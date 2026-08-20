@@ -146,6 +146,12 @@ export interface CompleteProjectDto {
   attachmentIds?: string[];
 }
 
+export interface ConfirmProjectCompletionDto {
+  comment?: string;
+  ratings?: Record<string, number>;
+  attachmentIds?: string[];
+}
+
 export interface PresignProjectReviewAttachmentDto {
   fileName: string;
   contentType: string;

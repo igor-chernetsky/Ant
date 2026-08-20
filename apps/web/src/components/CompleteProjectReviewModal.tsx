@@ -5,6 +5,7 @@ import { useTranslation } from '@/components/LocaleProvider';
 import { formatFileSize } from '@/lib/documents';
 import {
   REVIEW_RATING_CATEGORIES,
+  confirmProjectCompletion,
   fetchProjectCompletionContext,
   uploadReviewAttachment,
   type ReviewAttachmentUpload,
@@ -24,6 +25,7 @@ const EMPTY_RATINGS = (): ReviewRatings => ({
 
 interface CompleteProjectReviewModalProps {
   projectId: string;
+  mode: 'request' | 'confirm';
   isOpen: boolean;
   onClose: () => void;
   onCompleted: (project: Project) => void;
@@ -31,6 +33,7 @@ interface CompleteProjectReviewModalProps {
 
 export function CompleteProjectReviewModal({
   projectId,
+  mode,
   isOpen,
   onClose,
   onCompleted,
@@ -59,7 +62,11 @@ export function CompleteProjectReviewModal({
       setLoading(true);
       try {
         const context = await fetchProjectCompletionContext(projectId);
-        if (!context.canRequestCompletion) {
+        const allowed =
+          mode === 'request'
+            ? context.canRequestCompletion
+            : context.canConfirmCompletion;
+        if (!allowed) {
           throw new Error(
             context.reason ?? t('projectReview.cannotCompleteYet'),
           );
@@ -74,15 +81,22 @@ export function CompleteProjectReviewModal({
         setLoading(false);
       }
     })();
-  }, [isOpen, projectId, t]);
+  }, [isOpen, mode, projectId, t]);
 
   if (!isOpen) {
     return null;
   }
 
+  const hasAnyRating = REVIEW_RATING_CATEGORIES.some(
+    (category) => ratings[category.key] >= 1,
+  );
   const allRated = REVIEW_RATING_CATEGORIES.every(
     (category) => ratings[category.key] >= 1,
   );
+  const hasReviewDraft =
+    hasAnyRating || comment.trim().length > 0 || attachments.length > 0;
+  const canSubmit =
+    mode === 'request' ? allRated : !hasReviewDraft || allRated;
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -105,7 +119,11 @@ export function CompleteProjectReviewModal({
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!allRated) {
+    if (mode === 'request' && !allRated) {
+      setError(t('projectReview.rateAllCategories'));
+      return;
+    }
+    if (mode === 'confirm' && hasReviewDraft && !allRated) {
       setError(t('projectReview.rateAllCategories'));
       return;
     }
@@ -113,12 +131,26 @@ export function CompleteProjectReviewModal({
     setSubmitting(true);
     setError(null);
     try {
-      const updated = await closeProject(projectId, {
-        comment: comment.trim() || undefined,
-        ratings,
-        attachmentIds: attachments.map((item) => item.id),
-      });
-      onCompleted(updated);
+      if (mode === 'request') {
+        const updated = await closeProject(projectId, {
+          comment: comment.trim() || undefined,
+          ratings,
+          attachmentIds: attachments.map((item) => item.id),
+        });
+        onCompleted(updated);
+      } else {
+        const updated = await confirmProjectCompletion(
+          projectId,
+          hasReviewDraft
+            ? {
+                comment: comment.trim() || undefined,
+                ratings,
+                attachmentIds: attachments.map((item) => item.id),
+              }
+            : undefined,
+        );
+        onCompleted(updated);
+      }
       onClose();
     } catch (err: unknown) {
       setError(
@@ -148,7 +180,11 @@ export function CompleteProjectReviewModal({
         aria-labelledby="complete-project-title"
       >
         <div className="modal-header">
-          <h2 id="complete-project-title">{t('projectReview.title')}</h2>
+          <h2 id="complete-project-title">
+            {mode === 'confirm'
+              ? t('projectReview.confirmTitle')
+              : t('projectReview.title')}
+          </h2>
           <button
             type="button"
             className="icon-button"
@@ -166,9 +202,13 @@ export function CompleteProjectReviewModal({
           ) : (
             <>
               <p className="complete-project-intro">
-                {t('projectReview.intro', {
-                  name: contractorName ?? t('projectReview.theContractor'),
-                })}
+                {mode === 'confirm'
+                  ? t('projectReview.confirmIntro', {
+                      name: contractorName ?? t('projectReview.theContractor'),
+                    })
+                  : t('projectReview.intro', {
+                      name: contractorName ?? t('projectReview.theContractor'),
+                    })}
               </p>
 
               <div className="complete-project-ratings">
@@ -238,11 +278,15 @@ export function CompleteProjectReviewModal({
             <button
               type="submit"
               className="primary"
-              disabled={busy || loading || !allRated}
+              disabled={busy || loading || !canSubmit}
             >
               {submitting
-                ? t('projectReview.requestingCompletion')
-                : t('projectReview.requestCompletion')}
+                ? mode === 'confirm'
+                  ? t('projectReview.confirmingCompletion')
+                  : t('projectReview.requestingCompletion')
+                : mode === 'confirm'
+                  ? t('projectReview.confirmCompletion')
+                  : t('projectReview.requestCompletion')}
             </button>
             <button
               type="button"

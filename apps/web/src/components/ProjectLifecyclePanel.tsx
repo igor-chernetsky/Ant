@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { CompleteProjectReviewModal } from '@/components/CompleteProjectReviewModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
-  confirmProjectCompletion,
   fetchProjectCompletionContext,
   type ProjectCompletionContext,
 } from '@/lib/project-reviews';
@@ -28,6 +27,9 @@ export function ProjectLifecyclePanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completeOpen, setCompleteOpen] = useState(false);
+  const [completeMode, setCompleteMode] = useState<'request' | 'confirm'>(
+    'request',
+  );
   const [completion, setCompletion] = useState<ProjectCompletionContext | null>(
     null,
   );
@@ -141,7 +143,10 @@ export function ProjectLifecyclePanel({
               type="button"
               className="primary"
               disabled={busy}
-              onClick={() => setCompleteOpen(true)}
+              onClick={() => {
+                setCompleteMode('request');
+                setCompleteOpen(true);
+              }}
             >
               {t('lifecycle.requestCompletion')}
             </button>
@@ -152,15 +157,12 @@ export function ProjectLifecyclePanel({
               type="button"
               className="primary"
               disabled={busy}
-              onClick={() =>
-                void runAction(async () => {
-                  await confirmProjectCompletion(project.id);
-                })
-              }
+              onClick={() => {
+                setCompleteMode('confirm');
+                setCompleteOpen(true);
+              }}
             >
-              {busy
-                ? t('lifecycle.confirmingCompletion')
-                : t('lifecycle.confirmCompletion')}
+              {t('lifecycle.confirmCompletion')}
             </button>
           )}
         </div>
@@ -170,6 +172,7 @@ export function ProjectLifecyclePanel({
 
       <CompleteProjectReviewModal
         projectId={project.id}
+        mode={completeMode}
         isOpen={completeOpen}
         onClose={() => setCompleteOpen(false)}
         onCompleted={(updated) => {

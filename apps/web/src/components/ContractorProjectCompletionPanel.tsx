@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import {
   confirmContractorProjectCompletion,
   fetchContractorProjectCompletionContext,
@@ -23,12 +24,14 @@ export function ContractorProjectCompletionPanel({
   onUpdated,
 }: ContractorProjectCompletionPanelProps) {
   const { t } = useTranslation();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [completion, setCompletion] = useState<ProjectCompletionContext | null>(
     null,
   );
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const loadCompletion = useCallback(async () => {
     if (projectStatus !== 'active') {
@@ -68,6 +71,7 @@ export function ContractorProjectCompletionPanel({
   const runAction = async (action: () => Promise<void>) => {
     setBusy(true);
     setError(null);
+    setSuccessMessage(null);
     try {
       await action();
       await loadCompletion();
@@ -96,6 +100,10 @@ export function ContractorProjectCompletionPanel({
         <p className="muted">{t('lifecycle.contractorRequestHint')}</p>
       ) : null}
 
+      {successMessage && (
+        <p className="completion-success-notice">{successMessage}</p>
+      )}
+
       <div className="project-lifecycle-actions">
         {canRequest && (
           <button
@@ -105,6 +113,7 @@ export function ContractorProjectCompletionPanel({
             onClick={() =>
               void runAction(async () => {
                 await requestContractorProjectCompletion(projectId);
+                setSuccessMessage(t('lifecycle.contractorRequestSent'));
               })
             }
           >
@@ -121,6 +130,11 @@ export function ContractorProjectCompletionPanel({
             onClick={() =>
               void runAction(async () => {
                 await confirmContractorProjectCompletion(projectId);
+                await confirm({
+                  title: t('lifecycle.contractorCompletionConfirmedTitle'),
+                  message: t('lifecycle.contractorCompletionConfirmed'),
+                  confirmLabel: t('common.close'),
+                });
               })
             }
           >
@@ -132,6 +146,7 @@ export function ContractorProjectCompletionPanel({
       </div>
 
       {error && <p className="form-error">{error}</p>}
+      {confirmDialog}
     </div>
   );
 }

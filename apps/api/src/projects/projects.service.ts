@@ -74,6 +74,7 @@ import {
   DISCOVER_PAGE_SIZE_MAX,
 
   CompleteProjectDto,
+  ConfirmProjectCompletionDto,
 
   UpdateProjectDto,
 
@@ -1554,8 +1555,13 @@ export class ProjectsService {
   async confirmCompletionForClient(
     clientId: string,
     projectId: string,
+    dto?: ConfirmProjectCompletionDto,
   ): Promise<ProjectResponse> {
-    await this.projectReviews.confirmCompletionByClient(clientId, projectId);
+    await this.projectReviews.confirmCompletionByClient(
+      clientId,
+      projectId,
+      dto,
+    );
     return this.getForClient(clientId, projectId);
   }
 

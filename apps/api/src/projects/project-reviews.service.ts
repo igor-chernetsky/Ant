@@ -29,6 +29,7 @@ import {
 import { assertCompletedUploadLimits } from '../documents/documents.types';
 import {
   CompleteProjectDto,
+  ConfirmProjectCompletionDto,
   ContractorReviewItem,
   BidContractorReviewsView,
   PresignProjectReviewAttachmentDto,
@@ -270,7 +271,7 @@ export class ProjectReviewsService {
         'Review attachments can only be added before project completion',
       );
     }
-    if (project.completionRequestedBy) {
+    if (project.completionRequestedBy === CompletionRequestRole.client) {
       throw new BadRequestException(
         'Review attachments cannot be added while completion is pending confirmation',
       );
@@ -463,6 +464,7 @@ export class ProjectReviewsService {
   async confirmCompletionByClient(
     clientId: string,
     projectId: string,
+    dto?: ConfirmProjectCompletionDto,
   ): Promise<void> {
     const project = await this.assertClientProject(clientId, projectId);
     if (project.status === ProjectStatus.completed) {
@@ -475,7 +477,11 @@ export class ProjectReviewsService {
     }
 
     const awarded = await this.requireAwardedBid(projectId);
-    await this.finalizeProjectCompletion(projectId, null, awarded);
+    const draft = dto ? this.buildOptionalDraftReview(clientId, projectId, dto) : null;
+    if (draft) {
+      await this.validateDraftAttachments(project.clientId, projectId, draft);
+    }
+    await this.finalizeProjectCompletion(projectId, draft, awarded);
   }
 
   async confirmCompletionByContractor(
@@ -750,6 +756,48 @@ export class ProjectReviewsService {
     const ratings = this.normalizeRatings(dto.ratings);
     const comment = dto.comment?.trim() || null;
     const attachmentIds = [...new Set(dto.attachmentIds ?? [])];
+
+    if (attachmentIds.length > MAX_REVIEW_ATTACHMENTS) {
+      throw new BadRequestException(
+        `At most ${MAX_REVIEW_ATTACHMENTS} attachments allowed`,
+      );
+    }
+
+    return {
+      comment,
+      ratings,
+      attachmentIds,
+    };
+  }
+
+  private buildOptionalDraftReview(
+    _clientId: string,
+    _projectId: string,
+    dto: ConfirmProjectCompletionDto,
+  ): CompletionDraftReview | null {
+    const attachmentIds = [...new Set(dto.attachmentIds ?? [])];
+    const comment = dto.comment?.trim() || null;
+    const ratingsInput = dto.ratings ?? {};
+    const hasAnyRating = REVIEW_RATING_KEYS.some(
+      (key) =>
+        typeof ratingsInput[key] === 'number' &&
+        Number.isFinite(ratingsInput[key]) &&
+        ratingsInput[key] >= 1,
+    );
+    const hasReviewContent =
+      hasAnyRating || Boolean(comment) || attachmentIds.length > 0;
+
+    if (!hasReviewContent) {
+      return null;
+    }
+
+    if (!dto.ratings || !hasAnyRating) {
+      throw new BadRequestException(
+        'Please rate every category when submitting a review',
+      );
+    }
+
+    const ratings = this.normalizeRatings(dto.ratings);
 
     if (attachmentIds.length > MAX_REVIEW_ATTACHMENTS) {
       throw new BadRequestException(

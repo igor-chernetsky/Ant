@@ -1,4 +1,5 @@
 import { fetchWithAuth } from './auth-client';
+import type { Project } from './projects';
 
 export const REVIEW_RATING_CATEGORIES = [
   { key: 'quality', label: 'Quality of work' },
@@ -167,10 +168,24 @@ export async function requestProjectCompletion(
 
 export async function confirmProjectCompletion(
   projectId: string,
-): Promise<void> {
+  input?: CompleteProjectInput,
+): Promise<Project> {
+  const hasAnyRating = input
+    ? REVIEW_RATING_CATEGORIES.some((category) => input.ratings[category.key] >= 1)
+    : false;
+  const hasReview =
+    Boolean(input) &&
+    (hasAnyRating ||
+      Boolean(input?.comment?.trim()) ||
+      (input?.attachmentIds?.length ?? 0) > 0);
+
   const response = await fetchWithAuth(
     `/api/projects/${encodeURIComponent(projectId)}/confirm-completion`,
-    { method: 'POST' },
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(hasReview ? input : {}),
+    },
   );
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
@@ -178,6 +193,7 @@ export async function confirmProjectCompletion(
     } | null;
     throw new Error(body?.message ?? 'Failed to confirm project completion');
   }
+  return response.json() as Promise<Project>;
 }
 
 export async function requestContractorProjectCompletion(

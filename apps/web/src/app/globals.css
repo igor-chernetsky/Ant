@@ -10465,6 +10465,15 @@ select:disabled {
   margin-top: 0.85rem;
 }
 
+.completion-success-notice {
+  margin: 0.75rem 0 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+  font-size: 0.92rem;
+}
+
 .modal--wide {
   max-width: 560px;
 }

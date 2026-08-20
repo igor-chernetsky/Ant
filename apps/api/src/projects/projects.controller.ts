@@ -16,6 +16,7 @@ import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { UsersService } from '../users/users.service';
 import {
   CompleteProjectDto,
+  ConfirmProjectCompletionDto,
   CreateProjectDto,
   PresignProjectReviewAttachmentDto,
   UpdateProjectDto,
@@ -154,8 +155,9 @@ export class ProjectsController {
   async confirmCompletion(
     @Req() req: Request & { user: JwtPayload },
     @Param('id') id: string,
+    @Body() body: ConfirmProjectCompletionDto,
   ) {
     const user = await this.resolveClient(req);
-    return this.projectsService.confirmCompletionForClient(user.id, id);
+    return this.projectsService.confirmCompletionForClient(user.id, id, body);
   }
 }
