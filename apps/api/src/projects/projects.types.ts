@@ -1,4 +1,5 @@
 import {
+  ProjectStatus,
   ProjectType,
   PropertyType,
   TagSource,
@@ -125,6 +126,66 @@ export const DISCOVER_PAGE_SIZE_MAX = 50;
 
 export interface PublicProjectListPage {
   items: PublicProjectCard[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+export type AdminProjectSortBy = 'createdAt' | 'title' | 'estimate';
+export type AdminProjectSortDir = 'asc' | 'desc';
+
+export interface AdminProjectListQuery {
+  q?: string;
+  status?: ProjectStatus | string;
+  projectType?: ProjectType | string;
+  /** true | false | omit for all */
+  hidden?: boolean;
+  clientQ?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  locationRegionSlug?: string;
+  /** true | false | omit for all */
+  hasEstimate?: boolean;
+  sortBy?: AdminProjectSortBy;
+  sortDir?: AdminProjectSortDir;
+  limit?: number;
+  offset?: number;
+}
+
+export interface AdminProjectListItem {
+  id: string;
+  title: string;
+  description: string | null;
+  projectType: ProjectType;
+  status: string;
+  isHidden: boolean;
+  platformFeePaid: boolean;
+  readinessScore: number;
+  coverImageUrl: string | null;
+  estimate: PublicProjectEstimateSummary | null;
+  client: {
+    id: string;
+    displayName: string | null;
+    email: string | null;
+  };
+  locationRegionSlug: string;
+  locationAreaSlug: string | null;
+  locationNote: string | null;
+  district: string | null;
+  awardedContractorName: string | null;
+  tenderStatus: string | null;
+  bidCount: number;
+  createdAt: string;
+  updatedAt: string;
+  /** Later of client/contractor signature timestamps when fully signed. */
+  contractFullySignedAt: string | null;
+  /** Best-effort: updatedAt when status is completed. */
+  completedAt: string | null;
+}
+
+export interface AdminProjectListPage {
+  items: AdminProjectListItem[];
   total: number;
   limit: number;
   offset: number;

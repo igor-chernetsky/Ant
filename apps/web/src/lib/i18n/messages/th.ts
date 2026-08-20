@@ -25,6 +25,7 @@ export const th: Messages = {
     signatureRequests: 'คำขอลงนาม',
     settings: 'การตั้งค่า',
     ads: 'โฆษณา',
+    projectsTable: 'ตารางโครงการ',
     contractor: 'ผู้รับเหมา',
     designer: 'ผู้ออกแบบ',
     account: 'บัญชี',

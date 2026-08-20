@@ -78,6 +78,10 @@ import {
 
   UpdateProjectDto,
 
+  AdminProjectListItem,
+  AdminProjectListPage,
+  AdminProjectListQuery,
+
 } from './projects.types';
 
 import { ProjectReviewsService } from './project-reviews.service';
@@ -1478,6 +1482,306 @@ export class ProjectsService {
     }
 
     await this.deleteProjectWithDocuments(project.id, project.documents);
+  }
+
+  async hideForAdmin(projectId: string): Promise<{ ok: true; isHidden: true }> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, status: true, isHidden: true },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.isHidden) {
+      return { ok: true, isHidden: true };
+    }
+    if (project.status === ProjectStatus.completed) {
+      throw new BadRequestException('Completed projects cannot be hidden');
+    }
+    if (project.status === ProjectStatus.active) {
+      throw new BadRequestException('Signed projects cannot be hidden');
+    }
+    const contract = await this.prisma.contract.findUnique({
+      where: { projectId },
+      select: { status: true },
+    });
+    if (contract?.status === ContractStatus.fully_signed) {
+      throw new BadRequestException('Signed projects cannot be hidden');
+    }
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: { isHidden: true },
+    });
+    return { ok: true, isHidden: true };
+  }
+
+  async unhideForAdmin(
+    projectId: string,
+  ): Promise<{ ok: true; isHidden: false }> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: { isHidden: false },
+    });
+    return { ok: true, isHidden: false };
+  }
+
+  async listForAdmin(
+    query: AdminProjectListQuery,
+  ): Promise<AdminProjectListPage> {
+    const limit = Math.min(
+      Math.max(Number(query.limit) || 30, 1),
+      100,
+    );
+    const offset = Math.max(Number(query.offset) || 0, 0);
+    const sortBy = query.sortBy ?? 'createdAt';
+    const sortDir = query.sortDir === 'asc' ? 'asc' : 'desc';
+
+    const where: Prisma.ProjectWhereInput = {};
+
+    if (query.q) {
+      where.title = { contains: query.q, mode: 'insensitive' };
+    }
+    if (query.status) {
+      where.status = query.status as ProjectStatus;
+    }
+    if (query.projectType) {
+      where.projectType = query.projectType as ProjectType;
+    }
+    if (query.hidden === true) {
+      where.isHidden = true;
+    } else if (query.hidden === false) {
+      where.isHidden = false;
+    }
+    if (query.locationRegionSlug) {
+      where.locationRegionSlug = query.locationRegionSlug;
+    }
+    if (query.clientQ) {
+      const term = query.clientQ;
+      where.client = {
+        OR: [
+          { email: { contains: term, mode: 'insensitive' } },
+          { displayName: { contains: term, mode: 'insensitive' } },
+        ],
+      };
+    }
+    if (query.createdFrom || query.createdTo) {
+      where.createdAt = {};
+      if (query.createdFrom) {
+        const from = new Date(query.createdFrom);
+        if (!Number.isNaN(from.getTime())) {
+          where.createdAt.gte = from;
+        }
+      }
+      if (query.createdTo) {
+        const to = new Date(query.createdTo);
+        if (!Number.isNaN(to.getTime())) {
+          // inclusive end-of-day if date-only
+          if (/^\d{4}-\d{2}-\d{2}$/.test(query.createdTo.trim())) {
+            to.setHours(23, 59, 59, 999);
+          }
+          where.createdAt.lte = to;
+        }
+      }
+    }
+    if (query.hasEstimate === true) {
+      where.estimates = { some: {} };
+    } else if (query.hasEstimate === false) {
+      where.estimates = { none: {} };
+    }
+
+    const include = {
+      client: { select: { id: true, displayName: true, email: true } },
+      tender: {
+        select: {
+          status: true,
+          awardedBid: {
+            select: {
+              contractor: { select: { companyName: true } },
+            },
+          },
+          _count: { select: { bids: true } },
+        },
+      },
+      contract: {
+        select: {
+          status: true,
+          clientSignedAt: true,
+          contractorSignedAt: true,
+        },
+      },
+    } satisfies Prisma.ProjectInclude;
+
+    let rows: Array<
+      Prisma.ProjectGetPayload<{ include: typeof include }>
+    >;
+    let total: number;
+
+    if (sortBy === 'estimate') {
+      const allMatching = await this.prisma.project.findMany({
+        where,
+        include,
+        orderBy: { createdAt: 'desc' },
+      });
+      const estimates = await this.loadEstimateSummaries(allMatching);
+      const decorated = allMatching.map((project) => ({
+        project,
+        mid: estimates.get(project.id)?.midAmount ?? null,
+      }));
+      decorated.sort((a, b) => {
+        const av = a.mid;
+        const bv = b.mid;
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        return sortDir === 'asc' ? av - bv : bv - av;
+      });
+      total = decorated.length;
+      rows = decorated.slice(offset, offset + limit).map((row) => row.project);
+      const pageEstimates = await this.loadEstimateSummaries(rows);
+      const covers = await this.loadCoverUrls(rows.map((p) => p.id));
+      const items = rows.map((project) =>
+        this.toAdminListItem(
+          project,
+          covers.get(project.id) ?? null,
+          pageEstimates.get(project.id) ?? null,
+        ),
+      );
+      return {
+        items,
+        total,
+        limit,
+        offset,
+        hasMore: offset + items.length < total,
+      };
+    }
+
+    const orderBy: Prisma.ProjectOrderByWithRelationInput =
+      sortBy === 'title'
+        ? { title: sortDir }
+        : { createdAt: sortDir };
+
+    [total, rows] = await Promise.all([
+      this.prisma.project.count({ where }),
+      this.prisma.project.findMany({
+        where,
+        include,
+        orderBy,
+        skip: offset,
+        take: limit,
+      }),
+    ]);
+
+    const [covers, estimates] = await Promise.all([
+      this.loadCoverUrls(rows.map((p) => p.id)),
+      this.loadEstimateSummaries(rows),
+    ]);
+
+    const items = rows.map((project) =>
+      this.toAdminListItem(
+        project,
+        covers.get(project.id) ?? null,
+        estimates.get(project.id) ?? null,
+      ),
+    );
+
+    return {
+      items,
+      total,
+      limit,
+      offset,
+      hasMore: offset + items.length < total,
+    };
+  }
+
+  private toAdminListItem(
+    project: {
+      id: string;
+      title: string;
+      description: string | null;
+      projectType: ProjectType;
+      status: ProjectStatus;
+      isHidden: boolean;
+      platformFeePaid: boolean;
+      readinessScore: number;
+      locationRegionSlug: string;
+      locationAreaSlug: string | null;
+      locationNote: string | null;
+      district: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+      client: {
+        id: string;
+        displayName: string | null;
+        email: string | null;
+      };
+      tender: {
+        status: string;
+        awardedBid: {
+          contractor: { companyName: string | null };
+        } | null;
+        _count: { bids: number };
+      } | null;
+      contract: {
+        status: ContractStatus;
+        clientSignedAt: Date | null;
+        contractorSignedAt: Date | null;
+      } | null;
+    },
+    coverImageUrl: string | null,
+    estimate: PublicProjectEstimateSummary | null,
+  ): AdminProjectListItem {
+    let contractFullySignedAt: string | null = null;
+    if (project.contract?.status === ContractStatus.fully_signed) {
+      const times = [
+        project.contract.clientSignedAt,
+        project.contract.contractorSignedAt,
+      ].filter((d): d is Date => d != null);
+      if (times.length > 0) {
+        contractFullySignedAt = new Date(
+          Math.max(...times.map((d) => d.getTime())),
+        ).toISOString();
+      }
+    }
+
+    return {
+      id: project.id,
+      title: project.title,
+      description: project.description,
+      projectType: project.projectType,
+      status: project.status,
+      isHidden: project.isHidden,
+      platformFeePaid: project.platformFeePaid,
+      readinessScore: project.readinessScore,
+      coverImageUrl,
+      estimate,
+      client: {
+        id: project.client.id,
+        displayName: project.client.displayName,
+        email: project.client.email,
+      },
+      locationRegionSlug: project.locationRegionSlug,
+      locationAreaSlug: project.locationAreaSlug,
+      locationNote: project.locationNote,
+      district: project.district,
+      awardedContractorName:
+        project.tender?.awardedBid?.contractor.companyName?.trim() || null,
+      tenderStatus: project.tender?.status ?? null,
+      bidCount: project.tender?._count.bids ?? 0,
+      createdAt: project.createdAt.toISOString(),
+      updatedAt: project.updatedAt.toISOString(),
+      contractFullySignedAt,
+      completedAt:
+        project.status === ProjectStatus.completed
+          ? project.updatedAt.toISOString()
+          : null,
+    };
   }
 
   private async deleteProjectWithDocuments(

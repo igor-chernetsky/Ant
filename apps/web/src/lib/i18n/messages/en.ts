@@ -24,6 +24,7 @@ export const en = {
     signatureRequests: 'Signature requests',
     settings: 'Settings',
     ads: 'Ads',
+    projectsTable: 'Projects table',
     contractor: 'Contractor',
     designer: 'Designer',
     account: 'Account',

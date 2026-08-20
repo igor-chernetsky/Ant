@@ -25,6 +25,7 @@ export const ru: Messages = {
     signatureRequests: 'Запросы на подпись',
     settings: 'Настройки',
     ads: 'Реклама',
+    projectsTable: 'Таблица проектов',
     contractor: 'Подрядчик',
     designer: 'Проектировщик',
     account: 'Аккаунт',
