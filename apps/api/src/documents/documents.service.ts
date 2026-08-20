@@ -226,6 +226,7 @@ export class DocumentsService {
       where: {
         projectId,
         defectId: null,
+        category: { not: DocumentCategory.payment_slip },
         status: isOwner
           ? { not: DocumentStatus.deleted }
           : DocumentStatus.uploaded,
@@ -252,6 +253,7 @@ export class DocumentsService {
       where: {
         projectId,
         defectId: null,
+        category: { not: DocumentCategory.payment_slip },
         status: DocumentStatus.uploaded,
       },
       orderBy: { createdAt: 'desc' },

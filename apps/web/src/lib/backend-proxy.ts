@@ -66,6 +66,16 @@ async function fetchBackend(
       merged[key] = value;
     });
   }
+  const hasContentType = Object.keys(merged).some(
+    (key) => key.toLowerCase() === 'content-type',
+  );
+  if (
+    !hasContentType &&
+    init?.body != null &&
+    typeof init.body === 'string'
+  ) {
+    merged['Content-Type'] = 'application/json';
+  }
   const headers = withLocaleHeader(merged, locale ?? DEFAULT_LOCALE);
 
   return fetch(`${getBackendApiUrl()}${path}`, {
