@@ -11,6 +11,8 @@ export interface ConfirmDialogProps {
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Single primary button (alert / info). Cancel is hidden. */
+  hideCancel?: boolean;
   tone?: 'default' | 'danger';
   busy?: boolean;
   onConfirm: () => void;
@@ -23,13 +25,15 @@ export function ConfirmDialog({
   message,
   confirmLabel,
   cancelLabel,
+  hideCancel = false,
   tone = 'default',
   busy = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
-  const resolvedConfirmLabel = confirmLabel ?? t('common.confirm');
+  const resolvedConfirmLabel =
+    confirmLabel ?? (hideCancel ? t('common.close') : t('common.confirm'));
   const resolvedCancelLabel = cancelLabel ?? t('common.cancel');
 
   useEffect(() => {
@@ -81,14 +85,16 @@ export function ConfirmDialog({
         </div>
 
         <div className="confirm-dialog-actions">
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={onCancel}
-          >
-            {resolvedCancelLabel}
-          </button>
+          {!hideCancel && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={onCancel}
+            >
+              {resolvedCancelLabel}
+            </button>
+          )}
           <button
             type="button"
             className={tone === 'danger' ? 'danger' : 'primary'}

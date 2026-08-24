@@ -127,6 +127,13 @@ export const enExtended = {
     designerOnlyHint: "Only registered designers can open Design & Permits projects that are accepting bids.",
     signInDesignerHint: "Sign in as a designer to open this project.",
     partiesOnlyHint: "Only the client and the awarded contractor can open this project.",
+    accessDeniedTitle: "Access unavailable",
+    accessDeniedAwarded:
+      "A winner has already been selected for this tender. Only the client and the awarded contractor can open this project.",
+    accessDeniedActive:
+      "This project is in progress. Only the client and the awarded contractor can open it.",
+    accessDeniedCompleted:
+      "This project is completed. Only the client and the awarded contractor can open it.",
     lockedGenericHint:
       "Sign in as a registered contractor or designer, or use a direct invite link from the client to open this project.",
   },

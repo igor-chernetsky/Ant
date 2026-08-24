@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { EstimateConfidenceRing } from '@/components/EstimateConfidenceRing';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -81,6 +82,7 @@ export function ProjectTile({
   const { formatProjectStatus, formatParticipationLabel, formatTagLabel } =
     useAppFormatters();
   const [loginOpen, setLoginOpen] = useState(false);
+  const [accessDeniedOpen, setAccessDeniedOpen] = useState(false);
 
   const isAwardedContractor =
     contractorParticipation?.bidStatus === 'selected' ||
@@ -99,7 +101,11 @@ export function ProjectTile({
     project.canOpenDetail === true;
   const blockReason = getProjectOpenBlockReason(project.status, openContext);
 
-  const lockedMessage = lockedMessageForReason(blockReason, t);
+  const lockedMessage = lockedMessageForReason(
+    blockReason,
+    project.status,
+    t,
+  );
 
   const excerpt =
     project.description && project.description.length > 160
@@ -110,8 +116,7 @@ export function ProjectTile({
     ? formatParticipationLabel(contractorParticipation)
     : null;
 
-  const needsSignIn =
-    blockReason === 'login_designer' || blockReason === 'login_contractor';
+  const needsSignIn = !me && !canOpen;
 
   const isDesignPhase = project.projectType === 'design';
   const phaseLabel = isDesignPhase
@@ -130,6 +135,9 @@ export function ProjectTile({
   }`;
 
   const statusTone = project.isHidden ? 'hidden' : project.status;
+  // Locked cards look "disabled" — hide the status chip so it does not
+  // read as an active/disabled status label on the home grid.
+  const showStatusBadge = canOpen;
 
   const body = (
     <>
@@ -149,11 +157,13 @@ export function ProjectTile({
             </span>
           </div>
         )}
-        <span className={`project-tile-status project-tile-status--${statusTone}`}>
-          {project.isHidden
-            ? t('projectTile.hidden')
-            : formatProjectStatus(project.status)}
-        </span>
+        {showStatusBadge && (
+          <span className={`project-tile-status project-tile-status--${statusTone}`}>
+            {project.isHidden
+              ? t('projectTile.hidden')
+              : formatProjectStatus(project.status)}
+          </span>
+        )}
         {!canOpen && (
           <span className="project-tile-lock-badge" aria-hidden>
             <LockIcon />
@@ -236,23 +246,33 @@ export function ProjectTile({
             ))}
           </div>
         )}
-        {!canOpen && lockedMessage && (
-          <p className="project-tile-access-hint" role="status">
-            <LockIcon />
-            <span>{lockedMessage}</span>
-          </p>
-        )}
       </div>
     </>
   );
 
   const handleLockedClick = () => {
-    if (
-      blockReason === 'login_designer' ||
-      blockReason === 'login_contractor'
-    ) {
+    if (!me) {
       setLoginOpen(true);
+      return;
     }
+    setAccessDeniedOpen(true);
+  };
+
+  const tryOpenAfterLogin = async () => {
+    setLoginOpen(false);
+    const nextMe = await refreshSession();
+    if (
+      canOpenProjectDetail(project.status, {
+        me: nextMe,
+        isOwned,
+        isAwardedContractor,
+        projectType: project.projectType,
+      })
+    ) {
+      router.push(`/projects/${project.id}`);
+      return;
+    }
+    setAccessDeniedOpen(true);
   };
 
   return (
@@ -277,20 +297,21 @@ export function ProjectTile({
       <LoginModal
         isOpen={loginOpen}
         onClose={() => setLoginOpen(false)}
-        onSuccess={async () => {
-          setLoginOpen(false);
-          const nextMe = await refreshSession();
-          if (
-            canOpenProjectDetail(project.status, {
-              me: nextMe,
-              isOwned,
-              isAwardedContractor,
-              projectType: project.projectType,
-            })
-          ) {
-            router.push(`/projects/${project.id}`);
-          }
+        onSuccess={() => {
+          void tryOpenAfterLogin();
         }}
+      />
+
+      <ConfirmDialog
+        isOpen={accessDeniedOpen}
+        hideCancel
+        title={t('projectTile.accessDeniedTitle')}
+        message={
+          lockedMessage ?? t('projectTile.lockedGenericHint')
+        }
+        confirmLabel={t('common.close')}
+        onConfirm={() => setAccessDeniedOpen(false)}
+        onCancel={() => setAccessDeniedOpen(false)}
       />
     </>
   );
@@ -298,6 +319,7 @@ export function ProjectTile({
 
 function lockedMessageForReason(
   reason: ProjectOpenBlockReason,
+  status: string,
   t: (key: string) => string,
 ): string | null {
   switch (reason) {
@@ -310,6 +332,15 @@ function lockedMessageForReason(
     case 'contractor_only':
       return t('projectTile.contractorOnlyHint');
     case 'parties_only':
+      if (status === 'awarded') {
+        return t('projectTile.accessDeniedAwarded');
+      }
+      if (status === 'active') {
+        return t('projectTile.accessDeniedActive');
+      }
+      if (status === 'completed') {
+        return t('projectTile.accessDeniedCompleted');
+      }
       return t('projectTile.partiesOnlyHint');
     default:
       return t('projectTile.lockedGenericHint');
