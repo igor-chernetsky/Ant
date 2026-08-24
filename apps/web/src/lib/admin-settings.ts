@@ -4,6 +4,17 @@ export interface PlatformSettings {
   contractSignedNotifyEmails: string[];
 }
 
+export interface SendAdminBroadcastInput {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+export interface SendAdminBroadcastResult {
+  sent: true;
+  from: string;
+}
+
 async function readError(response: Response, fallback: string): Promise<string> {
   const body = (await response.json().catch(() => null)) as {
     message?: string | string[];
@@ -34,4 +45,18 @@ export async function updateAdminPlatformSettings(
     throw new Error(await readError(response, 'Failed to save settings'));
   }
   return response.json() as Promise<PlatformSettings>;
+}
+
+export async function sendAdminBroadcast(
+  input: SendAdminBroadcastInput,
+): Promise<SendAdminBroadcastResult> {
+  const response = await fetchWithAuth('/api/admin/settings/broadcast', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error(await readError(response, 'Failed to send message'));
+  }
+  return response.json() as Promise<SendAdminBroadcastResult>;
 }

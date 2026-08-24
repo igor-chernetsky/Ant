@@ -570,15 +570,15 @@ export const thExtended = {
     settingsInvalidEmail: "กรุณากรอกอีเมลที่ถูกต้อง",
     settingsBroadcastTitle: "ส่งข้อความ",
     settingsBroadcastHelp:
-      "ส่งอีเมลครั้งเดียว: ระบุผู้รับ หัวข้อ และเนื้อหาข้อความ",
+      "ส่งจาก hello@builthai.com (Reply-To เดียวกัน) การแจ้งเตือนระบบยังใช้ noreply@",
     settingsBroadcastTo: "ถึง",
     settingsBroadcastSubject: "หัวข้อ",
     settingsBroadcastSubjectPlaceholder: "หัวข้อข้อความ",
     settingsBroadcastBody: "ข้อความ",
     settingsBroadcastSend: "ส่ง",
     settingsBroadcastIncomplete: "กรอกผู้รับ หัวข้อ และข้อความให้ครบ",
-    settingsBroadcastNotWired:
-      "ยังไม่ได้เชื่อมต่อการส่ง — แบบฟอร์มพร้อมสำหรับ API อีเมล",
+    settingsBroadcastSent: "ส่งจาก {from} ถึง {to} แล้ว",
+    settingsBroadcastSendFailed: "ส่งข้อความไม่สำเร็จ",
     adsTitle: "โฆษณา",
     adsLead:
       "สไลด์โปรโมตบนหน้าแรก ถ้าไม่มีสไลด์ที่เปิดใช้ การ์ดจะไม่แสดง",

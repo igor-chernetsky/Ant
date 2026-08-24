@@ -42,6 +42,10 @@ export class MailService {
     subject: string;
     html: string;
     text: string;
+    /** Defaults to SMTP_FROM (noreply). Use for admin broadcast from hello@. */
+    from?: string;
+    fromName?: string;
+    replyTo?: string;
   }): Promise<boolean> {
     const transport = this.getTransporter();
     if (!transport) {
@@ -49,15 +53,19 @@ export class MailService {
       return false;
     }
 
-    const from = this.config.get<string>('SMTP_FROM')!.trim();
+    const from =
+      params.from?.trim() || this.config.get<string>('SMTP_FROM')!.trim();
     const fromName =
-      this.config.get<string>('SMTP_FROM_NAME')?.trim() || 'BuilTHAI';
+      params.fromName?.trim() ||
+      this.config.get<string>('SMTP_FROM_NAME')?.trim() ||
+      'BuilTHAI';
     const to = Array.isArray(params.to) ? params.to.join(', ') : params.to;
 
     try {
       await transport.sendMail({
         from: `"${fromName}" <${from}>`,
         to,
+        replyTo: params.replyTo?.trim() || undefined,
         subject: params.subject,
         html: params.html,
         text: params.text,

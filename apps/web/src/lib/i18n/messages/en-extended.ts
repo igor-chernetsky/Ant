@@ -571,15 +571,15 @@ export const enExtended = {
     settingsInvalidEmail: "Enter a valid email address",
     settingsBroadcastTitle: "Send message",
     settingsBroadcastHelp:
-      "Compose a one-off email: recipient, subject, and rich-text body.",
+      "Sends from hello@builthai.com (Reply-To the same). System notifications still use noreply@.",
     settingsBroadcastTo: "To",
     settingsBroadcastSubject: "Subject",
     settingsBroadcastSubjectPlaceholder: "Message subject",
     settingsBroadcastBody: "Message",
     settingsBroadcastSend: "Send",
     settingsBroadcastIncomplete: "Fill in recipient, subject, and message.",
-    settingsBroadcastNotWired:
-      "Sending is not connected yet — the form is ready for the mail API.",
+    settingsBroadcastSent: "Sent from {from} to {to}.",
+    settingsBroadcastSendFailed: "Failed to send message",
     adsTitle: "Ads",
     adsLead:
       "Home-page promo slides. If there are no enabled slides, the ad card is hidden.",

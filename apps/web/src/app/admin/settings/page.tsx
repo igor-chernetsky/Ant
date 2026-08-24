@@ -8,6 +8,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
 import {
   fetchAdminPlatformSettings,
+  sendAdminBroadcast,
   updateAdminPlatformSettings,
 } from '@/lib/admin-settings';
 import { isAdmin } from '@/lib/verification';
@@ -27,8 +28,12 @@ export default function AdminSettingsPage() {
 
   const [broadcastTo, setBroadcastTo] = useState('');
   const [broadcastSubject, setBroadcastSubject] = useState('');
+  const [broadcastHtml, setBroadcastHtml] = useState('<p></p>');
   const [broadcastBodyEmpty, setBroadcastBodyEmpty] = useState(true);
+  const [broadcastBusy, setBroadcastBusy] = useState(false);
   const [broadcastHint, setBroadcastHint] = useState<string | null>(null);
+  const [broadcastError, setBroadcastError] = useState<string | null>(null);
+  const [broadcastResetKey, setBroadcastResetKey] = useState(0);
 
   const loadSettings = useCallback(async () => {
     const settings = await fetchAdminPlatformSettings();
@@ -101,27 +106,53 @@ export default function AdminSettingsPage() {
   };
 
   const handleBroadcastBodyChange = useCallback(
-    (_html: string, isEmpty: boolean) => {
+    (html: string, isEmpty: boolean) => {
+      setBroadcastHtml(html);
       setBroadcastBodyEmpty(isEmpty);
       setBroadcastHint(null);
+      setBroadcastError(null);
     },
     [],
   );
 
-  const handleBroadcastSubmit = (event: FormEvent) => {
+  const handleBroadcastSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setBroadcastHint(null);
+    setBroadcastError(null);
     const to = broadcastTo.trim().toLowerCase();
     if (!EMAIL_RE.test(to)) {
-      setBroadcastHint(t('admin.settingsInvalidEmail'));
+      setBroadcastError(t('admin.settingsInvalidEmail'));
       return;
     }
     if (!broadcastSubject.trim() || broadcastBodyEmpty) {
-      setBroadcastHint(t('admin.settingsBroadcastIncomplete'));
+      setBroadcastError(t('admin.settingsBroadcastIncomplete'));
       return;
     }
-    // Wiring to the mail API comes later — UI only for now.
-    setBroadcastHint(t('admin.settingsBroadcastNotWired'));
+
+    setBroadcastBusy(true);
+    try {
+      const result = await sendAdminBroadcast({
+        to,
+        subject: broadcastSubject.trim(),
+        html: broadcastHtml,
+      });
+      setBroadcastHint(
+        t('admin.settingsBroadcastSent', { from: result.from, to }),
+      );
+      setBroadcastSubject('');
+      setBroadcastTo('');
+      setBroadcastHtml('<p></p>');
+      setBroadcastBodyEmpty(true);
+      setBroadcastResetKey((n) => n + 1);
+    } catch (err: unknown) {
+      setBroadcastError(
+        err instanceof Error
+          ? err.message
+          : t('admin.settingsBroadcastSendFailed'),
+      );
+    } finally {
+      setBroadcastBusy(false);
+    }
   };
 
   return (
@@ -242,7 +273,7 @@ export default function AdminSettingsPage() {
 
               <form
                 className="admin-settings-broadcast-form"
-                onSubmit={handleBroadcastSubmit}
+                onSubmit={(e) => void handleBroadcastSubmit(e)}
               >
                 <label className="admin-settings-field">
                   {t('admin.settingsBroadcastTo')}
@@ -252,9 +283,11 @@ export default function AdminSettingsPage() {
                     onChange={(e) => {
                       setBroadcastTo(e.target.value);
                       setBroadcastHint(null);
+                      setBroadcastError(null);
                     }}
                     placeholder="recipient@example.com"
                     autoComplete="email"
+                    disabled={broadcastBusy}
                   />
                 </label>
 
@@ -266,8 +299,10 @@ export default function AdminSettingsPage() {
                     onChange={(e) => {
                       setBroadcastSubject(e.target.value);
                       setBroadcastHint(null);
+                      setBroadcastError(null);
                     }}
                     placeholder={t('admin.settingsBroadcastSubjectPlaceholder')}
+                    disabled={broadcastBusy}
                   />
                 </label>
 
@@ -275,10 +310,14 @@ export default function AdminSettingsPage() {
                   <span className="admin-settings-field-label">
                     {t('admin.settingsBroadcastBody')}
                   </span>
-                  <SettingsBroadcastEditor onChange={handleBroadcastBodyChange} />
+                  <SettingsBroadcastEditor
+                    resetKey={broadcastResetKey}
+                    onChange={handleBroadcastBodyChange}
+                  />
                 </div>
 
-                {broadcastHint && (
+                {broadcastError && <p className="error">{broadcastError}</p>}
+                {broadcastHint && !broadcastError && (
                   <p className="muted admin-settings-broadcast-hint">
                     {broadcastHint}
                   </p>
@@ -289,12 +328,15 @@ export default function AdminSettingsPage() {
                     type="submit"
                     className="primary"
                     disabled={
+                      broadcastBusy ||
                       !broadcastTo.trim() ||
                       !broadcastSubject.trim() ||
                       broadcastBodyEmpty
                     }
                   >
-                    {t('admin.settingsBroadcastSend')}
+                    {broadcastBusy
+                      ? t('common.pleaseWait')
+                      : t('admin.settingsBroadcastSend')}
                   </button>
                 </div>
               </form>

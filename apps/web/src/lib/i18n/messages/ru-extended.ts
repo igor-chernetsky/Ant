@@ -573,15 +573,15 @@ export const ruExtended = {
     settingsInvalidEmail: "Укажите корректный email",
     settingsBroadcastTitle: "Отправить сообщение",
     settingsBroadcastHelp:
-      "Разовая рассылка: укажите получателя, тему и текст сообщения.",
+      "Письмо уходит с hello@builthai.com (Reply-To тот же адрес). Системные уведомления по-прежнему с noreply@.",
     settingsBroadcastTo: "Кому",
     settingsBroadcastSubject: "Тема",
     settingsBroadcastSubjectPlaceholder: "Тема сообщения",
     settingsBroadcastBody: "Сообщение",
     settingsBroadcastSend: "Отправить",
     settingsBroadcastIncomplete: "Заполните получателя, тему и текст.",
-    settingsBroadcastNotWired:
-      "Отправка пока не подключена — форма готова к подключению почтового API.",
+    settingsBroadcastSent: "Отправлено с {from} на {to}.",
+    settingsBroadcastSendFailed: "Не удалось отправить сообщение",
     adsTitle: "Реклама",
     adsLead:
       "Промо-слайды на главной. Если включённых слайдов нет, карточка скрыта.",

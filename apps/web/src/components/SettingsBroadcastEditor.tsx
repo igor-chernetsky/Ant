@@ -52,23 +52,29 @@ function ListIcon() {
 
 interface SettingsBroadcastEditorProps {
   onChange?: (html: string, isEmpty: boolean) => void;
+  /** Change to remount/clear the editor after a successful send. */
+  resetKey?: number;
 }
 
 export function SettingsBroadcastEditor({
   onChange,
+  resetKey = 0,
 }: SettingsBroadcastEditorProps) {
   const { t } = useTranslation();
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: '<p></p>',
-    immediatelyRender: false,
-    onUpdate: ({ editor: current }) => {
-      onChangeRef.current?.(current.getHTML(), current.isEmpty);
+  const editor = useEditor(
+    {
+      extensions: [StarterKit],
+      content: '<p></p>',
+      immediatelyRender: false,
+      onUpdate: ({ editor: current }) => {
+        onChangeRef.current?.(current.getHTML(), current.isEmpty);
+      },
     },
-  });
+    [resetKey],
+  );
 
   useEffect(() => {
     if (!editor) return;

@@ -8,7 +8,7 @@ export const PLATFORM_FEES_TRIAL_ACTIVE = true;
 export const INDICATIVE_USD_THB_RATE = 36;
 
 /** Default admin inbox from legal branding (LEGAL_CONTACT_EMAIL). Used when DB list is empty; override with PLATFORM_ADMIN_EMAIL. */
-export const DEFAULT_PLATFORM_ADMIN_EMAIL = 'providercmp@gmail.com';
+export const DEFAULT_PLATFORM_ADMIN_EMAIL = 'hello@builthai.com';
 
 export function platformSuccessFeeAmount(contractAmount: number): number {
   return Math.round(contractAmount * PLATFORM_SUCCESS_FEE_RATE * 100) / 100;
