@@ -635,11 +635,14 @@ export const enExtended = {
     locationsAny: "Any location",
     emptyUnregistered:
       "No unregistered companies match this project’s location and trades. Registered accounts already get matching-project emails.",
+    emptyUnregisteredDesigners:
+      "No unregistered designers match this project’s location. Registered accounts already get matching-project emails.",
     kindContractor: "Contractors",
     kindDesigner: "Designers",
     kindSupplier: "Suppliers",
     loading: "Loading registry…",
     empty: "No matching registry entries for this project’s location and trades.",
+    emptyDesigners: "No designers in the registry match this project’s location.",
     loadFailed: "Failed to load registry",
     inviteFailed: "Failed to send invites",
     inviteMaxHint:

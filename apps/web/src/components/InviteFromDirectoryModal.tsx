@@ -97,11 +97,18 @@ export function InviteFromDirectoryModal({
         ? undefined
         : suggestedKind
       : kind;
+    // Designers: match by kind (+ location) only — skip trade specialties.
+    const inviteTagSlugs =
+      listKind === 'designer'
+        ? undefined
+        : tagSlugsKey
+          ? tagSlugsKey.split(',')
+          : undefined;
     void fetchDirectoryEntries(listKind, {
       excludeRegistered: true,
       locationRegionSlug,
       locationAreaSlug,
-      tagSlugs: tagSlugsKey ? tagSlugsKey.split(',') : undefined,
+      tagSlugs: inviteTagSlugs,
     })
       .then((list) => {
         if (!cancelled) {
@@ -342,9 +349,19 @@ export function InviteFromDirectoryModal({
             <p className="muted">{t('directory.loading')}</p>
           ) : entries.length === 0 ? (
             <p className="muted">
-              {isAdmin
-                ? t('directory.emptyUnregistered')
-                : t('directory.empty')}
+              {(() => {
+                const listingDesigners =
+                  (isAdmin && !showAllKinds && suggestedKind === 'designer') ||
+                  (!isAdmin && kind === 'designer');
+                if (isAdmin) {
+                  return listingDesigners
+                    ? t('directory.emptyUnregisteredDesigners')
+                    : t('directory.emptyUnregistered');
+                }
+                return listingDesigners
+                  ? t('directory.emptyDesigners')
+                  : t('directory.empty');
+              })()}
             </p>
           ) : (
             <div className="directory-invite-table-wrap">

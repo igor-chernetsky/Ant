@@ -93,9 +93,12 @@ export class SupplyDirectoryService {
     const projectTags = (filter.tagSlugs ?? [])
       .map((slug) => slug.trim())
       .filter(Boolean);
-    if (projectTags.length > 0) {
-      dtos = dtos.filter((entry) =>
-        this.matchesProjectTrades(entry.tagSlugs, projectTags),
+    // Designers are matched by kind (+ location) only — not by trade specialties.
+    if (projectTags.length > 0 && filter.kind !== 'designer') {
+      dtos = dtos.filter(
+        (entry) =>
+          entry.kind === 'designer' ||
+          this.matchesProjectTrades(entry.tagSlugs, projectTags),
       );
     }
 
@@ -113,7 +116,9 @@ export class SupplyDirectoryService {
     return this.locations.contractorMatchesProject(serviceLocations, project);
   }
 
-  /** Empty entry tags = any trades; otherwise any overlap with project trades. */
+  /** Empty entry tags = any trades; otherwise any overlap with project trades.
+   * Designers are not matched by trades — use kind filter instead.
+   */
   matchesProjectTrades(
     entryTagSlugs: string[],
     projectTagSlugs: string[],
