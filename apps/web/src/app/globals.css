@@ -4988,6 +4988,44 @@ pre {
   cursor: pointer;
 }
 
+.password-field {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.password-field input {
+  padding-right: 2.75rem;
+}
+
+.password-visibility-toggle {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.password-visibility-toggle:hover:not(:disabled) {
+  color: #0f172a;
+  background: color-mix(in srgb, #64748b 12%, transparent);
+}
+
+.password-visibility-toggle:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .auth-success-notice {
   margin: 0;
   padding: 0.75rem 1rem;

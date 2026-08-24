@@ -154,6 +154,8 @@ export const en = {
     signInSubtitle: 'Sign in to manage projects and contractor bids.',
     signUpSubtitle: 'Join BuilTHAI to publish projects or respond to tenders.',
     fullName: 'Full name',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     emailPlaceholder: 'you@example.com',
     roleLegend: 'Your roles',
     roleHint: 'Choose how you will use the platform. You can update this later.',

@@ -155,6 +155,8 @@ export const th: Messages = {
     signInSubtitle: 'เข้าสู่ระบบเพื่อจัดการโครงการและข้อเสนอจากผู้รับเหมา',
     signUpSubtitle: 'เข้าร่วม BuilTHAI เพื่อเผยแพร่โครงการหรือตอบรับการประมูล',
     fullName: 'ชื่อ-นามสกุล',
+    showPassword: 'แสดงรหัสผ่าน',
+    hidePassword: 'ซ่อนรหัสผ่าน',
     emailPlaceholder: 'you@example.com',
     roleLegend: 'บทบาทของคุณ',
     roleHint: 'เลือกวิธีใช้งานแพลตฟอร์ม คุณสามารถเปลี่ยนได้ภายหลัง',

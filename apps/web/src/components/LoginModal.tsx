@@ -23,12 +23,64 @@ const ROLE_KEYS = {
   designer: 'auth.roleDesigner',
 } as const;
 
+function EyeIcon({ crossed }: { crossed?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      aria-hidden
+      focusable="false"
+    >
+      {crossed ? (
+        <>
+          <path
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            d="M3 3l18 18"
+          />
+          <path
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M10.6 10.6a2 2 0 0 0 2.8 2.8M6.7 6.8C4.7 8.1 3.2 9.9 2.5 12c1.5 4.2 5.3 7 9.5 7 1.7 0 3.3-.4 4.7-1.2M9.9 5.2A10.4 10.4 0 0 1 12 5c4.2 0 8 2.8 9.5 7-.4 1.1-1 2.1-1.8 3"
+          />
+        </>
+      ) : (
+        <>
+          <path
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M2.5 12C4 7.8 7.8 5 12 5s8 2.8 9.5 7c-1.5 4.2-5.3 7-9.5 7s-8-2.8-9.5-7Z"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            r="2.75"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+          />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [roles, setRoles] = useState<string[]>(['client']);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
@@ -47,6 +99,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     setMode(next);
     setError(null);
     setSuccessNotice(null);
+    setPasswordVisible(false);
     setAcceptedPrivacy(false);
     setAcceptedClientAgreement(false);
     setAcceptedContractorAgreement(false);
@@ -273,16 +326,32 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           {mode !== 'forgot' && (
             <label>
               {t('common.password')}
-              <input
-                type="password"
-                autoComplete={
-                  mode === 'signin' ? 'current-password' : 'new-password'
-                }
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                minLength={mode === 'signup' ? 8 : undefined}
-                required
-              />
+              <div className="password-field">
+                <input
+                  type={passwordVisible ? 'text' : 'password'}
+                  autoComplete={
+                    mode === 'signin' ? 'current-password' : 'new-password'
+                  }
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  minLength={mode === 'signup' ? 8 : undefined}
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-visibility-toggle"
+                  onClick={() => setPasswordVisible((prev) => !prev)}
+                  aria-label={
+                    passwordVisible
+                      ? t('auth.hidePassword')
+                      : t('auth.showPassword')
+                  }
+                  aria-pressed={passwordVisible}
+                  disabled={submitting}
+                >
+                  <EyeIcon crossed={passwordVisible} />
+                </button>
+              </div>
             </label>
           )}
 

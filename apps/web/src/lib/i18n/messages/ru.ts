@@ -157,6 +157,8 @@ export const ru: Messages = {
     signUpSubtitle:
       'Присоединяйтесь к BuilTHAI — публикуйте проекты или участвуйте в тендерах.',
     fullName: 'Полное имя',
+    showPassword: 'Показать пароль',
+    hidePassword: 'Скрыть пароль',
     emailPlaceholder: 'you@example.com',
     roleLegend: 'Ваши роли',
     roleHint:
