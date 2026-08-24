@@ -407,7 +407,8 @@ export const ruExtended = {
   },
   admin: {
     verificationTitle: "Верификация подрядчиков",
-    verificationLead: "Проверяйте профили подрядчиков, документы, одобряйте или отклоняйте с комментарием.",
+    verificationLead:
+      "Проверяйте профили подрядчиков и проектировщиков, документы, одобряйте или отклоняйте с комментарием.",
     signInPrompt: "Войдите с аккаунтом администратора.",
     roleRequired: "Требуется роль администратора.",
     removeProjectTitle: "Удалить проект с платформы",
@@ -485,10 +486,13 @@ export const ruExtended = {
     filterAwaitingReview: "На проверке",
     filterVerified: "Подтверждён",
     filterPending: "Ожидает",
+    filterNewContractor: "Новый подрядчик",
     filterRejected: "Отклонён",
     filterAll: "Все",
     noContractors: "Нет подрядчиков в этом фильтре.",
     contractorDetails: "Данные подрядчика",
+    selectContractorPrompt:
+      "Выберите подрядчика или проектировщика, чтобы посмотреть детали.",
     documents: "Документы",
     noDocuments: "Нет документов.",
     approve: "Одобрить",
@@ -622,8 +626,9 @@ export const ruExtended = {
     empty: "Нет подходящих записей реестра для локации и trades этого проекта.",
     loadFailed: "Не удалось загрузить реестр",
     inviteFailed: "Не удалось отправить приглашения",
-    inviteMaxHint: "Можно выбрать не больше {max} компаний из реестра.",
-    inviteMaxReached: "Можно выбрать не больше {max} компаний.",
+    inviteMaxHint:
+      "Можно пригласить до {designers} дизайнеров и {contractors} подрядчиков. Для этого списка: не больше {max} ({kind}).",
+    inviteMaxReached: "Можно выбрать не больше {max} ({kind}).",
     inviteSent: "Создано приглашений: {count}. Писем отправлено: {sent}.",
     manualInviteTitle: "Пригласить по email",
     emailPlaceholder: "Email",

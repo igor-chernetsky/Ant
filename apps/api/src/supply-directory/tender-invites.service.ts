@@ -22,7 +22,14 @@ import {
 } from './supply-directory.types';
 
 const INVITE_TTL_DAYS = 60;
-const CLIENT_DIRECTORY_INVITE_MAX = 3;
+
+/** Per-kind caps for non-admin (client) registry invites in one send. */
+const CLIENT_DIRECTORY_INVITE_MAX_BY_KIND: Record<SupplyDirectoryKind, number> =
+  {
+    designer: 3,
+    contractor: 4,
+    supplier: 3,
+  };
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -136,11 +143,6 @@ export class TenderInvitesService {
       throw new BadRequestException('Select at least one directory entry');
     }
     const isAdmin = options?.isAdmin === true;
-    if (!isAdmin && entryIds.length > CLIENT_DIRECTORY_INVITE_MAX) {
-      throw new BadRequestException(
-        `Select at most ${CLIENT_DIRECTORY_INVITE_MAX} directory entries`,
-      );
-    }
 
     const { tender, project } = await this.assertCanInvite(
       actorId,
@@ -153,6 +155,22 @@ export class TenderInvitesService {
     });
     if (entries.length === 0) {
       throw new NotFoundException('No directory entries found');
+    }
+
+    if (!isAdmin) {
+      const counts: Partial<Record<SupplyDirectoryKind, number>> = {};
+      for (const entry of entries) {
+        counts[entry.kind] = (counts[entry.kind] ?? 0) + 1;
+      }
+      for (const kind of Object.values(SupplyDirectoryKind)) {
+        const count = counts[kind] ?? 0;
+        const max = CLIENT_DIRECTORY_INVITE_MAX_BY_KIND[kind];
+        if (count > max) {
+          throw new BadRequestException(
+            `Select at most ${max} ${kind} entries from the registry`,
+          );
+        }
+      }
     }
 
     const registered = await this.registeredSupplyEmails(

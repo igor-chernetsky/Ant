@@ -9830,9 +9830,10 @@ select:disabled {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 0.75rem 0;
+  padding: 0.85rem 0.9rem;
   border: none;
   border-top: 1px solid var(--border);
+  border-radius: 10px;
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -9848,6 +9849,27 @@ select:disabled {
   background: var(--accent-muted);
 }
 
+.admin-contractor-row--active {
+  background: color-mix(in srgb, var(--accent-muted) 80%, #eff6ff);
+  outline: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.admin-contractor-row-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.admin-contractor-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin-contractor-role-row {
+  margin-top: 0.4rem;
+}
+
 .admin-review-actions {
   display: grid;
   gap: 0.75rem;
@@ -9857,6 +9879,114 @@ select:disabled {
 .admin-reject-field {
   display: grid;
   gap: 0.35rem;
+}
+
+.admin-verification-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 1.25rem 1.5rem 2rem;
+  box-sizing: border-box;
+}
+
+.admin-verification-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.admin-verification-count {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.admin-verification-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.admin-verification-sidebar,
+.admin-verification-detail {
+  min-height: calc(100vh - 11rem);
+}
+
+.admin-verification-sidebar {
+  position: sticky;
+  top: 5.5rem;
+  overflow: hidden;
+}
+
+.admin-verification-detail {
+  overflow: hidden;
+}
+
+.admin-verification-empty {
+  min-height: 18rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-verification-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-verification-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-verification-name {
+  font-size: 1.05rem;
+}
+
+.admin-verification-meta-grid {
+  margin-bottom: 1rem;
+}
+
+.admin-role-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.admin-role-pill--contractor {
+  background: #ecfccb;
+  color: #3f6212;
+}
+
+.admin-role-pill--designer {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+@media (max-width: 980px) {
+  .admin-verification-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-verification-sidebar,
+  .admin-verification-detail {
+    min-height: auto;
+  }
+
+  .admin-verification-sidebar {
+    position: static;
+  }
 }
 
 .amendments-card {

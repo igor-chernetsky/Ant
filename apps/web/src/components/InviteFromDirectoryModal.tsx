@@ -29,7 +29,18 @@ interface InviteFromDirectoryModalProps {
 }
 
 const KINDS: SupplyDirectoryKind[] = ['contractor', 'designer', 'supplier'];
-const CLIENT_DIRECTORY_INVITE_MAX = 3;
+
+/** Per-kind caps for client registry invites in one send. */
+const CLIENT_DIRECTORY_INVITE_MAX_BY_KIND: Record<SupplyDirectoryKind, number> =
+  {
+    designer: 3,
+    contractor: 4,
+    supplier: 3,
+  };
+
+function clientInviteMaxForKind(kind: SupplyDirectoryKind): number {
+  return CLIENT_DIRECTORY_INVITE_MAX_BY_KIND[kind];
+}
 
 export function InviteFromDirectoryModal({
   projectId,
@@ -132,6 +143,7 @@ export function InviteFromDirectoryModal({
   }, []);
 
   const selectedCount = selected.size;
+  const clientInviteMax = clientInviteMaxForKind(kind);
 
   const kindLabel = useMemo(
     () => ({
@@ -141,6 +153,12 @@ export function InviteFromDirectoryModal({
     }),
     [t],
   );
+
+  const inviteMaxReachedMessage = () =>
+    t('directory.inviteMaxReached', {
+      max: String(clientInviteMax),
+      kind: kindLabel[kind],
+    });
 
   const formatEntryLocations = (entry: SupplyDirectoryEntry) => {
     if (entry.serviceLocations.length === 0) {
@@ -167,12 +185,8 @@ export function InviteFromDirectoryModal({
         next.delete(id);
         return next;
       }
-      if (!isAdmin && next.size >= CLIENT_DIRECTORY_INVITE_MAX) {
-        setError(
-          t('directory.inviteMaxReached', {
-            max: String(CLIENT_DIRECTORY_INVITE_MAX),
-          }),
-        );
+      if (!isAdmin && next.size >= clientInviteMax) {
+        setError(inviteMaxReachedMessage());
         return prev;
       }
       next.add(id);
@@ -182,12 +196,8 @@ export function InviteFromDirectoryModal({
 
   const handleInviteSelected = async () => {
     if (selectedCount === 0) return;
-    if (!isAdmin && selectedCount > CLIENT_DIRECTORY_INVITE_MAX) {
-      setError(
-        t('directory.inviteMaxReached', {
-          max: String(CLIENT_DIRECTORY_INVITE_MAX),
-        }),
-      );
+    if (!isAdmin && selectedCount > clientInviteMax) {
+      setError(inviteMaxReachedMessage());
       return;
     }
     setBusy(true);
@@ -316,7 +326,14 @@ export function InviteFromDirectoryModal({
           {!isAdmin && (
             <p className="muted">
               {t('directory.inviteMaxHint', {
-                max: String(CLIENT_DIRECTORY_INVITE_MAX),
+                designers: String(
+                  CLIENT_DIRECTORY_INVITE_MAX_BY_KIND.designer,
+                ),
+                contractors: String(
+                  CLIENT_DIRECTORY_INVITE_MAX_BY_KIND.contractor,
+                ),
+                max: String(clientInviteMax),
+                kind: kindLabel[kind],
               })}
             </p>
           )}
@@ -371,7 +388,7 @@ export function InviteFromDirectoryModal({
                             busy ||
                             (!isAdmin &&
                               !selected.has(entry.id) &&
-                              selectedCount >= CLIENT_DIRECTORY_INVITE_MAX)
+                              selectedCount >= clientInviteMax)
                           }
                           aria-label={entry.companyName}
                         />

@@ -404,7 +404,8 @@ export const thExtended = {
   },
   admin: {
     verificationTitle: "การยืนยันผู้รับเหมา",
-    verificationLead: "ตรวจสอบโปรไฟล์ผู้รับเหมา เอกสาร และอนุมัติหรือปฏิเสธพร้อมข้อเสนอแนะ",
+    verificationLead:
+      "ตรวจสอบโปรไฟล์ผู้รับเหมาและผู้ออกแบบ เอกสาร และอนุมัติหรือปฏิเสธพร้อมข้อเสนอแนะ",
     signInPrompt: "เข้าสู่ระบบด้วยบัญชีผู้ดูแล",
     roleRequired: "ต้องมีบทบาทผู้ดูแล",
     removeProjectTitle: "ลบโครงการออกจากแพลตฟอร์ม",
@@ -482,10 +483,13 @@ export const thExtended = {
     filterAwaitingReview: "รอตรวจสอบ",
     filterVerified: "ยืนยันแล้ว",
     filterPending: "รอดำเนินการ",
+    filterNewContractor: "ผู้รับเหมาใหม่",
     filterRejected: "ปฏิเสธ",
     filterAll: "ทั้งหมด",
     noContractors: "ไม่มีผู้รับเหมาในตัวกรองนี้",
     contractorDetails: "รายละเอียดผู้รับเหมา",
+    selectContractorPrompt:
+      "เลือกผู้รับเหมาหรือผู้ออกแบบเพื่อดูรายละเอียด",
     documents: "เอกสาร",
     noDocuments: "ไม่มีเอกสาร",
     approve: "อนุมัติ",
@@ -619,8 +623,9 @@ export const thExtended = {
     empty: "ไม่มีรายการในทะเบียนที่ตรงกับพื้นที่และ trades ของโครงการนี้",
     loadFailed: "โหลดทะเบียนไม่สำเร็จ",
     inviteFailed: "ส่งคำเชิญไม่สำเร็จ",
-    inviteMaxHint: "เลือกได้สูงสุด {max} บริษัทจากทะเบียน",
-    inviteMaxReached: "เลือกได้ไม่เกิน {max} บริษัท",
+    inviteMaxHint:
+      "เชิญได้สูงสุด {designers} ผู้ออกแบบ และ {contractors} ผู้รับเหมา สำหรับรายการนี้: ไม่เกิน {max} {kind}",
+    inviteMaxReached: "เลือกได้ไม่เกิน {max} {kind}",
     inviteSent: "สร้างคำเชิญ {count} รายการ ส่งอีเมลแล้ว {sent}",
     manualInviteTitle: "เชิญทางอีเมล",
     emailPlaceholder: "อีเมล",

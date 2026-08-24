@@ -7,6 +7,8 @@ export type ContractorVerificationStatus =
   | 'rejected'
   | 'suspended';
 
+export type SupplyProfileKind = 'contractor' | 'designer';
+
 export type ContractorVerificationDocCategory =
   | 'business_license'
   | 'registration'
@@ -39,6 +41,7 @@ export interface AdminContractorListItem {
   bankName: string | null;
   bankAccount: string | null;
   regionCode: string;
+  kind: SupplyProfileKind;
   verificationStatus: ContractorVerificationStatus;
   verificationRequestedAt: string | null;
   verificationReviewedAt: string | null;

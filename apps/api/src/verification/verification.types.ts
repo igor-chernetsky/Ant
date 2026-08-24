@@ -1,4 +1,7 @@
-import { ContractorVerificationDocCategory } from '@prisma/client';
+import {
+  ContractorVerificationDocCategory,
+  SupplyProfileKind,
+} from '@prisma/client';
 
 export interface ContractorVerificationDocumentResponse {
   id: string;
@@ -35,6 +38,7 @@ export interface AdminContractorListItem {
   bankName: string | null;
   bankAccount: string | null;
   regionCode: string;
+  kind: SupplyProfileKind;
   verificationStatus: string;
   verificationRequestedAt: string | null;
   verificationReviewedAt: string | null;

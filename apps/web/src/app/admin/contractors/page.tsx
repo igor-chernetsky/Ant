@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
@@ -18,16 +18,17 @@ import {
   type AdminContractorDetail,
   type AdminContractorListItem,
   type ContractorVerificationStatus,
+  type SupplyProfileKind,
 } from '@/lib/verification';
+
+type FilterKey = ContractorVerificationStatus | '' | 'new_contractor';
 
 export default function AdminContractorsPage() {
   const { t } = useTranslation();
   const { formatVerificationStatus, formatDocumentCategory } = useAppFormatters();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const [ready, setReady] = useState(false);
-  const [filter, setFilter] = useState<ContractorVerificationStatus | ''>(
-    'awaiting_review',
-  );
+  const [filter, setFilter] = useState<FilterKey>('awaiting_review');
   const [list, setList] = useState<AdminContractorListItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<AdminContractorDetail | null>(null);
@@ -37,20 +38,22 @@ export default function AdminContractorsPage() {
   const [loginOpen, setLoginOpen] = useState(false);
 
   const statusFilters: Array<{
-    value: ContractorVerificationStatus | '';
+    value: FilterKey;
     labelKey: string;
   }> = [
     { value: 'awaiting_review', labelKey: 'admin.filterAwaitingReview' },
+    { value: 'new_contractor', labelKey: 'admin.filterNewContractor' },
     { value: 'verified', labelKey: 'admin.filterVerified' },
-    { value: 'pending', labelKey: 'admin.filterPending' },
     { value: 'rejected', labelKey: 'admin.filterRejected' },
     { value: '', labelKey: 'admin.filterAll' },
   ];
 
+  const statusQuery = filter === 'new_contractor' ? 'pending' : filter || undefined;
+
   const loadList = useCallback(async () => {
-    const items = await fetchAdminContractors(filter || undefined);
+    const items = await fetchAdminContractors(statusQuery);
     setList(items);
-  }, [filter]);
+  }, [statusQuery]);
 
   useEffect(() => {
     if (!sessionReady) return;
@@ -67,7 +70,19 @@ export default function AdminContractorsPage() {
     void loadList().catch((err: unknown) => {
       setError(err instanceof Error ? err.message : t('admin.loadListFailed'));
     });
-  }, [filter, ready, me, loadList, t]);
+  }, [ready, me, loadList, t]);
+
+  const filteredList = useMemo(() => {
+    if (filter !== 'new_contractor') return list;
+    return list.filter((item) => item.verificationStatus === 'pending');
+  }, [filter, list]);
+
+  const hasDesigners = filteredList.some((item) => item.kind === 'designer');
+
+  const formatRoleLabel = (kind: SupplyProfileKind) =>
+    kind === 'designer'
+      ? t('admin.directoryKindDesigner')
+      : t('admin.directoryKindContractor');
 
   const openDetail = async (contractorId: string) => {
     setBusy(true);
@@ -85,6 +100,17 @@ export default function AdminContractorsPage() {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (selectedId && !filteredList.some((item) => item.id === selectedId)) {
+      setSelectedId(null);
+      setDetail(null);
+      return;
+    }
+    if (!selectedId && filteredList.length > 0) {
+      void openDetail(filteredList[0].id);
+    }
+  }, [filteredList, selectedId]);
 
   const handleApprove = async () => {
     if (!selectedId) return;
@@ -145,10 +171,20 @@ export default function AdminContractorsPage() {
         onSignOut={handleLogout}
       />
 
-      <main className="content-container main-content">
-        <section className="page-hero">
-          <h1>{t('admin.verificationTitle')}</h1>
-          <p className="page-hero-lead muted">{t('admin.verificationLead')}</p>
+      <main className="admin-verification-page">
+        <section className="admin-verification-hero">
+          <div>
+            <h1 className="page-title">{t('admin.verificationTitle')}</h1>
+            <p className="muted">{t('admin.verificationLead')}</p>
+          </div>
+          {ready && me && isAdmin(me.roles) ? (
+            <p className="admin-verification-count">
+              {t('admin.projectsTableLoaded', {
+                count: String(filteredList.length),
+                total: String(filteredList.length),
+              })}
+            </p>
+          ) : null}
         </section>
 
         {!ready && (
@@ -176,8 +212,8 @@ export default function AdminContractorsPage() {
         )}
 
         {ready && me && isAdmin(me.roles) && (
-          <>
-            <section className="card">
+          <section className="admin-verification-layout">
+            <section className="card admin-verification-sidebar">
               <div
                 className="admin-filter-bar"
                 role="group"
@@ -200,29 +236,42 @@ export default function AdminContractorsPage() {
                 ))}
               </div>
 
-              {list.length === 0 ? (
+              {filteredList.length === 0 ? (
                 <p className="muted">{t('admin.noContractors')}</p>
               ) : (
                 <ul className="admin-contractor-list">
-                  {list.map((item) => (
+                  {filteredList.map((item) => (
                     <li key={item.id}>
                       <button
                         type="button"
-                        className="admin-contractor-row"
+                        className={`admin-contractor-row${
+                          selectedId === item.id ? ' admin-contractor-row--active' : ''
+                        }`}
                         onClick={() => void openDetail(item.id)}
                       >
-                        <div>
-                          <strong>
-                            {item.companyName ?? item.displayName ?? item.email}
-                          </strong>
+                        <div className="admin-contractor-row-main">
+                          <div className="admin-contractor-row-top">
+                            <strong>
+                              {item.companyName ?? item.displayName ?? item.email}
+                            </strong>
+                            <span className="status-pill">
+                              {formatVerificationStatus(item.verificationStatus)}
+                            </span>
+                          </div>
                           <p className="muted doc-meta">
                             {item.email ?? t('common.dash')} · {item.regionCode}{' '}
                             · {item.documentCount} {t('common.docs')}
                           </p>
+                          {hasDesigners ? (
+                            <div className="admin-contractor-role-row">
+                              <span
+                                className={`admin-role-pill admin-role-pill--${item.kind}`}
+                              >
+                                {formatRoleLabel(item.kind)}
+                              </span>
+                            </div>
+                          ) : null}
                         </div>
-                        <span className="status-pill">
-                          {formatVerificationStatus(item.verificationStatus)}
-                        </span>
                       </button>
                     </li>
                   ))}
@@ -230,132 +279,151 @@ export default function AdminContractorsPage() {
               )}
             </section>
 
-            {detail && (
-              <section className="card">
-                <h2 className="section-title">{t('admin.contractorDetails')}</h2>
-                <dl className="meta-grid">
-                  <div>
-                    <dt>{t('common.name')}</dt>
-                    <dd>{detail.displayName ?? t('common.dash')}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('common.email')}</dt>
-                    <dd>{detail.email ?? t('common.dash')}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('common.company')}</dt>
-                    <dd>{detail.companyName ?? t('common.dash')}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('common.phone')}</dt>
-                    <dd>{detail.phone?.trim() ? detail.phone : t('common.dash')}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('contractor.taxIdLabel')}</dt>
-                    <dd>
-                      {detail.taxId?.trim() ? detail.taxId : t('common.dash')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t('contractor.preferredContactLabel')}</dt>
-                    <dd>
-                      {detail.preferredContactMethods?.length
-                        ? detail.preferredContactMethods
-                            .map((method) =>
-                              t(`contractor.contactMethod_${method}`),
-                            )
-                            .join(', ')
-                        : t('common.dash')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t('contractor.bankNameLabel')}</dt>
-                    <dd>
-                      {detail.bankName?.trim() ? detail.bankName : t('common.dash')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t('contractor.bankAccountLabel')}</dt>
-                    <dd>
-                      {detail.bankAccount?.trim()
-                        ? detail.bankAccount
-                        : t('common.dash')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t('common.region')}</dt>
-                    <dd>{detail.regionCode}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('common.status')}</dt>
-                    <dd>{formatVerificationStatus(detail.verificationStatus)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('common.requested')}</dt>
-                    <dd>
-                      {detail.verificationRequestedAt
-                        ? new Date(detail.verificationRequestedAt).toLocaleString()
-                        : t('common.dash')}
-                    </dd>
-                  </div>
-                </dl>
-
-                <h3 className="tag-section-label">{t('admin.documents')}</h3>
-                {detail.documents.length === 0 ? (
-                  <p className="muted">{t('admin.noDocuments')}</p>
-                ) : (
-                  <ul className="doc-list">
-                    {detail.documents.map((doc) => (
-                      <li key={doc.id} className="doc-item">
-                        <button
-                          type="button"
-                          className="doc-link"
-                          onClick={() => void handleDocOpen(doc.id)}
+            <section className="card admin-verification-detail">
+              {error && <p className="form-error">{error}</p>}
+              {!detail ? (
+                <div className="admin-verification-empty">
+                  <p className="muted">{t('admin.selectContractorPrompt')}</p>
+                </div>
+              ) : (
+                <>
+                  <div className="admin-verification-detail-header">
+                    <div>
+                      <h2 className="section-title">{t('admin.contractorDetails')}</h2>
+                      <div className="admin-verification-name-row">
+                        <strong className="admin-verification-name">
+                          {detail.companyName ?? detail.displayName ?? detail.email}
+                        </strong>
+                        <span
+                          className={`admin-role-pill admin-role-pill--${detail.kind}`}
                         >
-                          {doc.originalName}
-                        </button>
-                        <p className="muted doc-meta">
-                          {formatDocumentCategory(doc.category)}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {detail.verificationStatus === 'awaiting_review' && (
-                  <div className="admin-review-actions">
-                    <button
-                      type="button"
-                      className="primary"
-                      disabled={busy}
-                      onClick={() => void handleApprove()}
-                    >
-                      {t('admin.approve')}
-                    </button>
-                    <label className="admin-reject-field">
-                      {t('admin.rejectionComment')}
-                      <textarea
-                        rows={3}
-                        value={rejectComment}
-                        onChange={(e) => setRejectComment(e.target.value)}
-                        placeholder={t('admin.rejectionPlaceholder')}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      className="danger"
-                      disabled={busy || rejectComment.trim().length < 3}
-                      onClick={() => void handleReject()}
-                    >
-                      {t('admin.reject')}
-                    </button>
+                          {formatRoleLabel(detail.kind)}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="status-pill">
+                      {formatVerificationStatus(detail.verificationStatus)}
+                    </span>
                   </div>
-                )}
 
-                {error && <p className="form-error">{error}</p>}
-              </section>
-            )}
-          </>
+                  <dl className="meta-grid admin-verification-meta-grid">
+                    <div>
+                      <dt>{t('common.name')}</dt>
+                      <dd>{detail.displayName ?? t('common.dash')}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('common.email')}</dt>
+                      <dd>{detail.email ?? t('common.dash')}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('common.company')}</dt>
+                      <dd>{detail.companyName ?? t('common.dash')}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('common.phone')}</dt>
+                      <dd>{detail.phone?.trim() ? detail.phone : t('common.dash')}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('contractor.taxIdLabel')}</dt>
+                      <dd>
+                        {detail.taxId?.trim() ? detail.taxId : t('common.dash')}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t('common.region')}</dt>
+                      <dd>{detail.regionCode}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('contractor.preferredContactLabel')}</dt>
+                      <dd>
+                        {detail.preferredContactMethods?.length
+                          ? detail.preferredContactMethods
+                              .map((method) =>
+                                t(`contractor.contactMethod_${method}`),
+                              )
+                              .join(', ')
+                          : t('common.dash')}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t('contractor.bankNameLabel')}</dt>
+                      <dd>
+                        {detail.bankName?.trim() ? detail.bankName : t('common.dash')}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t('contractor.bankAccountLabel')}</dt>
+                      <dd>
+                        {detail.bankAccount?.trim()
+                          ? detail.bankAccount
+                          : t('common.dash')}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>{t('common.requested')}</dt>
+                      <dd>
+                        {detail.verificationRequestedAt
+                          ? new Date(detail.verificationRequestedAt).toLocaleString()
+                          : t('common.dash')}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <h3 className="tag-section-label">{t('admin.documents')}</h3>
+                  {detail.documents.length === 0 ? (
+                    <p className="muted">{t('admin.noDocuments')}</p>
+                  ) : (
+                    <ul className="doc-list">
+                      {detail.documents.map((doc) => (
+                        <li key={doc.id} className="doc-item">
+                          <button
+                            type="button"
+                            className="doc-link"
+                            onClick={() => void handleDocOpen(doc.id)}
+                          >
+                            {doc.originalName}
+                          </button>
+                          <p className="muted doc-meta">
+                            {formatDocumentCategory(doc.category)}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {detail.verificationStatus === 'awaiting_review' && (
+                    <div className="admin-review-actions">
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={busy}
+                        onClick={() => void handleApprove()}
+                      >
+                        {t('admin.approve')}
+                      </button>
+                      <label className="admin-reject-field">
+                        {t('admin.rejectionComment')}
+                        <textarea
+                          rows={4}
+                          value={rejectComment}
+                          onChange={(e) => setRejectComment(e.target.value)}
+                          placeholder={t('admin.rejectionPlaceholder')}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="danger"
+                        disabled={busy || rejectComment.trim().length < 3}
+                        onClick={() => void handleReject()}
+                      >
+                        {t('admin.reject')}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
+          </section>
         )}
       </main>
 
