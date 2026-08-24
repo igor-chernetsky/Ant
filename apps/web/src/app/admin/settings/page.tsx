@@ -3,6 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
+import { SettingsBroadcastEditor } from '@/components/SettingsBroadcastEditor';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
 import {
@@ -10,6 +11,8 @@ import {
   updateAdminPlatformSettings,
 } from '@/lib/admin-settings';
 import { isAdmin } from '@/lib/verification';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
 export default function AdminSettingsPage() {
   const { t } = useTranslation();
@@ -21,6 +24,11 @@ export default function AdminSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+
+  const [broadcastTo, setBroadcastTo] = useState('');
+  const [broadcastSubject, setBroadcastSubject] = useState('');
+  const [broadcastBodyEmpty, setBroadcastBodyEmpty] = useState(true);
+  const [broadcastHint, setBroadcastHint] = useState<string | null>(null);
 
   const loadSettings = useCallback(async () => {
     const settings = await fetchAdminPlatformSettings();
@@ -44,7 +52,7 @@ export default function AdminSettingsPage() {
     if (!email) return;
     setError(null);
     setSaved(false);
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(email)) {
+    if (!EMAIL_RE.test(email)) {
       setError(t('admin.settingsInvalidEmail'));
       return;
     }
@@ -70,7 +78,7 @@ export default function AdminSettingsPage() {
       let next = emails;
       const pending = draftEmail.trim().toLowerCase();
       if (pending) {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/i.test(pending)) {
+        if (!EMAIL_RE.test(pending)) {
           throw new Error(t('admin.settingsInvalidEmail'));
         }
         if (!next.includes(pending)) {
@@ -90,6 +98,30 @@ export default function AdminSettingsPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleBroadcastBodyChange = useCallback(
+    (_html: string, isEmpty: boolean) => {
+      setBroadcastBodyEmpty(isEmpty);
+      setBroadcastHint(null);
+    },
+    [],
+  );
+
+  const handleBroadcastSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    setBroadcastHint(null);
+    const to = broadcastTo.trim().toLowerCase();
+    if (!EMAIL_RE.test(to)) {
+      setBroadcastHint(t('admin.settingsInvalidEmail'));
+      return;
+    }
+    if (!broadcastSubject.trim() || broadcastBodyEmpty) {
+      setBroadcastHint(t('admin.settingsBroadcastIncomplete'));
+      return;
+    }
+    // Wiring to the mail API comes later — UI only for now.
+    setBroadcastHint(t('admin.settingsBroadcastNotWired'));
   };
 
   return (
@@ -127,76 +159,147 @@ export default function AdminSettingsPage() {
         )}
 
         {ready && me && isAdmin(me.roles) && (
-          <section className="card">
-            <div className="account-notifications-header">
-              <h2 className="section-title">
-                {t('admin.settingsContractSignedEmails')}
-              </h2>
-              {saved && !error && (
-                <span className="account-saved-badge">{t('common.saved')}</span>
-              )}
-            </div>
-            <p className="muted doc-hint">
-              {t('admin.settingsContractSignedEmailsHelp')}
-            </p>
-
-            {error && <p className="error">{error}</p>}
-
-            <form className="admin-directory-form" onSubmit={(e) => void handleSave(e)}>
-              <ul className="admin-email-list">
-                {emails.length === 0 && (
-                  <li className="muted">{t('admin.settingsEmailsEmpty')}</li>
+          <div className="admin-settings-layout">
+            <section className="card admin-settings-panel">
+              <div className="account-notifications-header">
+                <h2 className="section-title">
+                  {t('admin.settingsContractSignedEmails')}
+                </h2>
+                {saved && !error && (
+                  <span className="account-saved-badge">{t('common.saved')}</span>
                 )}
-                {emails.map((email) => (
-                  <li key={email} className="admin-email-row">
-                    <span>{email}</span>
+              </div>
+              <p className="muted doc-hint">
+                {t('admin.settingsContractSignedEmailsHelp')}
+              </p>
+
+              {error && <p className="error">{error}</p>}
+
+              <form
+                className="admin-settings-emails-form"
+                onSubmit={(e) => void handleSave(e)}
+              >
+                <label className="admin-settings-field">
+                  {t('admin.settingsAddEmail')}
+                  <div className="admin-email-add-row">
+                    <input
+                      type="email"
+                      value={draftEmail}
+                      onChange={(e) => {
+                        setDraftEmail(e.target.value);
+                        setSaved(false);
+                      }}
+                      placeholder="ops@example.com"
+                      disabled={busy}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addEmail();
+                        }
+                      }}
+                    />
                     <button
                       type="button"
                       className="secondary"
-                      disabled={busy}
-                      onClick={() => removeEmail(email)}
+                      disabled={busy || !draftEmail.trim()}
+                      onClick={addEmail}
                     >
-                      {t('common.remove')}
+                      {t('admin.settingsAdd')}
                     </button>
-                  </li>
-                ))}
-              </ul>
+                  </div>
+                </label>
 
-              <label>
-                {t('admin.settingsAddEmail')}
-                <div className="admin-email-add-row">
-                  <input
-                    type="email"
-                    value={draftEmail}
-                    onChange={(e) => {
-                      setDraftEmail(e.target.value);
-                      setSaved(false);
-                    }}
-                    placeholder="ops@example.com"
-                    disabled={busy}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addEmail();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={busy || !draftEmail.trim()}
-                    onClick={addEmail}
-                  >
-                    {t('admin.settingsAdd')}
+                <ul className="admin-email-list">
+                  {emails.length === 0 && (
+                    <li className="muted">{t('admin.settingsEmailsEmpty')}</li>
+                  )}
+                  {emails.map((email) => (
+                    <li key={email} className="admin-email-row">
+                      <span className="admin-email-row-address">{email}</span>
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={busy}
+                        onClick={() => removeEmail(email)}
+                      >
+                        {t('common.remove')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="admin-settings-actions">
+                  <button type="submit" className="primary" disabled={busy}>
+                    {busy ? t('common.pleaseWait') : t('admin.settingsSave')}
                   </button>
                 </div>
-              </label>
+              </form>
+            </section>
 
-              <button type="submit" className="primary" disabled={busy}>
-                {busy ? t('common.pleaseWait') : t('admin.settingsSave')}
-              </button>
-            </form>
-          </section>
+            <section className="card admin-settings-panel">
+              <h2 className="section-title">{t('admin.settingsBroadcastTitle')}</h2>
+              <p className="muted doc-hint">{t('admin.settingsBroadcastHelp')}</p>
+
+              <form
+                className="admin-settings-broadcast-form"
+                onSubmit={handleBroadcastSubmit}
+              >
+                <label className="admin-settings-field">
+                  {t('admin.settingsBroadcastTo')}
+                  <input
+                    type="email"
+                    value={broadcastTo}
+                    onChange={(e) => {
+                      setBroadcastTo(e.target.value);
+                      setBroadcastHint(null);
+                    }}
+                    placeholder="recipient@example.com"
+                    autoComplete="email"
+                  />
+                </label>
+
+                <label className="admin-settings-field">
+                  {t('admin.settingsBroadcastSubject')}
+                  <input
+                    type="text"
+                    value={broadcastSubject}
+                    onChange={(e) => {
+                      setBroadcastSubject(e.target.value);
+                      setBroadcastHint(null);
+                    }}
+                    placeholder={t('admin.settingsBroadcastSubjectPlaceholder')}
+                  />
+                </label>
+
+                <div className="admin-settings-field">
+                  <span className="admin-settings-field-label">
+                    {t('admin.settingsBroadcastBody')}
+                  </span>
+                  <SettingsBroadcastEditor onChange={handleBroadcastBodyChange} />
+                </div>
+
+                {broadcastHint && (
+                  <p className="muted admin-settings-broadcast-hint">
+                    {broadcastHint}
+                  </p>
+                )}
+
+                <div className="admin-settings-actions">
+                  <button
+                    type="submit"
+                    className="primary"
+                    disabled={
+                      !broadcastTo.trim() ||
+                      !broadcastSubject.trim() ||
+                      broadcastBodyEmpty
+                    }
+                  >
+                    {t('admin.settingsBroadcastSend')}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
         )}
       </main>
 

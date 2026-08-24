@@ -571,6 +571,17 @@ export const ruExtended = {
     settingsLoadFailed: "Не удалось загрузить настройки",
     settingsSaveFailed: "Не удалось сохранить настройки",
     settingsInvalidEmail: "Укажите корректный email",
+    settingsBroadcastTitle: "Отправить сообщение",
+    settingsBroadcastHelp:
+      "Разовая рассылка: укажите получателя, тему и текст сообщения.",
+    settingsBroadcastTo: "Кому",
+    settingsBroadcastSubject: "Тема",
+    settingsBroadcastSubjectPlaceholder: "Тема сообщения",
+    settingsBroadcastBody: "Сообщение",
+    settingsBroadcastSend: "Отправить",
+    settingsBroadcastIncomplete: "Заполните получателя, тему и текст.",
+    settingsBroadcastNotWired:
+      "Отправка пока не подключена — форма готова к подключению почтового API.",
     adsTitle: "Реклама",
     adsLead:
       "Промо-слайды на главной. Если включённых слайдов нет, карточка скрыта.",

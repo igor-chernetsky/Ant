@@ -36,6 +36,9 @@ export default function AdminContractorsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [imagePreviews, setImagePreviews] = useState<Record<string, string>>(
+    {},
+  );
 
   const statusFilters: Array<{
     value: FilterKey;
@@ -84,14 +87,43 @@ export default function AdminContractorsPage() {
       ? t('admin.directoryKindDesigner')
       : t('admin.directoryKindContractor');
 
+  const isImageDocument = (contentType: string) =>
+    contentType.toLowerCase().startsWith('image/');
+
   const openDetail = async (contractorId: string) => {
     setBusy(true);
     setError(null);
     setRejectComment('');
+    setImagePreviews({});
     try {
       const data = await fetchAdminContractor(contractorId);
       setDetail(data);
       setSelectedId(contractorId);
+
+      const imageDocs = data.documents.filter(
+        (doc) =>
+          doc.status === 'uploaded' && isImageDocument(doc.contentType),
+      );
+      if (imageDocs.length > 0) {
+        const entries = await Promise.all(
+          imageDocs.map(async (doc) => {
+            try {
+              const { downloadUrl } = await getAdminContractorDocumentUrl(
+                contractorId,
+                doc.id,
+              );
+              return [doc.id, downloadUrl] as const;
+            } catch {
+              return null;
+            }
+          }),
+        );
+        const next: Record<string, string> = {};
+        for (const entry of entries) {
+          if (entry) next[entry[0]] = entry[1];
+        }
+        setImagePreviews(next);
+      }
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : t('admin.loadDetailsFailed'),
@@ -105,6 +137,7 @@ export default function AdminContractorsPage() {
     if (selectedId && !filteredList.some((item) => item.id === selectedId)) {
       setSelectedId(null);
       setDetail(null);
+      setImagePreviews({});
       return;
     }
     if (!selectedId && filteredList.length > 0) {
@@ -161,6 +194,7 @@ export default function AdminContractorsPage() {
     await signOut();
     setList([]);
     setDetail(null);
+    setImagePreviews({});
   };
 
   return (
@@ -373,21 +407,43 @@ export default function AdminContractorsPage() {
                   {detail.documents.length === 0 ? (
                     <p className="muted">{t('admin.noDocuments')}</p>
                   ) : (
-                    <ul className="doc-list">
-                      {detail.documents.map((doc) => (
-                        <li key={doc.id} className="doc-item">
-                          <button
-                            type="button"
-                            className="doc-link"
-                            onClick={() => void handleDocOpen(doc.id)}
-                          >
-                            {doc.originalName}
-                          </button>
-                          <p className="muted doc-meta">
-                            {formatDocumentCategory(doc.category)}
-                          </p>
-                        </li>
-                      ))}
+                    <ul className="admin-verification-doc-list">
+                      {detail.documents.map((doc) => {
+                        const previewUrl = imagePreviews[doc.id];
+                        const showPreview =
+                          isImageDocument(doc.contentType) && Boolean(previewUrl);
+                        return (
+                          <li key={doc.id} className="admin-verification-doc-item">
+                            {showPreview ? (
+                              <button
+                                type="button"
+                                className="admin-verification-doc-preview"
+                                onClick={() => void handleDocOpen(doc.id)}
+                                aria-label={doc.originalName}
+                              >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={previewUrl}
+                                  alt={doc.originalName}
+                                  loading="lazy"
+                                />
+                              </button>
+                            ) : null}
+                            <div className="admin-verification-doc-meta">
+                              <button
+                                type="button"
+                                className="doc-link"
+                                onClick={() => void handleDocOpen(doc.id)}
+                              >
+                                {doc.originalName}
+                              </button>
+                              <p className="muted doc-meta">
+                                {formatDocumentCategory(doc.category)}
+                              </p>
+                            </div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
 

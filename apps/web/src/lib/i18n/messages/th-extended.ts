@@ -568,6 +568,17 @@ export const thExtended = {
     settingsLoadFailed: "โหลดการตั้งค่าไม่สำเร็จ",
     settingsSaveFailed: "บันทึกการตั้งค่าไม่สำเร็จ",
     settingsInvalidEmail: "กรุณากรอกอีเมลที่ถูกต้อง",
+    settingsBroadcastTitle: "ส่งข้อความ",
+    settingsBroadcastHelp:
+      "ส่งอีเมลครั้งเดียว: ระบุผู้รับ หัวข้อ และเนื้อหาข้อความ",
+    settingsBroadcastTo: "ถึง",
+    settingsBroadcastSubject: "หัวข้อ",
+    settingsBroadcastSubjectPlaceholder: "หัวข้อข้อความ",
+    settingsBroadcastBody: "ข้อความ",
+    settingsBroadcastSend: "ส่ง",
+    settingsBroadcastIncomplete: "กรอกผู้รับ หัวข้อ และข้อความให้ครบ",
+    settingsBroadcastNotWired:
+      "ยังไม่ได้เชื่อมต่อการส่ง — แบบฟอร์มพร้อมสำหรับ API อีเมล",
     adsTitle: "โฆษณา",
     adsLead:
       "สไลด์โปรโมตบนหน้าแรก ถ้าไม่มีสไลด์ที่เปิดใช้ การ์ดจะไม่แสดง",

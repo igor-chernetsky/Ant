@@ -569,6 +569,17 @@ export const enExtended = {
     settingsLoadFailed: "Failed to load settings",
     settingsSaveFailed: "Failed to save settings",
     settingsInvalidEmail: "Enter a valid email address",
+    settingsBroadcastTitle: "Send message",
+    settingsBroadcastHelp:
+      "Compose a one-off email: recipient, subject, and rich-text body.",
+    settingsBroadcastTo: "To",
+    settingsBroadcastSubject: "Subject",
+    settingsBroadcastSubjectPlaceholder: "Message subject",
+    settingsBroadcastBody: "Message",
+    settingsBroadcastSend: "Send",
+    settingsBroadcastIncomplete: "Fill in recipient, subject, and message.",
+    settingsBroadcastNotWired:
+      "Sending is not connected yet — the form is ready for the mail API.",
     adsTitle: "Ads",
     adsLead:
       "Home-page promo slides. If there are no enabled slides, the ad card is hidden.",
