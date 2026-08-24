@@ -22,6 +22,7 @@ import {
 } from './supply-directory.types';
 
 const INVITE_TTL_DAYS = 60;
+const CLIENT_DIRECTORY_INVITE_MAX = 3;
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -134,11 +135,17 @@ export class TenderInvitesService {
     if (entryIds.length === 0) {
       throw new BadRequestException('Select at least one directory entry');
     }
+    const isAdmin = options?.isAdmin === true;
+    if (!isAdmin && entryIds.length > CLIENT_DIRECTORY_INVITE_MAX) {
+      throw new BadRequestException(
+        `Select at most ${CLIENT_DIRECTORY_INVITE_MAX} directory entries`,
+      );
+    }
 
     const { tender, project } = await this.assertCanInvite(
       actorId,
       projectId,
-      options?.isAdmin === true,
+      isAdmin,
     );
 
     const entries = await this.prisma.supplyDirectoryEntry.findMany({

@@ -364,7 +364,7 @@ export interface ContractorCoveragePreview {
   contractorCount: number;
   multipleTrades: boolean;
   suggestSplitProject: boolean;
-  /** True when ≤3 matching supply profiles — suggest registry email invites. */
+  /** True when ≤11 matching supply profiles — suggest registry email invites. */
   suggestInviteFromDirectory: boolean;
 }
 

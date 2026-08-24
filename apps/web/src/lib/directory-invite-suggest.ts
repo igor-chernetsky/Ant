@@ -1,7 +1,7 @@
 import type { Tender } from '@/lib/tendering';
 
 /** Suggest registry invites when this many or fewer matching profiles exist. */
-export const DIRECTORY_INVITE_LOW_MATCH_THRESHOLD = 3;
+export const DIRECTORY_INVITE_LOW_MATCH_THRESHOLD = 11;
 
 /** Suggest registry invites when a published tender has no responses this long. */
 export const DIRECTORY_INVITE_NO_RESPONSE_DAYS = 2;

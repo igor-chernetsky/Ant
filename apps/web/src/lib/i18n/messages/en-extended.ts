@@ -548,6 +548,10 @@ export const enExtended = {
     directoryKindSupplier: "Suppliers",
     directoryCreateFailed: "Failed to create entry",
     directoryUpdateFailed: "Failed to update entry",
+    directoryEmailInRegistry:
+      "This email is already in the supply registry.",
+    directoryEmailRegistered:
+      "This email already belongs to a registered user.",
     directoryDeleteFailed: "Failed to delete entry",
     directoryConfirmDelete: "Delete this registry entry?",
     settingsTitle: "Settings",
@@ -617,6 +621,8 @@ export const enExtended = {
     empty: "No matching registry entries for this project’s location and trades.",
     loadFailed: "Failed to load registry",
     inviteFailed: "Failed to send invites",
+    inviteMaxHint: "You can select up to {max} companies from the registry.",
+    inviteMaxReached: "Select at most {max} companies.",
     inviteSent: "Invites created for {count}. Emails sent: {sent}.",
     manualInviteTitle: "Invite by email",
     emailPlaceholder: "Email",

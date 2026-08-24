@@ -546,6 +546,10 @@ export const thExtended = {
     directoryKindSupplier: "ซัพพลายเออร์",
     directoryCreateFailed: "สร้างรายการไม่สำเร็จ",
     directoryUpdateFailed: "อัปเดตรายการไม่สำเร็จ",
+    directoryEmailInRegistry:
+      "อีเมลนี้อยู่ในทะเบียน Supply registry แล้ว",
+    directoryEmailRegistered:
+      "มีผู้ใช้ที่ลงทะเบียนด้วยอีเมลนี้ในระบบแล้ว",
     directoryDeleteFailed: "ลบรายการไม่สำเร็จ",
     directoryConfirmDelete: "ลบรายการนี้ออกจากทะเบียน?",
     settingsTitle: "การตั้งค่า",
@@ -615,6 +619,8 @@ export const thExtended = {
     empty: "ไม่มีรายการในทะเบียนที่ตรงกับพื้นที่และ trades ของโครงการนี้",
     loadFailed: "โหลดทะเบียนไม่สำเร็จ",
     inviteFailed: "ส่งคำเชิญไม่สำเร็จ",
+    inviteMaxHint: "เลือกได้สูงสุด {max} บริษัทจากทะเบียน",
+    inviteMaxReached: "เลือกได้ไม่เกิน {max} บริษัท",
     inviteSent: "สร้างคำเชิญ {count} รายการ ส่งอีเมลแล้ว {sent}",
     manualInviteTitle: "เชิญทางอีเมล",
     emailPlaceholder: "อีเมล",

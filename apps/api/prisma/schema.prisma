@@ -922,7 +922,7 @@ model SupplyDirectoryEntry {
   invites                TenderInvite[]
 
   @@index([kind, companyName])
-  @@index([email])
+  @@unique([email])
   @@map("supply_directory_entries")
 }
 

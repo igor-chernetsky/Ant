@@ -549,6 +549,10 @@ export const ruExtended = {
     directoryKindSupplier: "Поставщики",
     directoryCreateFailed: "Не удалось создать запись",
     directoryUpdateFailed: "Не удалось обновить запись",
+    directoryEmailInRegistry:
+      "Этот email уже есть в Supply registry.",
+    directoryEmailRegistered:
+      "Пользователь с таким email уже зарегистрирован в системе.",
     directoryDeleteFailed: "Не удалось удалить запись",
     directoryConfirmDelete: "Удалить эту запись из реестра?",
     settingsTitle: "Настройки",
@@ -618,6 +622,8 @@ export const ruExtended = {
     empty: "Нет подходящих записей реестра для локации и trades этого проекта.",
     loadFailed: "Не удалось загрузить реестр",
     inviteFailed: "Не удалось отправить приглашения",
+    inviteMaxHint: "Можно выбрать не больше {max} компаний из реестра.",
+    inviteMaxReached: "Можно выбрать не больше {max} компаний.",
     inviteSent: "Создано приглашений: {count}. Писем отправлено: {sent}.",
     manualInviteTitle: "Пригласить по email",
     emailPlaceholder: "Email",

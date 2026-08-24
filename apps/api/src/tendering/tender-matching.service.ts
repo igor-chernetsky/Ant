@@ -136,7 +136,7 @@ export class TenderMatchingService {
       contractorCount,
       multipleTrades,
       suggestSplitProject: multipleTrades && contractorCount === 0,
-      suggestInviteFromDirectory: contractorCount <= 3,
+      suggestInviteFromDirectory: contractorCount <= 11,
     };
   }
 }

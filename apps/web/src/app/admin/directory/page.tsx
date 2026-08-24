@@ -145,13 +145,19 @@ export default function AdminDirectoryPage() {
       resetForm();
       await loadList();
     } catch (err: unknown) {
-      setError(
+      const raw =
         err instanceof Error
           ? err.message
           : editingId
             ? t('admin.directoryUpdateFailed')
-            : t('admin.directoryCreateFailed'),
-      );
+            : t('admin.directoryCreateFailed');
+      if (raw.includes('already in the supply registry')) {
+        setError(t('admin.directoryEmailInRegistry'));
+      } else if (raw.includes('already belongs to a registered user')) {
+        setError(t('admin.directoryEmailRegistered'));
+      } else {
+        setError(raw);
+      }
     } finally {
       setBusy(false);
     }

@@ -29,6 +29,7 @@ interface InviteFromDirectoryModalProps {
 }
 
 const KINDS: SupplyDirectoryKind[] = ['contractor', 'designer', 'supplier'];
+const CLIENT_DIRECTORY_INVITE_MAX = 3;
 
 export function InviteFromDirectoryModal({
   projectId,
@@ -162,14 +163,33 @@ export function InviteFromDirectoryModal({
   const toggle = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+        return next;
+      }
+      if (!isAdmin && next.size >= CLIENT_DIRECTORY_INVITE_MAX) {
+        setError(
+          t('directory.inviteMaxReached', {
+            max: String(CLIENT_DIRECTORY_INVITE_MAX),
+          }),
+        );
+        return prev;
+      }
+      next.add(id);
       return next;
     });
   };
 
   const handleInviteSelected = async () => {
     if (selectedCount === 0) return;
+    if (!isAdmin && selectedCount > CLIENT_DIRECTORY_INVITE_MAX) {
+      setError(
+        t('directory.inviteMaxReached', {
+          max: String(CLIENT_DIRECTORY_INVITE_MAX),
+        }),
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     setSuccess(null);
@@ -293,6 +313,13 @@ export function InviteFromDirectoryModal({
 
           {error && <p className="error">{error}</p>}
           {success && <p className="muted">{success}</p>}
+          {!isAdmin && (
+            <p className="muted">
+              {t('directory.inviteMaxHint', {
+                max: String(CLIENT_DIRECTORY_INVITE_MAX),
+              })}
+            </p>
+          )}
 
           {loading ? (
             <p className="muted">{t('directory.loading')}</p>
@@ -340,7 +367,12 @@ export function InviteFromDirectoryModal({
                           checked={selected.has(entry.id)}
                           onChange={() => toggle(entry.id)}
                           onClick={(e) => e.stopPropagation()}
-                          disabled={busy}
+                          disabled={
+                            busy ||
+                            (!isAdmin &&
+                              !selected.has(entry.id) &&
+                              selectedCount >= CLIENT_DIRECTORY_INVITE_MAX)
+                          }
                           aria-label={entry.companyName}
                         />
                       </td>

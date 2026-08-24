@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,6 +13,10 @@ import {
   SupplyDirectoryEntryDto,
   UpsertDirectoryEntryDto,
 } from './supply-directory.types';
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
 
 @Injectable()
 export class SupplyDirectoryService {
@@ -132,6 +137,7 @@ export class SupplyDirectoryService {
 
   async create(dto: UpsertDirectoryEntryDto): Promise<SupplyDirectoryEntryDto> {
     const data = this.normalizeUpsert(dto);
+    await this.assertEmailAvailable(data.email, null);
     const entry = await this.prisma.supplyDirectoryEntry.create({ data });
     return this.toDto(entry);
   }
@@ -147,6 +153,7 @@ export class SupplyDirectoryService {
       throw new NotFoundException('Directory entry not found');
     }
     const data = this.normalizeUpsert(dto);
+    await this.assertEmailAvailable(data.email, id);
     const entry = await this.prisma.supplyDirectoryEntry.update({
       where: { id },
       data,
@@ -164,11 +171,54 @@ export class SupplyDirectoryService {
     await this.prisma.supplyDirectoryEntry.delete({ where: { id } });
   }
 
+  /**
+   * Drop registry rows for an email once the person has a BuilTHAI account
+   * (they get matching-project mail instead of invite-from-registry).
+   */
+  async removeByEmail(email: string | null | undefined): Promise<number> {
+    const normalized = email?.trim().toLowerCase();
+    if (!normalized || !normalized.includes('@')) {
+      return 0;
+    }
+    const result = await this.prisma.supplyDirectoryEntry.deleteMany({
+      where: { email: { equals: normalized, mode: 'insensitive' } },
+    });
+    return result.count;
+  }
+
+  private async assertEmailAvailable(
+    email: string,
+    excludeEntryId: string | null,
+  ): Promise<void> {
+    const duplicate = await this.prisma.supplyDirectoryEntry.findFirst({
+      where: {
+        email: { equals: email, mode: 'insensitive' },
+        ...(excludeEntryId ? { id: { not: excludeEntryId } } : {}),
+      },
+      select: { id: true },
+    });
+    if (duplicate) {
+      throw new ConflictException(
+        'This email is already in the supply registry',
+      );
+    }
+
+    const registered = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (registered) {
+      throw new ConflictException(
+        'This email already belongs to a registered user',
+      );
+    }
+  }
+
   private normalizeUpsert(
     dto: UpsertDirectoryEntryDto,
   ): Prisma.SupplyDirectoryEntryCreateInput {
     const companyName = dto.companyName?.trim();
-    const email = dto.email?.trim().toLowerCase();
+    const email = dto.email ? normalizeEmail(dto.email) : '';
     if (!companyName) {
       throw new BadRequestException('companyName is required');
     }
