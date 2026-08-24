@@ -257,7 +257,12 @@ export class TenderInvitesService {
   ) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        clientId: true,
+        clarificationMode: true,
         tender: { select: { id: true, status: true, awardedBidId: true } },
       },
     });
@@ -269,32 +274,55 @@ export class TenderInvitesService {
         'Only the project owner or an admin can send invites',
       );
     }
+
+    let tender = project.tender;
     if (
       project.status === ProjectStatus.awarded ||
-      project.tender?.awardedBidId
+      tender?.awardedBidId
     ) {
       throw new BadRequestException(
         'Invites are not available after a contractor has been selected',
       );
     }
-    if (
-      (project.status !== ProjectStatus.in_tender &&
-        project.status !== ProjectStatus.clarification) ||
-      !project.tender
-    ) {
-      throw new BadRequestException(
-        'Invites are only available while the tender is open',
-      );
-    }
-    if (
-      project.tender.status !== TenderStatus.open &&
-      project.tender.status !== TenderStatus.draft
-    ) {
+
+    const inviteEligibleStatus =
+      project.status === ProjectStatus.in_tender ||
+      project.status === ProjectStatus.clarification;
+
+    if (!inviteEligibleStatus) {
       throw new BadRequestException(
         'Invites are only available during tender publication or clarification',
       );
     }
-    return { project, tender: project.tender };
+
+    // Clarification / in_tender should always have a tender row; heal if missing
+    // (same recovery as TendersService.getForProject).
+    if (!tender) {
+      const created = await this.prisma.tender.create({
+        data: {
+          projectId: project.id,
+          status:
+            project.status === ProjectStatus.clarification
+              ? TenderStatus.draft
+              : TenderStatus.open,
+          opensAt:
+            project.status === ProjectStatus.clarification ? null : new Date(),
+        },
+        select: { id: true, status: true, awardedBidId: true },
+      });
+      tender = created;
+    }
+
+    if (
+      tender.status !== TenderStatus.open &&
+      tender.status !== TenderStatus.draft
+    ) {
+      throw new BadRequestException(
+        'Invites are only available while the tender is open or in clarification',
+      );
+    }
+
+    return { project, tender };
   }
 
   private async createAndSendInvite(params: {
