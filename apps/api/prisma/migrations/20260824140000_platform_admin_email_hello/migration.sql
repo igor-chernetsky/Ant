@@ -1,10 +1,10 @@
 -- Replace legacy ops contact with hello@builthai.com in platform settings.
-UPDATE "PlatformSettings"
+UPDATE "platform_settings"
 SET
-  "contractSignedNotifyEmails" = array_replace(
-    "contractSignedNotifyEmails",
+  "contract_signed_notify_emails" = array_replace(
+    "contract_signed_notify_emails",
     'providercmp@gmail.com',
     'hello@builthai.com'
   ),
-  "updatedAt" = CURRENT_TIMESTAMP
-WHERE 'providercmp@gmail.com' = ANY ("contractSignedNotifyEmails");
+  "updated_at" = CURRENT_TIMESTAMP
+WHERE 'providercmp@gmail.com' = ANY ("contract_signed_notify_emails");
