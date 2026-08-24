@@ -395,34 +395,57 @@ export class TenderInvitesService {
         : params.kind === SupplyDirectoryKind.supplier
           ? 'supplier'
           : 'contractor';
-    const subject = `Invitation to participate in tender: ${params.projectTitle}`;
+    const from = this.mail.outreachFrom();
+    // Avoid “invitation / participate / tender” phrasing — it looks like bulk promo.
+    const subject = `Project on BuilTHAI: ${params.projectTitle}`;
     const text = [
       greeting,
       '',
-      `You are invited to review a project on BuilTHAI and consider participating as a ${roleLabel}.`,
+      `A client on BuilTHAI asked us to share a project that may match your work as a ${roleLabel}.`,
+      'You were contacted because your company is in the BuilTHAI professional registry.',
       '',
       `Project: ${params.projectTitle}`,
-      `Open the project card: ${params.inviteUrl}`,
+      `Project page: ${params.inviteUrl}`,
       '',
-      'You can view the project without registering. To submit a commercial proposal, please create an account and sign in.',
+      'You can open the page without creating an account. A BuilTHAI account is only needed if you want to submit a proposal.',
       '',
-      '— BuilTHAI',
+      'If this was not relevant, reply to this email and we will not contact you again.',
+      '',
+      'BuilTHAI · https://www.builthai.com',
+      `Questions: ${from}`,
     ].join('\n');
 
-    const html = `
-      <p>${escapeHtml(greeting)}</p>
-      <p>You are invited to review a project on <strong>BuilTHAI</strong> and consider participating as a ${escapeHtml(roleLabel)}.</p>
-      <p><strong>Project:</strong> ${escapeHtml(params.projectTitle)}</p>
-      <p><a href="${escapeHtml(params.inviteUrl)}">Open the project card</a></p>
-      <p>You can view the project without registering. To submit a commercial proposal, please create an account and sign in.</p>
-      <p>— BuilTHAI</p>
-    `;
+    const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f0f4fa;font-family:system-ui,sans-serif;color:#0f172a;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 16px;">
+<tr><td align="center">
+<table role="presentation" width="100%" style="max-width:520px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;">
+<tr><td style="padding:28px;">
+<p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#2563eb;">BuilTHAI</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#334155;">${escapeHtml(greeting)}</p>
+<p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#475569;">A client on BuilTHAI asked us to share a project that may match your work as a ${escapeHtml(roleLabel)}. You were contacted because your company is in the BuilTHAI professional registry.</p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0f172a;"><strong>Project:</strong> ${escapeHtml(params.projectTitle)}</p>
+<p style="margin:0 0 8px;"><a href="${escapeHtml(params.inviteUrl)}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;">Open project page</a></p>
+<p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#64748b;word-break:break-all;">${escapeHtml(params.inviteUrl)}</p>
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#475569;">You can open the page without creating an account. A BuilTHAI account is only needed if you want to submit a proposal.</p>
+<p style="margin:0;font-size:12px;line-height:1.5;color:#94a3b8;">If this was not relevant, reply to this email and we will not contact you again.<br>BuilTHAI · <a href="https://www.builthai.com" style="color:#64748b;">www.builthai.com</a> · ${escapeHtml(from)}</p>
+</td></tr></table>
+</td></tr></table>
+</body></html>`;
 
     return this.mail.send({
       to: params.to,
       subject,
       text,
       html,
+      from,
+      fromName: 'BuilTHAI',
+      replyTo: from,
+      headers: {
+        'List-Unsubscribe': `<mailto:${from}?subject=unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
     });
   }
 }

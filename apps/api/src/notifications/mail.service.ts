@@ -37,6 +37,14 @@ export class MailService {
     return this.transporter;
   }
 
+  /** From used for outbound “human” mail (invites, admin broadcast). */
+  outreachFrom(): string {
+    return (
+      this.config.get<string>('SMTP_BROADCAST_FROM')?.trim() ||
+      'hello@builthai.com'
+    );
+  }
+
   async send(params: {
     to: string | string[];
     subject: string;
@@ -46,6 +54,7 @@ export class MailService {
     from?: string;
     fromName?: string;
     replyTo?: string;
+    headers?: Record<string, string>;
   }): Promise<boolean> {
     const transport = this.getTransporter();
     if (!transport) {
@@ -60,15 +69,17 @@ export class MailService {
       this.config.get<string>('SMTP_FROM_NAME')?.trim() ||
       'BuilTHAI';
     const to = Array.isArray(params.to) ? params.to.join(', ') : params.to;
+    const replyTo = params.replyTo?.trim() || undefined;
 
     try {
       await transport.sendMail({
         from: `"${fromName}" <${from}>`,
         to,
-        replyTo: params.replyTo?.trim() || undefined,
+        replyTo,
         subject: params.subject,
         html: params.html,
         text: params.text,
+        headers: params.headers,
       });
       return true;
     } catch (error) {
