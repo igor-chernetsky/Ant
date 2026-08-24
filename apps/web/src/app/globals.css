@@ -10718,6 +10718,15 @@ select:disabled {
   padding: 2rem 1.75rem;
 }
 
+.reset-password-form {
+  text-align: left;
+  margin-top: 1rem;
+}
+
+.reset-password-form .auth-submit {
+  margin-top: 0.5rem;
+}
+
 .verify-email-icon {
   display: inline-flex;
   align-items: center;

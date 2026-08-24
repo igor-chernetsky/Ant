@@ -79,6 +79,7 @@ Users are created with `emailVerified: true` and signed in immediately (old beha
 |---------|-----|
 | Signup: *verification email could not be sent* | Configure Keycloak SMTP **or** Vercel SMTP vars for app-sent verification; test connection |
 | Login: *Verify your email* | User must click the link in the email |
+| Forgot password: *temporarily unavailable* | Keycloak realm Email SMTP often unset. App fallback needs the same Vercel vars as verification: `EMAIL_VERIFICATION_SECRET` + `SMTP_*`. Check Vercel function logs for `[auth-keycloak] password reset`. |
 | Email not received | Check spam; Resend dashboard logs; domain must be Verified; From must match domain |
 | Link opens wrong site / `buildthai.com` in email | Fix **Vercel** `NEXT_PUBLIC_APP_URL` to `https://www.builthai.com` (not `buildthai.com`) and redeploy. On EC2 set `WEB_APP_URL` the same way. Code auto-corrects the typo at runtime, but update env anyway. |
 

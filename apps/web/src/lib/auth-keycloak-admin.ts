@@ -1,6 +1,8 @@
 import { sendAppVerificationEmail } from '@/lib/send-verification-email';
+import { sendAppPasswordResetEmail } from '@/lib/send-password-reset-email';
 import { resolveAppBaseUrl } from '@/lib/app-base-url';
 import { isAppEmailVerificationConfigured } from '@/lib/email-verification-token';
+import { isAppPasswordResetConfigured } from '@/lib/password-reset-token';
 
 const SELF_ASSIGNABLE_ROLES = ['client', 'contractor', 'designer'] as const;
 type SelfAssignableRole = (typeof SELF_ASSIGNABLE_ROLES)[number];
@@ -374,7 +376,9 @@ async function sendKeycloakExecuteActionsEmail(
 }
 
 /**
- * Request a Keycloak password-reset email for the given login/email.
+ * Request a password-reset email for the given login/email.
+ * Prefers Keycloak execute-actions-email when SMTP is configured there;
+ * falls back to app SMTP (Resend) + /reset-password page.
  * Returns a generic outcome so callers do not leak whether the account exists.
  */
 export async function requestKeycloakPasswordReset(
@@ -388,10 +392,14 @@ export async function requestKeycloakPasswordReset(
   let adminToken: string | null = null;
   try {
     adminToken = await fetchAdminAccessToken();
-  } catch {
+  } catch (error: unknown) {
+    console.warn('[auth-keycloak] password reset: admin token error', error);
     return 'unavailable';
   }
   if (!adminToken) {
+    console.warn(
+      '[auth-keycloak] password reset: missing admin token (check KEYCLOAK_ADMIN / KEYCLOAK_ADMIN_PASSWORD)',
+    );
     return 'unavailable';
   }
 
@@ -401,14 +409,64 @@ export async function requestKeycloakPasswordReset(
     return 'sent';
   }
 
-  const sent = await sendKeycloakExecuteActionsEmail(
+  const keycloakSent = await sendKeycloakExecuteActionsEmail(
     adminToken,
     user.id,
     ['UPDATE_PASSWORD'],
     getAppRedirectUri(),
   );
+  if (keycloakSent) {
+    return 'sent';
+  }
 
-  return sent ? 'sent' : 'unavailable';
+  if (isAppPasswordResetConfigured()) {
+    const email = (user.email ?? normalized).trim().toLowerCase();
+    const appSent = await sendAppPasswordResetEmail({
+      userId: user.id,
+      email,
+    });
+    if (appSent.ok) {
+      return 'sent';
+    }
+    console.warn('[auth-keycloak] password reset app SMTP failed:', appSent.message);
+  } else {
+    console.warn(
+      '[auth-keycloak] password reset: Keycloak email failed and app SMTP fallback is not configured (EMAIL_VERIFICATION_SECRET + SMTP_*)',
+    );
+  }
+
+  return 'unavailable';
+}
+
+/**
+ * Apply a new permanent password for a Keycloak user (app-side reset link).
+ */
+export async function completeKeycloakPasswordReset(
+  userId: string,
+  email: string,
+  newPassword: string,
+): Promise<'ok' | 'not_found' | 'failed'> {
+  let adminToken: string | null = null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch {
+    return 'failed';
+  }
+  if (!adminToken) {
+    return 'failed';
+  }
+
+  const user = await fetchKeycloakUser(adminToken, userId);
+  if (!user?.id || user.enabled === false) {
+    return 'not_found';
+  }
+  const userEmail = user.email?.trim().toLowerCase();
+  if (userEmail && userEmail !== email.trim().toLowerCase()) {
+    return 'not_found';
+  }
+
+  const ok = await setKeycloakUserPassword(adminToken, userId, newPassword);
+  return ok ? 'ok' : 'failed';
 }
 
 async function finalizeKeycloakUser(

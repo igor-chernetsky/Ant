@@ -16,6 +16,24 @@ import {
   stripContractSignaturesBlock,
 } from './contract-html.sanitize';
 
+/** Same prefix as design-fee ballpark lines (`design-fee-estimate.ts`). */
+const DESIGN_LINE_PREFIX = 'Design:';
+
+function withDesignChapterPrefix(
+  description: string | null | undefined,
+  isDesign: boolean,
+  fallback: string,
+): string {
+  const text = description?.trim() || fallback;
+  if (!isDesign) {
+    return text;
+  }
+  if (/^design\s*:/i.test(text)) {
+    return text.replace(/^design\s*:/i, DESIGN_LINE_PREFIX);
+  }
+  return `${DESIGN_LINE_PREFIX} ${text}`;
+}
+
 function copyFor(
   locale: string | null | undefined,
   isDesign = false,
@@ -119,6 +137,7 @@ function buildBoqTable(
   grandTotal: number,
   copy: CommercialProposalCopy,
   locale: SupportedLocale,
+  isDesign = false,
 ): string {
   const hasLineItems = Boolean(lineItems?.length);
   const hasAdjustments = Boolean(costAdjustments);
@@ -134,7 +153,7 @@ function buildBoqTable(
       (item) => `
       <tr>
         ${cell(item.trade)}
-        ${cell(item.description ?? copy.dash)}
+        ${cell(withDesignChapterPrefix(item.description, isDesign, copy.dash))}
         ${cell(formatThb(Number(item.amount), locale), 'td', 'num')}
       </tr>`,
     )
@@ -390,6 +409,7 @@ export function buildCommercialProposalData(input: {
     amount,
     copy,
     locale,
+    isDesign,
   );
 
   return {
