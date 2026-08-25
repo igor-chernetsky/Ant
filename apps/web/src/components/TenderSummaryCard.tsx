@@ -66,6 +66,7 @@ export function TenderSummaryCard({
     'create' | 'start' | null
   >(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [coverageRefreshKey, setCoverageRefreshKey] = useState(0);
   const [coverage, setCoverage] = useState<ContractorCoveragePreview | null>(
     null,
   );
@@ -187,6 +188,11 @@ export function TenderSummaryCard({
   const deadlineExpired = Boolean(tender?.applicationsDeadlinePassed);
   const staleNoResponses = tenderHasStaleEmptyResponses(tender);
   const showStaleInviteSuggest = Boolean(tender && staleNoResponses);
+  const isTenderBeginning =
+    !tender ||
+    collectingQuestions ||
+    ((tender?.bids.length ?? 0) === 0 && !winnerSelected);
+  const registryInviteCount = coverage?.registryInviteCount ?? 0;
   // Low-match CTA is shown inside ContractorCoverageNotice; stale empty
   // tenders also get an invite block below.
   const showDirectoryInviteBlock =
@@ -275,20 +281,31 @@ export function TenderSummaryCard({
               projectId={projectId}
               enabled={canPublish}
               tagKey={tagKey}
+              refreshKey={coverageRefreshKey}
               audience={audience}
+              alwaysSuggestInvite={isTenderBeginning}
               onInviteFromDirectory={() => setInviteModalOpen(true)}
               onCoverageLoaded={setCoverage}
             />
-            <button
-              type="button"
-              className="primary"
-              disabled={busy || !canPublish}
-              onClick={() => void handleCreate()}
-            >
-              {structuredQa
-                ? t('tenderCard.publishForClarification')
-                : t('tenderCard.publishForBids')}
-            </button>
+            <div className="tender-publish-row">
+              <button
+                type="button"
+                className="primary"
+                disabled={busy || !canPublish}
+                onClick={() => void handleCreate()}
+              >
+                {structuredQa
+                  ? t('tenderCard.publishForClarification')
+                  : t('tenderCard.publishForBids')}
+              </button>
+              {registryInviteCount > 0 ? (
+                <span className="tender-registry-invite-note">
+                  {t('tenderCard.registryInviteCount', {
+                    count: registryInviteCount,
+                  })}
+                </span>
+              ) : null}
+            </div>
             {!canPublish && (
               <p className="muted tender-hint">
                 {t('tenderCard.completeIntakeHint')}
@@ -414,11 +431,13 @@ export function TenderSummaryCard({
                 projectId={projectId}
                 enabled={canPublish}
                 tagKey={tagKey}
+                refreshKey={coverageRefreshKey}
                 audience={audience}
+                alwaysSuggestInvite={isTenderBeginning}
                 onInviteFromDirectory={() => setInviteModalOpen(true)}
                 onCoverageLoaded={setCoverage}
               />
-              <div className="tender-open-row">
+              <div className="tender-publish-row">
                 <button
                   type="button"
                   className="primary"
@@ -427,6 +446,13 @@ export function TenderSummaryCard({
                 >
                   {t('tenderCard.openTenderForBids')}
                 </button>
+                {registryInviteCount > 0 ? (
+                  <span className="tender-registry-invite-note">
+                    {t('tenderCard.registryInviteCount', {
+                      count: registryInviteCount,
+                    })}
+                  </span>
+                ) : null}
                 <p className="muted tender-hint tender-open-hint">
                   {t(
                     isDesign
@@ -462,34 +488,13 @@ export function TenderSummaryCard({
                   projectId={projectId}
                   enabled={canPublish}
                   tagKey={tagKey}
+                  refreshKey={coverageRefreshKey}
                   audience={audience}
+                  alwaysSuggestInvite={isTenderBeginning}
                   onInviteFromDirectory={() => setInviteModalOpen(true)}
                   onCoverageLoaded={setCoverage}
                 />
               )}
-              <div className="tender-actions-block">
-                <p className="muted tender-hint">
-                  {showStaleInviteSuggest
-                    ? t(
-                        isDesign
-                          ? 'tenderCard.inviteSuggestStaleDesign'
-                          : 'tenderCard.inviteSuggestStale',
-                      )
-                    : t(
-                        isDesign
-                          ? 'tenderCard.inviteFromDirectoryHintDesign'
-                          : 'tenderCard.inviteFromDirectoryHint',
-                      )}
-                </p>
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={busy}
-                  onClick={() => setInviteModalOpen(true)}
-                >
-                  {t('tenderCard.inviteFromDirectory')}
-                </button>
-              </div>
               {canRevert && (tender?.bids.length ?? 0) === 0 && !collectingQuestions && (
                 <div className="tender-actions-block">
                   <button
@@ -522,7 +527,9 @@ export function TenderSummaryCard({
                 projectId={projectId}
                 enabled
                 tagKey={tagKey}
+                refreshKey={coverageRefreshKey}
                 audience={audience}
+                alwaysSuggestInvite={isTenderBeginning}
                 onInviteFromDirectory={() => setInviteModalOpen(true)}
                 onCoverageLoaded={setCoverage}
               />
@@ -559,7 +566,10 @@ export function TenderSummaryCard({
           locationRegionSlug={project.locationRegionSlug}
           locationAreaSlug={project.locationAreaSlug}
           tagSlugs={project.tags.map((tag) => tag.slug)}
-          onClose={() => setInviteModalOpen(false)}
+          onClose={() => {
+            setInviteModalOpen(false);
+            setCoverageRefreshKey((key) => key + 1);
+          }}
         />
       )}
       {confirmDialog}

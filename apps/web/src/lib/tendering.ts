@@ -233,6 +233,8 @@ export interface ContractorCoveragePreview {
   suggestSplitProject: boolean;
   /** True when ≤11 matching supply profiles — suggest registry email invites. */
   suggestInviteFromDirectory?: boolean;
+  /** Registry invites already sent for contractors or designers on this project. */
+  registryInviteCount?: number;
 }
 
 export interface ContractorProjectParticipation {

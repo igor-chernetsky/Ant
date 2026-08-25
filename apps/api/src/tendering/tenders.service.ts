@@ -14,6 +14,7 @@ import {
   ContractorVerificationStatus,
   Prisma,
   ProjectStatus,
+  ProjectType,
   Tender,
   TenderStatus,
 } from '@prisma/client';
@@ -464,7 +465,22 @@ export class TendersService {
       throw new ForbiddenException('Access denied');
     }
 
-    return this.matching.getContractorCoverageForProject(project, clientId);
+    const coverage = await this.matching.getContractorCoverageForProject(
+      project,
+      clientId,
+    );
+    const inviteKind =
+      project.projectType === ProjectType.design ? 'designer' : 'contractor';
+    const registryInviteCount = await this.prisma.tenderInvite.count({
+      where: {
+        projectId,
+        kind: inviteKind,
+        directoryEntryId: { not: null },
+        sentAt: { not: null },
+      },
+    });
+
+    return { ...coverage, registryInviteCount };
   }
 
   async createTender(

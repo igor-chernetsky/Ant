@@ -153,14 +153,15 @@ export function ProjectHero({
 
   const isDesignTrack = project.projectType === 'design';
   const isNewBuild = project.projectType === 'new_build';
+  const canConvert = Boolean(canEditCard && project.canConvertToDesign);
   const showDesignHint =
     canEditCard &&
     !isDesignTrack &&
-    DESIGN_HINT_TYPES.has(project.projectType);
+    DESIGN_HINT_TYPES.has(project.projectType) &&
+    canConvert;
   const designConvertHintKey = isNewBuild
     ? 'designPermits.convertHintNewBuild'
     : 'designPermits.convertHint';
-  const canConvert = Boolean(canEditCard && project.canConvertToDesign);
   const showNextConstructionHint =
     canEditCard &&
     isDesignTrack &&
@@ -387,7 +388,7 @@ export function ProjectHero({
 
           {(canConvert || showDesignHint || showNextConstructionHint) && (
             <div className="project-hero-design-actions">
-              {showDesignHint && (
+              {showDesignHint ? (
                 <p
                   className={`muted project-hero-design-hint${
                     isNewBuild ? ' project-hero-design-hint--new-build' : ''
@@ -396,11 +397,11 @@ export function ProjectHero({
                 >
                   {t(designConvertHintKey)}
                 </p>
-              )}
-              {canConvert && (
+              ) : null}
+              {canConvert ? (
                 <button
                   type="button"
-                  className="ghost"
+                  className="primary"
                   onClick={() => void handleConvert()}
                   disabled={converting || saving}
                   title={t('designPermits.convertTooltip')}
@@ -409,7 +410,14 @@ export function ProjectHero({
                     ? t('common.saving')
                     : t('designPermits.convertButton')}
                 </button>
-              )}
+              ) : null}
+              {isDesignTrack && project.linkedProjectId ? (
+                <p className="muted project-hero-design-hint">
+                  <Link href={`/projects/${project.linkedProjectId}`}>
+                    {t('designPermits.viewLinkedConstruction')}
+                  </Link>
+                </p>
+              ) : null}
               {showNextConstructionHint && (
                 <p className="muted project-hero-design-hint">
                   {t('designPermits.nextConstructionHint')}

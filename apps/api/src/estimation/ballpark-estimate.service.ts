@@ -28,7 +28,9 @@ import {
   resolveEstimateAreaSqm,
 } from './estimate-scope.utils';
 import {
+  capDominantEstimateLines,
   detectEstimateLineShareAnomalies,
+  dominantLineShareAnomalies,
   formatEstimateLineShareAnomaliesForPrompt,
   type EstimateLineShareAnomaly,
 } from './estimate-line-anomalies';
@@ -74,11 +76,14 @@ export class BallparkEstimateService {
   }
 
   async generate(input: BallparkGenerateInput): Promise<BallparkEstimateResult> {
+    let result: BallparkEstimateResult;
     if (this.apiKey.length > 0) {
       const ai = await this.generateWithOpenAi(input);
-      if (ai) return ai;
+      result = ai ?? this.generateFallback(input);
+    } else {
+      result = this.generateFallback(input);
     }
-    return this.generateFallback(input);
+    return this.postProcessEstimateResult(result);
   }
 
   private async generateWithOpenAi(
@@ -121,7 +126,7 @@ For sqm trades (structural, roofing, flooring, warehouse HVAC): quantity MUST be
 lineMin/lineMax must equal quantity * unitPriceMin/Max (rounded).
 Obey pricingDirectives and premiumScopeSignals in the user payload — they must change amounts, not only wording.
 When clarificationQa or clarificationSummary is present, treat that as new pricing-relevant scope and revise MEP/network lines upward when they add utilities, lighting, treatment, or connection works.
-Distribution sanity: with 3+ lines no single line should exceed ~70% of the total mid amount; with 5+ lines ~50%; with 10+ lines ~30%. Avoid near-zero lines under ~1% of the total unless they are truly tiny optional extras.
+Distribution sanity: with 3+ lines no single line should exceed ~70% of the total mid amount; with 5+ lines ~50%; with 10+ lines ~30%. Drop or merge lines under ~1% of the total (except optional extras). Avoid near-zero placeholder lines.
 When distributionAnomalies / REBALANCE directives are present, RECALCULATE amounts so the distribution is realistic — do not only reword descriptions.
 Write description, disclaimer, and improvementQuestions fields in ${lang}.
 Scope rules:
@@ -187,13 +192,13 @@ ${scopeRules}`;
         input,
       );
 
-      const anomalies = detectEstimateLineShareAnomalies(result.lines, {
+      const dominantAnomalies = dominantLineShareAnomalies(result.lines, {
         allowTinyShare: input.allowTinyLineShare,
       });
 
-      if (anomalies.length > 0 && !input.anomalyRetryDone) {
+      if (dominantAnomalies.length > 0 && !input.anomalyRetryDone) {
         this.logger.warn(
-          `Estimate line-share anomalies (${anomalies.length}); recalculating once: ${anomalies
+          `Estimate line-share anomalies (${dominantAnomalies.length}); recalculating once: ${dominantAnomalies
             .map(
               (a) =>
                 `${a.kind}:${a.trade}@${Math.round(a.share * 100)}%`,
@@ -202,12 +207,12 @@ ${scopeRules}`;
         );
         const retried = await this.generateWithOpenAi({
           ...input,
-          anomalyFeedback: anomalies,
+          anomalyFeedback: dominantAnomalies,
           anomalyRetryDone: true,
           previousLines: result.lines,
         });
         if (retried) {
-          const stillBad = detectEstimateLineShareAnomalies(retried.lines, {
+          const stillBad = dominantLineShareAnomalies(retried.lines, {
             allowTinyShare: input.allowTinyLineShare,
           });
           if (stillBad.length > 0) {
@@ -227,7 +232,7 @@ ${scopeRules}`;
         };
       }
 
-      if (anomalies.length > 0) {
+      if (dominantAnomalies.length > 0) {
         return {
           ...result,
           confidence: Math.min(result.confidence, 0.45),
@@ -342,6 +347,8 @@ ${scopeRules}`;
       narrative,
       tagSlugs: input.tagSlugs,
       brief: input.brief,
+      projectType: input.projectType,
+      allowTinyShare: input.allowTinyLineShare,
     }).map(normalizeLineAmounts);
 
     const totals = computeTotals(adjustedLines);
@@ -423,6 +430,8 @@ ${scopeRules}`;
       narrative,
       tagSlugs: input.tagSlugs,
       brief: input.brief,
+      projectType: input.projectType,
+      allowTinyShare: input.allowTinyLineShare,
     }).map(normalizeLineAmounts);
 
     const totals = computeTotals(lines);
@@ -460,6 +469,17 @@ ${scopeRules}`;
       disclaimer: String(raw.disclaimer ?? DISCLAIMER).slice(0, 2000),
       provider: 'openai',
       improvementQuestions,
+    };
+  }
+
+  private postProcessEstimateResult(
+    result: BallparkEstimateResult,
+  ): BallparkEstimateResult {
+    const lines = capDominantEstimateLines(result.lines);
+    return {
+      ...result,
+      lines,
+      totals: computeTotals(lines),
     };
   }
 }

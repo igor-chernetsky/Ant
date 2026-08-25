@@ -1,5 +1,6 @@
 import { ProjectBriefV1 } from '../projects/project-brief';
 import { EstimateLine } from './estimates.types';
+import { dismissTinyEstimateLines } from './estimate-line-anomalies';
 import { TH_REGIONAL_CATALOG } from './regional-catalog';
 
 export const ALLOWED_ESTIMATE_TRADES = new Set(
@@ -61,6 +62,45 @@ export const INDUSTRIAL_HVAC_SQM_MAX = 3200;
  */
 export const WAREHOUSE_ELECTRICAL_SQM_MIN = 550;
 export const WAREHOUSE_ELECTRICAL_SQM_MAX = 1600;
+
+/** New-build electrical must not exceed this share of all other line mids. */
+export const NEW_BUILD_ELECTRICAL_MAX_SHARE_OF_OTHERS = 0.1;
+
+function estimateLineMid(line: EstimateLine): number {
+  return (Math.max(0, line.lineMin) + Math.max(0, line.lineMax)) / 2;
+}
+
+function scaleEstimateLineByFactor(
+  line: EstimateLine,
+  factor: number,
+): EstimateLine {
+  if (factor >= 1) {
+    return line;
+  }
+  if (!(factor > 0)) {
+    return {
+      ...line,
+      unitPriceMin: 0,
+      unitPriceMax: 0,
+      lineMin: 0,
+      lineMax: 0,
+    };
+  }
+  const unitPriceMin = Math.max(0, Math.round(line.unitPriceMin * factor));
+  const unitPriceMax = Math.max(
+    unitPriceMin,
+    Math.round(line.unitPriceMax * factor),
+  );
+  const lineMin = Math.max(0, Math.round(line.lineMin * factor));
+  const lineMax = Math.max(lineMin, Math.round(line.lineMax * factor));
+  return {
+    ...line,
+    unitPriceMin,
+    unitPriceMax,
+    lineMin,
+    lineMax,
+  };
+}
 
 /** Shell trades that must be priced on GFA, never as qty=1 catalog lumps. */
 const SQM_SHELL_TRADES = new Set(['structural', 'roofing', 'flooring']);
@@ -874,6 +914,7 @@ export function dedupeAndCapElectricalLines(input: {
   lines: EstimateLine[];
   narrative: string;
   areaSqm: number;
+  projectType?: string;
 }): EstimateLine[] {
   const electrical = input.lines.filter((line) => line.trade === 'electrical');
   const others = input.lines.filter((line) => line.trade !== 'electrical');
@@ -953,7 +994,7 @@ export function dedupeAndCapElectricalLines(input: {
     unitPriceMin = Math.round(lineMin / quantity);
   }
 
-  return [
+  const merged = [
     ...others,
     {
       trade: 'electrical',
@@ -969,6 +1010,50 @@ export function dedupeAndCapElectricalLines(input: {
       lineMax: Math.max(lineMin, lineMax),
     },
   ];
+
+  return capElectricalShareForNewBuild(merged, input.projectType);
+}
+
+/**
+ * Keeps lighting/electrical from dominating new-build ballparks.
+ * Cap = 10% of the sum of all other line mids.
+ */
+export function capElectricalShareForNewBuild(
+  lines: EstimateLine[],
+  projectType?: string,
+): EstimateLine[] {
+  if (projectType !== 'new_build') {
+    return lines;
+  }
+
+  const electricalIndex = lines.findIndex((line) => line.trade === 'electrical');
+  if (electricalIndex < 0) {
+    return lines;
+  }
+
+  const electrical = lines[electricalIndex];
+  const otherMid = lines.reduce((sum, line, index) => {
+    if (index === electricalIndex) {
+      return sum;
+    }
+    return sum + estimateLineMid(line);
+  }, 0);
+  if (!(otherMid > 0)) {
+    return lines;
+  }
+
+  const electricalMid = estimateLineMid(electrical);
+  const maxElectricalMid =
+    otherMid * NEW_BUILD_ELECTRICAL_MAX_SHARE_OF_OTHERS;
+  if (electricalMid <= maxElectricalMid) {
+    return lines;
+  }
+
+  const factor = maxElectricalMid / electricalMid;
+  const cappedElectrical = scaleEstimateLineByFactor(electrical, factor);
+  return lines.map((line, index) =>
+    index === electricalIndex ? cappedElectrical : line,
+  );
 }
 
 /**
@@ -979,6 +1064,8 @@ export function finalizeEstimateLines(input: {
   narrative: string;
   tagSlugs: string[];
   brief: ProjectBriefV1;
+  projectType?: string;
+  allowTinyShare?: boolean;
 }): EstimateLine[] {
   const areaSqm = resolveEstimateAreaSqm(input.brief, input.narrative);
   const ensured = ensureRequestedExtraLines({
@@ -1003,10 +1090,14 @@ export function finalizeEstimateLines(input: {
   // One priced row per catalog trade — stops replacement/install paraphrases
   // (and similar) from double-counting the same band.
   const deduped = dedupeSameTradeLines(premiumAdjusted);
-  return dedupeAndCapElectricalLines({
+  const electricalCapped = dedupeAndCapElectricalLines({
     lines: deduped,
     narrative: input.narrative,
     areaSqm,
+    projectType: input.projectType,
+  });
+  return dismissTinyEstimateLines(electricalCapped, {
+    allowTinyShare: input.allowTinyShare,
   });
 }
 
@@ -1052,6 +1143,11 @@ export function buildEstimateUserContext(input: {
   if (warehouseLikeForPricing(narrative)) {
     pricingDirectives.push(
       `Warehouse/light-industrial electrical without heavy process equipment: price ~${WAREHOUSE_ELECTRICAL_SQM_MIN}–${WAREHOUSE_ELECTRICAL_SQM_MAX} THB/sqm (lighting/sockets/boards), not residential fit-out rates.`,
+    );
+  }
+  if (input.projectType === 'new_build') {
+    pricingDirectives.push(
+      `New construction: keep the consolidated electrical line (lighting, wiring, switchgear) at or below ~10% of the sum of all other trades — do not let MEP lighting dominate the ballpark.`,
     );
   }
 

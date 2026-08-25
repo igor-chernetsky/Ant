@@ -37,7 +37,7 @@ import {
 } from './discover-filters';
 import {
   canEditConstructionProjectType,
-  isConvertibleToDesign,
+  canClientConvertToDesign,
 } from './design-permits.utils';
 import {
   normalizeConstructionProjectType,
@@ -165,6 +165,7 @@ export class ProjectsService {
   toResponse(
     project: ProjectWithTags,
     estimate: ProjectResponse['estimate'] = null,
+    tenderBidCount = 0,
   ): ProjectResponse {
 
     return {
@@ -196,18 +197,13 @@ export class ProjectsService {
       linkedProjectId: project.linkedProjectId ?? null,
       linkKind: project.linkKind ?? 'none',
       designFeePercent: project.designFeePercent ?? null,
-      canConvertToDesign:
-        isConvertibleToDesign(project.projectType) &&
-        (
-          [
-            ProjectStatus.draft,
-            ProjectStatus.intake,
-            ProjectStatus.ready_for_estimate,
-            ProjectStatus.estimated,
-          ] as ProjectStatus[]
-        ).includes(project.status) &&
-        project.linkKind !== ProjectLinkKind.design_active &&
-        project.linkKind !== ProjectLinkKind.construction_pending,
+      canConvertToDesign: canClientConvertToDesign({
+        projectType: project.projectType,
+        status: project.status,
+        linkKind: project.linkKind ?? ProjectLinkKind.none,
+        linkedProjectId: project.linkedProjectId,
+        tenderBidCount,
+      }),
 
       brief: project.briefJson as ProjectResponse['brief'],
 
@@ -1285,6 +1281,11 @@ export class ProjectsService {
       orderBy: { createdAt: 'desc' },
     });
 
+    const tender = await this.prisma.tender.findUnique({
+      where: { projectId },
+      select: { _count: { select: { bids: true } } },
+    });
+
     const response = this.toResponse(
       project,
       estimate
@@ -1298,6 +1299,7 @@ export class ProjectsService {
             ),
           )
         : null,
+      tender?._count.bids ?? 0,
     );
 
     return this.applyViewerLocale(response, project, viewerLocale);
@@ -1887,7 +1889,8 @@ export class ProjectsService {
       where: { id: projectId },
       include: {
         tags: true,
-        estimates: { orderBy: { createdAt: 'desc' }, take: 1 },
+        estimates: { orderBy: { createdAt: 'asc' } },
+        tender: { include: { _count: { select: { bids: true } } } },
       },
     });
 
@@ -1897,31 +1900,21 @@ export class ProjectsService {
     if (project.clientId !== clientId) {
       throw new ForbiddenException('Access denied');
     }
-    if (!isConvertibleToDesign(project.projectType)) {
-      throw new BadRequestException(
-        'Only construction, modernization, or repair projects can convert to Design & Permits',
-      );
-    }
     if (
-      project.status === ProjectStatus.clarification ||
-      project.status === ProjectStatus.in_tender ||
-      project.status === ProjectStatus.awarded ||
-      project.status === ProjectStatus.active ||
-      project.status === ProjectStatus.completed ||
-      project.status === ProjectStatus.pending
+      !canClientConvertToDesign({
+        projectType: project.projectType,
+        status: project.status,
+        linkKind: project.linkKind,
+        linkedProjectId: project.linkedProjectId,
+        tenderBidCount: project.tender?._count.bids ?? 0,
+      })
     ) {
       throw new BadRequestException(
-        'Cannot convert after the tender starts or while the project is pending',
+        'This project cannot be converted to Design & Permits at its current stage',
       );
-    }
-    if (
-      project.linkKind === ProjectLinkKind.design_active ||
-      project.linkKind === ProjectLinkKind.construction_pending ||
-      project.linkedProjectId
-    ) {
-      throw new BadRequestException('Project is already linked to a design conversion');
     }
 
+    const originalProjectType = project.projectType;
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
     const designBrief: ProjectBriefV1 = {
       ...brief,
@@ -1930,27 +1923,101 @@ export class ProjectsService {
         needsDesignTender: true,
       },
     };
+    const resumeStatus =
+      project.status === ProjectStatus.clarification ||
+      project.status === ProjectStatus.in_tender
+        ? ProjectStatus.estimated
+        : project.status;
 
-    await this.prisma.project.update({
-      where: { id: project.id },
-      data: {
-        projectType: ProjectType.design,
-        briefJson: designBrief as unknown as Prisma.InputJsonValue,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      const clone = await tx.project.create({
+        data: {
+          clientId: project.clientId,
+          title: project.title,
+          description: project.description,
+          projectType: originalProjectType,
+          propertyType: project.propertyType,
+          propertyOwnershipForm: project.propertyOwnershipForm,
+          district: project.district,
+          locationRegionSlug: project.locationRegionSlug,
+          locationAreaSlug: project.locationAreaSlug,
+          locationNote: project.locationNote,
+          regionCode: project.regionCode,
+          status: ProjectStatus.pending,
+          statusBeforePending: resumeStatus,
+          isHidden: false,
+          readinessScore: project.readinessScore,
+          briefJson: project.briefJson as Prisma.InputJsonValue,
+          clarificationMode: project.clarificationMode,
+          clarificationSummary: project.clarificationSummary,
+          scopeSummary: project.scopeSummary,
+          sourceLocale: project.sourceLocale,
+          tenderContractTermsJson:
+            project.tenderContractTermsJson as Prisma.InputJsonValue,
+          estimateRefinementQaJson:
+            project.estimateRefinementQaJson as Prisma.InputJsonValue,
+          estimateAdjustmentsJson:
+            project.estimateAdjustmentsJson as Prisma.InputJsonValue,
+          linkKind: ProjectLinkKind.construction_pending,
+        },
+      });
+
+      if (project.tags.length > 0) {
+        await tx.projectTag.createMany({
+          data: project.tags.map((tag) => ({
+            projectId: clone.id,
+            tagId: tag.tagId,
+            source: tag.source,
+          })),
+        });
+      }
+
+      for (const estimate of project.estimates) {
+        await tx.estimate.create({
+          data: {
+            projectId: clone.id,
+            type: estimate.type,
+            currency: estimate.currency,
+            totalsJson: estimate.totalsJson as Prisma.InputJsonValue,
+            linesJson: estimate.linesJson as Prisma.InputJsonValue,
+            confidence: estimate.confidence,
+            disclaimer: estimate.disclaimer,
+            metaJson: estimate.metaJson as Prisma.InputJsonValue,
+          },
+        });
+      }
+
+      if (project.tender) {
+        await tx.tender.delete({ where: { id: project.tender.id } });
+      }
+
+      await tx.project.update({
+        where: { id: project.id },
+        data: {
+          projectType: ProjectType.design,
+          linkKind: ProjectLinkKind.design_active,
+          linkedProjectId: clone.id,
+          status: resumeStatus,
+          briefJson: designBrief as unknown as Prisma.InputJsonValue,
+          designFeePercent: null,
+          baseConstructionTotalsJson: Prisma.JsonNull,
+          estimateAdjustmentsJson: Prisma.JsonNull,
+        },
+      });
     });
 
-    const tagSlugs = project.tags.map((t) => t.tagId);
-    const tags = await this.prisma.tag.findMany({
-      where: { id: { in: tagSlugs } },
-      select: { slug: true },
-    });
-    const slugs = tags.map((t) => t.slug);
+    const tagSlugs = (
+      await this.prisma.tag.findMany({
+        where: { id: { in: project.tags.map((t) => t.tagId) } },
+        select: { slug: true },
+      })
+    ).map((t) => t.slug);
 
     if (project.estimates.length > 0) {
       const applied = await this.estimatesService.applyDesignFeeFromExisting(
         project.id,
         project.propertyType,
-        slugs,
+        tagSlugs,
       );
       await this.prisma.project.update({
         where: { id: project.id },
@@ -1964,6 +2031,8 @@ export class ProjectsService {
     } else {
       await this.estimatesService.generateAndStore(project.id);
     }
+
+    this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
     return this.getForClient(clientId, projectId, viewerLocale);
   }

@@ -1,4 +1,5 @@
 import {
+  ProjectLinkKind,
   ProjectStatus,
   ProjectType,
   PropertyType,
@@ -83,6 +84,48 @@ export function requiredSupplyKindForProjectType(
 
 export function isConvertibleToDesign(projectType: ProjectType): boolean {
   return CONVERTIBLE_TO_DESIGN_TYPES.includes(projectType);
+}
+
+const CONVERT_TO_DESIGN_STATUSES: ProjectStatus[] = [
+  ProjectStatus.draft,
+  ProjectStatus.intake,
+  ProjectStatus.ready_for_estimate,
+  ProjectStatus.estimated,
+];
+
+/** Statuses where convert is allowed only before any tender responses exist. */
+const CONVERT_TO_DESIGN_PRE_TENDER_STATUSES: ProjectStatus[] = [
+  ProjectStatus.clarification,
+  ProjectStatus.in_tender,
+];
+
+export function canClientConvertToDesign(input: {
+  projectType: ProjectType;
+  status: ProjectStatus;
+  linkKind: ProjectLinkKind;
+  linkedProjectId: string | null;
+  tenderBidCount?: number;
+}): boolean {
+  if (!isConvertibleToDesign(input.projectType)) {
+    return false;
+  }
+  if (
+    input.linkKind === ProjectLinkKind.design_active ||
+    input.linkKind === ProjectLinkKind.construction_pending ||
+    input.linkedProjectId
+  ) {
+    return false;
+  }
+  if (CONVERT_TO_DESIGN_STATUSES.includes(input.status)) {
+    return true;
+  }
+  if (
+    CONVERT_TO_DESIGN_PRE_TENDER_STATUSES.includes(input.status) &&
+    (input.tenderBidCount ?? 0) === 0
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /** Statuses where the owner may still change construction Project/Work type. */

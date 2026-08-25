@@ -24,7 +24,6 @@ import {
   type BidAnalysisState,
   type Tender,
 } from '@/lib/tendering';
-import { tenderHasStaleEmptyResponses } from '@/lib/directory-invite-suggest';
 import { ContractorCoverageNotice } from '@/components/ContractorCoverageNotice';
 
 export default function ProjectBidsPage() {
@@ -396,30 +395,11 @@ export default function ProjectBidsPage() {
                                 ? 'designer'
                                 : 'contractor'
                             }
+                            alwaysSuggestInvite
                             onInviteFromDirectory={() =>
                               setInviteModalOpen(true)
                             }
                           />
-                          <p className="muted tender-hint">
-                            {tenderHasStaleEmptyResponses(tender)
-                              ? t(
-                                  project?.projectType === 'design'
-                                    ? 'tenderCard.inviteSuggestStaleDesign'
-                                    : 'tenderCard.inviteSuggestStale',
-                                )
-                              : t(
-                                  project?.projectType === 'design'
-                                    ? 'tenderCard.inviteFromDirectoryHintDesign'
-                                    : 'tenderCard.inviteFromDirectoryHint',
-                                )}
-                          </p>
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={() => setInviteModalOpen(true)}
-                          >
-                            {t('tenderCard.inviteFromDirectory')}
-                          </button>
                         </div>
                       )}
                     </section>

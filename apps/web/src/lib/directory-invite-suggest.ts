@@ -1,5 +1,8 @@
 import type { Tender } from '@/lib/tendering';
 
+/** Hide the trade list in coverage copy when this many or more matches exist. */
+export const DIRECTORY_INVITE_HIDE_TRADE_LIST_THRESHOLD = 4;
+
 /** Suggest registry invites when this many or fewer matching profiles exist. */
 export const DIRECTORY_INVITE_LOW_MATCH_THRESHOLD = 11;
 

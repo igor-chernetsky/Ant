@@ -1272,6 +1272,7 @@ export const ruExtended = {
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
     convertButton: "Перевести в DESIGN & PERMITS",
+    viewLinkedConstruction: "Открыть сохранённую строительную карточку",
     convertHint:
       "Этот объект строительства или модернизации можно перевести в тендер Design & Permits.",
     convertHintNewBuild:
@@ -1293,6 +1294,7 @@ export const ruExtended = {
     publishOpenHintDesign: "Опубликуйте проект для открытых торгов. Проектировщики уточняют объём, регистрируются и подают предложения.",
     publishForClarification: "Опубликовать для уточнений",
     publishForBids: "Опубликовать для ставок",
+    registryInviteCount: "+{count} из реестра",
     completeIntakeHint: "Завершите сбор данных и получите ориентировочную смету.",
     collectingQuestions: "Сбор вопросов",
     applications: "Заявки",
@@ -1860,13 +1862,15 @@ export const ruExtended = {
   coverage: {
     loading: "Проверка доступности подрядчиков в вашем районе…",
     loadingDesign: "Проверка доступности проектировщиков в вашем районе…",
-    noCoverageTitle: "Нет полного покрытия всех работ в {location}",
-    noCoverageText: "В этом районе нет подрядчиков со всеми {count} видами работ сразу{tags}. Рассмотрите разделение на меньшие проекты — например, тендер на каждый вид работ.",
-    noCoverageTextDesign: "В этом районе нет проектировщиков со всеми {count} видами работ сразу{tags}. Рассмотрите разделение на меньшие проекты — например, тендер на каждый вид работ.",
+    noCoverageTitle: "В этом районе нет подрядчиков с необходимыми видами работ",
+    noCoverageText: "Рассмотрите разделение на меньшие проекты — например, тендер на каждый вид работ — чтобы специалисты могли подавать заявки на каждый объём.",
+    noCoverageTextDesign: "В этом районе нет проектировщиков с необходимыми видами работ",
     inviteSuggestLowMatches:
       "Подходящих {professionals} по объёму и району всего {count}. Выберите компании из реестра и отправьте им приглашение на тендер по почте.",
     inviteAnytimeDesign:
       "Пригласите дополнительных проектировщиков из реестра и отправьте им ссылку на проект по email.",
+    inviteAnytimeContractors:
+      "Пригласите дополнительных подрядчиков из реестра и отправьте им ссылку на проект по email.",
     locationMatch: "{count} {contractors} в {location} подходят по локации. Добавьте теги работ, чтобы увидеть, сколько покрывают весь объём.",
     coversAll: "{count} {contractors} в {location} {verb} все указанные виды работ{tags}.",
     covers: "покрывает",

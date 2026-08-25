@@ -1269,6 +1269,7 @@ export const thExtended = {
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
     convertButton: "แปลงเป็น DESIGN & PERMITS",
+    viewLinkedConstruction: "เปิดการ์ดงานก่อสร้างที่บันทึกไว้",
     convertHint:
       "โครงการก่อสร้างหรือปรับปรุงนี้สามารถแปลงเป็นการประมูล Design & Permits ได้",
     convertHintNewBuild:
@@ -1290,6 +1291,7 @@ export const thExtended = {
     publishOpenHintDesign: "เผยแพร่โครงการสำหรับการประมูลเปิด ผู้ออกแบบชี้แจงขอบเขต ลงทะเบียนเป็นผู้เข้าแข่งขัน แล้วส่งข้อเสนอ",
     publishForClarification: "เผยแพร่เพื่อชี้แจง",
     publishForBids: "เผยแพร่เพื่อรับข้อเสนอ",
+    registryInviteCount: "+{count} จากทะเบียน",
     completeIntakeHint: "ทำ intake ให้เสร็จและรับประมาณการเบื้องต้นก่อน",
     collectingQuestions: "กำลังรวบรวมคำถาม",
     applications: "ใบสมัคร",
@@ -1855,13 +1857,15 @@ export const thExtended = {
   coverage: {
     loading: "กำลังตรวจสอบผู้รับเหมาในพื้นที่ของคุณ…",
     loadingDesign: "กำลังตรวจสอบผู้ออกแบบในพื้นที่ของคุณ…",
-    noCoverageTitle: "ไม่มีผู้รับเหมาครบทุกงานช่างใน {location}",
-    noCoverageText: "ไม่มีผู้รับเหมาในพื้นที่นี้ที่ระบุงานช่างทั้ง {count} รายการพร้อมกัน{tags} พิจารณาแยกเป็นโครงการย่อย — เช่น ประมูลต่องานช่าง — เพื่อให้ผู้เชี่ยวชาญประมูลแต่ละขอบเขต",
-    noCoverageTextDesign: "ไม่มีผู้ออกแบบในพื้นที่นี้ที่ระบุงานช่างทั้ง {count} รายการพร้อมกัน{tags} พิจารณาแยกเป็นโครงการย่อย — เช่น ประมูลต่องานช่าง — เพื่อให้ผู้เชี่ยวชาญประมูลแต่ละขอบเขต",
+    noCoverageTitle: "ไม่มีผู้รับเหมาในพื้นที่นี้ที่ครอบคลุมงานช่างที่จำเป็น",
+    noCoverageText: "พิจารณาแยกเป็นโครงการย่อย — เช่น ประมูลต่องานช่าง — เพื่อให้ผู้เชี่ยวชาญประมูลแต่ละขอบเขต",
+    noCoverageTextDesign: "ไม่มีผู้ออกแบบในพื้นที่นี้ที่ครอบคลุมงานช่างที่จำเป็น",
     inviteSuggestLowMatches:
       "มี {professionals} ที่ตรงขอบเขตและพื้นที่เพียง {count} ราย เลือกบริษัทจากทะเบียนแล้วส่งคำเชิญประมูลทางอีเมล",
     inviteAnytimeDesign:
       "เชิญผู้ออกแบบเพิ่มจากทะเบียนแล้วส่งลิงก์โครงการทางอีเมล",
+    inviteAnytimeContractors:
+      "เชิญผู้รับเหมาเพิ่มจากทะเบียนแล้วส่งลิงก์โครงการทางอีเมล",
     locationMatch: "{count} {contractors} ใน {location} ตรงกับสถานที่นี้ เพิ่มแท็กงานช่างเพื่อดูว่ามีกี่รายครอบคลุมงานทั้งหมด",
     coversAll: "{count} {contractors} ใน {location} {verb}งานช่างที่ระบุทั้งหมด{tags}",
     covers: "ครอบคลุม",

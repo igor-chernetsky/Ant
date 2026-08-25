@@ -1270,6 +1270,7 @@ export const enExtended = {
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
     convertButton: "Convert to DESIGN & PERMITS",
+    viewLinkedConstruction: "Open saved construction snapshot",
     convertHint:
       "This construction or modernization project can be converted into a Design & Permits tender.",
     convertHintNewBuild:
@@ -1291,6 +1292,7 @@ export const enExtended = {
     publishOpenHintDesign: "Publish the project for open bidding. Designers clarify scope, enroll as contenders, then submit proposals.",
     publishForClarification: "Publish for clarification",
     publishForBids: "Publish for bids",
+    registryInviteCount: "+{count} from the registry",
     completeIntakeHint: "Complete intake and receive a ballpark estimate first.",
     collectingQuestions: "Collecting questions",
     applications: "Applications",
@@ -1857,13 +1859,15 @@ export const enExtended = {
   coverage: {
     loading: "Checking contractor availability in your area…",
     loadingDesign: "Checking designer availability in your area…",
-    noCoverageTitle: "No full-trade coverage in {location}",
-    noCoverageText: "No contractors in this area list all {count} trades at once{tags}. Consider splitting this into smaller projects — for example, one tender per trade — so specialists can bid on each scope.",
-    noCoverageTextDesign: "No designers in this area list all {count} trades at once{tags}. Consider splitting this into smaller projects — for example, one tender per trade — so specialists can bid on each scope.",
+    noCoverageTitle: "No contractors in this area cover necessary trades",
+    noCoverageText: "Consider splitting this into smaller projects — for example, one tender per trade — so specialists can bid on each scope.",
+    noCoverageTextDesign: "No designers in this area cover necessary trades",
     inviteSuggestLowMatches:
       "Only {count} matching {professionals} are registered for this scope and area. Select companies from the registry to email them a tender invitation.",
     inviteAnytimeDesign:
       "Invite additional designers from the registry and send them a project link by email.",
+    inviteAnytimeContractors:
+      "Invite additional contractors from the registry and send them a project link by email.",
     locationMatch: "{count} {contractors} in {location} match this location. Add trade tags to see how many cover all listed work types.",
     coversAll: "{count} {contractors} in {location} {verb} all listed trades{tags}.",
     covers: "covers",

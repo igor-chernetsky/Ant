@@ -7,14 +7,18 @@ import {
 } from '@/lib/tendering';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
-import { DIRECTORY_INVITE_LOW_MATCH_THRESHOLD } from '@/lib/directory-invite-suggest';
+import { DIRECTORY_INVITE_LOW_MATCH_THRESHOLD, DIRECTORY_INVITE_HIDE_TRADE_LIST_THRESHOLD } from '@/lib/directory-invite-suggest';
 
 interface ContractorCoverageNoticeProps {
   projectId: string;
   enabled: boolean;
   tagKey?: string;
+  /** Bump to refetch coverage (e.g. after registry invites). */
+  refreshKey?: number;
   /** Design & Permits projects address designers, not contractors. */
   audience?: 'contractor' | 'designer';
+  /** Always show registry invite CTA (clarification / tender start). */
+  alwaysSuggestInvite?: boolean;
   onInviteFromDirectory?: () => void;
   onCoverageLoaded?: (coverage: ContractorCoveragePreview | null) => void;
 }
@@ -30,7 +34,9 @@ export function ContractorCoverageNotice({
   projectId,
   enabled,
   tagKey = '',
+  refreshKey = 0,
   audience = 'contractor',
+  alwaysSuggestInvite = false,
   onInviteFromDirectory,
   onCoverageLoaded,
 }: ContractorCoverageNoticeProps) {
@@ -81,7 +87,7 @@ export function ContractorCoverageNotice({
     return () => {
       cancelled = true;
     };
-  }, [enabled, projectId, tagKey, t, isDesign, onCoverageLoaded]);
+  }, [enabled, projectId, tagKey, refreshKey, t, isDesign, onCoverageLoaded]);
 
   if (!enabled) {
     return null;
@@ -111,8 +117,12 @@ export function ContractorCoverageNotice({
     coverage.suggestInviteFromDirectory === true ||
     coverage.contractorCount <= DIRECTORY_INVITE_LOW_MATCH_THRESHOLD;
   const showInvite = Boolean(
-    onInviteFromDirectory && (isDesign || lowMatchInvite),
+    onInviteFromDirectory &&
+      (alwaysSuggestInvite || isDesign || lowMatchInvite),
   );
+  const showTradeList =
+    coverage.projectTags.length > 0 &&
+    coverage.contractorCount < DIRECTORY_INVITE_HIDE_TRADE_LIST_THRESHOLD;
 
   const inviteBlock = showInvite ? (
     <div className="contractor-coverage-invite">
@@ -122,7 +132,9 @@ export function ContractorCoverageNotice({
               count: coverage.contractorCount,
               professionals: professionalPlural,
             })
-          : t('coverage.inviteAnytimeDesign')}
+          : isDesign
+            ? t('coverage.inviteAnytimeDesign')
+            : t('coverage.inviteAnytimeContractors')}
       </p>
       <button
         type="button"
@@ -134,24 +146,22 @@ export function ContractorCoverageNotice({
     </div>
   ) : null;
 
-  if (coverage.suggestSplitProject) {
+  if (coverage.contractorCount === 0 && coverage.projectTags.length > 0) {
     return (
       <div
         className="contractor-coverage-notice contractor-coverage-notice-warning"
         role="note"
       >
         <p className="contractor-coverage-notice-title">
-          {t('coverage.noCoverageTitle', { location: coverage.locationLabel })}
-        </p>
-        <p className="contractor-coverage-notice-text">
           {t(
-            isDesign ? 'coverage.noCoverageTextDesign' : 'coverage.noCoverageText',
-            {
-              count: coverage.projectTags.length,
-              tags: tagList ? ` (${tagList})` : '',
-            },
+            isDesign ? 'coverage.noCoverageTextDesign' : 'coverage.noCoverageTitle',
           )}
         </p>
+        {coverage.suggestSplitProject ? (
+          <p className="contractor-coverage-notice-text">
+            {t('coverage.noCoverageText')}
+          </p>
+        ) : null}
         {inviteBlock}
       </div>
     );
@@ -188,7 +198,7 @@ export function ContractorCoverageNotice({
             coverage.contractorCount === 1
               ? t('coverage.covers')
               : t('coverage.cover'),
-          tags: tagList ? `: ${tagList}` : '',
+          tags: showTradeList && tagList ? `: ${tagList}` : '',
         })}
       </p>
       {inviteBlock}
