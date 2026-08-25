@@ -481,7 +481,7 @@ export class ProjectReviewsService {
     if (draft) {
       await this.validateDraftAttachments(project.clientId, projectId, draft);
     }
-    await this.finalizeProjectCompletion(projectId, draft, awarded);
+    await this.finalizeProjectCompletion(projectId, draft, awarded, 'client');
   }
 
   async confirmCompletionByContractor(
@@ -500,7 +500,12 @@ export class ProjectReviewsService {
     }
 
     const draft = this.parseDraftReview(project.completionDraftReviewJson);
-    await this.finalizeProjectCompletion(projectId, draft, ctx.awarded);
+    await this.finalizeProjectCompletion(
+      projectId,
+      draft,
+      ctx.awarded,
+      'contractor',
+    );
   }
 
   async completeProjectByAdmin(projectId: string): Promise<void> {
@@ -524,7 +529,7 @@ export class ProjectReviewsService {
       project.completionRequestedBy === CompletionRequestRole.client
         ? this.parseDraftReview(project.completionDraftReviewJson)
         : null;
-    await this.finalizeProjectCompletion(projectId, draft, awarded);
+    await this.finalizeProjectCompletion(projectId, draft, awarded, null);
   }
 
   /** @deprecated Use requestCompletionByClient */
@@ -867,6 +872,7 @@ export class ProjectReviewsService {
       contractorId: string;
       contractor: { userId: string };
     },
+    confirmedBy: 'client' | 'contractor' | null,
   ) {
     const project = await this.prisma.project.findUniqueOrThrow({
       where: { id: projectId },
@@ -923,19 +929,36 @@ export class ProjectReviewsService {
           },
         });
       });
-      return;
+    } else {
+      await this.prisma.project.update({
+        where: { id: projectId },
+        data: {
+          status: ProjectStatus.completed,
+          isHidden: false,
+          completionRequestedBy: null,
+          completionRequestedAt: null,
+          completionDraftReviewJson: Prisma.DbNull,
+        },
+      });
     }
 
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: {
-        status: ProjectStatus.completed,
-        isHidden: false,
-        completionRequestedBy: null,
-        completionRequestedAt: null,
-        completionDraftReviewJson: Prisma.DbNull,
-      },
-    });
+    if (confirmedBy === 'client') {
+      void this.notifications.dispatch(
+        this.notifications.notifyContractorProjectCompletionConfirmed({
+          contractorUserId: awarded.contractor.userId,
+          projectId,
+          projectTitle: project.title,
+        }),
+      );
+    } else if (confirmedBy === 'contractor') {
+      void this.notifications.dispatch(
+        this.notifications.notifyClientProjectCompletionConfirmed({
+          clientUserId: project.clientId,
+          projectId,
+          projectTitle: project.title,
+        }),
+      );
+    }
   }
 
   private async assertClientProject(clientId: string, projectId: string) {

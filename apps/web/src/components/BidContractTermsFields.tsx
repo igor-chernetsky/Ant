@@ -45,6 +45,10 @@ interface BidContractTermsFieldsProps {
   hideSubjectOfContract?: boolean;
   showSectionHeader?: boolean;
   isDesign?: boolean;
+  /** Mark employer legal name/address as required (client publish). */
+  requireEmployerLegal?: boolean;
+  /** Mark contractor/designer legal fields as required (supply submit). */
+  requireSupplyLegal?: boolean;
 }
 
 export function BidContractTermsFields({
@@ -58,6 +62,8 @@ export function BidContractTermsFields({
   hideSubjectOfContract = false,
   showSectionHeader = true,
   isDesign = false,
+  requireEmployerLegal = false,
+  requireSupplyLegal = false,
 }: BidContractTermsFieldsProps) {
   const { t } = useTranslation();
   const warrantyMonths = value.defectNotificationMonths ?? 24;
@@ -381,12 +387,17 @@ export function BidContractTermsFields({
         {!isCounterOffer && (
           <>
         <p className="tag-section-label bid-contract-terms-legal-label">
-          {t('contractTerms.employerLegalDetails')}
+          {t(
+            requireEmployerLegal
+              ? 'contractTerms.employerLegalDetailsRequired'
+              : 'contractTerms.employerLegalDetails',
+          )}
         </p>
         <label>
           {t('contractTerms.employerLegalName')}
           <input
             type="text"
+            required={requireEmployerLegal}
             disabled={fieldDisabled('employerName')}
             value={value.employerName ?? ''}
             onChange={(e) => set('employerName', e.target.value)}
@@ -396,6 +407,7 @@ export function BidContractTermsFields({
           {t('contractTerms.employerAddress')}
           <input
             type="text"
+            required={requireEmployerLegal}
             disabled={fieldDisabled('employerAddress')}
             value={value.employerAddress ?? ''}
             onChange={(e) => set('employerAddress', e.target.value)}
@@ -413,9 +425,13 @@ export function BidContractTermsFields({
 
         <p className="tag-section-label bid-contract-terms-legal-label">
           {t(
-            isDesign
-              ? 'contractTerms.designerLegalDetails'
-              : 'contractTerms.contractorLegalDetails',
+            requireSupplyLegal
+              ? isDesign
+                ? 'contractTerms.designerLegalDetailsRequired'
+                : 'contractTerms.contractorLegalDetailsRequired'
+              : isDesign
+                ? 'contractTerms.designerLegalDetails'
+                : 'contractTerms.contractorLegalDetails',
           )}
         </p>
         <label>
@@ -424,6 +440,7 @@ export function BidContractTermsFields({
             : t('contractTerms.contractorAddress')}
           <input
             type="text"
+            required={requireSupplyLegal}
             disabled={fieldDisabled('contractorAddress')}
             value={value.contractorAddress ?? ''}
             onChange={(e) => set('contractorAddress', e.target.value)}
@@ -435,6 +452,7 @@ export function BidContractTermsFields({
             : t('contractTerms.contractorRegistrationNo')}
           <input
             type="text"
+            required={requireSupplyLegal}
             disabled={fieldDisabled('contractorRegistrationNo')}
             value={value.contractorRegistrationNo ?? ''}
             onChange={(e) =>
@@ -448,6 +466,7 @@ export function BidContractTermsFields({
             : t('contractTerms.contractorRepresentative')}
           <input
             type="text"
+            required={requireSupplyLegal}
             disabled={fieldDisabled('contractorRepresentative')}
             value={value.contractorRepresentative ?? ''}
             onChange={(e) =>

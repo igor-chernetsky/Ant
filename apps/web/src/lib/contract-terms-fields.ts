@@ -114,6 +114,71 @@ export function pickClientContractTerms(
   return pickKeys(terms, [...CLIENT_ONLY_KEYS, ...SHARED_KEYS]);
 }
 
+/** Employer legal fields the client must fill before publishing KP / tender package. */
+export const EMPLOYER_LEGAL_REQUIRED_KEYS = [
+  'employerName',
+  'employerAddress',
+] as const satisfies readonly ContractTermsFieldKey[];
+
+export function missingEmployerLegalFields(
+  terms: Pick<
+    BidContractTerms,
+    'employerName' | 'employerAddress' | 'employerRegistrationNo'
+  > | null | undefined,
+): Array<(typeof EMPLOYER_LEGAL_REQUIRED_KEYS)[number]> {
+  const missing: Array<(typeof EMPLOYER_LEGAL_REQUIRED_KEYS)[number]> = [];
+  for (const key of EMPLOYER_LEGAL_REQUIRED_KEYS) {
+    if (!terms?.[key]?.trim()) {
+      missing.push(key);
+    }
+  }
+  return missing;
+}
+
+export function hasCompleteEmployerLegalDetails(
+  terms: Pick<
+    BidContractTerms,
+    'employerName' | 'employerAddress' | 'employerRegistrationNo'
+  > | null | undefined,
+): boolean {
+  return missingEmployerLegalFields(terms).length === 0;
+}
+
+/** Contractor/designer legal fields required before submitting a commercial proposal. */
+export const SUPPLY_LEGAL_REQUIRED_KEYS = [
+  'contractorAddress',
+  'contractorRegistrationNo',
+  'contractorRepresentative',
+] as const satisfies readonly ContractTermsFieldKey[];
+
+export function missingSupplyLegalFields(
+  terms: Pick<
+    BidContractTerms,
+    | 'contractorAddress'
+    | 'contractorRegistrationNo'
+    | 'contractorRepresentative'
+  > | null | undefined,
+): Array<(typeof SUPPLY_LEGAL_REQUIRED_KEYS)[number]> {
+  const missing: Array<(typeof SUPPLY_LEGAL_REQUIRED_KEYS)[number]> = [];
+  for (const key of SUPPLY_LEGAL_REQUIRED_KEYS) {
+    if (!terms?.[key]?.trim()) {
+      missing.push(key);
+    }
+  }
+  return missing;
+}
+
+export function hasCompleteSupplyLegalDetails(
+  terms: Pick<
+    BidContractTerms,
+    | 'contractorAddress'
+    | 'contractorRegistrationNo'
+    | 'contractorRepresentative'
+  > | null | undefined,
+): boolean {
+  return missingSupplyLegalFields(terms).length === 0;
+}
+
 export function pickCounterOfferContractTerms(
   terms: BidContractTerms,
 ): BidContractTerms {

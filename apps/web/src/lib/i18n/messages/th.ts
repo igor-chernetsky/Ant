@@ -26,6 +26,7 @@ export const th: Messages = {
     settings: 'การตั้งค่า',
     ads: 'โฆษณา',
     projectsTable: 'ตารางโครงการ',
+    clients: 'ลูกค้า',
     contractor: 'ผู้รับเหมา',
     designer: 'ผู้ออกแบบ',
     account: 'บัญชี',
@@ -134,6 +135,12 @@ export const th: Messages = {
       contractorProjectCompletionRequestedTitle: 'ผู้รับเหมาขอปิดโครงการ',
       contractorProjectCompletionRequestedBody:
         'ผู้รับเหมาขอปิดโครงการ {project} ยืนยันบนหน้าโครงการ',
+      clientProjectCompletionConfirmedTitle: 'ลูกค้ายืนยันการปิดโครงการ',
+      clientProjectCompletionConfirmedBody:
+        'ลูกค้ายืนยันการปิดโครงการ {project} โครงการปิดแล้ว',
+      contractorProjectCompletionConfirmedTitle: 'ผู้รับเหมายืนยันการปิดโครงการ',
+      contractorProjectCompletionConfirmedBody:
+        'ผู้รับเหมายืนยันการปิดโครงการ {project} โครงการปิดแล้ว',
       genericProjectBody: 'เกี่ยวข้องกับ {project}',
     },
   },

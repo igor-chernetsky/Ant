@@ -31,7 +31,9 @@ export type InAppNotificationKind =
   | 'client_defect_accepted'
   | 'client_defect_completed'
   | 'client_project_completion_requested'
-  | 'contractor_project_completion_requested';
+  | 'contractor_project_completion_requested'
+  | 'client_project_completion_confirmed'
+  | 'contractor_project_completion_confirmed';
 
 export interface InAppNotification {
   id: string;

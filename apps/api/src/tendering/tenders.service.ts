@@ -40,7 +40,7 @@ import {
   DEFAULT_PROPERTY_OWNERSHIP,
   DEFAULT_RETENTION_RELEASE_NOTES,
 } from './contract-terms.defaults';
-import { normalizeContractTerms } from './commercial-proposal.template';
+import { normalizeContractTerms, missingEmployerLegalFields, missingSupplyLegalFields } from './commercial-proposal.template';
 import { ContractsService } from './contracts.service';
 import { assertBidPricing } from './bid-breakdown.util';
 import {
@@ -1825,14 +1825,20 @@ export class TendersService {
     }
 
     const existingTerms = (existing.termsJson as BidTermsV1 | null) ?? null;
+    const mergedContractTerms = this.mergeContractTermsForContractor(
+      existingTerms,
+      dto.contractTerms,
+      projectTerms,
+    );
+    if (missingSupplyLegalFields(mergedContractTerms).length > 0) {
+      throw new BadRequestException(
+        'Contractor/designer address, registration number, and representative are required before submitting the commercial proposal',
+      );
+    }
     const terms = this.withFrozenProjectIdentity(
       this.buildBidTerms({
         ...dto,
-        contractTerms: this.mergeContractTermsForContractor(
-          existingTerms,
-          dto.contractTerms,
-          projectTerms,
-        ),
+        contractTerms: mergedContractTerms,
       }),
       {
         title: project.title,
@@ -1938,6 +1944,11 @@ export class TendersService {
     const contractTerms = this.normalizeAndValidateContractTerms(
       this.mergeContractTerms(existingTerms, clientOnlyIncoming, projectTerms),
     );
+    if (missingEmployerLegalFields(contractTerms).length > 0) {
+      throw new BadRequestException(
+        'Employer legal name and address are required',
+      );
+    }
 
     const updatedTerms: BidTermsV1 = {
       ...existingTerms,
@@ -2000,6 +2011,11 @@ export class TendersService {
         projectTerms,
       ),
     );
+    if (missingSupplyLegalFields(contractTerms).length > 0) {
+      throw new BadRequestException(
+        'Contractor/designer address, registration number, and representative are required',
+      );
+    }
 
     const updatedTerms: BidTermsV1 = {
       ...existingTerms,
@@ -2213,6 +2229,11 @@ export class TendersService {
 
     if (dto.contractTerms !== undefined) {
       const normalizedTerms = normalizeContractTerms(dto.contractTerms);
+      if (missingEmployerLegalFields(normalizedTerms).length > 0) {
+        throw new BadRequestException(
+          'Employer legal name and address are required before publishing the commercial proposal',
+        );
+      }
       data.tenderContractTermsJson =
         normalizedTerms as unknown as Prisma.InputJsonValue;
       const ownershipForm = inferPropertyOwnershipForm(

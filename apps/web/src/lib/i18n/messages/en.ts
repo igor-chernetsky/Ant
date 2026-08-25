@@ -25,6 +25,7 @@ export const en = {
     settings: 'Settings',
     ads: 'Ads',
     projectsTable: 'Projects table',
+    clients: 'Clients',
     contractor: 'Contractor',
     designer: 'Designer',
     account: 'Account',
@@ -133,6 +134,12 @@ export const en = {
       contractorProjectCompletionRequestedTitle: 'Contractor requested project completion',
       contractorProjectCompletionRequestedBody:
         'The contractor requested to complete {project}. Confirm on the project page.',
+      clientProjectCompletionConfirmedTitle: 'Client confirmed project completion',
+      clientProjectCompletionConfirmedBody:
+        'The client confirmed completion of {project}. The project is now closed.',
+      contractorProjectCompletionConfirmedTitle: 'Contractor confirmed project completion',
+      contractorProjectCompletionConfirmedBody:
+        'The contractor confirmed completion of {project}. The project is now closed.',
       genericProjectBody: 'Related to {project}.',
     },
   },

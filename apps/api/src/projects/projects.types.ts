@@ -132,7 +132,12 @@ export interface PublicProjectListPage {
   hasMore: boolean;
 }
 
-export type AdminProjectSortBy = 'createdAt' | 'title' | 'estimate';
+export type AdminProjectSortBy =
+  | 'createdAt'
+  | 'title'
+  | 'estimate'
+  | 'contractAmount'
+  | 'signedAt';
 export type AdminProjectSortDir = 'asc' | 'desc';
 
 export interface AdminProjectListQuery {
@@ -147,6 +152,12 @@ export interface AdminProjectListQuery {
   locationRegionSlug?: string;
   /** true | false | omit for all */
   hasEstimate?: boolean;
+  /** Fully-signed contract amount (awarded bid), inclusive. */
+  contractAmountMin?: number;
+  contractAmountMax?: number;
+  /** Fully-signed date range (later of client/contractor signatures). */
+  signedFrom?: string;
+  signedTo?: string;
   sortBy?: AdminProjectSortBy;
   sortDir?: AdminProjectSortDir;
   limit?: number;
@@ -178,6 +189,8 @@ export interface AdminProjectListItem {
   bidCount: number;
   createdAt: string;
   updatedAt: string;
+  /** Awarded bid amount linked to the project contract, when present. */
+  contractAmount: number | null;
   /** Later of client/contractor signature timestamps when fully signed. */
   contractFullySignedAt: string | null;
   /** Best-effort: updatedAt when status is completed. */

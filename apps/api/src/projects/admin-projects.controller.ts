@@ -35,6 +35,10 @@ export class AdminProjectsController {
     @Query('createdTo') createdTo?: string,
     @Query('locationRegionSlug') locationRegionSlug?: string,
     @Query('hasEstimate') hasEstimate?: string,
+    @Query('contractAmountMin') contractAmountMin?: string,
+    @Query('contractAmountMax') contractAmountMax?: string,
+    @Query('signedFrom') signedFrom?: string,
+    @Query('signedTo') signedTo?: string,
     @Query('sortBy') sortBy?: string,
     @Query('sortDir') sortDir?: string,
     @Query('limit') limit?: string,
@@ -44,6 +48,11 @@ export class AdminProjectsController {
       if (value === 'true' || value === '1') return true;
       if (value === 'false' || value === '0') return false;
       return undefined;
+    };
+    const parseAmount = (value?: string): number | undefined => {
+      if (value == null || !value.trim()) return undefined;
+      const n = Number(value);
+      return Number.isFinite(n) ? n : undefined;
     };
 
     const statusValue =
@@ -57,7 +66,12 @@ export class AdminProjectsController {
         ? (projectType as ProjectType)
         : undefined;
     const sortByValue: AdminProjectSortBy =
-      sortBy === 'title' || sortBy === 'estimate' ? sortBy : 'createdAt';
+      sortBy === 'title' ||
+      sortBy === 'estimate' ||
+      sortBy === 'contractAmount' ||
+      sortBy === 'signedAt'
+        ? sortBy
+        : 'createdAt';
     const sortDirValue: AdminProjectSortDir =
       sortDir === 'asc' ? 'asc' : 'desc';
 
@@ -71,6 +85,10 @@ export class AdminProjectsController {
       createdTo: createdTo?.trim() || undefined,
       locationRegionSlug: locationRegionSlug?.trim() || undefined,
       hasEstimate: parseBool(hasEstimate),
+      contractAmountMin: parseAmount(contractAmountMin),
+      contractAmountMax: parseAmount(contractAmountMax),
+      signedFrom: signedFrom?.trim() || undefined,
+      signedTo: signedTo?.trim() || undefined,
       sortBy: sortByValue,
       sortDir: sortDirValue,
       limit: limit ? Number(limit) : undefined,

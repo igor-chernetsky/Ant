@@ -5,12 +5,15 @@ import { ProjectStatus } from '@prisma/client';
  * Includes Accepting bids through Winner selected / Active — cards stay visible
  * after the applications deadline; opening is locked for non-parties once awarded.
  * Pre-tender stages stay client-only until the client publishes a tender.
+ *
+ * TEMP: completed is included on the homepage for now (normally only via Completed filter).
  */
 export const DISCOVERY_STATUSES: ProjectStatus[] = [
   ProjectStatus.clarification,
   ProjectStatus.in_tender,
   ProjectStatus.awarded,
   ProjectStatus.active,
+  ProjectStatus.completed,
 ];
 
 /** Owner-only workspace statuses (visible on home to the creating client). */
@@ -28,10 +31,7 @@ export const DISCOVERY_FILTER_HIDDEN = 'hidden';
  * Statuses that appear on public cards / discovery.
  * Opening a card uses canOpenProjectDetail, not this list alone.
  */
-export const PUBLIC_VIEW_STATUSES: ProjectStatus[] = [
-  ...DISCOVERY_STATUSES,
-  ProjectStatus.completed,
-];
+export const PUBLIC_VIEW_STATUSES: ProjectStatus[] = [...DISCOVERY_STATUSES];
 
 export function isPubliclyViewable(status: ProjectStatus): boolean {
   return PUBLIC_VIEW_STATUSES.includes(status);

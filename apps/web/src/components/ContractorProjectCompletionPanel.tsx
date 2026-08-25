@@ -111,10 +111,18 @@ export function ContractorProjectCompletionPanel({
             className="primary"
             disabled={busy}
             onClick={() =>
-              void runAction(async () => {
-                await requestContractorProjectCompletion(projectId);
-                setSuccessMessage(t('lifecycle.contractorRequestSent'));
-              })
+              void (async () => {
+                const confirmed = await confirm({
+                  title: t('confirm.requestCompletionTitle'),
+                  message: t('confirm.requestCompletionMessage'),
+                  confirmLabel: t('confirm.requestCompletionLabel'),
+                });
+                if (!confirmed) return;
+                await runAction(async () => {
+                  await requestContractorProjectCompletion(projectId);
+                  setSuccessMessage(t('lifecycle.contractorRequestSent'));
+                });
+              })()
             }
           >
             {busy

@@ -215,6 +215,17 @@ export function SiteHeader({
                   {t('header.projectsTable')}
                 </Link>
                 <Link
+                  href="/admin/clients"
+                  className={headerNavClass(pathname, '/admin/clients')}
+                  aria-current={
+                    isHeaderNavActive(pathname, '/admin/clients')
+                      ? 'page'
+                      : undefined
+                  }
+                >
+                  {t('header.clients')}
+                </Link>
+                <Link
                   href="/admin/contractors"
                   className={headerNavClass(pathname, '/admin/contractors')}
                   aria-current={

@@ -26,6 +26,7 @@ export const ru: Messages = {
     settings: 'Настройки',
     ads: 'Реклама',
     projectsTable: 'Таблица проектов',
+    clients: 'Клиенты',
     contractor: 'Подрядчик',
     designer: 'Проектировщик',
     account: 'Аккаунт',
@@ -134,6 +135,12 @@ export const ru: Messages = {
       contractorProjectCompletionRequestedTitle: 'Подрядчик запросил завершение проекта',
       contractorProjectCompletionRequestedBody:
         'Подрядчик запросил завершение проекта {project}. Подтвердите на странице проекта.',
+      clientProjectCompletionConfirmedTitle: 'Заказчик подтвердил завершение проекта',
+      clientProjectCompletionConfirmedBody:
+        'Заказчик подтвердил завершение проекта {project}. Проект закрыт.',
+      contractorProjectCompletionConfirmedTitle: 'Подрядчик подтвердил завершение проекта',
+      contractorProjectCompletionConfirmedBody:
+        'Подрядчик подтвердил завершение проекта {project}. Проект закрыт.',
       genericProjectBody: 'Связано с проектом {project}.',
     },
   },

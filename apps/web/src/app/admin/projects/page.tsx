@@ -70,6 +70,10 @@ type AppliedFilters = {
   createdTo: string;
   locationRegionSlug: string;
   hasEstimate: TriFilter;
+  contractAmountMin: string;
+  contractAmountMax: string;
+  signedFrom: string;
+  signedTo: string;
   sortBy: AdminProjectSortBy;
   sortDir: AdminProjectSortDir;
 };
@@ -219,6 +223,10 @@ export default function AdminProjectsTablePage() {
   const [createdTo, setCreatedTo] = useState('');
   const [locationRegionSlug, setLocationRegionSlug] = useState('');
   const [hasEstimate, setHasEstimate] = useState<TriFilter>('');
+  const [contractAmountMin, setContractAmountMin] = useState('');
+  const [contractAmountMax, setContractAmountMax] = useState('');
+  const [signedFrom, setSignedFrom] = useState('');
+  const [signedTo, setSignedTo] = useState('');
   const [sortBy, setSortBy] = useState<AdminProjectSortBy>('createdAt');
   const [sortDir, setSortDir] = useState<AdminProjectSortDir>('desc');
 
@@ -232,6 +240,10 @@ export default function AdminProjectsTablePage() {
     createdTo: '',
     locationRegionSlug: '',
     hasEstimate: '',
+    contractAmountMin: '',
+    contractAmountMax: '',
+    signedFrom: '',
+    signedTo: '',
     sortBy: 'createdAt',
     sortDir: 'desc',
   });
@@ -254,6 +266,10 @@ export default function AdminProjectsTablePage() {
         createdTo: filters.createdTo || undefined,
         locationRegionSlug: filters.locationRegionSlug || undefined,
         hasEstimate: filters.hasEstimate,
+        contractAmountMin: filters.contractAmountMin || undefined,
+        contractAmountMax: filters.contractAmountMax || undefined,
+        signedFrom: filters.signedFrom || undefined,
+        signedTo: filters.signedTo || undefined,
         sortBy: filters.sortBy,
         sortDir: filters.sortDir,
         limit: PAGE_SIZE,
@@ -376,6 +392,10 @@ export default function AdminProjectsTablePage() {
       createdTo,
       locationRegionSlug,
       hasEstimate,
+      contractAmountMin: contractAmountMin.trim(),
+      contractAmountMax: contractAmountMax.trim(),
+      signedFrom,
+      signedTo,
       sortBy,
       sortDir,
     };
@@ -524,7 +544,7 @@ export default function AdminProjectsTablePage() {
     );
   }
 
-  const colCount = 8;
+  const colCount = 11;
 
   return (
     <>
@@ -633,6 +653,46 @@ export default function AdminProjectsTablePage() {
                 onChange={(e) => setCreatedTo(e.target.value)}
               />
             </label>
+            <label className="admin-projects-field">
+              <span>{t('admin.projectsTableFilterContractMin')}</span>
+              <input
+                type="number"
+                min={0}
+                step="1000"
+                inputMode="decimal"
+                value={contractAmountMin}
+                onChange={(e) => setContractAmountMin(e.target.value)}
+                placeholder={t('admin.projectsTableFilterContractMinPh')}
+              />
+            </label>
+            <label className="admin-projects-field">
+              <span>{t('admin.projectsTableFilterContractMax')}</span>
+              <input
+                type="number"
+                min={0}
+                step="1000"
+                inputMode="decimal"
+                value={contractAmountMax}
+                onChange={(e) => setContractAmountMax(e.target.value)}
+                placeholder={t('admin.projectsTableFilterContractMaxPh')}
+              />
+            </label>
+            <label className="admin-projects-field">
+              <span>{t('admin.projectsTableFilterSignedFrom')}</span>
+              <input
+                type="date"
+                value={signedFrom}
+                onChange={(e) => setSignedFrom(e.target.value)}
+              />
+            </label>
+            <label className="admin-projects-field">
+              <span>{t('admin.projectsTableFilterSignedTo')}</span>
+              <input
+                type="date"
+                value={signedTo}
+                onChange={(e) => setSignedTo(e.target.value)}
+              />
+            </label>
           </div>
           <div className="admin-projects-filters-actions">
             <button
@@ -666,6 +726,9 @@ export default function AdminProjectsTablePage() {
                     {sortMark('title')}
                   </button>
                 </th>
+                <th className="admin-projects-col-client">
+                  {t('admin.projectsTableColClient')}
+                </th>
                 <th className="admin-projects-col-track">
                   {t('admin.projectsTableColTrack')}
                 </th>
@@ -678,6 +741,26 @@ export default function AdminProjectsTablePage() {
                   >
                     {t('admin.projectsTableColEstimate')}
                     {sortMark('estimate')}
+                  </button>
+                </th>
+                <th>
+                  <button
+                    type="button"
+                    className="admin-projects-sort"
+                    onClick={() => toggleSort('contractAmount')}
+                  >
+                    {t('admin.projectsTableColContractAmount')}
+                    {sortMark('contractAmount')}
+                  </button>
+                </th>
+                <th>
+                  <button
+                    type="button"
+                    className="admin-projects-sort"
+                    onClick={() => toggleSort('signedAt')}
+                  >
+                    {t('admin.projectsTableColSigned')}
+                    {sortMark('signedAt')}
                   </button>
                 </th>
                 <th>
@@ -763,6 +846,33 @@ export default function AdminProjectsTablePage() {
                           </div>
                         </td>
                         <td>
+                          <div className="admin-projects-client-cell">
+                            <span>
+                              {item.client.displayName?.trim() ||
+                                t('common.dash')}
+                            </span>
+                            {item.client.email ? (
+                              <a
+                                href={`mailto:${item.client.email}`}
+                                className="admin-projects-client-email"
+                              >
+                                {item.client.email}
+                              </a>
+                            ) : (
+                              <span className="muted">{t('common.dash')}</span>
+                            )}
+                            <Link
+                              href={`/admin/clients?id=${encodeURIComponent(item.client.id)}`}
+                              className="admin-projects-client-cabinet muted"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                            >
+                              {t('admin.projectsTableClientCabinet')}
+                            </Link>
+                          </div>
+                        </td>
+                        <td>
                           <span
                             className={
                               design
@@ -777,6 +887,16 @@ export default function AdminProjectsTablePage() {
                         </td>
                         <td>{formatProjectStatus(item.status)}</td>
                         <td>{estimateLabel(item)}</td>
+                        <td>
+                          {item.contractAmount != null
+                            ? formatThb(item.contractAmount)
+                            : t('common.dash')}
+                        </td>
+                        <td>
+                          {item.contractFullySignedAt
+                            ? formatDateTime(item.contractFullySignedAt)
+                            : t('common.dash')}
+                        </td>
                         <td>{formatDateTime(item.createdAt)}</td>
                         <td>
                           <div className="admin-projects-actions">
@@ -830,7 +950,13 @@ export default function AdminProjectsTablePage() {
                                     t('common.dash')}
                                 </p>
                                 <p className="muted">
-                                  {item.client.email || t('common.dash')}
+                                  {item.client.email ? (
+                                    <a href={`mailto:${item.client.email}`}>
+                                      {item.client.email}
+                                    </a>
+                                  ) : (
+                                    t('common.dash')
+                                  )}
                                 </p>
                               </div>
                               <div>
@@ -859,6 +985,12 @@ export default function AdminProjectsTablePage() {
                                   {t('admin.projectsTableSigned')}:{' '}
                                   {item.contractFullySignedAt
                                     ? formatDateTime(item.contractFullySignedAt)
+                                    : t('common.dash')}
+                                </p>
+                                <p>
+                                  {t('admin.projectsTableColContractAmount')}:{' '}
+                                  {item.contractAmount != null
+                                    ? formatThb(item.contractAmount)
                                     : t('common.dash')}
                                 </p>
                                 <p>

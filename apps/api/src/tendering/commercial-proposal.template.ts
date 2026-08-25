@@ -1298,3 +1298,44 @@ export function normalizeContractTerms(
   );
   return hasValue ? normalized : undefined;
 }
+
+/** Employer legal fields required when the client publishes a commercial proposal package. */
+export function missingEmployerLegalFields(
+  terms: Pick<
+    BidContractTerms,
+    'employerName' | 'employerAddress' | 'employerRegistrationNo'
+  > | null | undefined,
+): Array<'employerName' | 'employerAddress'> {
+  const missing: Array<'employerName' | 'employerAddress'> = [];
+  if (!terms?.employerName?.trim()) missing.push('employerName');
+  if (!terms?.employerAddress?.trim()) missing.push('employerAddress');
+  return missing;
+}
+
+/** Contractor/designer legal fields required before submitting a commercial proposal. */
+export function missingSupplyLegalFields(
+  terms: Pick<
+    BidContractTerms,
+    | 'contractorAddress'
+    | 'contractorRegistrationNo'
+    | 'contractorRepresentative'
+  > | null | undefined,
+): Array<
+  | 'contractorAddress'
+  | 'contractorRegistrationNo'
+  | 'contractorRepresentative'
+> {
+  const missing: Array<
+    | 'contractorAddress'
+    | 'contractorRegistrationNo'
+    | 'contractorRepresentative'
+  > = [];
+  if (!terms?.contractorAddress?.trim()) missing.push('contractorAddress');
+  if (!terms?.contractorRegistrationNo?.trim()) {
+    missing.push('contractorRegistrationNo');
+  }
+  if (!terms?.contractorRepresentative?.trim()) {
+    missing.push('contractorRepresentative');
+  }
+  return missing;
+}

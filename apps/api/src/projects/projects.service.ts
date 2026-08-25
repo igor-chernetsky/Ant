@@ -1598,6 +1598,63 @@ export class ProjectsService {
       where.estimates = { none: {} };
     }
 
+    const contractAmountMin =
+      query.contractAmountMin != null &&
+      Number.isFinite(query.contractAmountMin)
+        ? query.contractAmountMin
+        : undefined;
+    const contractAmountMax =
+      query.contractAmountMax != null &&
+      Number.isFinite(query.contractAmountMax)
+        ? query.contractAmountMax
+        : undefined;
+    const hasAmountFilter =
+      contractAmountMin != null || contractAmountMax != null;
+    const hasSignedFilter = Boolean(query.signedFrom || query.signedTo);
+
+    if (hasAmountFilter || hasSignedFilter) {
+      const contractClauses: Prisma.ContractWhereInput[] = [
+        { status: ContractStatus.fully_signed },
+      ];
+
+      if (hasAmountFilter) {
+        const amount: Prisma.DecimalFilter = {};
+        if (contractAmountMin != null) amount.gte = contractAmountMin;
+        if (contractAmountMax != null) amount.lte = contractAmountMax;
+        contractClauses.push({ bid: { amount } });
+      }
+
+      if (query.signedFrom) {
+        const from = new Date(query.signedFrom);
+        if (!Number.isNaN(from.getTime())) {
+          // max(client, contractor) >= from ⇔ at least one signature >= from
+          contractClauses.push({
+            OR: [
+              { clientSignedAt: { gte: from } },
+              { contractorSignedAt: { gte: from } },
+            ],
+          });
+        }
+      }
+      if (query.signedTo) {
+        const to = new Date(query.signedTo);
+        if (!Number.isNaN(to.getTime())) {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(query.signedTo.trim())) {
+            to.setHours(23, 59, 59, 999);
+          }
+          // max(client, contractor) <= to ⇔ both signatures <= to
+          contractClauses.push({
+            AND: [
+              { clientSignedAt: { lte: to } },
+              { contractorSignedAt: { lte: to } },
+            ],
+          });
+        }
+      }
+
+      where.contract = { is: { AND: contractClauses } };
+    }
+
     const include = {
       client: { select: { id: true, displayName: true, email: true } },
       tender: {
@@ -1616,29 +1673,48 @@ export class ProjectsService {
           status: true,
           clientSignedAt: true,
           contractorSignedAt: true,
+          bid: { select: { amount: true } },
         },
       },
     } satisfies Prisma.ProjectInclude;
 
-    let rows: Array<
-      Prisma.ProjectGetPayload<{ include: typeof include }>
-    >;
+    type AdminRow = Prisma.ProjectGetPayload<{ include: typeof include }>;
+    let rows: AdminRow[];
     let total: number;
 
-    if (sortBy === 'estimate') {
+    const needsInMemorySort =
+      sortBy === 'estimate' ||
+      sortBy === 'contractAmount' ||
+      sortBy === 'signedAt';
+
+    if (needsInMemorySort) {
       const allMatching = await this.prisma.project.findMany({
         where,
         include,
         orderBy: { createdAt: 'desc' },
       });
-      const estimates = await this.loadEstimateSummaries(allMatching);
-      const decorated = allMatching.map((project) => ({
-        project,
-        mid: estimates.get(project.id)?.midAmount ?? null,
-      }));
+      const estimates =
+        sortBy === 'estimate'
+          ? await this.loadEstimateSummaries(allMatching)
+          : null;
+      const decorated = allMatching.map((project) => {
+        let sortValue: number | null = null;
+        if (sortBy === 'estimate') {
+          sortValue = estimates?.get(project.id)?.midAmount ?? null;
+        } else if (sortBy === 'contractAmount') {
+          const raw = project.contract?.bid?.amount;
+          if (raw != null) {
+            const n = Number(raw);
+            sortValue = Number.isFinite(n) ? n : null;
+          }
+        } else {
+          sortValue = this.adminContractFullySignedMs(project.contract);
+        }
+        return { project, sortValue };
+      });
       decorated.sort((a, b) => {
-        const av = a.mid;
-        const bv = b.mid;
+        const av = a.sortValue;
+        const bv = b.sortValue;
         if (av == null && bv == null) return 0;
         if (av == null) return 1;
         if (bv == null) return -1;
@@ -1702,6 +1778,22 @@ export class ProjectsService {
     };
   }
 
+  private adminContractFullySignedMs(
+    contract: {
+      status: ContractStatus;
+      clientSignedAt: Date | null;
+      contractorSignedAt: Date | null;
+    } | null,
+  ): number | null {
+    if (contract?.status !== ContractStatus.fully_signed) return null;
+    const times = [
+      contract.clientSignedAt,
+      contract.contractorSignedAt,
+    ].filter((d): d is Date => d != null);
+    if (times.length === 0) return null;
+    return Math.max(...times.map((d) => d.getTime()));
+  }
+
   private toAdminListItem(
     project: {
       id: string;
@@ -1734,22 +1826,21 @@ export class ProjectsService {
         status: ContractStatus;
         clientSignedAt: Date | null;
         contractorSignedAt: Date | null;
+        bid?: { amount: Prisma.Decimal | null } | null;
       } | null;
     },
     coverImageUrl: string | null,
     estimate: PublicProjectEstimateSummary | null,
   ): AdminProjectListItem {
-    let contractFullySignedAt: string | null = null;
-    if (project.contract?.status === ContractStatus.fully_signed) {
-      const times = [
-        project.contract.clientSignedAt,
-        project.contract.contractorSignedAt,
-      ].filter((d): d is Date => d != null);
-      if (times.length > 0) {
-        contractFullySignedAt = new Date(
-          Math.max(...times.map((d) => d.getTime())),
-        ).toISOString();
-      }
+    const signedMs = this.adminContractFullySignedMs(project.contract);
+    const contractFullySignedAt =
+      signedMs != null ? new Date(signedMs).toISOString() : null;
+
+    let contractAmount: number | null = null;
+    const rawAmount = project.contract?.bid?.amount;
+    if (rawAmount != null) {
+      const n = Number(rawAmount);
+      if (Number.isFinite(n)) contractAmount = n;
     }
 
     return {
@@ -1778,6 +1869,7 @@ export class ProjectsService {
       bidCount: project.tender?._count.bids ?? 0,
       createdAt: project.createdAt.toISOString(),
       updatedAt: project.updatedAt.toISOString(),
+      contractAmount,
       contractFullySignedAt,
       completedAt:
         project.status === ProjectStatus.completed

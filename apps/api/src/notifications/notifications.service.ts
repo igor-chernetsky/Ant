@@ -2245,6 +2245,64 @@ export class NotificationsService {
     });
   }
 
+  /** Client confirmed contractor/designer completion request → notify supply side. */
+  async notifyContractorProjectCompletionConfirmed(params: {
+    contractorUserId: string;
+    projectId: string;
+    projectTitle: string;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.client_project_completion_confirmed,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+      },
+    });
+    await this.sendToUser({
+      userId: params.contractorUserId,
+      prefFlag: 'emailContractorUpdates',
+      kind: NotificationEmailKind.client_project_completion_confirmed,
+      projectId: params.projectId,
+      subject: `Project completed — ${params.projectTitle}`,
+      title: 'Client confirmed project completion',
+      bodyHtml: `<p>The client confirmed completion of <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>The project is now closed.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'Open project',
+      textBody: `The client confirmed completion of ${params.projectTitle}. The project is now closed.`,
+    });
+  }
+
+  /** Contractor/designer confirmed client completion request → notify client. */
+  async notifyClientProjectCompletionConfirmed(params: {
+    clientUserId: string;
+    projectId: string;
+    projectTitle: string;
+  }): Promise<void> {
+    await this.createInAppNotification({
+      userId: params.clientUserId,
+      kind: InAppNotificationKind.contractor_project_completion_confirmed,
+      href: this.projectPath(params.projectId),
+      projectId: params.projectId,
+      payload: {
+        projectTitle: params.projectTitle,
+      },
+    });
+    await this.sendToUser({
+      userId: params.clientUserId,
+      prefFlag: 'emailClientBidActivity',
+      kind: NotificationEmailKind.contractor_project_completion_confirmed,
+      projectId: params.projectId,
+      subject: `Project completed — ${params.projectTitle}`,
+      title: 'Contractor confirmed project completion',
+      bodyHtml: `<p>The contractor confirmed completion of <strong>${escapeHtml(params.projectTitle)}</strong>.</p><p>The project is now closed.</p>`,
+      ctaHref: this.projectUrl(params.projectId),
+      ctaLabel: 'Open project',
+      textBody: `The contractor confirmed completion of ${params.projectTitle}. The project is now closed.`,
+    });
+  }
+
   dispatch(promise: Promise<void>): void {
     void promise.catch((error) => {
       this.logger.warn('Notification dispatch failed', error);

@@ -15,6 +15,7 @@ import {
   type ContractTermsAudience,
   type ContractTermsVariant,
 } from '@/components/BidContractTermsFields';
+import { hasCompleteSupplyLegalDetails } from '@/lib/contract-terms-fields';
 import {
   addCalendarDays,
   calendarDaysBetween,
@@ -387,6 +388,20 @@ export function BidProposalForm({
       }
     }
 
+    if (
+      contractTermsAudience === 'contractor' &&
+      !hasCompleteSupplyLegalDetails(contractTerms)
+    ) {
+      setError(
+        t(
+          isDesign
+            ? 'contractTerms.designerLegalRequired'
+            : 'contractTerms.contractorLegalRequired',
+        ),
+      );
+      return;
+    }
+
     const scopeText = scopeSummary.trim();
 
     const isUpdate = existingBid?.status === 'submitted';
@@ -472,6 +487,7 @@ export function BidProposalForm({
         disabled={busy}
         hideSubjectOfContract
         showSectionHeader={contractTermsPlacement === 'afterMetrics'}
+        requireSupplyLegal={contractTermsAudience === 'contractor'}
         isDesign={isDesign}
       />
     ) : null;

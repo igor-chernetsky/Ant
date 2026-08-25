@@ -9,6 +9,7 @@ import {
   pickContractorContractTerms,
   type ContractTermsAudience,
 } from '@/components/BidContractTermsFields';
+import { hasCompleteEmployerLegalDetails, hasCompleteSupplyLegalDetails } from '@/lib/contract-terms-fields';
 import type { BidContractTerms } from '@/lib/tendering';
 import {
   updateBidContractTerms,
@@ -98,6 +99,28 @@ export function ClientCommercialProposalPanel({
   }, [bidTermsKey, projectTermsKey, projectTitle, projectDistrict]);
 
   const handleSave = async () => {
+    if (
+      audience === 'client' &&
+      !hasCompleteEmployerLegalDetails(contractTerms)
+    ) {
+      setError(t('contractTerms.employerLegalRequired'));
+      setSaved(false);
+      return;
+    }
+    if (
+      audience === 'contractor' &&
+      !hasCompleteSupplyLegalDetails(contractTerms)
+    ) {
+      setError(
+        t(
+          isDesign
+            ? 'contractTerms.designerLegalRequired'
+            : 'contractTerms.contractorLegalRequired',
+        ),
+      );
+      setSaved(false);
+      return;
+    }
     setBusy(true);
     setError(null);
     setSaved(false);
@@ -143,6 +166,8 @@ export function ClientCommercialProposalPanel({
         projectTitle={projectTitle}
         projectDistrict={projectDistrict}
         disabled={busy || readOnly}
+        requireEmployerLegal={audience === 'client'}
+        requireSupplyLegal={audience === 'contractor'}
         isDesign={isDesign}
       />
 

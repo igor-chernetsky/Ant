@@ -8,6 +8,7 @@ import { CostBreakdownTemplateEditor } from '@/components/CostBreakdownTemplateE
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   contractTermsFromProject,
+  hasCompleteEmployerLegalDetails,
   type ContractTermsProjectContext,
 } from '@/lib/contract-terms-fields';
 import {
@@ -167,6 +168,15 @@ export function PublishTenderPackageModal({
     setSubmitting(true);
     setError(null);
     try {
+      if (
+        !isClarificationPublish &&
+        !hasCompleteEmployerLegalDetails(preview.contractTerms)
+      ) {
+        setError(t('contractTerms.employerLegalRequired'));
+        setSubmitting(false);
+        return;
+      }
+
       const payload = isClarificationPublish
         ? applicationsDeadlineToPayload(deadline)
         : {
@@ -370,6 +380,7 @@ export function PublishTenderPackageModal({
                       projectDistrict={project.district}
                       disabled={busy}
                       hideSubjectOfContract
+                      requireEmployerLegal
                       isDesign={project.projectType === 'design'}
                     />
                   </>

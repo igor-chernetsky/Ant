@@ -1,6 +1,11 @@
 import { fetchWithAuth } from './auth-client';
 
-export type AdminProjectSortBy = 'createdAt' | 'title' | 'estimate';
+export type AdminProjectSortBy =
+  | 'createdAt'
+  | 'title'
+  | 'estimate'
+  | 'contractAmount'
+  | 'signedAt';
 export type AdminProjectSortDir = 'asc' | 'desc';
 
 export interface AdminProjectEstimate {
@@ -36,6 +41,7 @@ export interface AdminProjectListItem {
   bidCount: number;
   createdAt: string;
   updatedAt: string;
+  contractAmount: number | null;
   contractFullySignedAt: string | null;
   completedAt: string | null;
 }
@@ -58,6 +64,10 @@ export interface AdminProjectListParams {
   createdTo?: string;
   locationRegionSlug?: string;
   hasEstimate?: 'true' | 'false' | '';
+  contractAmountMin?: string;
+  contractAmountMax?: string;
+  signedFrom?: string;
+  signedTo?: string;
   sortBy?: AdminProjectSortBy;
   sortDir?: AdminProjectSortDir;
   limit?: number;
@@ -95,6 +105,14 @@ export async function fetchAdminProjects(
   if (params.hasEstimate === 'true' || params.hasEstimate === 'false') {
     qs.set('hasEstimate', params.hasEstimate);
   }
+  if (params.contractAmountMin) {
+    qs.set('contractAmountMin', params.contractAmountMin);
+  }
+  if (params.contractAmountMax) {
+    qs.set('contractAmountMax', params.contractAmountMax);
+  }
+  if (params.signedFrom) qs.set('signedFrom', params.signedFrom);
+  if (params.signedTo) qs.set('signedTo', params.signedTo);
   if (params.sortBy) qs.set('sortBy', params.sortBy);
   if (params.sortDir) qs.set('sortDir', params.sortDir);
   if (params.limit != null) qs.set('limit', String(params.limit));

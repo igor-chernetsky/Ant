@@ -76,6 +76,10 @@ export function formatInAppNotificationTitle(
       return t('notifications.kinds.clientProjectCompletionRequestedTitle');
     case 'contractor_project_completion_requested':
       return t('notifications.kinds.contractorProjectCompletionRequestedTitle');
+    case 'client_project_completion_confirmed':
+      return t('notifications.kinds.clientProjectCompletionConfirmedTitle');
+    case 'contractor_project_completion_confirmed':
+      return t('notifications.kinds.contractorProjectCompletionConfirmedTitle');
     default:
       return t('notifications.title');
   }
@@ -235,6 +239,14 @@ export function formatInAppNotificationBody(
       });
     case 'contractor_project_completion_requested':
       return t('notifications.kinds.contractorProjectCompletionRequestedBody', {
+        project: projectTitle || t('common.dash'),
+      });
+    case 'client_project_completion_confirmed':
+      return t('notifications.kinds.clientProjectCompletionConfirmedBody', {
+        project: projectTitle || t('common.dash'),
+      });
+    case 'contractor_project_completion_confirmed':
+      return t('notifications.kinds.contractorProjectCompletionConfirmedBody', {
         project: projectTitle || t('common.dash'),
       });
     default:
