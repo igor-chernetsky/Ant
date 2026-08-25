@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
@@ -41,6 +41,29 @@ function localeLabel(
 }
 
 export default function AdminClientsPage() {
+  return (
+    <Suspense fallback={<AdminClientsFallback />}>
+      <AdminClientsContent />
+    </Suspense>
+  );
+}
+
+function AdminClientsFallback() {
+  const { t } = useTranslation();
+  const { me, signOut } = useSession();
+  return (
+    <PageShell>
+      <SiteHeader me={me} onSignIn={() => undefined} onSignOut={() => void signOut()} />
+      <main className="admin-clients-page">
+        <section className="card">
+          <p className="muted">{t('common.loading')}</p>
+        </section>
+      </main>
+    </PageShell>
+  );
+}
+
+function AdminClientsContent() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const initialClientId = searchParams.get('id');
