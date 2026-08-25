@@ -9,7 +9,7 @@ import {
   pickContractorContractTerms,
   type ContractTermsAudience,
 } from '@/components/BidContractTermsFields';
-import { hasCompleteEmployerLegalDetails, hasCompleteSupplyLegalDetails } from '@/lib/contract-terms-fields';
+import { hasCompleteEmployerLegalDetails, hasCompleteSupplyLegalDetails, hasCompleteWorksSchedule } from '@/lib/contract-terms-fields';
 import type { BidContractTerms } from '@/lib/tendering';
 import {
   updateBidContractTerms,
@@ -118,6 +118,11 @@ export function ClientCommercialProposalPanel({
             : 'contractTerms.contractorLegalRequired',
         ),
       );
+      setSaved(false);
+      return;
+    }
+    if (audience === 'contractor' && !hasCompleteWorksSchedule(contractTerms)) {
+      setError(t('bid.errors.scheduleRequired'));
       setSaved(false);
       return;
     }

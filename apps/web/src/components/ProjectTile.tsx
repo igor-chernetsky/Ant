@@ -135,9 +135,6 @@ export function ProjectTile({
   }`;
 
   const statusTone = project.isHidden ? 'hidden' : project.status;
-  // Locked cards look "disabled" — hide the status chip so it does not
-  // read as an active/disabled status label on the home grid.
-  const showStatusBadge = canOpen;
 
   const body = (
     <>
@@ -157,13 +154,11 @@ export function ProjectTile({
             </span>
           </div>
         )}
-        {showStatusBadge && (
-          <span className={`project-tile-status project-tile-status--${statusTone}`}>
-            {project.isHidden
-              ? t('projectTile.hidden')
-              : formatProjectStatus(project.status)}
-          </span>
-        )}
+        <span className={`project-tile-status project-tile-status--${statusTone}`}>
+          {project.isHidden
+            ? t('projectTile.hidden')
+            : formatProjectStatus(project.status)}
+        </span>
         {!canOpen && (
           <span className="project-tile-lock-badge" aria-hidden>
             <LockIcon />

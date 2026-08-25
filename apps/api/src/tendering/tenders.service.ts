@@ -40,7 +40,7 @@ import {
   DEFAULT_PROPERTY_OWNERSHIP,
   DEFAULT_RETENTION_RELEASE_NOTES,
 } from './contract-terms.defaults';
-import { normalizeContractTerms, missingEmployerLegalFields, missingSupplyLegalFields } from './commercial-proposal.template';
+import { normalizeContractTerms, missingEmployerLegalFields, missingSupplyLegalFields, missingWorksScheduleFields } from './commercial-proposal.template';
 import { ContractsService } from './contracts.service';
 import { assertBidPricing } from './bid-breakdown.util';
 import {
@@ -1835,6 +1835,11 @@ export class TendersService {
         'Contractor/designer address, registration number, and representative are required before submitting the commercial proposal',
       );
     }
+    if (missingWorksScheduleFields(mergedContractTerms).length > 0) {
+      throw new BadRequestException(
+        'Works start and finish dates are required before submitting the commercial proposal',
+      );
+    }
     const terms = this.withFrozenProjectIdentity(
       this.buildBidTerms({
         ...dto,
@@ -2014,6 +2019,11 @@ export class TendersService {
     if (missingSupplyLegalFields(contractTerms).length > 0) {
       throw new BadRequestException(
         'Contractor/designer address, registration number, and representative are required',
+      );
+    }
+    if (missingWorksScheduleFields(contractTerms).length > 0) {
+      throw new BadRequestException(
+        'Works start and finish dates are required',
       );
     }
 

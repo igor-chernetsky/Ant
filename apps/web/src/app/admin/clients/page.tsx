@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
@@ -18,13 +18,6 @@ import {
 import { formatThb } from '@/lib/estimate';
 import { formatDateTime } from '@/lib/projects';
 import { isAdmin } from '@/lib/verification';
-
-type DetailSection =
-  | 'overview'
-  | 'projects'
-  | 'invoices'
-  | 'vat'
-  | 'payment';
 
 function clientLabel(item: Pick<AdminClientListItem, 'displayName' | 'email'>) {
   return item.displayName?.trim() || item.email?.trim() || '—';
@@ -76,7 +69,6 @@ function AdminClientsContent() {
   const [total, setTotal] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(initialClientId);
   const [detail, setDetail] = useState<AdminClientDetail | null>(null);
-  const [section, setSection] = useState<DetailSection>('overview');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
@@ -100,7 +92,6 @@ function AdminClientsContent() {
         const data = await fetchAdminClient(clientId);
         setDetail(data);
         setSelectedId(clientId);
-        setSection('overview');
       } catch (err: unknown) {
         setError(
           err instanceof Error ? err.message : t('admin.loadDetailsFailed'),
@@ -159,18 +150,6 @@ function AdminClientsContent() {
         );
       });
   };
-
-  const sectionTabs = useMemo(
-    () =>
-      [
-        { id: 'overview' as const, label: t('admin.clientsSectionOverview') },
-        { id: 'projects' as const, label: t('admin.clientsSectionProjects') },
-        { id: 'invoices' as const, label: t('admin.clientsSectionInvoices') },
-        { id: 'vat' as const, label: t('admin.clientsSectionVat') },
-        { id: 'payment' as const, label: t('admin.clientsSectionPayment') },
-      ] as const,
-    [t],
-  );
 
   return (
     <PageShell>
@@ -318,7 +297,7 @@ function AdminClientsContent() {
                   <p className="muted">{t('admin.clientsSelectPrompt')}</p>
                 </div>
               ) : (
-                <>
+                <div className="admin-clients-detail-body">
                   <div className="admin-clients-detail-header">
                     <div>
                       <h2 className="section-title">
@@ -335,31 +314,11 @@ function AdminClientsContent() {
                     </div>
                   </div>
 
-                  <div
-                    className="admin-clients-tabs"
-                    role="tablist"
-                    aria-label={t('admin.clientsDetails')}
-                  >
-                    {sectionTabs.map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={section === tab.id}
-                        className={
-                          section === tab.id
-                            ? 'admin-clients-tab admin-clients-tab--active'
-                            : 'admin-clients-tab'
-                        }
-                        onClick={() => setSection(tab.id)}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {section === 'overview' ? (
-                    <div className="admin-clients-section">
+                  <div className="admin-clients-blocks">
+                    <section className="admin-clients-block">
+                      <h3 className="tag-section-label">
+                        {t('admin.clientsSectionOverview')}
+                      </h3>
                       <dl className="meta-grid admin-clients-meta-grid">
                         <div>
                           <dt>{t('common.name')}</dt>
@@ -381,9 +340,7 @@ function AdminClientsContent() {
                         </div>
                         <div>
                           <dt>{t('admin.clientsLocale')}</dt>
-                          <dd>
-                            {localeLabel(detail.preferredLocale, t)}
-                          </dd>
+                          <dd>{localeLabel(detail.preferredLocale, t)}</dd>
                         </div>
                         <div>
                           <dt>{t('admin.clientsRegistered')}</dt>
@@ -403,9 +360,9 @@ function AdminClientsContent() {
                         </div>
                       </dl>
 
-                      <h3 className="tag-section-label">
+                      <h4 className="admin-clients-block-subtitle">
                         {t('admin.clientsLegalTitle')}
-                      </h3>
+                      </h4>
                       {detail.legal ? (
                         <dl className="meta-grid admin-clients-meta-grid">
                           <div>
@@ -438,13 +395,16 @@ function AdminClientsContent() {
                       ) : (
                         <p className="muted">{t('admin.clientsLegalEmpty')}</p>
                       )}
-                    </div>
-                  ) : null}
+                    </section>
 
-                  {section === 'projects' ? (
-                    <div className="admin-clients-section">
+                    <section className="admin-clients-block">
+                      <h3 className="tag-section-label">
+                        {t('admin.clientsSectionProjects')}
+                      </h3>
                       {detail.projects.length === 0 ? (
-                        <p className="muted">{t('admin.clientsProjectsEmpty')}</p>
+                        <p className="muted">
+                          {t('admin.clientsProjectsEmpty')}
+                        </p>
                       ) : (
                         <ul className="admin-clients-project-list">
                           {detail.projects.map((project) => (
@@ -465,7 +425,8 @@ function AdminClientsContent() {
                                       : ''}
                                   </p>
                                   <p className="muted doc-meta">
-                                    {t('admin.projectsTableColContractAmount')}:{' '}
+                                    {t('admin.projectsTableColContractAmount')}
+                                    :{' '}
                                     {project.contractAmount != null
                                       ? formatThb(project.contractAmount)
                                       : t('common.dash')}
@@ -489,34 +450,42 @@ function AdminClientsContent() {
                           ))}
                         </ul>
                       )}
-                    </div>
-                  ) : null}
+                    </section>
 
-                  {section === 'invoices' ? (
-                    <div className="admin-clients-section">
-                      <p className="muted">{t('admin.clientsInvoicesPlaceholder')}</p>
-                    </div>
-                  ) : null}
-
-                  {section === 'vat' ? (
-                    <div className="admin-clients-section">
-                      <p className="muted">{t('admin.clientsVatPlaceholder')}</p>
-                    </div>
-                  ) : null}
-
-                  {section === 'payment' ? (
-                    <div className="admin-clients-section">
-                      <p className="muted">{t('admin.clientsPaymentPlaceholder')}</p>
-                      {detail.paymentSlipCount > 0 ? (
-                        <p className="muted">
-                          {t('admin.clientsPaymentSlipsHint', {
-                            count: String(detail.paymentSlipCount),
-                          })}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </>
+                    <section className="admin-clients-block admin-clients-block--billing">
+                      <h3 className="tag-section-label">
+                        {t('admin.clientsBillingTitle')}
+                      </h3>
+                      <div className="admin-clients-billing-grid">
+                        <div className="admin-clients-billing-card">
+                          <h4>{t('admin.clientsSectionInvoices')}</h4>
+                          <p className="muted">
+                            {t('admin.clientsInvoicesPlaceholder')}
+                          </p>
+                        </div>
+                        <div className="admin-clients-billing-card">
+                          <h4>{t('admin.clientsSectionVat')}</h4>
+                          <p className="muted">
+                            {t('admin.clientsVatPlaceholder')}
+                          </p>
+                        </div>
+                        <div className="admin-clients-billing-card">
+                          <h4>{t('admin.clientsSectionPayment')}</h4>
+                          <p className="muted">
+                            {t('admin.clientsPaymentPlaceholder')}
+                          </p>
+                          {detail.paymentSlipCount > 0 ? (
+                            <p className="muted">
+                              {t('admin.clientsPaymentSlipsHint', {
+                                count: String(detail.paymentSlipCount),
+                              })}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </div>
               )}
             </section>
           </section>

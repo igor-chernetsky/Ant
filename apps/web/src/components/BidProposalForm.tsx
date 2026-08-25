@@ -15,7 +15,7 @@ import {
   type ContractTermsAudience,
   type ContractTermsVariant,
 } from '@/components/BidContractTermsFields';
-import { hasCompleteSupplyLegalDetails } from '@/lib/contract-terms-fields';
+import { hasCompleteSupplyLegalDetails, hasCompleteWorksSchedule } from '@/lib/contract-terms-fields';
 import {
   addCalendarDays,
   calendarDaysBetween,
@@ -361,6 +361,13 @@ export function BidProposalForm({
       contractTerms.worksStartDate,
       contractTerms.worksFinishDate,
     );
+    if (
+      contractTermsAudience === 'contractor' &&
+      !hasCompleteWorksSchedule(contractTerms)
+    ) {
+      setError(t('bid.errors.scheduleRequired'));
+      return;
+    }
     let parsedDuration: number | undefined;
     if (durationInputMode !== 'editable' && scheduleDays != null) {
       parsedDuration = scheduleDays;

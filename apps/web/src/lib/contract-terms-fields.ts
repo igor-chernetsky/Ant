@@ -179,6 +179,42 @@ export function hasCompleteSupplyLegalDetails(
   return missingSupplyLegalFields(terms).length === 0;
 }
 
+/** Works schedule dates required before submitting a commercial proposal. */
+export const WORKS_SCHEDULE_REQUIRED_KEYS = [
+  'worksStartDate',
+  'worksFinishDate',
+] as const satisfies readonly ContractTermsFieldKey[];
+
+export function missingWorksScheduleFields(
+  terms: Pick<
+    BidContractTerms,
+    'worksStartDate' | 'worksFinishDate'
+  > | null | undefined,
+): Array<(typeof WORKS_SCHEDULE_REQUIRED_KEYS)[number]> {
+  const missing: Array<(typeof WORKS_SCHEDULE_REQUIRED_KEYS)[number]> = [];
+  for (const key of WORKS_SCHEDULE_REQUIRED_KEYS) {
+    if (!terms?.[key]?.trim()) {
+      missing.push(key);
+    }
+  }
+  if (missing.length > 0) return missing;
+  if (
+    calendarDaysBetween(terms?.worksStartDate, terms?.worksFinishDate) == null
+  ) {
+    return ['worksFinishDate'];
+  }
+  return [];
+}
+
+export function hasCompleteWorksSchedule(
+  terms: Pick<
+    BidContractTerms,
+    'worksStartDate' | 'worksFinishDate'
+  > | null | undefined,
+): boolean {
+  return missingWorksScheduleFields(terms).length === 0;
+}
+
 export function pickCounterOfferContractTerms(
   terms: BidContractTerms,
 ): BidContractTerms {

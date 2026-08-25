@@ -513,6 +513,7 @@ export const ruExtended = {
     clientsSectionInvoices: "Инвойсы",
     clientsSectionVat: "VAT-сертификаты",
     clientsSectionPayment: "Оплата",
+    clientsBillingTitle: "Оплата и документы",
     clientsLocale: "Язык",
     clientsRegistered: "Регистрация",
     clientsProjectsTotal: "Проекты",

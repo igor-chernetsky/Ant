@@ -1339,3 +1339,22 @@ export function missingSupplyLegalFields(
   }
   return missing;
 }
+
+/** Works start/finish dates required before submitting a commercial proposal. */
+export function missingWorksScheduleFields(
+  terms: Pick<
+    BidContractTerms,
+    'worksStartDate' | 'worksFinishDate'
+  > | null | undefined,
+): Array<'worksStartDate' | 'worksFinishDate'> {
+  const missing: Array<'worksStartDate' | 'worksFinishDate'> = [];
+  if (!terms?.worksStartDate?.trim()) missing.push('worksStartDate');
+  if (!terms?.worksFinishDate?.trim()) missing.push('worksFinishDate');
+  if (missing.length > 0) return missing;
+  if (
+    calendarDaysBetween(terms?.worksStartDate, terms?.worksFinishDate) == null
+  ) {
+    return ['worksFinishDate'];
+  }
+  return [];
+}

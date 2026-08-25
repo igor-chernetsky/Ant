@@ -512,6 +512,7 @@ export const enExtended = {
     clientsSectionInvoices: "Invoices",
     clientsSectionVat: "VAT certificates",
     clientsSectionPayment: "Payment",
+    clientsBillingTitle: "Billing & documents",
     clientsLocale: "Language",
     clientsRegistered: "Registered",
     clientsProjectsTotal: "Projects",

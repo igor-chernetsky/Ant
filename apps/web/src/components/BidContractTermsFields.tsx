@@ -196,9 +196,17 @@ export function BidContractTermsFields({
 
         <div className="bid-proposal-form-row bid-proposal-form-row--triple">
           <label className="bid-proposal-field">
-            <span className="field-label">{t('contractTerms.worksStartDate')}</span>
+            <span className="field-label">
+              {t('contractTerms.worksStartDate')}
+              {requireSupplyLegal ? (
+                <span className="required-mark" aria-hidden>
+                  *
+                </span>
+              ) : null}
+            </span>
             <input
               type="date"
+              required={requireSupplyLegal}
               disabled={fieldDisabled('worksStartDate')}
               value={value.worksStartDate ?? ''}
               onChange={(e) =>
@@ -209,9 +217,15 @@ export function BidContractTermsFields({
           <label className="bid-proposal-field">
             <span className="field-label">
               {t('contractTerms.worksFinishDate')}
+              {requireSupplyLegal ? (
+                <span className="required-mark" aria-hidden>
+                  *
+                </span>
+              ) : null}
             </span>
             <input
               type="date"
+              required={requireSupplyLegal}
               disabled={fieldDisabled('worksFinishDate')}
               min={value.worksStartDate || undefined}
               value={value.worksFinishDate ?? ''}

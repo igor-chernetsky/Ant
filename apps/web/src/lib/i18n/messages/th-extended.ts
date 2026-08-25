@@ -510,6 +510,7 @@ export const thExtended = {
     clientsSectionInvoices: "ใบแจ้งหนี้",
     clientsSectionVat: "ใบรับรอง VAT",
     clientsSectionPayment: "การชำระเงิน",
+    clientsBillingTitle: "การเรียกเก็บเงินและเอกสาร",
     clientsLocale: "ภาษา",
     clientsRegistered: "ลงทะเบียน",
     clientsProjectsTotal: "โครงการ",
