@@ -314,7 +314,7 @@ export function ProjectTile({
 
 function lockedMessageForReason(
   reason: ProjectOpenBlockReason,
-  status: string,
+  _status: string,
   t: (key: string) => string,
 ): string | null {
   switch (reason) {
@@ -327,16 +327,7 @@ function lockedMessageForReason(
     case 'contractor_only':
       return t('projectTile.contractorOnlyHint');
     case 'parties_only':
-      if (status === 'awarded') {
-        return t('projectTile.accessDeniedAwarded');
-      }
-      if (status === 'active') {
-        return t('projectTile.accessDeniedActive');
-      }
-      if (status === 'completed') {
-        return t('projectTile.accessDeniedCompleted');
-      }
-      return t('projectTile.partiesOnlyHint');
+      return t('projectTile.tryOpenStatusesHint');
     default:
       return t('projectTile.lockedGenericHint');
   }

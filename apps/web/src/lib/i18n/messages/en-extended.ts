@@ -127,6 +127,8 @@ export const enExtended = {
     designerOnlyHint: "Only registered designers can open Design & Permits projects that are accepting bids.",
     signInDesignerHint: "Sign in as a designer to open this project.",
     partiesOnlyHint: "Only the client and the awarded contractor can open this project.",
+    tryOpenStatusesHint:
+      "Please try projects with Clarification or Accepting bids status.",
     accessDeniedTitle: "Access unavailable",
     accessDeniedAwarded:
       "A winner has already been selected for this tender. Only the client and the awarded contractor can open this project.",
@@ -974,6 +976,9 @@ export const enExtended = {
     bannerAwaitingTitle: "Waiting for admin verification",
     bannerAwaitingBody:
       "Your documents are with an admin. You can browse projects, but tender enrollment and bidding unlock after approval. You will be notified when the decision is ready.",
+    bannerNotifyTitle: "New projects & notifications",
+    bannerNotifyBody:
+      "Registered contractors will be notified immediately about new project creation after the client publishes it for clarification or opens tender for bids.",
     bannerCreateProfile: "Create profile",
     bannerCompleteVerification: "Complete verification",
     bannerOpenPortal: "Open portal",

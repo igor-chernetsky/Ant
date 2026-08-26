@@ -127,6 +127,8 @@ export const thExtended = {
     designerOnlyHint: "เฉพาะผู้ออกแบบที่ลงทะเบียนแล้วเท่านั้นที่เปิดโครงการ Design & Permits ที่รับประมูลได้",
     signInDesignerHint: "เข้าสู่ระบบในฐานะผู้ออกแบบเพื่อเปิดโครงการนี้",
     partiesOnlyHint: "เฉพาะลูกค้าและผู้รับเหมาที่ได้รับเลือกเท่านั้นที่เปิดโครงการนี้ได้",
+    tryOpenStatusesHint:
+      "โปรดลองโครงการที่มีสถานะ Clarification หรือ Accepting bids",
     accessDeniedTitle: "ไม่สามารถเข้าถึงได้",
     accessDeniedAwarded:
       "มีการเลือกผู้ชนะแล้ว เฉพาะลูกค้าและผู้รับเหมาที่ได้รับเลือกเท่านั้นที่เปิดโครงการนี้ได้",
@@ -973,6 +975,9 @@ export const thExtended = {
     bannerAwaitingTitle: "รอการตรวจสอบจากผู้ดูแล",
     bannerAwaitingBody:
       "เอกสารอยู่ระหว่างตรวจสอบ คุณสามารถดูโครงการได้ แต่การสมัครและการส่งข้อเสนอจะเปิดหลังอนุมัติ ระบบจะแจ้งเมื่อมีผลการตัดสินใจ",
+    bannerNotifyTitle: "โครงการใหม่และการแจ้งเตือน",
+    bannerNotifyBody:
+      "ผู้รับเหมาที่ลงทะเบียนแล้วจะได้รับการแจ้งเตือนทันทีเมื่อลูกค้าเผยแพร่โครงการเพื่อชี้แจง หรือเปิดรับประมูล",
     bannerCreateProfile: "สร้างโปรไฟล์",
     bannerCompleteVerification: "ดำเนินการยืนยัน",
     bannerOpenPortal: "เปิดพอร์ทัล",
