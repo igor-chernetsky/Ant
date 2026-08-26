@@ -239,6 +239,22 @@ export const en = {
     matchingProjectsDesc:
       'Projects that match your specialties (up to {cap} emails per day)',
   },
+  emailUnsubscribe: {
+    brand: 'BuilTHAI',
+    titleLoading: 'Unsubscribe',
+    titleOk: 'Unsubscribed',
+    titleError: 'Unsubscribe failed',
+    loading: 'Unsubscribing…',
+    missingToken: 'This unsubscribe link is missing or invalid.',
+    success:
+      'You will no longer receive matching project alert emails. You can turn them back on anytime in Account → Notifications.',
+    genericError:
+      'Unable to unsubscribe right now. Please try again later.',
+    expiredError:
+      'Unable to unsubscribe. The link may have expired.',
+    openAccount: 'Open account settings',
+    home: 'Home',
+  },
   ...extendedNamespaces,
 } as const;
 

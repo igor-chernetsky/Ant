@@ -43,8 +43,28 @@ Click **Save**, then **Test connection**.
 3. Wait until the domain is **Verified**.
 4. **API Keys** → create a key; use it as `SMTP_PASSWORD` (username is always `resend`).
 5. Set `SMTP_FROM` to an address on that domain, e.g. `noreply@builthai.com`.
+6. In Resend, also verify you can send from `hello@builthai.com` (used for matching-project alerts, invites, admin broadcast). Set API `SMTP_BROADCAST_FROM=hello@builthai.com`.
 
 Same SMTP vars are used by the Nest API (notifications) and the Next.js BFF (signup verification email).
+
+### Deliverability (matching / invites)
+
+Matching and “tender opened” emails are sent from `hello@` (not noreply), include **List-Unsubscribe** + one-click POST, and are throttled (~150 ms between recipients). Registry invites use mailto unsubscribe only and are capped (clients: 3/4/3 by kind; admins: 10/15/10).
+
+**DNS (Porkbun / your DNS host)** — add exactly what Resend shows for `builthai.com`:
+
+1. SPF (`TXT` / Resend SPF record)
+2. DKIM (`TXT` records Resend provides)
+3. DMARC (`TXT` at `_dmarc.builthai.com`), e.g. `v=DMARC1; p=none; rua=mailto:hello@builthai.com` then tighten later
+
+**Ops checklist after deploy**
+
+1. Confirm Resend domain status is **Verified**.
+2. EC2 / API env: `SMTP_FROM=noreply@…`, `SMTP_BROADCAST_FROM=hello@…`, `SMTP_FROM_NAME=BuilTHAI`, `WEB_APP_URL=https://www.builthai.com`.
+3. Optional: set `EMAIL_UNSUBSCRIBE_SECRET` (16+ chars); otherwise tokens use `SMTP_PASSWORD`.
+4. Keycloak Email “From” must be the same verified domain (`noreply@builthai.com`).
+5. Send a test matching alert and confirm headers show `From: hello@…` and `List-Unsubscribe`.
+6. Click footer unsubscribe → `/email-unsubscribe` should turn off **Matching new projects** in Account.
 
 ---
 

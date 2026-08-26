@@ -31,6 +31,14 @@ const CLIENT_DIRECTORY_INVITE_MAX_BY_KIND: Record<SupplyDirectoryKind, number> =
     supplier: 3,
   };
 
+/** Admin still capped — uncapped blasts hurt SMTP reputation. */
+const ADMIN_DIRECTORY_INVITE_MAX_BY_KIND: Record<SupplyDirectoryKind, number> =
+  {
+    designer: 10,
+    contractor: 15,
+    supplier: 10,
+  };
+
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
@@ -157,19 +165,20 @@ export class TenderInvitesService {
       throw new NotFoundException('No directory entries found');
     }
 
-    if (!isAdmin) {
-      const counts: Partial<Record<SupplyDirectoryKind, number>> = {};
-      for (const entry of entries) {
-        counts[entry.kind] = (counts[entry.kind] ?? 0) + 1;
-      }
-      for (const kind of Object.values(SupplyDirectoryKind)) {
-        const count = counts[kind] ?? 0;
-        const max = CLIENT_DIRECTORY_INVITE_MAX_BY_KIND[kind];
-        if (count > max) {
-          throw new BadRequestException(
-            `Select at most ${max} ${kind} entries from the registry`,
-          );
-        }
+    const caps = isAdmin
+      ? ADMIN_DIRECTORY_INVITE_MAX_BY_KIND
+      : CLIENT_DIRECTORY_INVITE_MAX_BY_KIND;
+    const counts: Partial<Record<SupplyDirectoryKind, number>> = {};
+    for (const entry of entries) {
+      counts[entry.kind] = (counts[entry.kind] ?? 0) + 1;
+    }
+    for (const kind of Object.values(SupplyDirectoryKind)) {
+      const count = counts[kind] ?? 0;
+      const max = caps[kind];
+      if (count > max) {
+        throw new BadRequestException(
+          `Select at most ${max} ${kind} entries from the registry`,
+        );
       }
     }
 
@@ -440,11 +449,11 @@ export class TenderInvitesService {
       text,
       html,
       from,
-      fromName: 'BuilTHAI',
+      fromName: this.mail.outreachFromName(),
       replyTo: from,
+      // Mailto only — One-Click Post requires a working HTTPS endpoint.
       headers: {
         'List-Unsubscribe': `<mailto:${from}?subject=unsubscribe>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
       },
     });
   }

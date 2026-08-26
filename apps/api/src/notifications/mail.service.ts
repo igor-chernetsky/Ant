@@ -45,6 +45,14 @@ export class MailService {
     );
   }
 
+  outreachFromName(): string {
+    return (
+      this.config.get<string>('SMTP_BROADCAST_FROM_NAME')?.trim() ||
+      this.config.get<string>('SMTP_FROM_NAME')?.trim() ||
+      'BuilTHAI'
+    );
+  }
+
   async send(params: {
     to: string | string[];
     subject: string;

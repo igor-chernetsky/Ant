@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   BidStatus,
@@ -33,6 +33,14 @@ import {
   type MarkInAppNotificationsReadDto,
 } from './notification.types';
 import { PlatformSettingsService } from './platform-settings.service';
+import {
+  buildListUnsubscribeHeaders,
+  createEmailUnsubscribeToken,
+  parseEmailUnsubscribeToken,
+} from './email-unsubscribe.token';
+
+/** Pause between blast emails to protect SMTP reputation. */
+const MATCHING_BLAST_DELAY_MS = 150;
 
 function escapeHtml(value: string): string {
   return value
@@ -40,6 +48,10 @@ function escapeHtml(value: string): string {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 @Injectable()
@@ -237,7 +249,27 @@ export class NotificationsService {
     ctaHref: string,
     ctaLabel: string,
     locale: SupportedLocale = DEFAULT_LOCALE,
+    options?: {
+      prefsUrl?: string;
+      unsubscribeUrl?: string;
+    },
   ): string {
+    const footerParts: string[] = [];
+    if (options?.prefsUrl) {
+      footerParts.push(
+        `<a href="${escapeHtml(options.prefsUrl)}" style="color:#64748b;">Manage email preferences</a>`,
+      );
+    }
+    if (options?.unsubscribeUrl) {
+      footerParts.push(
+        `<a href="${escapeHtml(options.unsubscribeUrl)}" style="color:#64748b;">Unsubscribe from project alerts</a>`,
+      );
+    }
+    const footer =
+      footerParts.length > 0
+        ? `<p style="margin:20px 0 0;font-size:12px;line-height:1.5;color:#94a3b8;">${footerParts.join(' · ')}</p>`
+        : '';
+
     return `<!DOCTYPE html>
 <html lang="${locale}"><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:0;background:#f0f4fa;font-family:system-ui,sans-serif;color:#0f172a;">
@@ -249,9 +281,76 @@ export class NotificationsService {
 <h1 style="margin:0 0 12px;font-size:20px;">${escapeHtml(title)}</h1>
 <div style="font-size:15px;line-height:1.6;color:#475569;">${bodyHtml}</div>
 <p style="margin:24px 0 0;"><a href="${ctaHref}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;">${escapeHtml(ctaLabel)}</a></p>
+${footer}
 </td></tr></table>
 </td></tr></table>
 </body></html>`;
+  }
+
+  private accountPrefsUrl(): string {
+    return `${this.appUrl()}/account`;
+  }
+
+  private matchingUnsubscribeUrls(userId: string): {
+    oneClickUrl: string | null;
+    pageUrl: string | null;
+  } {
+    const token = createEmailUnsubscribeToken(this.config, userId);
+    if (!token) return { oneClickUrl: null, pageUrl: null };
+    const encoded = encodeURIComponent(token);
+    return {
+      oneClickUrl: `${this.appUrl()}/api/email/unsubscribe?token=${encoded}`,
+      pageUrl: `${this.appUrl()}/email-unsubscribe?token=${encoded}`,
+    };
+  }
+
+  private matchingOutreachMailOptions(userId: string): {
+    from: string;
+    fromName: string;
+    replyTo: string;
+    headers?: Record<string, string>;
+    prefsUrl: string;
+    unsubscribeUrl: string | null;
+  } {
+    const from = this.mail.outreachFrom();
+    const { oneClickUrl, pageUrl } = this.matchingUnsubscribeUrls(userId);
+    return {
+      from,
+      fromName: this.mail.outreachFromName(),
+      replyTo: from,
+      headers: oneClickUrl
+        ? buildListUnsubscribeHeaders({
+            httpsUnsubscribeUrl: oneClickUrl,
+            mailtoAddress: from,
+          })
+        : undefined,
+      prefsUrl: this.accountPrefsUrl(),
+      unsubscribeUrl: pageUrl ?? oneClickUrl,
+    };
+  }
+
+  async unsubscribeMatchingProjectsByToken(
+    token: string | undefined,
+  ): Promise<{ ok: true; emailMatchingProjects: false }> {
+    const trimmed = token?.trim();
+    if (!trimmed) {
+      throw new BadRequestException('Missing unsubscribe token');
+    }
+    const parsed = parseEmailUnsubscribeToken(this.config, trimmed);
+    if (parsed === 'invalid') {
+      throw new BadRequestException('Invalid unsubscribe token');
+    }
+    if (parsed === 'expired') {
+      throw new BadRequestException('Unsubscribe link expired');
+    }
+
+    await this.updatePreferences(parsed.userId, {
+      emailMatchingProjects: false,
+    });
+    this.logger.log(
+      `Unsubscribed user ${parsed.userId} from matching project emails`,
+    );
+    return { ok: true, emailMatchingProjects: false };
   }
 
   private resolveUserLocale(user: Pick<User, 'preferredLocale'>): SupportedLocale {
@@ -472,18 +571,31 @@ export class NotificationsService {
     const locale = this.resolveUserLocale(params.user);
     const ctaHref = this.projectUrl(params.projectId);
     const ctaLabel = 'View project';
+    const outreach = this.matchingOutreachMailOptions(params.userId);
     const html = this.wrapEmail(
       params.title,
       params.bodyHtml,
       ctaHref,
       ctaLabel,
       locale,
+      {
+        prefsUrl: outreach.prefsUrl,
+        unsubscribeUrl: outreach.unsubscribeUrl ?? undefined,
+      },
     );
     const sent = await this.mail.send({
       to: params.user.email!,
       subject: params.subject,
       html,
-      text: `${params.title}\n\n${params.textBody}\n\n${ctaLabel}: ${ctaHref}`,
+      text: `${params.title}\n\n${params.textBody}\n\n${ctaLabel}: ${ctaHref}\n\nManage preferences: ${outreach.prefsUrl}${
+        outreach.unsubscribeUrl
+          ? `\nUnsubscribe: ${outreach.unsubscribeUrl}`
+          : ''
+      }`,
+      from: outreach.from,
+      fromName: outreach.fromName,
+      replyTo: outreach.replyTo,
+      headers: outreach.headers,
     });
     if (sent) {
       await this.logSent(
@@ -507,29 +619,52 @@ export class NotificationsService {
     ctaLabel: string;
     textBody: string;
     locale?: SupportedLocale;
-  }): Promise<void> {
-    if (!this.mail.isConfigured()) return;
+    /** Matching / tender blasts: hello@ + List-Unsubscribe */
+    outreach?: boolean;
+  }): Promise<boolean> {
+    if (!this.mail.isConfigured()) return false;
 
     const { user, ok } = await this.shouldSend(params.userId, params.prefFlag);
-    if (!ok || !user.email) return;
+    if (!ok || !user.email) return false;
 
     const locale = params.locale ?? this.resolveUserLocale(user);
+    const outreach = params.outreach
+      ? this.matchingOutreachMailOptions(params.userId)
+      : null;
     const html = this.wrapEmail(
       params.title,
       params.bodyHtml,
       params.ctaHref,
       params.ctaLabel,
       locale,
+      outreach
+        ? {
+            prefsUrl: outreach.prefsUrl,
+            unsubscribeUrl: outreach.unsubscribeUrl ?? undefined,
+          }
+        : undefined,
     );
+    const textExtra = outreach
+      ? `\n\nManage preferences: ${outreach.prefsUrl}${
+          outreach.unsubscribeUrl
+            ? `\nUnsubscribe: ${outreach.unsubscribeUrl}`
+            : ''
+        }`
+      : '';
     const sent = await this.mail.send({
       to: user.email,
       subject: params.subject,
       html,
-      text: `${params.title}\n\n${params.textBody}\n\n${params.ctaLabel}: ${params.ctaHref}`,
+      text: `${params.title}\n\n${params.textBody}\n\n${params.ctaLabel}: ${params.ctaHref}${textExtra}`,
+      from: outreach?.from,
+      fromName: outreach?.fromName,
+      replyTo: outreach?.replyTo,
+      headers: outreach?.headers,
     });
     if (sent) {
       await this.logSent(params.userId, params.kind, params.projectId);
     }
+    return sent;
   }
 
   private contractorPortalUrl(): string {
@@ -1527,7 +1662,10 @@ export class NotificationsService {
         bodyHtml,
         textBody,
       });
-      if (sent) notifiedCount += 1;
+      if (sent) {
+        notifiedCount += 1;
+        await delay(MATCHING_BLAST_DELAY_MS);
+      }
     }
 
     this.logger.log(
@@ -1568,7 +1706,7 @@ export class NotificationsService {
         ? ` in ${escapeHtml(project.district)}`
         : '';
 
-      await this.sendToUser({
+      const sent = await this.sendToUser({
         userId: contractor.userId,
         prefFlag: 'emailMatchingProjects',
         kind: NotificationEmailKind.contractor_matching_project,
@@ -1587,8 +1725,12 @@ export class NotificationsService {
         textBody: isClarificationPhase
           ? `New project for clarification: ${project.title}.`
           : `New matching project: ${project.title}.`,
+        outreach: true,
       });
-      notifiedCount += 1;
+      if (sent) {
+        notifiedCount += 1;
+        await delay(MATCHING_BLAST_DELAY_MS);
+      }
     }
 
     this.logger.log(
