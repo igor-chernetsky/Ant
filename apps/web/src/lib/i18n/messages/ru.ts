@@ -33,6 +33,7 @@ export const ru: Messages = {
     materials: 'Материалы',
     projects: 'Проекты',
     help: 'Помощь',
+    contactUs: 'Связаться с нами',
     primaryNav: 'Основная навигация',
     signIn: 'Войти',
     signOut: 'Выйти',

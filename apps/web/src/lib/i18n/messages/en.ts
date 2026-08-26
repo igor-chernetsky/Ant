@@ -32,6 +32,7 @@ export const en = {
     materials: 'Materials',
     projects: 'Projects',
     help: 'Help',
+    contactUs: 'Contact us',
     primaryNav: 'Primary',
     signIn: 'Sign in',
     signOut: 'Sign out',

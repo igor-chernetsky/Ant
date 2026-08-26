@@ -175,6 +175,12 @@ export function SiteHeader({
             >
               {t('header.help')}
             </Link>
+            <a
+              href="mailto:hello@builthai.com"
+              className="header-nav-link"
+            >
+              {t('header.contactUs')}
+            </a>
             {isContractor && (
               <Link
                 href="/contractor"

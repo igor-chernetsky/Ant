@@ -33,6 +33,7 @@ export const th: Messages = {
     materials: 'วัสดุ',
     projects: 'โครงการ',
     help: 'ช่วยเหลือ',
+    contactUs: 'ติดต่อเรา',
     primaryNav: 'เมนูหลัก',
     signIn: 'เข้าสู่ระบบ',
     signOut: 'ออกจากระบบ',
