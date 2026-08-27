@@ -26,6 +26,7 @@ import { usePlatformFeeNotice } from '@/hooks/usePlatformFeeNotice';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { releaseAwardedContractor } from '@/lib/tendering';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 interface ContractSigningPanelProps {
   projectId: string;
@@ -130,6 +131,18 @@ export function ContractSigningPanel({
         asContractor,
         signatureDataUrl,
       });
+      trackEvent(AnalyticsEvents.contractPartySigned, {
+        project_id: projectId,
+        bid_id: bidId,
+        party: asContractor ? 'contractor' : 'client',
+        fully_signed: Boolean(updated.fullySigned),
+      });
+      if (updated.fullySigned) {
+        trackEvent(AnalyticsEvents.contractFullySigned, {
+          project_id: projectId,
+          bid_id: bidId,
+        });
+      }
       setContract(updated);
       signaturePadRef.current?.clear();
       onSigned?.(updated);

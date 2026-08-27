@@ -6,6 +6,7 @@ import {
   fetchBidClarificationSubmission,
   submitBidClarificationQuestions,
 } from '@/lib/tendering';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 interface StructuredClarificationFormProps {
   bidId: string;
@@ -91,6 +92,10 @@ export function StructuredClarificationForm({
     setError(null);
     try {
       const result = await submitBidClarificationQuestions(bidId, questions);
+      trackEvent(AnalyticsEvents.submitClarificationQuestions, {
+        bid_id: bidId,
+        question_count: result.questions?.length ?? questions.filter((q) => q.trim()).length,
+      });
       setSubmitted(result);
       onSubmitted?.();
     } catch (err: unknown) {

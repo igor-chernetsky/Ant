@@ -19,6 +19,7 @@ import { BusyLabel } from '@/components/AntSpinner';
 import { CustomFileFormatPicker } from '@/components/CustomFileFormatPicker';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 import {
   addendumCustomFilePreviewPath,
   createAddendumFromFile,
@@ -335,6 +336,12 @@ function AddendumItem({
     try {
       const updated = await signContractAddendum(projectId, addendum.id, {
         asContractor,
+      });
+      trackEvent(AnalyticsEvents.contractAddendumSigned, {
+        project_id: projectId,
+        addendum_id: addendum.id,
+        party: asContractor ? 'contractor' : 'client',
+        fully_signed: Boolean(updated.fullySigned),
       });
       onUpdated(updated);
     } catch (err: unknown) {

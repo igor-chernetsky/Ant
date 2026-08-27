@@ -32,6 +32,7 @@ import {
   type ContractorProjectParticipation,
 } from '@/lib/tendering';
 import type { ProjectBriefV1 } from '@/lib/projects';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 interface ContractorProjectPanelProps {
   projectId: string;
@@ -177,6 +178,10 @@ export function ContractorProjectPanel({
     setError(null);
     try {
       await startContractorClarification(participation.tenderId);
+      trackEvent(AnalyticsEvents.startClarification, {
+        project_id: projectId,
+        tender_id: participation.tenderId,
+      });
       await loadParticipation();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('contractor.applyFailed'));
@@ -190,10 +195,18 @@ export function ContractorProjectPanel({
   ) => {
     if (!participation?.tenderId) return;
     if (!(await ensureVerified())) return;
+    const isUpdate = participation.myBid?.status === 'submitted';
     setBusy(true);
     setError(null);
     try {
       await submitContractorBid(participation.tenderId, input);
+      trackEvent(AnalyticsEvents.submitCommercialProposal, {
+        project_id: projectId,
+        tender_id: participation.tenderId,
+        amount: input.amount,
+        duration_days: input.durationDays,
+        is_update: isUpdate,
+      });
       setAppliedCounterOfferId(null);
       await loadParticipation();
     } catch (err: unknown) {

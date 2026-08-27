@@ -16,6 +16,7 @@ import {
   type SignatureRequestStatus,
 } from '@/lib/signature-requests';
 import { formatPlatformMoney, formatUsd } from '@/lib/platform-fees';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 export default function AdminSignatureRequestsPage() {
   const { t, locale } = useTranslation();
@@ -69,6 +70,10 @@ export default function AdminSignatureRequestsPage() {
     setError(null);
     try {
       await approveAdminSignatureRequest(selectedId);
+      trackEvent(AnalyticsEvents.contractSignatureApproved, {
+        request_id: selectedId,
+        project_id: selected?.projectId,
+      });
       await loadList();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('admin.approveFailed'));
@@ -83,6 +88,10 @@ export default function AdminSignatureRequestsPage() {
     setError(null);
     try {
       await rejectAdminSignatureRequest(selectedId, rejectReason);
+      trackEvent(AnalyticsEvents.contractSignatureRejected, {
+        request_id: selectedId,
+        project_id: selected?.projectId,
+      });
       setRejectReason('');
       await loadList();
     } catch (err: unknown) {

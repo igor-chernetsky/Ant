@@ -14,6 +14,7 @@ import {
 } from '@/lib/project-reviews';
 import { closeProject, type Project } from '@/lib/projects';
 import { StarRatingInput } from '@/components/StarRatingInput';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 const EMPTY_RATINGS = (): ReviewRatings => ({
   quality: 0,
@@ -142,6 +143,9 @@ export function CompleteProjectReviewModal({
           ratings,
           attachmentIds: attachments.map((item) => item.id),
         });
+        trackEvent(AnalyticsEvents.requestProjectCompletion, {
+          project_id: projectId,
+        });
         onCompleted(updated);
       } else {
         const updated = await confirmProjectCompletion(
@@ -154,6 +158,10 @@ export function CompleteProjectReviewModal({
               }
             : undefined,
         );
+        trackEvent(AnalyticsEvents.confirmProjectCompletion, {
+          project_id: projectId,
+          status: updated.status,
+        });
         onCompleted(updated);
       }
       onClose();

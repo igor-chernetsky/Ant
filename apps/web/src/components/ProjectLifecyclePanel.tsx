@@ -13,6 +13,7 @@ import {
   unhideProject,
   type Project,
 } from '@/lib/projects';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 interface ProjectLifecyclePanelProps {
   project: Project;
@@ -117,6 +118,10 @@ export function ProjectLifecyclePanel({
               disabled={busy}
               onClick={() => void runAction(async () => {
                 const updated = await unhideProject(project.id);
+                trackEvent(AnalyticsEvents.unhideProject, {
+                  project_id: project.id,
+                  status: updated.status,
+                });
                 onUpdated(updated);
               })}
             >
@@ -130,6 +135,10 @@ export function ProjectLifecyclePanel({
                 disabled={busy}
                 onClick={() => void runAction(async () => {
                   const updated = await hideProject(project.id);
+                  trackEvent(AnalyticsEvents.hideProject, {
+                    project_id: project.id,
+                    status: updated.status,
+                  });
                   onUpdated(updated);
                 })}
               >

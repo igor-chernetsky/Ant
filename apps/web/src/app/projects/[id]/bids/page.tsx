@@ -25,6 +25,7 @@ import {
   type Tender,
 } from '@/lib/tendering';
 import { ContractorCoverageNotice } from '@/components/ContractorCoverageNotice';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 export default function ProjectBidsPage() {
   const params = useParams<{ id: string }>();
@@ -129,6 +130,11 @@ export default function ProjectBidsPage() {
     setError(null);
     try {
       await selectProjectBid(projectId, bid.id);
+      trackEvent(AnalyticsEvents.selectContractor, {
+        project_id: projectId,
+        bid_id: bid.id,
+        amount: bid.amount != null ? Number(bid.amount) : undefined,
+      });
       router.push(`/projects/${projectId}?contract=edit`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('bidsPage.selectFailed'));

@@ -26,6 +26,7 @@ import {
 } from '@/lib/tendering';
 import type { Project } from '@/lib/projects';
 import type { TranslateFn } from '@/lib/i18n/formatters';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 export interface PublishTenderPackageInput {
   scopeSummary: string;
@@ -191,8 +192,22 @@ export function PublishTenderPackageModal({
 
       if (mode === 'create') {
         await createProjectTender(projectId, payload);
+        trackEvent(
+          isClarificationPublish
+            ? AnalyticsEvents.publishForClarification
+            : AnalyticsEvents.publishForBids,
+          {
+            project_id: projectId,
+            project_type: project.projectType,
+            clarification_mode: structuredQa ? 'structured_qa' : 'open_chat',
+          },
+        );
       } else {
         await startProjectTender(projectId, payload);
+        trackEvent(AnalyticsEvents.openTenderForBids, {
+          project_id: projectId,
+          project_type: project.projectType,
+        });
       }
       await onPublished();
       onClose();

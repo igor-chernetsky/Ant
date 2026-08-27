@@ -9,6 +9,7 @@ import {
   requestPasswordReset,
   signupWithPassword,
 } from '@/lib/session';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -136,6 +137,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     try {
       if (mode === 'signin') {
         await loginWithPassword(username, password);
+        trackEvent(AnalyticsEvents.login, { method: 'password' });
         setEmail('');
         setUsername('');
         setPassword('');
@@ -156,6 +158,11 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           password,
           displayName: displayName.trim() || undefined,
           roles,
+        });
+        trackEvent(AnalyticsEvents.signUp, {
+          method: 'password',
+          roles: roles.slice().sort().join(','),
+          verify_email_required: Boolean(result.verifyEmail),
         });
         setPassword('');
         setDisplayName('');

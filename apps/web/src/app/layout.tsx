@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { GoogleAnalytics } from '@/components/GoogleAnalytics';
 import { InAppNotificationsProvider } from '@/components/InAppNotificationsProvider';
 import { LocaleProvider } from '@/components/LocaleProvider';
 import { NotificationToasts } from '@/components/NotificationToasts';
@@ -86,6 +87,7 @@ export default function RootLayout({
             </InAppNotificationsProvider>
           </LocaleProvider>
         </SessionProvider>
+        <GoogleAnalytics />
       </body>
     </html>
   );

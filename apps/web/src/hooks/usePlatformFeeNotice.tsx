@@ -11,6 +11,7 @@ import {
 } from '@/lib/platform-fees';
 import type { ContractSignatureAuth } from '@/lib/contracts';
 import { createContractSignatureRequest } from '@/lib/signature-requests';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 export type SignAuthorizationResult =
   | 'ready_to_sign'
@@ -106,6 +107,10 @@ export function usePlatformFeeNotice() {
     setError(null);
     try {
       await createContractSignatureRequest(state.projectId);
+      trackEvent(AnalyticsEvents.contractSignatureRequest, {
+        project_id: state.projectId,
+        trial_active: Boolean(state.quote?.trialActive),
+      });
       setState((current) =>
         current
           ? {

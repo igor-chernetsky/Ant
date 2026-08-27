@@ -15,6 +15,7 @@ import {
   type ContractorVerificationDocCategory,
   type ContractorVerificationDocument,
 } from '@/lib/verification';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 const RECOMMENDED_VERIFICATION_CATEGORIES: ContractorVerificationDocCategory[] =
   ['business_license', 'registration', 'insurance', 'owners_id'];
@@ -152,6 +153,10 @@ export function ContractorVerificationPanel({
     setError(null);
     try {
       const updated = (await requestContractorApproval()) as ContractorProfile;
+      trackEvent(AnalyticsEvents.verificationRequest, {
+        document_count: documents.length,
+        profile_kind: updated.kind ?? 'contractor',
+      });
       onProfileUpdated(updated);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('common.requestFailed'));

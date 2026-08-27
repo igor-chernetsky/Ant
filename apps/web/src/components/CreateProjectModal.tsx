@@ -27,6 +27,7 @@ import {
   type ProjectType,
   type PropertyType,
 } from '@/lib/projects';
+import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -138,6 +139,13 @@ export function CreateProjectModal({
         locationAreaSlug: locationAreaSlug || undefined,
         locationNote: locationNote.trim() || undefined,
         clarificationMode,
+      });
+      trackEvent(AnalyticsEvents.createProject, {
+        project_id: project.id,
+        project_type: resolvedProjectType,
+        property_type: propertyType,
+        clarification_mode: clarificationMode,
+        location_region: locationRegionSlug,
       });
       onCreated(project.id);
       onClose();
