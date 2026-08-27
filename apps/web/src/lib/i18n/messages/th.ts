@@ -244,6 +244,26 @@ export const th: Messages = {
     matchingProjects: 'โครงการใหม่ที่ตรงกับความเชี่ยวชาญ',
     matchingProjectsDesc:
       'โครงการที่ตรงกับความเชี่ยวชาญของคุณ (สูงสุด {cap} อีเมลต่อวัน)',
+    rolesHeading: 'บทบาทของคุณ',
+    rolesHint:
+      'เพิ่มบทบาทเพื่อเผยแพร่โครงการในฐานะลูกค้า หรือประมูลในฐานะผู้รับเหมา/ผู้ออกแบบ',
+    becomeClient: 'เป็นลูกค้า',
+    becomeContractor: 'เป็นผู้รับเหมา',
+    becomeDesigner: 'เป็นผู้ออกแบบ',
+    becomeClientTitle: 'เป็นลูกค้า',
+    becomeContractorTitle: 'เป็นผู้รับเหมา',
+    becomeDesignerTitle: 'เป็นผู้ออกแบบ',
+    becomeClientLead:
+      'เผยแพร่โครงการ รับข้อเสนอ และจัดการสัญญา ยอมรับ Client Agreement เพื่อดำเนินการต่อ',
+    becomeContractorLead:
+      'ประมูลงานก่อสร้างหลังจากตั้งค่าโปรไฟล์บริษัทและยืนยันตัวตน ยอมรับ Contractor Agreement เพื่อดำเนินการต่อ',
+    becomeDesignerLead:
+      'ประมูลงานออกแบบหลังจากตั้งค่าโปรไฟล์บริษัทและยืนยันตัวตน ยอมรับ Contractor Agreement เพื่อดำเนินการต่อ',
+    becomeRoleConfirm: 'เพิ่มบทบาท',
+    becomeRoleAcceptRequired: 'กรุณายอมรับข้อตกลงเพื่อดำเนินการต่อ',
+    becomeRoleFailed: 'เพิ่มบทบาทไม่สำเร็จ กรุณาลองอีกครั้ง',
+    roleAdded: 'เพิ่มบทบาทแล้ว',
+    allRolesEnabled: 'คุณมีบทบาทที่ใช้ได้ครบแล้ว',
   },
   emailUnsubscribe: {
     brand: 'BuilTHAI',

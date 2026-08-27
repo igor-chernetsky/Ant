@@ -242,6 +242,26 @@ export const en = {
     matchingProjects: 'Matching new projects',
     matchingProjectsDesc:
       'Projects that match your specialties (up to {cap} emails per day)',
+    rolesHeading: 'Your roles',
+    rolesHint:
+      'Add another role to publish projects as a client or bid as a contractor/designer.',
+    becomeClient: 'Become a client',
+    becomeContractor: 'Become a contractor',
+    becomeDesigner: 'Become a designer',
+    becomeClientTitle: 'Become a client',
+    becomeContractorTitle: 'Become a contractor',
+    becomeDesignerTitle: 'Become a designer',
+    becomeClientLead:
+      'Publish projects, receive proposals, and manage contracts. Accept the Client Agreement to continue.',
+    becomeContractorLead:
+      'Bid on construction projects after you set up your company profile and verification. Accept the Contractor Agreement to continue.',
+    becomeDesignerLead:
+      'Bid on design projects after you set up your company profile and verification. Accept the Contractor Agreement to continue.',
+    becomeRoleConfirm: 'Add role',
+    becomeRoleAcceptRequired: 'Please accept the agreement to continue.',
+    becomeRoleFailed: 'Could not add this role. Please try again.',
+    roleAdded: 'Role added',
+    allRolesEnabled: 'You already have all available roles.',
   },
   emailUnsubscribe: {
     brand: 'BuilTHAI',

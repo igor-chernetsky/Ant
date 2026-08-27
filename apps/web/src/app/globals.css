@@ -171,14 +171,25 @@ body {
 .header-brand-nav {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .header-nav {
   display: flex;
   align-items: center;
   gap: 0.15rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.header-utilities {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .header-menu-toggle {
@@ -233,13 +244,6 @@ body {
 .header-nav-link-active:hover {
   background: rgba(37, 99, 235, 0.16);
   color: #1e40af;
-}
-
-.header-utilities {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  flex: 0 0 auto;
 }
 
 .header-utilities-divider {
@@ -11490,7 +11494,48 @@ select:disabled {
 }
 
 .account-profile-card,
+.account-roles-card,
 .account-notifications-card {
+  margin-bottom: 1rem;
+}
+
+.account-role-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account-role-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: #f8fafc;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.account-become-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.account-role-notice {
+  margin: 0.75rem 0 0;
+  color: var(--success);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.account-roles-complete {
+  margin: 0.85rem 0 0;
+}
   margin-bottom: 1rem;
 }
 

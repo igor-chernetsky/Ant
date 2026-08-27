@@ -1,16 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BecomeRoleModal } from '@/components/BecomeRoleModal';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
 import {
+  missingSelfServeRoles,
+  type SelfServeAccountRole,
+} from '@/lib/account-roles';
+import {
   accountProfileName,
   isContractorUser,
   isDesignerUser,
+  refreshSessionTokens,
 } from '@/lib/session';
 import {
   fetchNotificationPreferences,
@@ -29,6 +35,10 @@ export default function AccountPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [becomeRole, setBecomeRole] = useState<SelfServeAccountRole | null>(
+    null,
+  );
+  const [roleNotice, setRoleNotice] = useState<string | null>(null);
 
   const loadPrefs = useCallback(async () => {
     if (!me) {
@@ -80,6 +90,25 @@ export default function AccountPage() {
     me?.isContractor || me?.roles?.includes('contractor') || false;
   const isDesigner =
     me?.isDesigner || me?.roles?.includes('designer') || false;
+  const isClient = Boolean(me?.roles?.includes('client'));
+
+  const currentRoleLabels = useMemo(() => {
+    if (!me) return [];
+    const labels: string[] = [];
+    if (isClient) labels.push(t('account.roleClient'));
+    if (isContractor) labels.push(t('account.roleContractor'));
+    if (isDesigner) labels.push(t('account.roleDesigner'));
+    if (me.roles?.includes('admin')) labels.push(t('account.roleAdmin'));
+    return labels;
+  }, [me, isClient, isContractor, isDesigner, t]);
+
+  const availableRoles = missingSelfServeRoles(me);
+
+  const becomeLabel = (role: SelfServeAccountRole) => {
+    if (role === 'client') return t('account.becomeClient');
+    if (role === 'contractor') return t('account.becomeContractor');
+    return t('account.becomeDesigner');
+  };
 
   return (
     <PageShell>
@@ -148,14 +177,9 @@ export default function AccountPage() {
                 <div>
                   <dt>{t('account.role')}</dt>
                   <dd>
-                    {isDesigner
-                      ? t('account.roleDesigner')
-                      : isContractor
-                        ? t('account.roleContractor')
-                        : t('account.roleClient')}
-                    {me.roles?.includes('admin')
-                      ? ` · ${t('account.roleAdmin')}`
-                      : ''}
+                    {currentRoleLabels.length > 0
+                      ? currentRoleLabels.join(' · ')
+                      : t('common.dash')}
                   </dd>
                 </div>
               </dl>
@@ -175,6 +199,42 @@ export default function AccountPage() {
                     {t('account.designerPortal')}
                   </Link>
                   .
+                </p>
+              )}
+            </section>
+
+            <section className="card account-roles-card">
+              <h2 className="section-title">{t('account.rolesHeading')}</h2>
+              <p className="muted doc-hint">{t('account.rolesHint')}</p>
+              {roleNotice ? (
+                <p className="account-role-notice">{roleNotice}</p>
+              ) : null}
+              <ul className="account-role-chip-list" aria-label={t('account.rolesHeading')}>
+                {currentRoleLabels.map((label) => (
+                  <li key={label} className="account-role-chip">
+                    {label}
+                  </li>
+                ))}
+              </ul>
+              {availableRoles.length > 0 ? (
+                <div className="account-become-actions">
+                  {availableRoles.map((role) => (
+                    <button
+                      key={role}
+                      type="button"
+                      className="secondary"
+                      onClick={() => {
+                        setRoleNotice(null);
+                        setBecomeRole(role);
+                      }}
+                    >
+                      {becomeLabel(role)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted account-roles-complete">
+                  {t('account.allRolesEnabled')}
                 </p>
               )}
             </section>
@@ -303,6 +363,18 @@ export default function AccountPage() {
             await refreshSession();
             await loadPrefs();
           })();
+        }}
+      />
+
+      <BecomeRoleModal
+        role={becomeRole ?? 'client'}
+        isOpen={becomeRole != null}
+        onClose={() => setBecomeRole(null)}
+        onSuccess={async () => {
+          await refreshSessionTokens({ force: true });
+          await refreshSession();
+          await loadPrefs();
+          setRoleNotice(t('account.roleAdded'));
         }}
       />
     </PageShell>

@@ -508,23 +508,25 @@ export function SiteHeader({
       className={`site-header${menuOpen ? ' site-header--menu-open' : ''}`}
     >
       <div className="content-container site-header-inner">
-        <Link href="/" className="brand" aria-label="BuilTHAI">
-          <Image
-            src="/logo.png"
-            alt="BuilTHAI"
-            width={121}
-            height={36}
-            className="brand-logo"
-            priority
-          />
-        </Link>
+        <div className="header-brand-nav">
+          <Link href="/" className="brand" aria-label="BuilTHAI">
+            <Image
+              src="/logo.png"
+              alt="BuilTHAI"
+              width={121}
+              height={36}
+              className="brand-logo"
+              priority
+            />
+          </Link>
 
-        <nav
-          className="header-nav header-nav--desktop"
-          aria-label={t('header.primaryNav')}
-        >
-          {desktopNav.map((item) => renderNavItem(item))}
-        </nav>
+          <nav
+            className="header-nav header-nav--desktop"
+            aria-label={t('header.primaryNav')}
+          >
+            {desktopNav.map((item) => renderNavItem(item))}
+          </nav>
+        </div>
 
         <div className="header-utilities">
           <LanguageSwitcher />

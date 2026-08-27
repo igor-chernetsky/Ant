@@ -173,13 +173,13 @@ async function assignRealmRoles(
   adminToken: string,
   userId: string,
   roles: SelfAssignableRole[],
-): Promise<void> {
+): Promise<boolean> {
   const { baseUrl, realm } = getKeycloakBaseAndRealm();
   const roleRepresentations = (
     await Promise.all(roles.map((role) => fetchRoleRepresentation(adminToken, role)))
   ).filter((role): role is KeycloakRoleRepresentation => Boolean(role));
 
-  if (roleRepresentations.length === 0) return;
+  if (roleRepresentations.length === 0) return false;
 
   const response = await fetch(
     `${baseUrl}/admin/realms/${realm}/users/${userId}/role-mappings/realm`,
@@ -199,7 +199,100 @@ async function assignRealmRoles(
       `[auth-keycloak] assignRealmRoles failed (${response.status}):`,
       await response.text().catch(() => ''),
     );
+    return false;
   }
+  return true;
+}
+
+async function fetchUserRealmRoleNames(
+  adminToken: string,
+  userId: string,
+): Promise<string[]> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const response = await fetch(
+    `${baseUrl}/admin/realms/${realm}/users/${userId}/role-mappings/realm`,
+    {
+      headers: { Authorization: `Bearer ${adminToken}` },
+      cache: 'no-store',
+    },
+  );
+  if (!response.ok) return [];
+  const roles = (await response.json()) as KeycloakRoleRepresentation[];
+  return roles.map((role) => role.name).filter(Boolean);
+}
+
+/**
+ * Additive only — assigns missing self-serve realm roles (client/contractor/designer).
+ */
+export async function addKeycloakSelfAssignableRoles(params: {
+  keycloakUserId: string;
+  roles: string[];
+}): Promise<
+  | {
+      ok: true;
+      added: SelfAssignableRole[];
+      alreadyHad: SelfAssignableRole[];
+    }
+  | { ok: false; status: number; message: string }
+> {
+  const allowed = new Set<string>(SELF_ASSIGNABLE_ROLES);
+  const uniqueRequested = [
+    ...new Set(
+      (params.roles ?? [])
+        .map((role) => role.trim().toLowerCase())
+        .filter((role): role is SelfAssignableRole => allowed.has(role)),
+    ),
+  ] as SelfAssignableRole[];
+
+  if (uniqueRequested.length === 0) {
+    return { ok: false, status: 400, message: 'No valid roles requested' };
+  }
+
+  let adminToken: string | null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch (error) {
+    console.error('[auth-keycloak] admin token for add-roles failed', error);
+    return {
+      ok: false,
+      status: 503,
+      message: 'Role update is temporarily unavailable',
+    };
+  }
+  if (!adminToken) {
+    return {
+      ok: false,
+      status: 503,
+      message: 'Role update is temporarily unavailable',
+    };
+  }
+
+  const existing = new Set(
+    (await fetchUserRealmRoleNames(adminToken, params.keycloakUserId)).map(
+      (name) => name.toLowerCase(),
+    ),
+  );
+  const alreadyHad = uniqueRequested.filter((role) => existing.has(role));
+  const toAdd = uniqueRequested.filter((role) => !existing.has(role));
+
+  if (toAdd.length === 0) {
+    return { ok: true, added: [], alreadyHad };
+  }
+
+  const assigned = await assignRealmRoles(
+    adminToken,
+    params.keycloakUserId,
+    toAdd,
+  );
+  if (!assigned) {
+    return {
+      ok: false,
+      status: 502,
+      message: 'Failed to assign role. Please try again.',
+    };
+  }
+
+  return { ok: true, added: toAdd, alreadyHad };
 }
 
 async function fetchKeycloakUser(

@@ -250,6 +250,26 @@ export const ru: Messages = {
     matchingProjects: 'Подходящие новые проекты',
     matchingProjectsDesc:
       'Проекты по вашим специализациям (до {cap} писем в день)',
+    rolesHeading: 'Ваши роли',
+    rolesHint:
+      'Добавьте роль, чтобы публиковать проекты как заказчик или участвовать в тендерах как подрядчик/проектировщик.',
+    becomeClient: 'Стать заказчиком',
+    becomeContractor: 'Стать подрядчиком',
+    becomeDesigner: 'Стать проектировщиком',
+    becomeClientTitle: 'Стать заказчиком',
+    becomeContractorTitle: 'Стать подрядчиком',
+    becomeDesignerTitle: 'Стать проектировщиком',
+    becomeClientLead:
+      'Публикуйте проекты, получайте предложения и ведите договоры. Чтобы продолжить, примите Client Agreement.',
+    becomeContractorLead:
+      'Участвуйте в строительных тендерах после заполнения профиля и верификации. Чтобы продолжить, примите Contractor Agreement.',
+    becomeDesignerLead:
+      'Участвуйте в тендерах на проектирование после заполнения профиля и верификации. Чтобы продолжить, примите Contractor Agreement.',
+    becomeRoleConfirm: 'Добавить роль',
+    becomeRoleAcceptRequired: 'Примите соглашение, чтобы продолжить.',
+    becomeRoleFailed: 'Не удалось добавить роль. Попробуйте ещё раз.',
+    roleAdded: 'Роль добавлена',
+    allRolesEnabled: 'У вас уже есть все доступные роли.',
   },
   emailUnsubscribe: {
     brand: 'BuilTHAI',
