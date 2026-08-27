@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ProjectLocationFields } from '@/components/ProjectLocationFields';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
@@ -92,6 +93,10 @@ export function CreateProjectModal({
     return null;
   }
 
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
   const handleTrackChange = (track: ProjectTrack) => {
     setProjectTrack(track);
     if (track === 'design') {
@@ -150,7 +155,7 @@ export function CreateProjectModal({
     }
   };
 
-  return (
+  return createPortal(
     <div
       className="modal-backdrop"
       role="presentation"
@@ -369,6 +374,7 @@ export function CreateProjectModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -14,6 +14,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { BusyLabel } from '@/components/AntSpinner';
 import { CustomFileFormatPicker } from '@/components/CustomFileFormatPicker';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -1098,176 +1099,179 @@ export function ContractAddendaPanel({
 
       {error && <p className="form-error">{error}</p>}
 
-      {createOpen && (
-        <div
-          className="modal-backdrop"
-          role="presentation"
-          onClick={(event) => {
-            if (event.target === event.currentTarget && !createBusy) {
-              setCreateOpen(false);
-            }
-          }}
-        >
+      {createOpen &&
+        typeof document !== 'undefined' &&
+        createPortal(
           <div
-            className="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="create-addendum-title"
+            className="modal-backdrop"
+            role="presentation"
+            onClick={(event) => {
+              if (event.target === event.currentTarget && !createBusy) {
+                setCreateOpen(false);
+              }
+            }}
           >
-            <div className="modal-header">
-              <h2 id="create-addendum-title">{t('addenda.createTitle')}</h2>
-              <button
-                type="button"
-                className="icon-button"
-                disabled={createBusy}
-                onClick={() => setCreateOpen(false)}
-                aria-label={t('common.close')}
-              >
-                ×
-              </button>
-            </div>
-            <form className="modal-form" onSubmit={(e) => void handleCreateSubmit(e)}>
-              <p className="muted modal-subtitle">{t('addenda.createHint')}</p>
-
-              <div className="clarification-mode-field">
-                <span className="clarification-mode-label">
-                  {t('addenda.createModeLabel')}
-                </span>
-                <div
-                  className="clarification-mode-switch"
-                  role="radiogroup"
-                  aria-label={t('addenda.createModeLabel')}
-                >
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={createMode === 'text'}
-                    className={`clarification-mode-switch-btn${
-                      createMode === 'text'
-                        ? ' clarification-mode-switch-btn--active'
-                        : ''
-                    }`}
-                    disabled={createBusy}
-                    onClick={() => setCreateMode('text')}
-                  >
-                    {t('addenda.modeText')}
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={createMode === 'file'}
-                    className={`clarification-mode-switch-btn${
-                      createMode === 'file'
-                        ? ' clarification-mode-switch-btn--active'
-                        : ''
-                    }`}
-                    disabled={createBusy}
-                    onClick={() => setCreateMode('file')}
-                  >
-                    {t('addenda.modeFile')}
-                  </button>
-                </div>
-              </div>
-
-              <label className="field">
-                <span>{t('addenda.titleOptional')}</span>
-                <input
-                  type="text"
-                  value={title}
-                  disabled={createBusy}
-                  onChange={(e) => setTitle(e.target.value)}
-                  maxLength={120}
-                />
-              </label>
-
-              {createMode === 'text' ? (
-                <>
-                  <label className="field">
-                    <span>{t('addenda.documentLanguage')}</span>
-                    <select
-                      value={createLocale}
-                      disabled={createBusy}
-                      onChange={(e) =>
-                        setCreateLocale(e.target.value as Locale)
-                      }
-                    >
-                      {SUPPORTED_LOCALES.map((code) => (
-                        <option key={code} value={code}>
-                          {LOCALE_LABELS[code]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>{t('addenda.description')}</span>
-                    <textarea
-                      value={description}
-                      disabled={createBusy}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={6}
-                      required
-                      minLength={10}
-                    />
-                  </label>
-                </>
-              ) : (
-                <div className="field addenda-create-file-field">
-                  <span>{t('addenda.file')}</span>
-                  <div className="addenda-create-file-row">
-                    <input
-                      ref={createFileRef}
-                      type="file"
-                      accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                      disabled={createBusy}
-                      hidden
-                      onChange={(event) => {
-                        const file = event.target.files?.[0] ?? null;
-                        setCreateFileName(file?.name ?? null);
-                        setCreateError(null);
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="secondary"
-                      disabled={createBusy}
-                      onClick={() => createFileRef.current?.click()}
-                    >
-                      {t('addenda.chooseFile')}
-                    </button>
-                    <span className="muted addenda-create-file-name">
-                      {createFileName ?? t('addenda.noFileChosen')}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {createError && <p className="form-error">{createError}</p>}
-
-              <div className="row addenda-create-actions">
-                <button type="submit" className="primary" disabled={createBusy}>
-                  <BusyLabel
-                    busy={createBusy}
-                    idle={t('addenda.createSubmit')}
-                    busyText={
-                      createMode === 'text'
-                        ? t('addenda.creatingWithAi')
-                        : t('addenda.creating')
-                    }
-                  />
-                </button>
+            <div
+              className="modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-addendum-title"
+            >
+              <div className="modal-header">
+                <h2 id="create-addendum-title">{t('addenda.createTitle')}</h2>
                 <button
                   type="button"
-                  className="secondary"
+                  className="icon-button"
                   disabled={createBusy}
                   onClick={() => setCreateOpen(false)}
+                  aria-label={t('common.close')}
                 >
-                  {t('common.cancel')}
+                  ×
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <form className="modal-form" onSubmit={(e) => void handleCreateSubmit(e)}>
+                <p className="muted modal-subtitle">{t('addenda.createHint')}</p>
+
+                <div className="clarification-mode-field">
+                  <span className="clarification-mode-label">
+                    {t('addenda.createModeLabel')}
+                  </span>
+                  <div
+                    className="clarification-mode-switch"
+                    role="radiogroup"
+                    aria-label={t('addenda.createModeLabel')}
+                  >
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={createMode === 'text'}
+                      className={`clarification-mode-switch-btn${
+                        createMode === 'text'
+                          ? ' clarification-mode-switch-btn--active'
+                          : ''
+                      }`}
+                      disabled={createBusy}
+                      onClick={() => setCreateMode('text')}
+                    >
+                      {t('addenda.modeText')}
+                    </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={createMode === 'file'}
+                      className={`clarification-mode-switch-btn${
+                        createMode === 'file'
+                          ? ' clarification-mode-switch-btn--active'
+                          : ''
+                      }`}
+                      disabled={createBusy}
+                      onClick={() => setCreateMode('file')}
+                    >
+                      {t('addenda.modeFile')}
+                    </button>
+                  </div>
+                </div>
+
+                <label className="field">
+                  <span>{t('addenda.titleOptional')}</span>
+                  <input
+                    type="text"
+                    value={title}
+                    disabled={createBusy}
+                    onChange={(e) => setTitle(e.target.value)}
+                    maxLength={120}
+                  />
+                </label>
+
+                {createMode === 'text' ? (
+                  <>
+                    <label className="field">
+                      <span>{t('addenda.documentLanguage')}</span>
+                      <select
+                        value={createLocale}
+                        disabled={createBusy}
+                        onChange={(e) =>
+                          setCreateLocale(e.target.value as Locale)
+                        }
+                      >
+                        {SUPPORTED_LOCALES.map((code) => (
+                          <option key={code} value={code}>
+                            {LOCALE_LABELS[code]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>{t('addenda.description')}</span>
+                      <textarea
+                        value={description}
+                        disabled={createBusy}
+                        onChange={(e) => setDescription(e.target.value)}
+                        rows={6}
+                        required
+                        minLength={10}
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <div className="field addenda-create-file-field">
+                    <span>{t('addenda.file')}</span>
+                    <div className="addenda-create-file-row">
+                      <input
+                        ref={createFileRef}
+                        type="file"
+                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        disabled={createBusy}
+                        hidden
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          setCreateFileName(file?.name ?? null);
+                          setCreateError(null);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={createBusy}
+                        onClick={() => createFileRef.current?.click()}
+                      >
+                        {t('addenda.chooseFile')}
+                      </button>
+                      <span className="muted addenda-create-file-name">
+                        {createFileName ?? t('addenda.noFileChosen')}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {createError && <p className="form-error">{createError}</p>}
+
+                <div className="row addenda-create-actions">
+                  <button type="submit" className="primary" disabled={createBusy}>
+                    <BusyLabel
+                      busy={createBusy}
+                      idle={t('addenda.createSubmit')}
+                      busyText={
+                        createMode === 'text'
+                          ? t('addenda.creatingWithAi')
+                          : t('addenda.creating')
+                      }
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={createBusy}
+                    onClick={() => setCreateOpen(false)}
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
+        )}
     </section>
   );
 }

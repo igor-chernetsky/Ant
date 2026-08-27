@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
@@ -92,6 +93,10 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const [submitting, setSubmitting] = useState(false);
 
   if (!isOpen) {
+    return null;
+  }
+
+  if (typeof document === 'undefined') {
     return null;
   }
 
@@ -207,7 +212,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         ? t('auth.forgotPasswordSubtitle')
         : t('auth.signUpSubtitle');
 
-  return (
+  return createPortal(
     <div
       className="modal-backdrop"
       role="presentation"
@@ -514,6 +519,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { InAppNotificationsProvider } from '@/components/InAppNotificationsProvider';
 import { LocaleProvider } from '@/components/LocaleProvider';
 import { NotificationToasts } from '@/components/NotificationToasts';
@@ -31,6 +31,12 @@ const description =
   'AI-powered construction platform: browse projects, compare bids, and manage contracts in Thailand.';
 
 const ogImageUrl = `${ogAssetOrigin}/og.png`;
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   formatPlatformMoney,
@@ -25,6 +26,11 @@ export interface PlatformFeeNoticeDialogProps {
   profileHref?: string;
   onConfirm: () => void;
   onCancel: () => void;
+}
+
+function portalDialog(node: ReactNode) {
+  if (typeof document === 'undefined') return null;
+  return createPortal(node, document.body);
 }
 
 export function PlatformFeeNoticeDialog({
@@ -56,7 +62,7 @@ export function PlatformFeeNoticeDialog({
   }
 
   if (mode === 'bank_required') {
-    return (
+    return portalDialog(
       <div
         className="modal-backdrop confirm-dialog-backdrop"
         role="presentation"
@@ -94,12 +100,12 @@ export function PlatformFeeNoticeDialog({
             </Link>
           </div>
         </div>
-      </div>
+      </div>,
     );
   }
 
   if (mode === 'pending' || mode === 'request_sent') {
-    return (
+    return portalDialog(
       <div
         className="modal-backdrop confirm-dialog-backdrop"
         role="presentation"
@@ -133,7 +139,7 @@ export function PlatformFeeNoticeDialog({
             </button>
           </div>
         </div>
-      </div>
+      </div>,
     );
   }
 
@@ -163,7 +169,7 @@ export function PlatformFeeNoticeDialog({
         )
       : t('platformFees.successFeePendingAmount');
 
-  return (
+  return portalDialog(
     <div
       className="modal-backdrop confirm-dialog-backdrop"
       role="presentation"
@@ -285,6 +291,6 @@ export function PlatformFeeNoticeDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   BID_WITHDRAWAL_REASON_CODES,
@@ -46,6 +47,10 @@ export function DeclineProposalDialog({
     return null;
   }
 
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -70,7 +75,7 @@ export function DeclineProposalDialog({
     }
   };
 
-  return (
+  return createPortal(
     <div
       className="modal-backdrop"
       role="presentation"
@@ -159,7 +164,8 @@ export function DeclineProposalDialog({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

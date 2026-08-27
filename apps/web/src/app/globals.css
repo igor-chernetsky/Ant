@@ -56,6 +56,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-gradient);
   background-color: var(--bg);
   color: var(--text);
@@ -64,6 +65,7 @@ body {
 .page-shell {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
@@ -71,7 +73,8 @@ body {
 
 .page-shell-body {
   position: relative;
-  z-index: 1;
+  /* Above footer so fixed drawers/modals inside body are not covered by .site-footer */
+  z-index: 2;
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
@@ -361,7 +364,7 @@ body {
   gap: 1rem;
   flex-wrap: wrap;
   padding-top: 1rem;
-  padding-bottom: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
 }
 
 .site-footer-copy {
@@ -557,8 +560,8 @@ body {
 
 .notification-toasts {
   position: fixed;
-  right: 1rem;
-  bottom: 1rem;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
   z-index: 60;
   display: grid;
   gap: 0.65rem;
@@ -1012,6 +1015,20 @@ pre {
 }
 
 @media (max-width: 640px) {
+  .content-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .site-footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .site-footer-nav {
+    gap: 0.65rem 1rem;
+  }
+
   .home-hero-overlay {
     padding: 1.5rem 1.15rem 1.35rem;
   }
@@ -2686,7 +2703,7 @@ pre {
 
 .home-results {
   min-width: 0;
-  padding-bottom: 4.5rem;
+  padding-bottom: 1rem;
 }
 
 .home-loading {
@@ -2729,6 +2746,12 @@ pre {
 }
 
 @media (max-width: 899px) {
+  /* Keep footer from painting through the filters drawer (stacking sibling). */
+  .page-shell:has(.home-sidebar--open) .site-footer {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .home-filters-backdrop {
     display: block;
     position: fixed;
@@ -2750,7 +2773,8 @@ pre {
     z-index: 40;
     width: min(380px, 92vw);
     height: 100dvh;
-    padding: 0.75rem;
+    padding: calc(0.75rem + env(safe-area-inset-top, 0px)) 0.75rem
+      calc(0.75rem + env(safe-area-inset-bottom, 0px));
     box-sizing: border-box;
     background: var(--surface);
     border-right: 1px solid var(--border-strong);
@@ -3568,7 +3592,10 @@ pre {
   display: flex;
   align-items: safe center;
   justify-content: center;
-  padding: 1rem;
+  padding: max(1rem, env(safe-area-inset-top, 0px))
+    max(1rem, env(safe-area-inset-right, 0px))
+    max(1rem, env(safe-area-inset-bottom, 0px))
+    max(1rem, env(safe-area-inset-left, 0px));
   /* Above sticky header / cards; portals attach to body so fixed is viewport-relative. */
   z-index: 1100;
   overflow-x: hidden;
@@ -6995,7 +7022,10 @@ select:disabled {
 
   .header-nav {
     overflow-x: auto;
-    max-width: min(100%, 18rem);
+    max-width: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
 
@@ -8771,6 +8801,20 @@ select:disabled {
   margin: 0.75rem 0 1rem;
   font-size: 0.9rem;
   table-layout: fixed;
+}
+
+@media (max-width: 640px) {
+  .contract-document-editor .tiptap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .contract-document-editor .tiptap table,
+  .contract-document-editor .tiptap .contract-editor-table,
+  .contract-document-editor .tiptap table.boq {
+    min-width: 32rem;
+    table-layout: auto;
+  }
 }
 
 .contract-document-editor .tiptap th,

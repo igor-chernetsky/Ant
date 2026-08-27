@@ -1,6 +1,7 @@
 'use client';
 
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from '@/components/LocaleProvider';
 import { formatFileSize } from '@/lib/documents';
 import {
@@ -87,6 +88,10 @@ export function CompleteProjectReviewModal({
     return null;
   }
 
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
   const hasAnyRating = REVIEW_RATING_CATEGORIES.some(
     (category) => ratings[category.key] >= 1,
   );
@@ -163,7 +168,7 @@ export function CompleteProjectReviewModal({
 
   const busy = loading || uploading || submitting;
 
-  return (
+  return createPortal(
     <div
       className="modal-backdrop"
       role="presentation"
@@ -299,6 +304,7 @@ export function CompleteProjectReviewModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

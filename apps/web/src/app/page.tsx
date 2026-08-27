@@ -290,16 +290,46 @@ export default function HomePage() {
   useEffect(() => {
     if (!filtersOpen) return;
 
+    const mobileMq = window.matchMedia('(max-width: 899px)');
+    let locked = false;
+    let scrollY = 0;
+
+    const lock = () => {
+      if (locked) return;
+      locked = true;
+      scrollY = window.scrollY;
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+    };
+
+    const unlock = () => {
+      if (!locked) return;
+      locked = false;
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+
     const syncBodyLock = () => {
-      const mobile = window.matchMedia('(max-width: 899px)').matches;
-      document.body.style.overflow = mobile ? 'hidden' : '';
+      if (mobileMq.matches) lock();
+      else unlock();
     };
 
     syncBodyLock();
-    window.addEventListener('resize', syncBodyLock);
+    mobileMq.addEventListener('change', syncBodyLock);
     return () => {
-      window.removeEventListener('resize', syncBodyLock);
-      document.body.style.overflow = '';
+      mobileMq.removeEventListener('change', syncBodyLock);
+      unlock();
     };
   }, [filtersOpen]);
 
