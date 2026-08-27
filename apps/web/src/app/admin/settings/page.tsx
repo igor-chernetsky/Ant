@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { FlashToast, type FlashToastState } from '@/components/FlashToast';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { SettingsBroadcastEditor } from '@/components/SettingsBroadcastEditor';
@@ -31,9 +32,14 @@ export default function AdminSettingsPage() {
   const [broadcastHtml, setBroadcastHtml] = useState('<p></p>');
   const [broadcastBodyEmpty, setBroadcastBodyEmpty] = useState(true);
   const [broadcastBusy, setBroadcastBusy] = useState(false);
-  const [broadcastHint, setBroadcastHint] = useState<string | null>(null);
-  const [broadcastError, setBroadcastError] = useState<string | null>(null);
+  const [broadcastFlash, setBroadcastFlash] = useState<FlashToastState | null>(
+    null,
+  );
   const [broadcastResetKey, setBroadcastResetKey] = useState(0);
+
+  const dismissBroadcastFlash = useCallback(() => {
+    setBroadcastFlash(null);
+  }, []);
 
   const loadSettings = useCallback(async () => {
     const settings = await fetchAdminPlatformSettings();
@@ -109,23 +115,25 @@ export default function AdminSettingsPage() {
     (html: string, isEmpty: boolean) => {
       setBroadcastHtml(html);
       setBroadcastBodyEmpty(isEmpty);
-      setBroadcastHint(null);
-      setBroadcastError(null);
     },
     [],
   );
 
   const handleBroadcastSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setBroadcastHint(null);
-    setBroadcastError(null);
     const to = broadcastTo.trim().toLowerCase();
     if (!EMAIL_RE.test(to)) {
-      setBroadcastError(t('admin.settingsInvalidEmail'));
+      setBroadcastFlash({
+        tone: 'error',
+        message: t('admin.settingsInvalidEmail'),
+      });
       return;
     }
     if (!broadcastSubject.trim() || broadcastBodyEmpty) {
-      setBroadcastError(t('admin.settingsBroadcastIncomplete'));
+      setBroadcastFlash({
+        tone: 'error',
+        message: t('admin.settingsBroadcastIncomplete'),
+      });
       return;
     }
 
@@ -136,20 +144,23 @@ export default function AdminSettingsPage() {
         subject: broadcastSubject.trim(),
         html: broadcastHtml,
       });
-      setBroadcastHint(
-        t('admin.settingsBroadcastSent', { from: result.from, to }),
-      );
+      setBroadcastFlash({
+        tone: 'success',
+        message: t('admin.settingsBroadcastSent', { from: result.from, to }),
+      });
       setBroadcastSubject('');
       setBroadcastTo('');
       setBroadcastHtml('<p></p>');
       setBroadcastBodyEmpty(true);
       setBroadcastResetKey((n) => n + 1);
     } catch (err: unknown) {
-      setBroadcastError(
-        err instanceof Error
-          ? err.message
-          : t('admin.settingsBroadcastSendFailed'),
-      );
+      setBroadcastFlash({
+        tone: 'error',
+        message:
+          err instanceof Error
+            ? err.message
+            : t('admin.settingsBroadcastSendFailed'),
+      });
     } finally {
       setBroadcastBusy(false);
     }
@@ -280,11 +291,7 @@ export default function AdminSettingsPage() {
                   <input
                     type="email"
                     value={broadcastTo}
-                    onChange={(e) => {
-                      setBroadcastTo(e.target.value);
-                      setBroadcastHint(null);
-                      setBroadcastError(null);
-                    }}
+                    onChange={(e) => setBroadcastTo(e.target.value)}
                     placeholder="recipient@example.com"
                     autoComplete="email"
                     disabled={broadcastBusy}
@@ -296,11 +303,7 @@ export default function AdminSettingsPage() {
                   <input
                     type="text"
                     value={broadcastSubject}
-                    onChange={(e) => {
-                      setBroadcastSubject(e.target.value);
-                      setBroadcastHint(null);
-                      setBroadcastError(null);
-                    }}
+                    onChange={(e) => setBroadcastSubject(e.target.value)}
                     placeholder={t('admin.settingsBroadcastSubjectPlaceholder')}
                     disabled={broadcastBusy}
                   />
@@ -315,13 +318,6 @@ export default function AdminSettingsPage() {
                     onChange={handleBroadcastBodyChange}
                   />
                 </div>
-
-                {broadcastError && <p className="error">{broadcastError}</p>}
-                {broadcastHint && !broadcastError && (
-                  <p className="muted admin-settings-broadcast-hint">
-                    {broadcastHint}
-                  </p>
-                )}
 
                 <div className="admin-settings-actions">
                   <button
@@ -357,6 +353,8 @@ export default function AdminSettingsPage() {
           })();
         }}
       />
+
+      <FlashToast toast={broadcastFlash} onDismiss={dismissBroadcastFlash} />
     </>
   );
 }
