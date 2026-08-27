@@ -325,10 +325,18 @@ export default function HomePage() {
       else unlock();
     };
 
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setFiltersOpen(false);
+      }
+    };
+
     syncBodyLock();
     mobileMq.addEventListener('change', syncBodyLock);
+    window.addEventListener('keydown', onKeyDown);
     return () => {
       mobileMq.removeEventListener('change', syncBodyLock);
+      window.removeEventListener('keydown', onKeyDown);
       unlock();
     };
   }, [filtersOpen]);
@@ -560,9 +568,10 @@ export default function HomePage() {
               <button
                 type="button"
                 className="home-sidebar-close"
+                aria-label={t('filters.closeFilters')}
                 onClick={() => setFiltersOpen(false)}
               >
-                {t('filters.closeFilters')}
+                <span aria-hidden>×</span>
               </button>
             </div>
             <HomeProjectFilters

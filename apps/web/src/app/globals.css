@@ -2746,6 +2746,11 @@ pre {
 }
 
 @media (max-width: 899px) {
+  /* Drawer lives inside .main-content (z-index: 1); raise it above sticky header. */
+  .page-shell:has(.home-sidebar--open) .main-content {
+    z-index: 50;
+  }
+
   /* Keep footer from painting through the filters drawer (stacking sibling). */
   .page-shell:has(.home-sidebar--open) .site-footer {
     visibility: hidden;
@@ -2794,6 +2799,11 @@ pre {
     gap: 0.75rem;
     margin-bottom: 0.65rem;
     flex: 0 0 auto;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding-bottom: 0.35rem;
+    background: var(--surface);
   }
 
   .home-sidebar-mobile-title {
@@ -2803,13 +2813,27 @@ pre {
   }
 
   .home-sidebar-close {
-    padding: 0.35rem 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
     border-radius: 8px;
     border: 1px solid var(--border-strong);
-    background: transparent;
-    color: var(--muted);
-    font-size: 0.82rem;
+    background: #fff;
+    color: var(--text);
+    font-size: 1.35rem;
     font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .home-sidebar-close:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1d4ed8;
   }
 
   .home-sidebar .project-filters--sidebar {
@@ -7010,14 +7034,22 @@ select:disabled {
 
 @media (max-width: 820px) {
   .site-header-inner {
-    flex-wrap: wrap;
-    gap: 0.65rem 1rem;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
   }
 
   .header-brand-nav {
-    width: 100%;
-    justify-content: space-between;
-    gap: 0.75rem;
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-start;
+    gap: 0.45rem;
+  }
+
+  .brand-logo {
+    height: 28px;
   }
 
   .header-nav {
@@ -7033,12 +7065,26 @@ select:disabled {
     display: none;
   }
 
+  .header-nav-link {
+    height: 2rem;
+    padding: 0 0.5rem;
+    font-size: 0.84rem;
+  }
+
   .header-utilities {
-    margin-left: auto;
+    flex: 0 0 auto;
+    margin-left: 0;
+    gap: 0.3rem;
+  }
+
+  .header-sign-in {
+    height: 2rem;
+    padding: 0 0.7rem;
+    font-size: 0.84rem;
   }
 
   .header-account-name {
-    max-width: 7rem;
+    max-width: 5.5rem;
   }
 }
 
