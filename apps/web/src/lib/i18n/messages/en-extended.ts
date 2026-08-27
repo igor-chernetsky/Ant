@@ -2007,6 +2007,9 @@ export const enExtended = {
   },
   explainer: {
     workflowNavAria: "Workflow steps",
+    workflowPrevAria: "Previous step",
+    workflowNextAria: "Next step",
+    workflowStepOf: "Step {current} of {total}",
     demo: {
       projectTitle: "Hotel Bangkok back of house renovation",
       projectDescription:

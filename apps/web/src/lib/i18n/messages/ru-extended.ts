@@ -2010,6 +2010,9 @@ export const ruExtended = {
   },
   explainer: {
     workflowNavAria: "Этапы процесса",
+    workflowPrevAria: "Предыдущий этап",
+    workflowNextAria: "Следующий этап",
+    workflowStepOf: "Этап {current} из {total}",
     demo: {
       projectTitle: "Реновация служебной зоны отеля в Бангкоке",
       projectDescription:

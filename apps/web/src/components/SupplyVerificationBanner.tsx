@@ -138,11 +138,31 @@ export function SupplyVerificationBanner() {
       aria-live="polite"
     >
       <div className="home-verification-banner-inner">
+        <button
+          type="button"
+          className="home-verification-banner-dismiss"
+          onClick={handleDismiss}
+          aria-label={t('verification.bannerDismiss')}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden
+          >
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+
         <span className="home-verification-banner-icon" aria-hidden>
           <svg
             viewBox="0 0 24 24"
-            width="22"
-            height="22"
+            width="20"
+            height="20"
             fill="none"
             stroke="currentColor"
             strokeWidth="1.75"
@@ -174,33 +194,11 @@ export function SupplyVerificationBanner() {
             {t(titleKey)}
           </strong>
           <p className="home-verification-banner-text">{t(bodyKey)}</p>
-        </div>
-
-        <div className="home-verification-banner-actions">
           {ctaKey ? (
             <Link href={portalHref} className="primary home-verification-banner-cta">
               {t(ctaKey)}
             </Link>
           ) : null}
-          <button
-            type="button"
-            className="home-verification-banner-dismiss"
-            onClick={handleDismiss}
-            aria-label={t('verification.bannerDismiss')}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="18"
-              height="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              aria-hidden
-            >
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
         </div>
       </div>
     </aside>

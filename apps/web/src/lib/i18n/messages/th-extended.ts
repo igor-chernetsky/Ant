@@ -2005,6 +2005,9 @@ export const thExtended = {
   },
   explainer: {
     workflowNavAria: "ขั้นตอนการทำงาน",
+    workflowPrevAria: "ขั้นตอนก่อนหน้า",
+    workflowNextAria: "ขั้นตอนถัดไป",
+    workflowStepOf: "ขั้นตอน {current} จาก {total}",
     demo: {
       projectTitle: "ปรับปรุงพื้นที่หลังบ้านโรงแรมกรุงเทพฯ",
       projectDescription:

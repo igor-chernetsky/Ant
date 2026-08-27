@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useTranslation } from '@/components/LocaleProvider';
 
 export interface TourWorkflowStep {
   id: string;
@@ -80,12 +81,21 @@ export function ProductTourWorkflowNav({
   onSelect: (id: string) => void;
   ariaLabel: string;
 }) {
+  const { t } = useTranslation();
   const activeIndex = Math.max(
     0,
     steps.findIndex((step) => step.id === activeId),
   );
+  const activeStep = steps[activeIndex] ?? steps[0];
   const progress =
     steps.length <= 1 ? 100 : (activeIndex / (steps.length - 1)) * 100;
+
+  const goPrev = () => {
+    if (activeIndex > 0) onSelect(steps[activeIndex - 1]!.id);
+  };
+  const goNext = () => {
+    if (activeIndex < steps.length - 1) onSelect(steps[activeIndex + 1]!.id);
+  };
 
   return (
     <nav
@@ -112,6 +122,7 @@ export function ProductTourWorkflowNav({
                   isActive ? ' product-tour-workflow-step--active' : ''
                 }${isDone ? ' product-tour-workflow-step--done' : ''}`}
                 aria-current={isActive ? 'step' : undefined}
+                aria-label={step.label}
                 onClick={() => onSelect(step.id)}
               >
                 <span className="product-tour-workflow-number">{step.number}</span>
@@ -119,6 +130,63 @@ export function ProductTourWorkflowNav({
               </button>
             );
           })}
+        </div>
+
+        <div className="product-tour-workflow-mobile">
+          <div className="product-tour-workflow-mobile-bar">
+            <button
+              type="button"
+              className="product-tour-workflow-mobile-arrow"
+              aria-label={t('explainer.workflowPrevAria')}
+              disabled={activeIndex <= 0}
+              onClick={goPrev}
+            >
+              <span aria-hidden>‹</span>
+            </button>
+            <div className="product-tour-workflow-mobile-current">
+              <span className="product-tour-workflow-mobile-count">
+                {t('explainer.workflowStepOf', {
+                  current: String(activeIndex + 1),
+                  total: String(steps.length),
+                })}
+              </span>
+              {activeStep ? (
+                <span className="product-tour-workflow-mobile-label">
+                  {activeStep.label}
+                </span>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className="product-tour-workflow-mobile-arrow"
+              aria-label={t('explainer.workflowNextAria')}
+              disabled={activeIndex >= steps.length - 1}
+              onClick={goNext}
+            >
+              <span aria-hidden>›</span>
+            </button>
+          </div>
+          <div className="product-tour-workflow-mobile-chips" role="list">
+            {steps.map((step, index) => {
+              const isActive = activeId === step.id;
+              const isDone = index < activeIndex;
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  role="listitem"
+                  className={`product-tour-workflow-mobile-chip${
+                    isActive ? ' product-tour-workflow-mobile-chip--active' : ''
+                  }${isDone ? ' product-tour-workflow-mobile-chip--done' : ''}`}
+                  aria-current={isActive ? 'step' : undefined}
+                  aria-label={step.label}
+                  onClick={() => onSelect(step.id)}
+                >
+                  {step.number}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </nav>
