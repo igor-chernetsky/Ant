@@ -2,18 +2,47 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useId, useRef, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type TouchEvent as ReactTouchEvent,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { HeaderNotifications } from '@/components/HeaderNotifications';
+import { useInAppNotifications } from '@/components/InAppNotificationsProvider';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from '@/components/LocaleProvider';
-import { headerUserLabel, type MeResponse } from '@/lib/session';
+import {
+  canCreateProject,
+  headerUserLabel,
+  type MeResponse,
+} from '@/lib/session';
 
 interface SiteHeaderProps {
   me: MeResponse | null;
   onSignIn: () => void;
   onSignOut: () => void;
+  /** Opens create-project flow; defaults to `/?create=1`. */
+  onCreateProject?: () => void;
 }
+
+type NavItem =
+  | {
+      kind: 'link';
+      href: string;
+      label: string;
+    }
+  | {
+      kind: 'external';
+      href: string;
+      label: string;
+    };
+
+const SWIPE_CLOSE_PX = 72;
 
 function isHeaderNavActive(pathname: string, href: string): boolean {
   if (href === '/') {
@@ -70,7 +99,7 @@ function HeaderAccountMenu({
   }, [open]);
 
   return (
-    <div className="header-account" ref={rootRef}>
+    <div className="header-account header-account--desktop" ref={rootRef}>
       <button
         type="button"
         className="header-account-trigger"
@@ -115,13 +144,53 @@ function HeaderAccountMenu({
   );
 }
 
+function MenuIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      {open ? (
+        <>
+          <path d="M6 6l12 12" />
+          <path d="M18 6L6 18" />
+        </>
+      ) : (
+        <>
+          <path d="M4 7h16" />
+          <path d="M4 12h16" />
+          <path d="M4 17h16" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export function SiteHeader({
   me,
   onSignIn,
   onSignOut,
+  onCreateProject,
 }: SiteHeaderProps) {
   const { t } = useTranslation();
+  const router = useRouter();
   const pathname = usePathname() || '/';
+  const { unreadCount } = useInAppNotifications();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const menuTitleId = useId();
+  const touchRef = useRef<{
+    x: number;
+    y: number;
+    tracking: boolean;
+  } | null>(null);
+
   const isAdmin = Boolean(me?.roles?.includes('admin'));
   const isContractor = Boolean(
     me?.isContractor || me?.roles?.includes('contractor'),
@@ -129,193 +198,371 @@ export function SiteHeader({
   const isDesigner = Boolean(
     me?.isDesigner || me?.roles?.includes('designer'),
   );
+  const showCreateProject = canCreateProject(me);
 
-  return (
-    <header className="site-header">
-      <div className="content-container site-header-inner">
-        <div className="header-brand-nav">
-          <Link href="/" className="brand" aria-label="BuilTHAI">
-            <Image
-              src="/logo.png"
-              alt="BuilTHAI"
-              width={121}
-              height={36}
-              className="brand-logo"
-              priority
-            />
-          </Link>
+  const primaryNav: NavItem[] = [
+    { kind: 'link', href: '/', label: t('header.projects') },
+    { kind: 'link', href: '/materials', label: t('header.materials') },
+    { kind: 'link', href: '/help', label: t('header.help') },
+    {
+      kind: 'external',
+      href: 'mailto:hello@builthai.com',
+      label: t('header.contactUs'),
+    },
+  ];
 
-          <nav className="header-nav" aria-label={t('header.primaryNav')}>
-            <Link
-              href="/"
-              className={headerNavClass(pathname, '/')}
-              aria-current={
-                isHeaderNavActive(pathname, '/') ? 'page' : undefined
-              }
-            >
-              {t('header.projects')}
-            </Link>
-            <Link
-              href="/materials"
-              className={headerNavClass(pathname, '/materials')}
-              aria-current={
-                isHeaderNavActive(pathname, '/materials')
-                  ? 'page'
+  const roleNav: NavItem[] = [];
+  if (isContractor) {
+    roleNav.push({
+      kind: 'link',
+      href: '/contractor',
+      label: t('header.contractor'),
+    });
+  }
+  if (isDesigner) {
+    roleNav.push({
+      kind: 'link',
+      href: '/designer',
+      label: t('header.designer'),
+    });
+  }
+
+  const adminNav: NavItem[] = isAdmin
+    ? [
+        {
+          kind: 'link',
+          href: '/admin/projects',
+          label: t('header.projectsTable'),
+        },
+        { kind: 'link', href: '/admin/clients', label: t('header.clients') },
+        {
+          kind: 'link',
+          href: '/admin/contractors',
+          label: t('header.contractors'),
+        },
+        {
+          kind: 'link',
+          href: '/admin/directory',
+          label: t('header.supplyRegistry'),
+        },
+        {
+          kind: 'link',
+          href: '/admin/signature-requests',
+          label: t('header.signatureRequests'),
+        },
+        { kind: 'link', href: '/admin/settings', label: t('header.settings') },
+        { kind: 'link', href: '/admin/ads', label: t('header.ads') },
+      ]
+    : [];
+
+  const desktopNav = [...primaryNav, ...roleNav, ...adminNav];
+
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+    setDragX(0);
+    touchRef.current = null;
+  }, []);
+
+  const handleCreateProject = useCallback(() => {
+    closeMenu();
+    if (onCreateProject) {
+      onCreateProject();
+      return;
+    }
+    router.push('/?create=1');
+  }, [closeMenu, onCreateProject, router]);
+
+  useEffect(() => {
+    closeMenu();
+  }, [pathname, closeMenu]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeMenu();
+      }
+    };
+
+    const scrollY = window.scrollY;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, [menuOpen, closeMenu]);
+
+  const onDrawerTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    touchRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      tracking: false,
+    };
+  };
+
+  const onDrawerTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {
+    const start = touchRef.current;
+    const touch = event.touches[0];
+    if (!start || !touch) return;
+
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+
+    if (!start.tracking) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      if (Math.abs(dy) >= Math.abs(dx) || dx <= 0) {
+        touchRef.current = null;
+        setDragX(0);
+        return;
+      }
+      start.tracking = true;
+    }
+
+    setDragX(Math.max(0, dx));
+  };
+
+  const onDrawerTouchEnd = () => {
+    if (dragX >= SWIPE_CLOSE_PX) {
+      closeMenu();
+      return;
+    }
+    setDragX(0);
+    touchRef.current = null;
+  };
+
+  const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
+    if (item.kind === 'external') {
+      return (
+        <a
+          key={item.href}
+          href={item.href}
+          className="header-nav-link"
+          onClick={onNavigate}
+        >
+          {item.label}
+        </a>
+      );
+    }
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={headerNavClass(pathname, item.href)}
+        aria-current={
+          isHeaderNavActive(pathname, item.href) ? 'page' : undefined
+        }
+        onClick={onNavigate}
+      >
+        {item.label}
+      </Link>
+    );
+  };
+
+  const menuToggleLabel =
+    unreadCount > 0
+      ? `${menuOpen ? t('header.closeMenu') : t('header.openMenu')} (${unreadCount})`
+      : menuOpen
+        ? t('header.closeMenu')
+        : t('header.openMenu');
+
+  const mobileMenu =
+    menuOpen && typeof document !== 'undefined'
+      ? createPortal(
+          <>
+            <button
+              type="button"
+              className="header-mobile-backdrop"
+              aria-label={t('header.closeMenu')}
+              onClick={closeMenu}
+              style={
+                dragX > 0
+                  ? { opacity: Math.max(0.15, 1 - dragX / 280) }
                   : undefined
               }
-            >
-              {t('header.materials')}
-            </Link>
-            <Link
-              href="/help"
-              className={headerNavClass(pathname, '/help')}
-              aria-current={
-                isHeaderNavActive(pathname, '/help') ? 'page' : undefined
+            />
+            <div
+              className="header-mobile-drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={menuTitleId}
+              style={
+                dragX > 0
+                  ? {
+                      transform: `translateX(${dragX}px)`,
+                      transition: 'none',
+                    }
+                  : undefined
               }
+              onTouchStart={onDrawerTouchStart}
+              onTouchMove={onDrawerTouchMove}
+              onTouchEnd={onDrawerTouchEnd}
+              onTouchCancel={onDrawerTouchEnd}
             >
-              {t('header.help')}
-            </Link>
-            <a
-              href="mailto:hello@builthai.com"
-              className="header-nav-link"
-            >
-              {t('header.contactUs')}
-            </a>
-            {isContractor && (
-              <Link
-                href="/contractor"
-                className={headerNavClass(pathname, '/contractor')}
-                aria-current={
-                  isHeaderNavActive(pathname, '/contractor')
-                    ? 'page'
-                    : undefined
-                }
+              <div className="header-mobile-drawer-header">
+                <h2 id={menuTitleId} className="header-mobile-drawer-title">
+                  {t('header.menu')}
+                </h2>
+                <button
+                  type="button"
+                  className="header-mobile-drawer-close"
+                  aria-label={t('header.closeMenu')}
+                  onClick={closeMenu}
+                >
+                  <MenuIcon open />
+                </button>
+              </div>
+
+              {showCreateProject && (
+                <div className="header-mobile-drawer-actions">
+                  <button
+                    type="button"
+                    className="primary header-mobile-create-project"
+                    onClick={handleCreateProject}
+                  >
+                    {t('header.createProject')}
+                  </button>
+                </div>
+              )}
+
+              <nav
+                className="header-mobile-drawer-nav"
+                aria-label={t('header.primaryNav')}
               >
-                {t('header.contractor')}
-              </Link>
-            )}
-            {isDesigner && (
-              <Link
-                href="/designer"
-                className={headerNavClass(pathname, '/designer')}
-                aria-current={
-                  isHeaderNavActive(pathname, '/designer')
-                    ? 'page'
-                    : undefined
-                }
-              >
-                {t('header.designer')}
-              </Link>
-            )}
-            {isAdmin && (
-              <>
-                <Link
-                  href="/admin/projects"
-                  className={headerNavClass(pathname, '/admin/projects')}
-                  aria-current={
-                    isHeaderNavActive(pathname, '/admin/projects')
-                      ? 'page'
-                      : undefined
-                  }
-                >
-                  {t('header.projectsTable')}
-                </Link>
-                <Link
-                  href="/admin/clients"
-                  className={headerNavClass(pathname, '/admin/clients')}
-                  aria-current={
-                    isHeaderNavActive(pathname, '/admin/clients')
-                      ? 'page'
-                      : undefined
-                  }
-                >
-                  {t('header.clients')}
-                </Link>
-                <Link
-                  href="/admin/contractors"
-                  className={headerNavClass(pathname, '/admin/contractors')}
-                  aria-current={
-                    isHeaderNavActive(pathname, '/admin/contractors')
-                      ? 'page'
-                      : undefined
-                  }
-                >
-                  {t('header.contractors')}
-                </Link>
-                <Link
-                  href="/admin/directory"
-                  className={headerNavClass(pathname, '/admin/directory')}
-                  aria-current={
-                    isHeaderNavActive(pathname, '/admin/directory')
-                      ? 'page'
-                      : undefined
-                  }
-                >
-                  {t('header.supplyRegistry')}
-                </Link>
-                <Link
-                  href="/admin/signature-requests"
-                  className={headerNavClass(
-                    pathname,
-                    '/admin/signature-requests',
-                  )}
-                  aria-current={
-                    isHeaderNavActive(pathname, '/admin/signature-requests')
-                      ? 'page'
-                      : undefined
-                  }
-                >
-                  {t('header.signatureRequests')}
-                </Link>
-                <Link
-                  href="/admin/settings"
-                  className={headerNavClass(pathname, '/admin/settings')}
-                  aria-current={
-                    isHeaderNavActive(pathname, '/admin/settings')
-                      ? 'page'
-                      : undefined
-                  }
-                >
-                  {t('header.settings')}
-                </Link>
-                <Link
-                  href="/admin/ads"
-                  className={headerNavClass(pathname, '/admin/ads')}
-                  aria-current={
-                    isHeaderNavActive(pathname, '/admin/ads')
-                      ? 'page'
-                      : undefined
-                  }
-                >
-                  {t('header.ads')}
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
+                <div className="header-mobile-drawer-section">
+                  {primaryNav.map((item) => renderNavItem(item, closeMenu))}
+                </div>
+
+                {roleNav.length > 0 && (
+                  <div className="header-mobile-drawer-section">
+                    {roleNav.map((item) => renderNavItem(item, closeMenu))}
+                  </div>
+                )}
+
+                {adminNav.length > 0 && (
+                  <div className="header-mobile-drawer-section">
+                    <p className="header-mobile-drawer-label">
+                      {t('header.admin')}
+                    </p>
+                    {adminNav.map((item) => renderNavItem(item, closeMenu))}
+                  </div>
+                )}
+              </nav>
+
+              {me ? (
+                <div className="header-mobile-drawer-footer">
+                  <p className="header-mobile-drawer-user muted">
+                    {headerUserLabel(me, t('header.signedIn'))}
+                  </p>
+                  <Link
+                    href="/account"
+                    className="header-nav-link"
+                    onClick={closeMenu}
+                  >
+                    {t('header.account')}
+                  </Link>
+                  <button
+                    type="button"
+                    className="header-nav-link header-mobile-sign-out"
+                    onClick={() => {
+                      closeMenu();
+                      onSignOut();
+                    }}
+                  >
+                    {t('header.signOut')}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </>,
+          document.body,
+        )
+      : null;
+
+  return (
+    <header
+      className={`site-header${menuOpen ? ' site-header--menu-open' : ''}`}
+    >
+      <div className="content-container site-header-inner">
+        <Link href="/" className="brand" aria-label="BuilTHAI">
+          <Image
+            src="/logo.png"
+            alt="BuilTHAI"
+            width={121}
+            height={36}
+            className="brand-logo"
+            priority
+          />
+        </Link>
+
+        <nav
+          className="header-nav header-nav--desktop"
+          aria-label={t('header.primaryNav')}
+        >
+          {desktopNav.map((item) => renderNavItem(item))}
+        </nav>
 
         <div className="header-utilities">
           <LanguageSwitcher />
-          {me ? (
-            <>
-              <HeaderNotifications />
-              <span className="header-utilities-divider" aria-hidden />
-              <HeaderAccountMenu me={me} onSignOut={onSignOut} />
-            </>
+          {me ? <HeaderNotifications /> : null}
+
+          {!me ? (
+            <button
+              type="button"
+              className="header-sign-in"
+              onClick={onSignIn}
+            >
+              {t('header.signIn')}
+            </button>
           ) : (
-            <>
-              <span className="header-utilities-divider" aria-hidden />
-              <button
-                type="button"
-                className="header-sign-in"
-                onClick={onSignIn}
-              >
-                {t('header.signIn')}
-              </button>
-            </>
+            <HeaderAccountMenu me={me} onSignOut={onSignOut} />
           )}
+
+          <button
+            type="button"
+            className="header-menu-toggle"
+            aria-label={menuToggleLabel}
+            aria-expanded={menuOpen}
+            aria-controls="header-mobile-menu"
+            onClick={() =>
+              setMenuOpen((open) => {
+                if (open) {
+                  setDragX(0);
+                  touchRef.current = null;
+                }
+                return !open;
+              })
+            }
+          >
+            <MenuIcon open={menuOpen} />
+            {!menuOpen && unreadCount > 0 && (
+              <span className="header-menu-toggle-badge">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
+
+      <div id="header-mobile-menu">{mobileMenu}</div>
     </header>
   );
 }

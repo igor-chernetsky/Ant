@@ -96,6 +96,7 @@ export default function HomePage() {
   const loadingMoreRef = useRef(false);
   const hasMoreRef = useRef(false);
   const projectsLenRef = useRef(0);
+  const createQueryHandled = useRef(false);
 
   const buildListFilters = useCallback(
     (next: HomeProjectFilterState, offset: number) => ({
@@ -278,6 +279,24 @@ export default function HomePage() {
       setCreateOpen(true);
     }
   }, [pendingCreate, me]);
+
+  useEffect(() => {
+    if (!sessionReady || createQueryHandled.current) return;
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('create') !== '1') return;
+
+    createQueryHandled.current = true;
+    router.replace('/', { scroll: false });
+
+    if (me && !canCreateProject(me)) return;
+    if (me) {
+      setCreateOpen(true);
+    } else {
+      setPendingCreate(true);
+      setLoginOpen(true);
+    }
+  }, [sessionReady, me, router]);
 
   useEffect(() => {
     if (!me) {
@@ -521,6 +540,7 @@ export default function HomePage() {
         me={me}
         onSignIn={() => setLoginOpen(true)}
         onSignOut={handleLogout}
+        onCreateProject={handleAddProject}
       />
 
       <SupplyVerificationBanner />
