@@ -74,6 +74,58 @@ function NotificationRow({
   );
 }
 
+/** Notifications list for embedding in the mobile menu drawer. */
+export function HeaderNotificationsInline({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+}) {
+  const { t } = useTranslation();
+  const { notifications, unreadCount, markRead } = useInAppNotifications();
+
+  const handleItemClick = (item: InAppNotification) => {
+    onNavigate?.();
+    if (!item.readAt) {
+      void markRead([item.id]);
+    }
+  };
+
+  return (
+    <section
+      className="header-notifications-inline"
+      aria-label={t('notifications.title')}
+    >
+      <div className="header-notifications-inline-header">
+        <p className="header-mobile-drawer-label">{t('notifications.title')}</p>
+        {unreadCount > 0 && (
+          <button
+            type="button"
+            className="text-link header-notifications-mark-all"
+            onClick={() => void markRead()}
+          >
+            {t('notifications.markAllRead')}
+          </button>
+        )}
+      </div>
+      {notifications.length === 0 ? (
+        <p className="muted header-notifications-empty header-notifications-inline-empty">
+          {t('notifications.empty')}
+        </p>
+      ) : (
+        <div className="header-notifications-list header-notifications-inline-list">
+          {notifications.map((item) => (
+            <NotificationRow
+              key={item.id}
+              item={item}
+              onClick={() => handleItemClick(item)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function HeaderNotifications() {
   const { t } = useTranslation();
   const { notifications, unreadCount, markRead } = useInAppNotifications();
@@ -113,7 +165,7 @@ export function HeaderNotifications() {
   };
 
   return (
-    <div className="header-notifications" ref={rootRef}>
+    <div className="header-notifications header-notifications--desktop" ref={rootRef}>
       <button
         type="button"
         className="header-notifications-trigger"

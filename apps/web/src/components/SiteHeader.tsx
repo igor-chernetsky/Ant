@@ -12,7 +12,7 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { HeaderNotifications } from '@/components/HeaderNotifications';
+import { HeaderNotifications, HeaderNotificationsInline } from '@/components/HeaderNotifications';
 import { useInAppNotifications } from '@/components/InAppNotificationsProvider';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -442,6 +442,12 @@ export function SiteHeader({
                   </button>
                 </div>
               )}
+
+              {me ? (
+                <div className="header-mobile-drawer-notifications">
+                  <HeaderNotificationsInline onNavigate={closeMenu} />
+                </div>
+              ) : null}
 
               <nav
                 className="header-mobile-drawer-nav"
