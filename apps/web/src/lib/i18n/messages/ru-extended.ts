@@ -635,6 +635,16 @@ export const ruExtended = {
     settingsBroadcastSubject: "Тема",
     settingsBroadcastSubjectPlaceholder: "Тема сообщения",
     settingsBroadcastBody: "Сообщение",
+    settingsBroadcastAttachments: "Вложения (необязательно)",
+    settingsBroadcastAttachmentsHint:
+      "Изображения, PDF, Word, Excel · до {maxFiles} файлов, до {maxSize} каждый",
+    settingsBroadcastAttachmentsAdd: "Добавить файлы",
+    settingsBroadcastAttachmentsEmpty: "Файлы не прикреплены",
+    settingsBroadcastAttachmentTooLarge: "Размер файла не более {maxSize}",
+    settingsBroadcastAttachmentsTooMany: "Не более {maxFiles} вложений",
+    settingsBroadcastAttachmentTypeInvalid: "Неподдерживаемый тип файла: {name}",
+    settingsBroadcastAttachmentsTotalTooLarge:
+      "Общий размер вложений превышает {maxSize}",
     settingsBroadcastSend: "Отправить",
     settingsBroadcastIncomplete: "Заполните получателя, тему и текст.",
     settingsBroadcastSent: "Отправлено с {from} на {to}.",

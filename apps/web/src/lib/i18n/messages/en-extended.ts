@@ -633,6 +633,16 @@ export const enExtended = {
     settingsBroadcastSubject: "Subject",
     settingsBroadcastSubjectPlaceholder: "Message subject",
     settingsBroadcastBody: "Message",
+    settingsBroadcastAttachments: "Attachments (optional)",
+    settingsBroadcastAttachmentsHint:
+      "Images, PDF, Word, Excel · up to {maxFiles} files, {maxSize} each",
+    settingsBroadcastAttachmentsAdd: "Add files",
+    settingsBroadcastAttachmentsEmpty: "No files attached",
+    settingsBroadcastAttachmentTooLarge: "Each file must be at most {maxSize}",
+    settingsBroadcastAttachmentsTooMany: "At most {maxFiles} attachments",
+    settingsBroadcastAttachmentTypeInvalid: "Unsupported file type: {name}",
+    settingsBroadcastAttachmentsTotalTooLarge:
+      "Total attachment size exceeds {maxSize}",
     settingsBroadcastSend: "Send",
     settingsBroadcastIncomplete: "Fill in recipient, subject, and message.",
     settingsBroadcastSent: "Sent from {from} to {to}.",

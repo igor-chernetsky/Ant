@@ -63,6 +63,11 @@ export class MailService {
     fromName?: string;
     replyTo?: string;
     headers?: Record<string, string>;
+    attachments?: Array<{
+      filename: string;
+      content: Buffer;
+      contentType?: string;
+    }>;
   }): Promise<boolean> {
     const transport = this.getTransporter();
     if (!transport) {
@@ -88,6 +93,11 @@ export class MailService {
         html: params.html,
         text: params.text,
         headers: params.headers,
+        attachments: params.attachments?.map((attachment) => ({
+          filename: attachment.filename,
+          content: attachment.content,
+          contentType: attachment.contentType,
+        })),
       });
       return true;
     } catch (error) {

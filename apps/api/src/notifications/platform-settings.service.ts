@@ -13,6 +13,27 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const DEFAULT_BROADCAST_FROM = 'hello@builthai.com';
 const MAX_SUBJECT_LEN = 200;
 const MAX_HTML_LEN = 100_000;
+const MAX_BROADCAST_ATTACHMENTS = 5;
+const MAX_BROADCAST_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const MAX_BROADCAST_ATTACHMENTS_TOTAL_BYTES = 12 * 1024 * 1024;
+const ALLOWED_BROADCAST_ATTACHMENT_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+]);
+
+export interface AdminBroadcastAttachmentDto {
+  filename: string;
+  contentType: string;
+  contentBase64: string;
+}
 
 export interface PlatformSettingsDto {
   contractSignedNotifyEmails: string[];
@@ -26,6 +47,7 @@ export interface SendAdminBroadcastDto {
   to: string;
   subject: string;
   html: string;
+  attachments?: AdminBroadcastAttachmentDto[];
 }
 
 export interface SendAdminBroadcastResult {
@@ -97,6 +119,7 @@ export class PlatformSettingsService {
     const subject = this.normalizeSubject(body.subject);
     const html = this.normalizeBroadcastHtml(body.html);
     const text = htmlToPlainText(html);
+    const attachments = this.normalizeBroadcastAttachments(body.attachments);
 
     const from =
       this.config.get<string>('SMTP_BROADCAST_FROM')?.trim() ||
@@ -114,6 +137,7 @@ export class PlatformSettingsService {
       from,
       fromName,
       replyTo: from,
+      attachments,
     });
     if (!sent) {
       throw new ServiceUnavailableException('Failed to send email');
@@ -183,6 +207,67 @@ export class PlatformSettingsService {
     return subject;
   }
 
+  private normalizeBroadcastAttachments(
+    raw: unknown,
+  ): Array<{ filename: string; content: Buffer; contentType: string }> {
+    if (raw == null) return [];
+    if (!Array.isArray(raw)) {
+      throw new BadRequestException('attachments must be an array');
+    }
+    if (raw.length > MAX_BROADCAST_ATTACHMENTS) {
+      throw new BadRequestException(
+        `At most ${MAX_BROADCAST_ATTACHMENTS} attachments allowed`,
+      );
+    }
+
+    const attachments: Array<{
+      filename: string;
+      content: Buffer;
+      contentType: string;
+    }> = [];
+    let totalBytes = 0;
+
+    for (const item of raw) {
+      if (!item || typeof item !== 'object') {
+        throw new BadRequestException('Each attachment must be an object');
+      }
+      const record = item as Record<string, unknown>;
+      const filename = sanitizeAttachmentFilename(record.filename);
+      const contentType = normalizeAttachmentContentType(record.contentType);
+      const contentBase64 =
+        typeof record.contentBase64 === 'string'
+          ? record.contentBase64.trim()
+          : '';
+      if (!contentBase64) {
+        throw new BadRequestException(`Attachment ${filename} is empty`);
+      }
+
+      let content: Buffer;
+      try {
+        content = Buffer.from(contentBase64, 'base64');
+      } catch {
+        throw new BadRequestException(`Attachment ${filename} is invalid`);
+      }
+      if (content.length === 0) {
+        throw new BadRequestException(`Attachment ${filename} is empty`);
+      }
+      if (content.length > MAX_BROADCAST_ATTACHMENT_BYTES) {
+        throw new BadRequestException(
+          `Attachment ${filename} exceeds ${MAX_BROADCAST_ATTACHMENT_BYTES} bytes`,
+        );
+      }
+
+      totalBytes += content.length;
+      if (totalBytes > MAX_BROADCAST_ATTACHMENTS_TOTAL_BYTES) {
+        throw new BadRequestException('Total attachment size is too large');
+      }
+
+      attachments.push({ filename, content, contentType });
+    }
+
+    return attachments;
+  }
+
   private normalizeBroadcastHtml(raw: unknown): string {
     if (typeof raw !== 'string' || !raw.trim()) {
       throw new BadRequestException('html is required');
@@ -196,6 +281,37 @@ export class PlatformSettingsService {
     }
     return html;
   }
+}
+
+function sanitizeAttachmentFilename(raw: unknown): string {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    throw new BadRequestException('Attachment filename is required');
+  }
+  const basename = raw
+    .trim()
+    .replace(/\\/g, '/')
+    .split('/')
+    .pop()
+    ?.replace(/[\u0000-\u001f<>:"|?*]/g, '')
+    .trim();
+  if (!basename) {
+    throw new BadRequestException('Attachment filename is invalid');
+  }
+  if (basename.length > 180) {
+    throw new BadRequestException('Attachment filename is too long');
+  }
+  return basename;
+}
+
+function normalizeAttachmentContentType(raw: unknown): string {
+  if (typeof raw !== 'string' || !raw.trim()) {
+    throw new BadRequestException('Attachment content type is required');
+  }
+  const contentType = raw.trim().toLowerCase().split(';')[0]?.trim() ?? '';
+  if (!ALLOWED_BROADCAST_ATTACHMENT_TYPES.has(contentType)) {
+    throw new BadRequestException(`Unsupported attachment type: ${contentType}`);
+  }
+  return contentType;
 }
 
 function sanitizeBroadcastHtml(html: string): string {

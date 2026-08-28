@@ -632,6 +632,16 @@ export const thExtended = {
     settingsBroadcastSubject: "หัวข้อ",
     settingsBroadcastSubjectPlaceholder: "หัวข้อข้อความ",
     settingsBroadcastBody: "ข้อความ",
+    settingsBroadcastAttachments: "ไฟล์แนบ (ไม่บังคับ)",
+    settingsBroadcastAttachmentsHint:
+      "รูปภาพ PDF Word Excel · สูงสุด {maxFiles} ไฟล์ ไฟล์ละ {maxSize}",
+    settingsBroadcastAttachmentsAdd: "เพิ่มไฟล์",
+    settingsBroadcastAttachmentsEmpty: "ยังไม่มีไฟล์แนบ",
+    settingsBroadcastAttachmentTooLarge: "ไฟล์ต้องไม่เกิน {maxSize}",
+    settingsBroadcastAttachmentsTooMany: "แนบได้ไม่เกิน {maxFiles} ไฟล์",
+    settingsBroadcastAttachmentTypeInvalid: "ประเภทไฟล์ไม่รองรับ: {name}",
+    settingsBroadcastAttachmentsTotalTooLarge:
+      "ขนาดไฟล์แนบรวมเกิน {maxSize}",
     settingsBroadcastSend: "ส่ง",
     settingsBroadcastIncomplete: "กรอกผู้รับ หัวข้อ และข้อความให้ครบ",
     settingsBroadcastSent: "ส่งจาก {from} ถึง {to} แล้ว",

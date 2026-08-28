@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react';
 import { FlashToast, type FlashToastState } from '@/components/FlashToast';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -8,10 +8,17 @@ import { SettingsBroadcastEditor } from '@/components/SettingsBroadcastEditor';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
 import {
+  BROADCAST_ATTACHMENT_ACCEPT,
+  BROADCAST_MAX_ATTACHMENTS,
+  BROADCAST_MAX_ATTACHMENT_BYTES,
+  encodeBroadcastAttachment,
   fetchAdminPlatformSettings,
   sendAdminBroadcast,
   updateAdminPlatformSettings,
+  validateBroadcastAttachmentFile,
+  type BroadcastAttachmentDraft,
 } from '@/lib/admin-settings';
+import { formatFileSize } from '@/lib/documents';
 import { isAdmin } from '@/lib/verification';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
@@ -35,7 +42,15 @@ export default function AdminSettingsPage() {
   const [broadcastFlash, setBroadcastFlash] = useState<FlashToastState | null>(
     null,
   );
+  const [broadcastAttachments, setBroadcastAttachments] = useState<
+    BroadcastAttachmentDraft[]
+  >([]);
   const [broadcastResetKey, setBroadcastResetKey] = useState(0);
+
+  const broadcastAttachmentTotalBytes = broadcastAttachments.reduce(
+    (sum, item) => sum + item.file.size,
+    0,
+  );
 
   const dismissBroadcastFlash = useCallback(() => {
     setBroadcastFlash(null);
@@ -119,6 +134,44 @@ export default function AdminSettingsPage() {
     [],
   );
 
+  const handleBroadcastAttachmentsChange = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (files.length === 0) return;
+
+    let nextAttachments = [...broadcastAttachments];
+    let nextTotalBytes = broadcastAttachmentTotalBytes;
+
+    for (const file of files) {
+      const validationError = validateBroadcastAttachmentFile(
+        file,
+        nextAttachments.length,
+        nextTotalBytes,
+        t,
+        formatFileSize,
+      );
+      if (validationError) {
+        setBroadcastFlash({ tone: 'error', message: validationError });
+        return;
+      }
+      nextAttachments = [
+        ...nextAttachments,
+        { id: `${file.name}-${file.size}-${file.lastModified}`, file },
+      ];
+      nextTotalBytes += file.size;
+    }
+
+    setBroadcastAttachments(nextAttachments);
+  };
+
+  const removeBroadcastAttachment = (id: string) => {
+    setBroadcastAttachments((current) =>
+      current.filter((item) => item.id !== id),
+    );
+  };
+
   const handleBroadcastSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const to = broadcastTo.trim().toLowerCase();
@@ -139,10 +192,14 @@ export default function AdminSettingsPage() {
 
     setBroadcastBusy(true);
     try {
+      const attachments = await Promise.all(
+        broadcastAttachments.map((item) => encodeBroadcastAttachment(item.file)),
+      );
       const result = await sendAdminBroadcast({
         to,
         subject: broadcastSubject.trim(),
         html: broadcastHtml,
+        attachments: attachments.length > 0 ? attachments : undefined,
       });
       setBroadcastFlash({
         tone: 'success',
@@ -152,6 +209,7 @@ export default function AdminSettingsPage() {
       setBroadcastTo('');
       setBroadcastHtml('<p></p>');
       setBroadcastBodyEmpty(true);
+      setBroadcastAttachments([]);
       setBroadcastResetKey((n) => n + 1);
     } catch (err: unknown) {
       setBroadcastFlash({
@@ -317,6 +375,62 @@ export default function AdminSettingsPage() {
                     resetKey={broadcastResetKey}
                     onChange={handleBroadcastBodyChange}
                   />
+                </div>
+
+                <div className="admin-settings-field">
+                  <span className="admin-settings-field-label">
+                    {t('admin.settingsBroadcastAttachments')}
+                  </span>
+                  <p className="muted admin-settings-attachments-hint">
+                    {t('admin.settingsBroadcastAttachmentsHint', {
+                      maxFiles: BROADCAST_MAX_ATTACHMENTS,
+                      maxSize: formatFileSize(BROADCAST_MAX_ATTACHMENT_BYTES),
+                    })}
+                  </p>
+                  <div className="admin-settings-attachments">
+                    <label className="secondary admin-settings-attachments-add">
+                      {t('admin.settingsBroadcastAttachmentsAdd')}
+                      <input
+                        type="file"
+                        multiple
+                        accept={BROADCAST_ATTACHMENT_ACCEPT}
+                        disabled={
+                          broadcastBusy ||
+                          broadcastAttachments.length >= BROADCAST_MAX_ATTACHMENTS
+                        }
+                        onChange={handleBroadcastAttachmentsChange}
+                      />
+                    </label>
+                    {broadcastAttachments.length === 0 ? (
+                      <p className="muted admin-settings-attachments-empty">
+                        {t('admin.settingsBroadcastAttachmentsEmpty')}
+                      </p>
+                    ) : (
+                      <ul className="admin-settings-attachments-list">
+                        {broadcastAttachments.map((item) => (
+                          <li
+                            key={item.id}
+                            className="admin-settings-attachments-item"
+                          >
+                            <span className="admin-settings-attachments-name">
+                              {item.file.name}
+                            </span>
+                            <span className="muted admin-settings-attachments-meta">
+                              {formatFileSize(item.file.size)}
+                            </span>
+                            <button
+                              type="button"
+                              className="secondary"
+                              disabled={broadcastBusy}
+                              onClick={() => removeBroadcastAttachment(item.id)}
+                            >
+                              {t('common.remove')}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
 
                 <div className="admin-settings-actions">
