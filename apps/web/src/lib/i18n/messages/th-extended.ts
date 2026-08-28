@@ -632,6 +632,11 @@ export const thExtended = {
     settingsBroadcastSubject: "หัวข้อ",
     settingsBroadcastSubjectPlaceholder: "หัวข้อข้อความ",
     settingsBroadcastBody: "ข้อความ",
+    settingsBroadcastInsertImage: "แทรกรูปภาพ",
+    settingsBroadcastInlineImageTooLarge: "รูปภาพต้องไม่เกิน {maxSize}",
+    settingsBroadcastInlineImageTypeInvalid:
+      "แทรกได้เฉพาะ JPEG, PNG, GIF และ WebP",
+    settingsBroadcastInlineImageReadFailed: "อ่านรูปภาพที่เลือกไม่สำเร็จ",
     settingsBroadcastAttachments: "ไฟล์แนบ (ไม่บังคับ)",
     settingsBroadcastAttachmentsHint:
       "รูปภาพ PDF Word Excel · สูงสุด {maxFiles} ไฟล์ ไฟล์ละ {maxSize}",

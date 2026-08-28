@@ -829,6 +829,7 @@ a.primary:hover,
 
 button.secondary,
 a.secondary,
+label.secondary,
 .button-link-secondary {
   display: inline-flex;
   align-items: center;
@@ -853,6 +854,7 @@ a.secondary,
 
 button.secondary:hover:not(:disabled),
 a.secondary:hover,
+label.secondary:hover,
 .button-link-secondary:hover {
   background: var(--accent-muted);
   border-color: var(--accent);
@@ -11786,8 +11788,18 @@ select:disabled {
 }
 
 .file-input-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: fit-content;
+  cursor: pointer;
+}
+
+.file-input-button input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
   cursor: pointer;
 }
 
@@ -12108,6 +12120,16 @@ select:disabled {
   margin: 0 0 0.55rem;
 }
 
+.admin-settings-broadcast-tiptap .tiptap img,
+.admin-settings-broadcast-tiptap .ProseMirror img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.35rem 0 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
 .admin-settings-broadcast-tiptap .tiptap ul,
 .admin-settings-broadcast-tiptap .ProseMirror ul {
   margin: 0 0 0.55rem;
@@ -12127,13 +12149,13 @@ select:disabled {
 }
 
 .admin-settings-attachments-add {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  overflow: hidden;
-  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.55rem 0.95rem;
+}
+
+.admin-settings-attachments-add:has(input:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .admin-settings-attachments-add input[type='file'] {
@@ -12141,6 +12163,10 @@ select:disabled {
   inset: 0;
   opacity: 0;
   cursor: pointer;
+}
+
+.admin-settings-attachments-add:has(input:disabled) input[type='file'] {
+  cursor: not-allowed;
 }
 
 .admin-settings-attachments-empty {

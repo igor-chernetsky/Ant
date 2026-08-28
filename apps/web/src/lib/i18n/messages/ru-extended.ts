@@ -635,6 +635,11 @@ export const ruExtended = {
     settingsBroadcastSubject: "Тема",
     settingsBroadcastSubjectPlaceholder: "Тема сообщения",
     settingsBroadcastBody: "Сообщение",
+    settingsBroadcastInsertImage: "Вставить изображение",
+    settingsBroadcastInlineImageTooLarge: "Размер изображения не более {maxSize}",
+    settingsBroadcastInlineImageTypeInvalid:
+      "Можно вставлять только JPEG, PNG, GIF и WebP",
+    settingsBroadcastInlineImageReadFailed: "Не удалось прочитать изображение",
     settingsBroadcastAttachments: "Вложения (необязательно)",
     settingsBroadcastAttachmentsHint:
       "Изображения, PDF, Word, Excel · до {maxFiles} файлов, до {maxSize} каждый",

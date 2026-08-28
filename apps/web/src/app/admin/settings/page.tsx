@@ -374,6 +374,9 @@ export default function AdminSettingsPage() {
                   <SettingsBroadcastEditor
                     resetKey={broadcastResetKey}
                     onChange={handleBroadcastBodyChange}
+                    onImageError={(message) =>
+                      setBroadcastFlash({ tone: 'error', message })
+                    }
                   />
                 </div>
 
@@ -388,7 +391,7 @@ export default function AdminSettingsPage() {
                     })}
                   </p>
                   <div className="admin-settings-attachments">
-                    <label className="secondary admin-settings-attachments-add">
+                    <label className="secondary file-input-button admin-settings-attachments-add">
                       {t('admin.settingsBroadcastAttachmentsAdd')}
                       <input
                         type="file"

@@ -12,7 +12,7 @@ const SETTINGS_ID = 'default';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const DEFAULT_BROADCAST_FROM = 'hello@builthai.com';
 const MAX_SUBJECT_LEN = 200;
-const MAX_HTML_LEN = 100_000;
+const MAX_HTML_LEN = 2_000_000;
 const MAX_BROADCAST_ATTACHMENTS = 5;
 const MAX_BROADCAST_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const MAX_BROADCAST_ATTACHMENTS_TOTAL_BYTES = 12 * 1024 * 1024;
@@ -315,13 +315,31 @@ function normalizeAttachmentContentType(raw: unknown): string {
 }
 
 function sanitizeBroadcastHtml(html: string): string {
-  return html
+  const cleaned = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<\/?(?:iframe|object|embed|link|meta)[^>]*>/gi, '')
     .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
     .replace(/(href|src)\s*=\s*(['"])\s*javascript:[^'"]*\2/gi, '$1="#"')
     .trim();
+
+  return cleaned.replace(/<img\b[^>]*>/gi, (tag) => sanitizeBroadcastImageTag(tag));
+}
+
+function sanitizeBroadcastImageTag(tag: string): string {
+  const srcMatch = tag.match(/\bsrc\s*=\s*(['"])(.*?)\1/i);
+  if (!srcMatch) return '';
+  const src = srcMatch[2]?.trim() ?? '';
+  const allowedSrc =
+    /^data:image\/(?:jpeg|png|gif|webp);base64,/i.test(src) ||
+    /^https:\/\//i.test(src);
+  if (!allowedSrc) return '';
+
+  const altMatch = tag.match(/\balt\s*=\s*(['"])(.*?)\1/i);
+  const alt = altMatch?.[2]
+    ? ` alt="${altMatch[2].replace(/"/g, '&quot;').slice(0, 200)}"`
+    : '';
+  return `<img src="${src.replace(/"/g, '&quot;')}"${alt}>`;
 }
 
 function htmlToPlainText(html: string): string {

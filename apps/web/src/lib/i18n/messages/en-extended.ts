@@ -633,6 +633,11 @@ export const enExtended = {
     settingsBroadcastSubject: "Subject",
     settingsBroadcastSubjectPlaceholder: "Message subject",
     settingsBroadcastBody: "Message",
+    settingsBroadcastInsertImage: "Insert image",
+    settingsBroadcastInlineImageTooLarge: "Image must be at most {maxSize}",
+    settingsBroadcastInlineImageTypeInvalid:
+      "Only JPEG, PNG, GIF, and WebP images can be inserted",
+    settingsBroadcastInlineImageReadFailed: "Failed to read the selected image",
     settingsBroadcastAttachments: "Attachments (optional)",
     settingsBroadcastAttachmentsHint:
       "Images, PDF, Word, Excel · up to {maxFiles} files, {maxSize} each",
