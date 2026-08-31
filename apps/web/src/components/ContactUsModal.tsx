@@ -126,8 +126,7 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 placeholder={t('header.contactFormContactPlaceholder')}
-                autoComplete="email"
-                inputMode="email"
+                autoComplete="email tel"
                 disabled={busy}
                 required
               />
