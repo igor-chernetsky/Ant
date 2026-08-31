@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FlashToast, type FlashToastState } from '@/components/FlashToast';
 import { useTranslation } from '@/components/LocaleProvider';
-import { submitContactMessage } from '@/lib/contact';
+import { parseContactInput, submitContactMessage } from '@/lib/contact';
 import { LEGAL_CONTACT_EMAIL } from '@/lib/legal/branding';
 import type { MeResponse } from '@/lib/session';
 
@@ -16,16 +16,14 @@ interface ContactUsModalProps {
 
 export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
   const { t } = useTranslation();
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [contact, setContact] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<FlashToastState | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
-    setEmail(me?.email?.trim() ?? '');
-    setPhone('');
+    setContact(me?.email?.trim() ?? '');
     setMessage('');
     setFlash(null);
   }, [isOpen, me?.email]);
@@ -54,8 +52,7 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
     setFlash(null);
     try {
       await submitContactMessage({
-        email: email.trim() || undefined,
-        phone: phone.trim() || undefined,
+        ...parseContactInput(contact),
         message: message.trim(),
       });
       setFlash({
@@ -113,8 +110,9 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
           <p className="muted contact-us-lead">{t('header.contactDialogLead')}</p>
 
           <div className="contact-us-actions">
-            <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="secondary">
-              {t('header.contactSendEmail', { email: LEGAL_CONTACT_EMAIL })}
+            <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="secondary contact-us-email-link">
+              <span>{t('header.contactSendEmail')}</span>
+              <span className="contact-us-email-address">{LEGAL_CONTACT_EMAIL}</span>
             </a>
           </div>
 
@@ -122,35 +120,23 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
 
           <form className="contact-us-form" onSubmit={(e) => void handleSubmit(e)}>
             <label className="contact-us-field">
-              {t('header.contactFormEmail')}
+              {t('header.contactFormContact')}
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                type="text"
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                placeholder={t('header.contactFormContactPlaceholder')}
                 autoComplete="email"
+                inputMode="email"
                 disabled={busy}
+                required
               />
             </label>
-
-            <label className="contact-us-field">
-              {t('header.contactFormPhone')}
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+66 ..."
-                autoComplete="tel"
-                disabled={busy}
-              />
-            </label>
-
-            <p className="muted contact-us-hint">{t('header.contactFormHint')}</p>
 
             <label className="contact-us-field">
               {t('header.contactFormMessage')}
               <textarea
-                rows={5}
+                rows={4}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={t('header.contactFormMessagePlaceholder')}
@@ -166,7 +152,7 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
               <button
                 type="submit"
                 className="primary"
-                disabled={busy || !message.trim() || (!email.trim() && !phone.trim())}
+                disabled={busy || !message.trim() || !contact.trim()}
               >
                 {busy ? t('common.pleaseWait') : t('header.contactFormSubmit')}
               </button>

@@ -4,6 +4,20 @@ export interface SubmitContactMessageInput {
   message: string;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+
+export function parseContactInput(value: string): {
+  email?: string;
+  phone?: string;
+} {
+  const trimmed = value.trim();
+  if (!trimmed) return {};
+  if (EMAIL_RE.test(trimmed)) {
+    return { email: trimmed.toLowerCase() };
+  }
+  return { phone: trimmed };
+}
+
 async function readError(response: Response, fallback: string): Promise<string> {
   const body = (await response.json().catch(() => null)) as {
     message?: string | string[];
