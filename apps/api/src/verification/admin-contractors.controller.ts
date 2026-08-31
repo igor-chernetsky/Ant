@@ -32,8 +32,14 @@ export class AdminContractorsController {
   }
 
   @Get()
-  list(@Query('status') status?: ContractorVerificationStatus) {
-    return this.adminContractors.listContractors(status);
+  list(
+    @Query('status') status?: ContractorVerificationStatus,
+    @Query('includeNoProfile') includeNoProfile?: string,
+  ) {
+    return this.adminContractors.listContractors(
+      status,
+      includeNoProfile === '1' || includeNoProfile === 'true',
+    );
   }
 
   @Get(':contractorId')

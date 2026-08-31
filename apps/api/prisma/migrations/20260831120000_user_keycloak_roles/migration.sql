@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "keycloak_roles" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

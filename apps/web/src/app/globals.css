@@ -12257,6 +12257,113 @@ select:disabled {
   margin-top: -0.15rem;
 }
 
+.contact-us-modal {
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  padding: 1.1rem 1.15rem 1.15rem;
+}
+
+.contact-us-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.contact-us-header .section-title {
+  margin: 0;
+}
+
+.contact-us-close {
+  flex-shrink: 0;
+}
+
+.contact-us-lead {
+  margin: 0 0 0.85rem;
+  font-size: 0.92rem;
+}
+
+.contact-us-actions {
+  margin-bottom: 0.85rem;
+}
+
+.contact-us-actions .secondary {
+  width: 100%;
+  text-align: center;
+  text-decoration: none;
+}
+
+.contact-us-divider {
+  margin: 0 0 0.85rem;
+  font-size: 0.84rem;
+  font-weight: 650;
+  color: var(--muted);
+  text-align: center;
+}
+
+.contact-us-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.contact-us-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.contact-us-field input,
+.contact-us-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-weight: 400;
+  padding: 0.58rem 0.72rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+}
+
+.contact-us-field textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.contact-us-hint {
+  margin: -0.15rem 0 0;
+  font-size: 0.82rem;
+}
+
+.contact-us-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-top: 0.15rem;
+}
+
+.admin-no-profile-hint {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 55%, #fff);
+  font-size: 0.88rem;
+}
+
+button.header-nav-link,
+.header-mobile-drawer-nav button.header-nav-link {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
 @keyframes flash-toast-in {
   from {
     opacity: 0;

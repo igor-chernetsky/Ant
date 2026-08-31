@@ -255,6 +255,7 @@ export const ruExtended = {
   },
   verificationStatus: {
     pending: "Ожидает",
+    no_profile: "Профиль не создан",
     awaiting_review: "На проверке",
     verified: "Подтверждён",
     suspended: "Приостановлен",
@@ -547,6 +548,8 @@ export const ruExtended = {
     filterRejected: "Отклонён",
     filterAll: "Все",
     noContractors: "Нет подрядчиков в этом фильтре.",
+    noProfileHint:
+      "Пользователь зарегистрировался как подрядчик, но ещё не создал профиль в портале.",
     contractorDetails: "Данные подрядчика",
     selectContractorPrompt:
       "Выберите подрядчика или проектировщика, чтобы посмотреть детали.",

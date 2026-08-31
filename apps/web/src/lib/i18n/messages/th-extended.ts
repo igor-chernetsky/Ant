@@ -255,6 +255,7 @@ export const thExtended = {
   },
   verificationStatus: {
     pending: "รอดำเนินการ",
+    no_profile: "ยังไม่มีโปรไฟล์",
     awaiting_review: "รอตรวจสอบ",
     verified: "ยืนยันแล้ว",
     suspended: "ระงับ",
@@ -544,6 +545,8 @@ export const thExtended = {
     filterRejected: "ปฏิเสธ",
     filterAll: "ทั้งหมด",
     noContractors: "ไม่มีผู้รับเหมาในตัวกรองนี้",
+    noProfileHint:
+      "ผู้ใช้ลงทะเบียนเป็นผู้รับเหมาแล้ว แต่ยังไม่ได้สร้างโปรไฟล์ในพอร์ทัล",
     contractorDetails: "รายละเอียดผู้รับเหมา",
     selectContractorPrompt:
       "เลือกผู้รับเหมาหรือผู้ออกแบบเพื่อดูรายละเอียด",

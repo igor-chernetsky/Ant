@@ -7,6 +7,7 @@ import {
   ContractorVerificationStatus,
   DocumentStatus,
   Prisma,
+  SupplyProfileKind,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -47,6 +48,7 @@ export class AdminContractorsService {
 
   async listContractors(
     status?: ContractorVerificationStatus,
+    includeNoProfile = false,
   ): Promise<AdminContractorListItem[]> {
     const profiles = await this.prisma.contractorProfile.findMany({
       where: status ? { verificationStatus: status } : undefined,
@@ -66,7 +68,74 @@ export class AdminContractorsService {
       ],
     });
 
-    return profiles.map((p) => ({
+    const items = profiles.map((p) => this.toListItem(p));
+
+    if (status !== ContractorVerificationStatus.pending || !includeNoProfile) {
+      return items;
+    }
+
+    const usersWithoutProfile = await this.prisma.user.findMany({
+      where: {
+        keycloakRoles: { has: 'contractor' },
+        contractorProfile: { is: null },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const profileUserIds = new Set(profiles.map((profile) => profile.userId));
+    const noProfileItems = usersWithoutProfile
+      .filter((user) => !profileUserIds.has(user.id))
+      .map((user) => this.toNoProfileListItem(user));
+
+    return [...items, ...noProfileItems].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }
+
+  async getContractor(contractorId: string): Promise<AdminContractorDetail> {
+    if (contractorId.startsWith('user:')) {
+      return this.getContractorWithoutProfile(contractorId.slice('user:'.length));
+    }
+
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { id: contractorId },
+      include: {
+        user: true,
+        verificationDocuments: {
+          where: { status: { not: DocumentStatus.deleted } },
+          orderBy: { createdAt: 'desc' },
+        },
+        _count: {
+          select: {
+            verificationDocuments: {
+              where: { status: DocumentStatus.uploaded },
+            },
+          },
+        },
+      },
+    });
+    if (!profile) {
+      throw new NotFoundException('Contractor not found');
+    }
+
+    return {
+      ...this.toListItem(profile),
+      projectTypes: profile.projectTypes,
+      tagSlugs: profile.tagSlugs,
+      documents: profile.verificationDocuments.map((d) => this.toDocResponse(d)),
+    };
+  }
+
+  private toListItem(
+    p: Prisma.ContractorProfileGetPayload<{
+      include: {
+        user: true;
+        _count: { select: { verificationDocuments: true } };
+      };
+    }>,
+  ): AdminContractorListItem {
+    return {
       id: p.id,
       userId: p.userId,
       email: p.user.email,
@@ -87,50 +156,59 @@ export class AdminContractorsService {
       verificationComment: p.verificationComment,
       documentCount: p._count.verificationDocuments,
       createdAt: p.createdAt.toISOString(),
-    }));
+      hasProfile: true,
+    };
   }
 
-  async getContractor(contractorId: string): Promise<AdminContractorDetail> {
-    const profile = await this.prisma.contractorProfile.findUnique({
-      where: { id: contractorId },
-      include: {
-        user: true,
-        verificationDocuments: {
-          where: { status: { not: DocumentStatus.deleted } },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
+  private toNoProfileListItem(user: {
+    id: string;
+    email: string | null;
+    displayName: string | null;
+    createdAt: Date;
+  }): AdminContractorListItem {
+    return {
+      id: `user:${user.id}`,
+      userId: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      companyName: null,
+      phone: null,
+      taxId: null,
+      preferredContactMethods: [],
+      bankName: null,
+      bankAccount: null,
+      regionCode: null,
+      kind: SupplyProfileKind.contractor,
+      verificationStatus: 'no_profile',
+      verificationRequestedAt: null,
+      verificationReviewedAt: null,
+      verificationComment: null,
+      documentCount: 0,
+      createdAt: user.createdAt.toISOString(),
+      hasProfile: false,
+    };
+  }
+
+  private async getContractorWithoutProfile(
+    userId: string,
+  ): Promise<AdminContractorDetail> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { contractorProfile: true },
     });
-    if (!profile) {
+    if (
+      !user ||
+      user.contractorProfile ||
+      !user.keycloakRoles.includes('contractor')
+    ) {
       throw new NotFoundException('Contractor not found');
     }
 
     return {
-      id: profile.id,
-      userId: profile.userId,
-      email: profile.user.email,
-      displayName: profile.user.displayName,
-      companyName: profile.companyName,
-      phone: profile.phone,
-      taxId: profile.taxId,
-      preferredContactMethods: normalizePreferredContactMethods(
-        profile.preferredContactMethods,
-      ),
-      bankName: profile.bankName,
-      bankAccount: profile.bankAccount,
-      regionCode: profile.regionCode,
-      kind: profile.kind,
-      projectTypes: profile.projectTypes,
-      tagSlugs: profile.tagSlugs,
-      verificationStatus: profile.verificationStatus,
-      verificationRequestedAt: profile.verificationRequestedAt?.toISOString() ?? null,
-      verificationReviewedAt: profile.verificationReviewedAt?.toISOString() ?? null,
-      verificationComment: profile.verificationComment,
-      documentCount: profile.verificationDocuments.filter(
-        (d) => d.status === DocumentStatus.uploaded,
-      ).length,
-      createdAt: profile.createdAt.toISOString(),
-      documents: profile.verificationDocuments.map((d) => this.toDocResponse(d)),
+      ...this.toNoProfileListItem(user),
+      projectTypes: [],
+      tagSlugs: [],
+      documents: [],
     };
   }
 

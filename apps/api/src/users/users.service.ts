@@ -14,6 +14,18 @@ import {
   type SupportedLocale,
 } from './locale.types';
 
+const PLATFORM_KEYCLOAK_ROLES = new Set([
+  'client',
+  'contractor',
+  'designer',
+  'admin',
+]);
+
+function extractPlatformKeycloakRoles(payload: JwtPayload): string[] {
+  const roles = payload.realm_access?.roles ?? [];
+  return [...new Set(roles.filter((role) => PLATFORM_KEYCLOAK_ROLES.has(role)))].sort();
+}
+
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
@@ -34,6 +46,7 @@ export class UsersService {
     const email = payload.email ?? null;
     const displayName =
       payload.name ?? payload.preferred_username ?? email ?? null;
+    const keycloakRoles = extractPlatformKeycloakRoles(payload);
 
     try {
       const existing = await this.prisma.user.findUnique({
@@ -46,12 +59,13 @@ export class UsersService {
           data: {
             email: email ?? undefined,
             displayName: displayName ?? undefined,
+            keycloakRoles,
           },
         });
       }
 
       const created = await this.prisma.user.create({
-        data: { keycloakSub, email, displayName },
+        data: { keycloakSub, email, displayName, keycloakRoles },
       });
 
       try {
@@ -95,6 +109,7 @@ export class UsersService {
             data: {
               email: email ?? undefined,
               displayName: displayName ?? undefined,
+              keycloakRoles,
             },
           });
         }

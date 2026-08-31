@@ -54,9 +54,11 @@ export default function AdminContractorsPage() {
   const statusQuery = filter === 'new_contractor' ? 'pending' : filter || undefined;
 
   const loadList = useCallback(async () => {
-    const items = await fetchAdminContractors(statusQuery);
+    const items = await fetchAdminContractors(statusQuery, {
+      includeNoProfile: filter === 'new_contractor',
+    });
     setList(items);
-  }, [statusQuery]);
+  }, [statusQuery, filter]);
 
   useEffect(() => {
     if (!sessionReady) return;
@@ -77,7 +79,11 @@ export default function AdminContractorsPage() {
 
   const filteredList = useMemo(() => {
     if (filter !== 'new_contractor') return list;
-    return list.filter((item) => item.verificationStatus === 'pending');
+    return list.filter(
+      (item) =>
+        item.verificationStatus === 'pending' ||
+        item.verificationStatus === 'no_profile',
+    );
   }, [filter, list]);
 
   const hasDesigners = filteredList.some((item) => item.kind === 'designer');
@@ -293,8 +299,9 @@ export default function AdminContractorsPage() {
                             </span>
                           </div>
                           <p className="muted doc-meta">
-                            {item.email ?? t('common.dash')} · {item.regionCode}{' '}
-                            · {item.documentCount} {t('common.docs')}
+                            {item.email ?? t('common.dash')} ·{' '}
+                            {item.regionCode ?? t('common.dash')} · {item.documentCount}{' '}
+                            {t('common.docs')}
                           </p>
                           {hasDesigners ? (
                             <div className="admin-contractor-role-row">
@@ -365,7 +372,7 @@ export default function AdminContractorsPage() {
                     </div>
                     <div>
                       <dt>{t('common.region')}</dt>
-                      <dd>{detail.regionCode}</dd>
+                      <dd>{detail.regionCode ?? t('common.dash')}</dd>
                     </div>
                     <div>
                       <dt>{t('contractor.preferredContactLabel')}</dt>
@@ -402,6 +409,10 @@ export default function AdminContractorsPage() {
                       </dd>
                     </div>
                   </dl>
+
+                  {!detail.hasProfile ? (
+                    <p className="admin-no-profile-hint muted">{t('admin.noProfileHint')}</p>
+                  ) : null}
 
                   <h3 className="tag-section-label">{t('admin.documents')}</h3>
                   {detail.documents.length === 0 ? (
@@ -447,7 +458,7 @@ export default function AdminContractorsPage() {
                     </ul>
                   )}
 
-                  {detail.verificationStatus === 'awaiting_review' && (
+                  {detail.hasProfile && detail.verificationStatus === 'awaiting_review' && (
                     <div className="admin-review-actions">
                       <button
                         type="button"

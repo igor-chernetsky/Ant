@@ -37,7 +37,7 @@ export interface AdminContractorListItem {
   preferredContactMethods: Array<'phone' | 'line' | 'whatsapp' | 'email'>;
   bankName: string | null;
   bankAccount: string | null;
-  regionCode: string;
+  regionCode: string | null;
   kind: SupplyProfileKind;
   verificationStatus: string;
   verificationRequestedAt: string | null;
@@ -45,6 +45,7 @@ export interface AdminContractorListItem {
   verificationComment: string | null;
   documentCount: number;
   createdAt: string;
+  hasProfile: boolean;
 }
 
 export interface AdminContractorDetail extends AdminContractorListItem {

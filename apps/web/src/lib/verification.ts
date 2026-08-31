@@ -2,6 +2,7 @@ import { fetchWithAuth } from './auth-client';
 
 export type ContractorVerificationStatus =
   | 'pending'
+  | 'no_profile'
   | 'awaiting_review'
   | 'verified'
   | 'rejected'
@@ -40,7 +41,7 @@ export interface AdminContractorListItem {
   preferredContactMethods: Array<'phone' | 'line' | 'whatsapp' | 'email'>;
   bankName: string | null;
   bankAccount: string | null;
-  regionCode: string;
+  regionCode: string | null;
   kind: SupplyProfileKind;
   verificationStatus: ContractorVerificationStatus;
   verificationRequestedAt: string | null;
@@ -48,6 +49,7 @@ export interface AdminContractorListItem {
   verificationComment: string | null;
   documentCount: number;
   createdAt: string;
+  hasProfile: boolean;
 }
 
 export interface AdminContractorDetail extends AdminContractorListItem {
@@ -198,8 +200,12 @@ function resolveVerificationContentType(file: File): string {
 
 export async function fetchAdminContractors(
   status?: ContractorVerificationStatus,
+  options?: { includeNoProfile?: boolean },
 ): Promise<AdminContractorListItem[]> {
-  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  if (options?.includeNoProfile) params.set('includeNoProfile', '1');
+  const qs = params.toString() ? `?${params.toString()}` : '';
   const response = await fetchWithAuth(`/api/admin/contractors${qs}`);
   if (response.status === 403) throw new Error('FORBIDDEN');
   if (!response.ok) {

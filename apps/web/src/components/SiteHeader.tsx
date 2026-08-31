@@ -12,6 +12,7 @@ import {
   type TouchEvent as ReactTouchEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { ContactUsModal } from '@/components/ContactUsModal';
 import { HeaderNotifications, HeaderNotificationsInline } from '@/components/HeaderNotifications';
 import { useInAppNotifications } from '@/components/InAppNotificationsProvider';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -37,8 +38,7 @@ type NavItem =
       label: string;
     }
   | {
-      kind: 'external';
-      href: string;
+      kind: 'contact';
       label: string;
     };
 
@@ -183,6 +183,7 @@ export function SiteHeader({
   const pathname = usePathname() || '/';
   const { unreadCount } = useInAppNotifications();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
   const [dragX, setDragX] = useState(0);
   const menuTitleId = useId();
   const touchRef = useRef<{
@@ -205,8 +206,7 @@ export function SiteHeader({
     { kind: 'link', href: '/materials', label: t('header.materials') },
     { kind: 'link', href: '/help', label: t('header.help') },
     {
-      kind: 'external',
-      href: 'mailto:hello@builthai.com',
+      kind: 'contact',
       label: t('header.contactUs'),
     },
   ];
@@ -349,16 +349,19 @@ export function SiteHeader({
   };
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
-    if (item.kind === 'external') {
+    if (item.kind === 'contact') {
       return (
-        <a
-          key={item.href}
-          href={item.href}
+        <button
+          key="contact-us"
+          type="button"
           className="header-nav-link"
-          onClick={onNavigate}
+          onClick={() => {
+            onNavigate?.();
+            setContactOpen(true);
+          }}
         >
           {item.label}
-        </a>
+        </button>
       );
     }
 
@@ -571,6 +574,12 @@ export function SiteHeader({
       </div>
 
       <div id="header-mobile-menu">{mobileMenu}</div>
+
+      <ContactUsModal
+        isOpen={contactOpen}
+        onClose={() => setContactOpen(false)}
+        me={me}
+      />
     </header>
   );
 }

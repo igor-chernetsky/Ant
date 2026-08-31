@@ -255,6 +255,7 @@ export const enExtended = {
   },
   verificationStatus: {
     pending: "Pending",
+    no_profile: "No profile yet",
     awaiting_review: "Awaiting review",
     verified: "Verified",
     suspended: "Suspended",
@@ -546,6 +547,8 @@ export const enExtended = {
     filterRejected: "Rejected",
     filterAll: "All",
     noContractors: "No contractors in this filter.",
+    noProfileHint:
+      "This user registered as a contractor but has not created a supply profile yet.",
     contractorDetails: "Contractor details",
     selectContractorPrompt: "Select a contractor or designer to review details.",
     documents: "Documents",
