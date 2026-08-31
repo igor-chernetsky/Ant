@@ -144,6 +144,26 @@ function HeaderAccountMenu({
   );
 }
 
+function EnvelopeIcon() {
+  return (
+    <svg
+      className="header-nav-link-icon"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </svg>
+  );
+}
+
 function MenuIcon({ open }: { open: boolean }) {
   return (
     <svg
@@ -205,11 +225,12 @@ export function SiteHeader({
     { kind: 'link', href: '/', label: t('header.projects') },
     { kind: 'link', href: '/materials', label: t('header.materials') },
     { kind: 'link', href: '/help', label: t('header.help') },
-    {
-      kind: 'contact',
-      label: t('header.contactUs'),
-    },
   ];
+
+  const contactNavItem: NavItem = {
+    kind: 'contact',
+    label: t('header.contactUs'),
+  };
 
   const roleNav: NavItem[] = [];
   if (isContractor) {
@@ -255,7 +276,7 @@ export function SiteHeader({
       ]
     : [];
 
-  const desktopNav = [...primaryNav, ...roleNav, ...adminNav];
+  const desktopNav = [...primaryNav, ...roleNav, ...adminNav, contactNavItem];
 
   const closeMenu = useCallback(() => {
     setMenuOpen(false);
@@ -360,6 +381,7 @@ export function SiteHeader({
             setContactOpen(true);
           }}
         >
+          <EnvelopeIcon />
           {item.label}
         </button>
       );
@@ -474,6 +496,10 @@ export function SiteHeader({
                     {adminNav.map((item) => renderNavItem(item, closeMenu))}
                   </div>
                 )}
+
+                <div className="header-mobile-drawer-section">
+                  {renderNavItem(contactNavItem, closeMenu)}
+                </div>
               </nav>
 
               {me ? (

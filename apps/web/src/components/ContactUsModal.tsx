@@ -116,7 +116,13 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
             </a>
           </div>
 
-          <p className="contact-us-divider">{t('header.contactOrSendForm')}</p>
+          <div
+            className="contact-us-divider"
+            role="separator"
+            aria-label={t('header.contactOrSendForm')}
+          >
+            <span>{t('header.contactOrSendForm')}</span>
+          </div>
 
           <form className="contact-us-form" onSubmit={(e) => void handleSubmit(e)}>
             <label className="contact-us-field">

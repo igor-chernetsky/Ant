@@ -220,6 +220,7 @@ body {
 .header-nav-link {
   display: inline-flex;
   align-items: center;
+  gap: 0.35rem;
   height: 2.25rem;
   padding: 0 0.7rem;
   border-radius: 8px;
@@ -244,6 +245,12 @@ body {
 .header-nav-link-active:hover {
   background: rgba(37, 99, 235, 0.16);
   color: #1e40af;
+}
+
+.header-nav-link-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
 }
 
 .header-utilities-divider {
@@ -12320,11 +12327,30 @@ select:disabled {
 }
 
 .contact-us-divider {
-  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0.15rem 0 0.85rem;
+  min-width: 0;
+}
+
+.contact-us-divider::before,
+.contact-us-divider::after {
+  content: '';
+  flex: 1 1 0;
+  min-width: 0;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+.contact-us-divider span {
+  flex: 0 1 auto;
   font-size: 0.82rem;
   font-weight: 650;
   color: var(--muted);
   text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .contact-us-form {
@@ -12390,7 +12416,8 @@ button.header-nav-link,
 .header-mobile-drawer-nav button.header-nav-link {
   border: 0;
   background: transparent;
-  font: inherit;
+  font-family: inherit;
+  font-weight: 550;
   cursor: pointer;
   appearance: none;
 }
