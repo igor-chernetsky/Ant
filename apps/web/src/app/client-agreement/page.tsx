@@ -1,15 +1,8 @@
-'use client';
+import { marketingPages } from '@/lib/seo';
+import { ClientAgreementPageClient } from './client-agreement-client';
 
-import { useLocale } from '@/components/LocaleProvider';
-import { LegalDocumentPage } from '@/components/LegalDocumentPage';
-import { getClientAgreement } from '@/lib/legal';
+export const metadata = marketingPages.clientAgreement;
 
 export default function ClientAgreementPage() {
-  const { locale } = useLocale();
-  return (
-    <LegalDocumentPage
-      document={getClientAgreement(locale)}
-      breadcrumbKey="clientAgreement"
-    />
-  );
+  return <ClientAgreementPageClient />;
 }

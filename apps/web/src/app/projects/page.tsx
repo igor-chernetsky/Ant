@@ -1,20 +1,8 @@
-'use client';
+import { noIndexMetadata } from '@/lib/seo';
+import { ProjectsRedirectPageClient } from './projects-redirect-client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useTranslation } from '@/components/LocaleProvider';
+export const metadata = noIndexMetadata();
 
 export default function ProjectsRedirectPage() {
-  const router = useRouter();
-  const { t } = useTranslation();
-
-  useEffect(() => {
-    router.replace('/');
-  }, [router]);
-
-  return (
-    <main className="content-container main-content">
-      <p className="muted">{t('home.redirecting')}</p>
-    </main>
-  );
+  return <ProjectsRedirectPageClient />;
 }

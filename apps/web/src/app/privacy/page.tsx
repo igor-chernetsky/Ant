@@ -1,15 +1,8 @@
-'use client';
+import { marketingPages } from '@/lib/seo';
+import { PrivacyPageClient } from './privacy-client';
 
-import { useLocale } from '@/components/LocaleProvider';
-import { LegalDocumentPage } from '@/components/LegalDocumentPage';
-import { getPrivacyPolicy } from '@/lib/legal';
+export const metadata = marketingPages.privacy;
 
 export default function PrivacyPage() {
-  const { locale } = useLocale();
-  return (
-    <LegalDocumentPage
-      document={getPrivacyPolicy(locale)}
-      breadcrumbKey="privacyPolicy"
-    />
-  );
+  return <PrivacyPageClient />;
 }

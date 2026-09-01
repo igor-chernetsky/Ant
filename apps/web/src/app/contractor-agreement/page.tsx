@@ -1,15 +1,8 @@
-'use client';
+import { marketingPages } from '@/lib/seo';
+import { ContractorAgreementPageClient } from './contractor-agreement-client';
 
-import { useLocale } from '@/components/LocaleProvider';
-import { LegalDocumentPage } from '@/components/LegalDocumentPage';
-import { getContractorAgreement } from '@/lib/legal';
+export const metadata = marketingPages.contractorAgreement;
 
 export default function ContractorAgreementPage() {
-  const { locale } = useLocale();
-  return (
-    <LegalDocumentPage
-      document={getContractorAgreement(locale)}
-      breadcrumbKey="contractorAgreement"
-    />
-  );
+  return <ContractorAgreementPageClient />;
 }

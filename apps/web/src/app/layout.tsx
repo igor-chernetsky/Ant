@@ -1,11 +1,22 @@
 import type { Metadata, Viewport } from 'next';
+import { cookies } from 'next/headers';
 import { GoogleAnalytics } from '@/components/GoogleAnalytics';
 import { InAppNotificationsProvider } from '@/components/InAppNotificationsProvider';
+import { JsonLd } from '@/components/JsonLd';
 import { LocaleProvider } from '@/components/LocaleProvider';
 import { NotificationToasts } from '@/components/NotificationToasts';
 import { SessionProvider } from '@/components/SessionProvider';
 import './globals.css';
 import { resolveAppBaseUrl } from '@/lib/app-base-url';
+import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE } from '@/lib/i18n';
+import { organizationJsonLd, websiteJsonLd } from '@/lib/seo-jsonld';
+import {
+  DEFAULT_DESCRIPTION,
+  DEFAULT_TITLE,
+  OPEN_GRAPH_ALTERNATE_LOCALES,
+  OPEN_GRAPH_LOCALE,
+  SITE_NAME,
+} from '@/lib/seo';
 
 function trimOrigin(value: string | undefined): string | null {
   const trimmed = value?.trim().replace(/\/$/, '');
@@ -27,9 +38,8 @@ const ogAssetOrigin =
     : null) ||
   siteUrl;
 
-const title = 'BuilTHAI — Construction Marketplace';
-const description =
-  'AI-powered construction platform: browse projects, compare bids, and manage contracts in Thailand.';
+const title = DEFAULT_TITLE;
+const description = DEFAULT_DESCRIPTION;
 
 const ogImageUrl = `${ogAssetOrigin}/og.png`;
 
@@ -41,7 +51,10 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title,
+  title: {
+    default: title,
+    template: `%s | ${SITE_NAME}`,
+  },
   description,
   icons: {
     icon: '/logosm.png',
@@ -49,7 +62,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    locale: 'en_US',
+    locale: OPEN_GRAPH_LOCALE,
+    alternateLocale: [...OPEN_GRAPH_ALTERNATE_LOCALES],
     url: siteUrl,
     siteName: 'BuilTHAI',
     title,
@@ -71,14 +85,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get(LOCALE_COOKIE)?.value;
+  const lang =
+    localeCookie && isLocale(localeCookie) ? localeCookie : DEFAULT_LOCALE;
+
   return (
-    <html lang="en">
+    <html lang={lang}>
       <body>
+        <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         <SessionProvider>
           <LocaleProvider>
             <InAppNotificationsProvider>

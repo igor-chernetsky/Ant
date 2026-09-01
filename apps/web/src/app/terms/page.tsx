@@ -1,15 +1,8 @@
-'use client';
+import { marketingPages } from '@/lib/seo';
+import { TermsPageClient } from './terms-client';
 
-import { useLocale } from '@/components/LocaleProvider';
-import { LegalDocumentPage } from '@/components/LegalDocumentPage';
-import { getTermsOfService } from '@/lib/legal';
+export const metadata = marketingPages.terms;
 
 export default function TermsPage() {
-  const { locale } = useLocale();
-  return (
-    <LegalDocumentPage
-      document={getTermsOfService(locale)}
-      breadcrumbKey="termsOfService"
-    />
-  );
+  return <TermsPageClient />;
 }
