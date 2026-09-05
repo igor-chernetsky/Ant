@@ -731,6 +731,8 @@ export const ruExtended = {
   emailVerified: {
     successTitle: "Email подтверждён",
     successLead: "Ваш адрес подтверждён. Войдите и начните использовать BuilTHAI.",
+    signedInTitle: "Вы вошли",
+    signedInLead: "Email подтверждён, вы вошли в аккаунт. Переходим в приложение…",
     failedTitle: "Ошибка подтверждения",
     errorExpired: "Ссылка подтверждения истекла. Войдите и запросите новое письмо или создайте новый аккаунт.",
     errorInvalid: "Ссылка недействительна или уже использована.",

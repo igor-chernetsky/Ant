@@ -1,6 +1,7 @@
 import { sendAppVerificationEmail } from '@/lib/send-verification-email';
 import { sendAppPasswordResetEmail } from '@/lib/send-password-reset-email';
 import { resolveAppBaseUrl } from '@/lib/app-base-url';
+import { getKeycloakBffCredentials } from '@/lib/auth-server';
 import { isAppEmailVerificationConfigured } from '@/lib/email-verification-token';
 import { isAppPasswordResetConfigured } from '@/lib/password-reset-token';
 
@@ -395,6 +396,88 @@ export async function verifyUserEmailByToken(
   }
 
   return 'success';
+}
+
+/**
+ * Exchange the Keycloak admin token for the target user's access/refresh
+ * tokens (OAuth token-exchange / impersonation). Used to sign a user in
+ * immediately after they verify their email — no password re-entry needed.
+ *
+ * Requires the Keycloak side to be configured:
+ *   - the admin account must have the `impersonation` permission on the realm,
+ *   - `platform-bff` must be a confidential client allowed to use
+ *     token-exchange (grant_type `urn:ietf:params:oauth:grant-type:token-exchange`).
+ */
+export async function exchangeAdminTokenForUser(keycloakUserId: string): Promise<{
+  access_token?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  refresh_expires_in?: number;
+} | null> {
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+
+  let adminToken: string | null = null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch {
+    return null;
+  }
+  if (!adminToken) return null;
+
+  let bff: { clientId: string; clientSecret: string };
+  try {
+    bff = getKeycloakBffCredentials();
+  } catch {
+    return null;
+  }
+
+  const params = new URLSearchParams({
+    grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+    subject_token: adminToken,
+    subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+    requested_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+    requested_subject: keycloakUserId,
+    audience: bff.clientId,
+    scope: 'openid profile email offline_access',
+    client_id: bff.clientId,
+    client_secret: bff.clientSecret,
+  });
+
+  try {
+    const response = await fetch(
+      `${baseUrl}/realms/${realm}/protocol/openid-connect/token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+        cache: 'no-store',
+      },
+    );
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.warn(
+        `[auth-keycloak] token exchange failed (${response.status}): ${text.slice(0, 200)}`,
+      );
+      return null;
+    }
+
+    const data = (await response.json()) as {
+      access_token?: string;
+      refresh_token?: string;
+      expires_in?: number;
+      refresh_expires_in?: number;
+    };
+
+    return data.access_token ? data : null;
+  } catch (err) {
+    console.warn(
+      `[auth-keycloak] token exchange error: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+    return null;
+  }
 }
 
 async function sendKeycloakVerificationEmail(

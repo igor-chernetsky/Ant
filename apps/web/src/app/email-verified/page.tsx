@@ -1,16 +1,42 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
+import { fetchSessionProfile } from '@/lib/session';
 
 function EmailVerifiedContent() {
   const { t } = useTranslation();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
   const verified = searchParams.get('verified') === '1';
+
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    if (!verified || error) return;
+
+    let cancelled = false;
+    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
+
+    (async () => {
+      const profile = await fetchSessionProfile();
+      if (cancelled) return;
+      if (profile) {
+        setSignedIn(true);
+        // Brief confirmation, then land on the app while already signed in.
+        redirectTimer = setTimeout(() => router.replace('/'), 1800);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (redirectTimer) clearTimeout(redirectTimer);
+    };
+  }, [verified, error, router]);
 
   const isSuccess = verified && !error;
 
@@ -31,9 +57,15 @@ function EmailVerifiedContent() {
             <div className="verify-email-icon verify-email-icon--success" aria-hidden>
               ✓
             </div>
-            <h1 className="verify-email-title">{t('emailVerified.successTitle')}</h1>
+            <h1 className="verify-email-title">
+              {signedIn
+                ? t('emailVerified.signedInTitle')
+                : t('emailVerified.successTitle')}
+            </h1>
             <p className="verify-email-lead muted">
-              {t('emailVerified.successLead')}
+              {signedIn
+                ? t('emailVerified.signedInLead')
+                : t('emailVerified.successLead')}
             </p>
           </>
         ) : (

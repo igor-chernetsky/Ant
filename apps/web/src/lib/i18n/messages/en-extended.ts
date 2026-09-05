@@ -729,6 +729,8 @@ export const enExtended = {
   emailVerified: {
     successTitle: "Email verified",
     successLead: "Your address is confirmed. You can sign in and start using BuilTHAI.",
+    signedInTitle: "You're signed in",
+    signedInLead: "Your email is verified and you're now signed in. Taking you to the app…",
     failedTitle: "Verification failed",
     errorExpired: "This verification link has expired. Sign in and request a new verification email, or create a new account.",
     errorInvalid: "This verification link is invalid or has already been used.",
