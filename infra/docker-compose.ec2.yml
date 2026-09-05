@@ -90,8 +90,10 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "false"
       KC_HOSTNAME_STRICT: "false"
-      # Enable OAuth token-exchange (RFC 8693) for email-verification auto-login.
-      KC_FEATURES: token-exchange
+      # Enable OAuth token-exchange (RFC 8693) + fine-grained admin permissions
+      # (needed for the impersonate/user-impersonated policies used by
+      # email-verification auto-login).
+      KC_FEATURES: token-exchange,admin-fine-grained-authz
       # Cap JVM heap on small instances (start-dev mode)
       JAVA_OPTS_APPEND: "-Xms128m -Xmx512m"
     # start-dev skips the heavy "build server image" step that OOMs on t2.micro/t3.small
