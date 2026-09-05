@@ -490,7 +490,6 @@ export async function exchangeAdminTokenForUser(keycloakUserId: string): Promise
     subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
     requested_token_type: 'urn:ietf:params:oauth:token-type:access_token',
     requested_subject: keycloakUserId,
-    audience: bff.clientId,
     scope: 'openid profile email offline_access',
     client_id: bff.clientId,
     client_secret: bff.clientSecret,
