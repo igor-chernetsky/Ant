@@ -22,12 +22,19 @@ docker ps -q --filter "name=construction-platform-api-run" | xargs -r docker sto
 log "Ensure Postgres is up"
 docker compose -f "$COMPOSE_FILE" up -d postgres
 
-log "Start MinIO if full profile is enabled in .env (COMPOSE_PROFILES=full)"
-docker compose -f "$COMPOSE_FILE" --profile full up -d minio minio-init 2>/dev/null || true
+log "Start MinIO only when explicitly enabled (AWS S3 is the default)"
+if [ "${COMPOSE_PROFILES:-}" = "full" ]; then
+  docker compose -f "$COMPOSE_FILE" --profile full up -d minio minio-init 2>/dev/null || true
+else
+  log "Skipping MinIO — set COMPOSE_PROFILES=full to enable it"
+fi
 
 log "Build API image (this is the slow step on EC2; needs ~1.5GB RAM during compile)"
 # Optional on t3.micro/small: sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
 docker compose -f "$COMPOSE_FILE" build api
+
+log "Re-ensure Postgres is up after the build (build can OOM-starve it on small EC2)"
+docker compose -f "$COMPOSE_FILE" up -d postgres
 
 log "Start API (entrypoint runs migrate + node)"
 docker compose -f "$COMPOSE_FILE" up -d --force-recreate api
