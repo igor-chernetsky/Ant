@@ -1,7 +1,6 @@
 import { sendAppVerificationEmail } from '@/lib/send-verification-email';
 import { sendAppPasswordResetEmail } from '@/lib/send-password-reset-email';
 import { resolveAppBaseUrl } from '@/lib/app-base-url';
-import { getKeycloakBffCredentials } from '@/lib/auth-server';
 import { isAppEmailVerificationConfigured } from '@/lib/email-verification-token';
 import { isAppPasswordResetConfigured } from '@/lib/password-reset-token';
 
@@ -473,16 +472,11 @@ export async function exchangeAdminTokenForUser(keycloakUserId: string): Promise
     return null;
   }
 
-  let bff: { clientId: string; clientSecret: string };
-  try {
-    bff = getKeycloakBffCredentials();
-  } catch (err) {
-    console.error(
-      '[auth-keycloak] token exchange: BFF credentials missing:',
-      err instanceof Error ? err.message : String(err),
-    );
-    return null;
-  }
+  // The exchange must authenticate as the CLIENT THAT ISSUED the subject token
+  // (the admin's `admin-cli` token), while `audience` targets `platform-bff`
+  // (which holds offline_access and is what the BFF/API consume). Authenticating
+  // as `platform-bff` itself triggers "Client is not within the token audience".
+  const audience = process.env.KEYCLOAK_BFF_CLIENT_ID?.trim() || 'platform-bff';
 
   const params = new URLSearchParams({
     grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
@@ -490,9 +484,9 @@ export async function exchangeAdminTokenForUser(keycloakUserId: string): Promise
     subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
     requested_token_type: 'urn:ietf:params:oauth:token-type:access_token',
     requested_subject: keycloakUserId,
+    audience,
     scope: 'openid profile email offline_access',
-    client_id: bff.clientId,
-    client_secret: bff.clientSecret,
+    client_id: 'admin-cli',
   });
 
   try {
