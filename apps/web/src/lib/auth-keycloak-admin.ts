@@ -82,10 +82,14 @@ async function fetchAdminAccessToken(): Promise<string | null> {
   });
 
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
-    if (!baseUrl) return null;
-    const masterTokenUrl = `${baseUrl}/realms/master/protocol/openid-connect/token`;
-    const response = await fetch(masterTokenUrl, {
+    const { baseUrl, realm } = getKeycloakBaseAndRealm();
+    // Authenticate the admin against the TARGET realm, not `master`. Token
+    // exchange (impersonation) can only act on users within the realm the
+    // subject token belongs to, so the admin account must be a user of
+    // `construction-marketplace` with the realm-management `impersonation`
+    // (or `realm-admin`) role.
+    const tokenUrl = `${baseUrl}/realms/${realm}/protocol/openid-connect/token`;
+    const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),
