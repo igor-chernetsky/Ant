@@ -72,23 +72,38 @@ function getKeycloakAdminCredentials(): { username: string; password: string } {
   return { username, password };
 }
 
-async function fetchAdminAccessToken(): Promise<string | null> {
-  const { username, password } = getKeycloakAdminCredentials();
+/**
+ * Realm-local admin used ONLY for token-exchange (impersonation). Impersonation
+ * requires a subject in the SAME realm as the target user, so this must be an
+ * account in `construction-marketplace` with the `realm-admin` (or
+ * `impersonation`) role. Falls back to KEYCLOAK_ADMIN when not set.
+ */
+function getRealmAdminCredentials(): { username: string; password: string } {
+  const username =
+    process.env.KEYCLOAK_REALM_ADMIN?.trim() ||
+    process.env.KEYCLOAK_ADMIN?.trim() ||
+    process.env.KEYCLOAK_ADMIN_USERNAME?.trim();
+  const password =
+    process.env.KEYCLOAK_REALM_ADMIN_PASSWORD?.trim() ||
+    process.env.KEYCLOAK_ADMIN_PASSWORD?.trim();
+  if (!username || !password) {
+    throw new Error('Missing realm admin credentials for token exchange');
+  }
+  return { username, password };
+}
+
+async function fetchTokenWithPasswordGrant(
+  tokenUrl: string,
+  username: string,
+  password: string,
+): Promise<string | null> {
   const params = new URLSearchParams({
     grant_type: 'password',
     client_id: 'admin-cli',
     username,
     password,
   });
-
   try {
-    const { baseUrl, realm } = getKeycloakBaseAndRealm();
-    // Authenticate the admin against the TARGET realm, not `master`. Token
-    // exchange (impersonation) can only act on users within the realm the
-    // subject token belongs to, so the admin account must be a user of
-    // `construction-marketplace` with the realm-management `impersonation`
-    // (or `realm-admin`) role.
-    const tokenUrl = `${baseUrl}/realms/${realm}/protocol/openid-connect/token`;
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -101,6 +116,27 @@ async function fetchAdminAccessToken(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+async function fetchAdminAccessToken(): Promise<string | null> {
+  const { username, password } = getKeycloakAdminCredentials();
+  const baseUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
+  if (!baseUrl) return null;
+  return fetchTokenWithPasswordGrant(
+    `${baseUrl}/realms/master/protocol/openid-connect/token`,
+    username,
+    password,
+  );
+}
+
+async function fetchRealmAdminAccessToken(): Promise<string | null> {
+  const { username, password } = getRealmAdminCredentials();
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  return fetchTokenWithPasswordGrant(
+    `${baseUrl}/realms/${realm}/protocol/openid-connect/token`,
+    username,
+    password,
+  );
 }
 
 function normalizeRoles(roles: string[]): SelfAssignableRole[] {
@@ -422,7 +458,7 @@ export async function exchangeAdminTokenForUser(keycloakUserId: string): Promise
 
   let adminToken: string | null = null;
   try {
-    adminToken = await fetchAdminAccessToken();
+    adminToken = await fetchRealmAdminAccessToken();
   } catch {
     return null;
   }
