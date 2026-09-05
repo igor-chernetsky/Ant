@@ -25,6 +25,73 @@ const ROLE_KEYS = {
   designer: 'auth.roleDesigner',
 } as const;
 
+const ROLE_DESC_KEYS = {
+  client: 'auth.roleClientDesc',
+  contractor: 'auth.roleContractorDesc',
+  designer: 'auth.roleDesignerDesc',
+} as const;
+
+const ROLE_ORDER: Array<keyof typeof ROLE_KEYS> = [
+  'client',
+  'contractor',
+  'designer',
+];
+
+function RoleGlyph({ role }: { role: keyof typeof ROLE_KEYS }) {
+  const stroke = {
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.75,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  };
+  if (role === 'client') {
+    return (
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden focusable="false">
+        <path {...stroke} d="M3 11.2 12 4l9 7.2" />
+        <path {...stroke} d="M5.5 9.8V20h13V9.8" />
+        <path {...stroke} d="M10 20v-5.5h4V20" />
+      </svg>
+    );
+  }
+  if (role === 'contractor') {
+    return (
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden focusable="false">
+        <path {...stroke} d="M5 14.5a7 7 0 0 1 14 0" />
+        <path
+          {...stroke}
+          d="M12 8a5.3 5.3 0 0 0-5.3 5.3V16h10.6v-2.7A5.3 5.3 0 0 0 12 8Z"
+        />
+        <path {...stroke} d="M3.5 16h17" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden focusable="false">
+      <path
+        {...stroke}
+        d="M4 20l1.2-4.8L16.4 4l3.6 3.6L9.6 18.2 4 20Z"
+      />
+      <path {...stroke} d="M14.5 6.5l3 3" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden focusable="false">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M5 12.5l4.5 4.5L19 7"
+      />
+    </svg>
+  );
+}
+
 function EyeIcon({ crossed }: { crossed?: boolean }) {
   return (
     <svg
@@ -302,18 +369,18 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                   {t('auth.roleLegend')}
                 </legend>
                 <p className="muted tag-hint">{t('auth.roleHint')}</p>
-                <div className="tag-picker">
-                  {(
-                    Object.entries(ROLE_KEYS) as Array<
-                      [keyof typeof ROLE_KEYS, string]
-                    >
-                  ).map(([id, labelKey]) => {
+                <div
+                  className="auth-role-options"
+                  role="group"
+                  aria-label={t('auth.roleLegend')}
+                >
+                  {ROLE_ORDER.map((id) => {
                     const selected = roles.includes(id);
                     return (
                       <button
                         key={id}
                         type="button"
-                        className={`tag-chip ${selected ? 'tag-chip-selected' : ''}`}
+                        className={`role-option${selected ? ' role-option--selected' : ''}`}
                         aria-pressed={selected}
                         onClick={() =>
                           setRoles((prev) => {
@@ -326,7 +393,20 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                         }
                         disabled={submitting}
                       >
-                        {t(labelKey)}
+                        <span className="role-option-icon" aria-hidden="true">
+                          <RoleGlyph role={id} />
+                        </span>
+                        <span className="role-option-body">
+                          <span className="role-option-title">
+                            {t(ROLE_KEYS[id])}
+                          </span>
+                          <span className="role-option-desc">
+                            {t(ROLE_DESC_KEYS[id])}
+                          </span>
+                        </span>
+                        <span className="role-option-check" aria-hidden="true">
+                          {selected ? <CheckIcon /> : null}
+                        </span>
                       </button>
                     );
                   })}

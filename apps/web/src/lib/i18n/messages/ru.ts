@@ -185,7 +185,7 @@ export const ru: Messages = {
     emailPlaceholder: 'you@example.com',
     roleLegend: 'Ваши роли',
     roleHint:
-      'Выберите, как вы будете использовать платформу. Позже можно изменить.',
+      'Выберите одну или несколько ролей. Позже можно изменить.',
     signingIn: 'Вход…',
     creatingAccount: 'Создание аккаунта…',
     createAccountButton: 'Создать аккаунт',
@@ -210,6 +210,10 @@ export const ru: Messages = {
     roleClient: 'Заказчик',
     roleContractor: 'Подрядчик',
     roleDesigner: 'Дизайнер',
+    roleClientDesc: 'Хочу опубликовать проект и нанять специалистов.',
+    roleContractorDesc: 'Хочу находить проекты и подавать предложения.',
+    roleDesignerDesc:
+      'Хочу предлагать услуги проектирования и оформления разрешений.',
     acceptPrivacyPrefix: 'Я принимаю',
     acceptTermsPrefix: 'Я принимаю',
     acceptClientAgreementPrefix: 'Я принимаю',

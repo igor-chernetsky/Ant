@@ -5248,6 +5248,112 @@ pre {
   margin-top: 0;
 }
 
+.auth-role-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.role-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.role-option:hover {
+  border-color: var(--accent);
+}
+
+.role-option:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.role-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.role-option--selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.role-option-icon {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: var(--muted);
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.role-option--selected .role-option-icon {
+  background: var(--accent);
+  color: #fff;
+}
+
+.role-option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.role-option-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+.role-option--selected .role-option-title {
+  color: var(--accent);
+}
+
+.role-option-desc {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.role-option-check {
+  flex: none;
+  margin-left: auto;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 999px;
+  color: #fff;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.role-option--selected .role-option-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
 .trade-tag-picker {
   display: flex;
   flex-direction: column;
