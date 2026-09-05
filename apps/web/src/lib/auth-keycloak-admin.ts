@@ -459,15 +459,28 @@ export async function exchangeAdminTokenForUser(keycloakUserId: string): Promise
   let adminToken: string | null = null;
   try {
     adminToken = await fetchRealmAdminAccessToken();
-  } catch {
+  } catch (err) {
+    console.error(
+      '[auth-keycloak] token exchange: realm admin token error:',
+      err instanceof Error ? err.message : String(err),
+    );
     return null;
   }
-  if (!adminToken) return null;
+  if (!adminToken) {
+    console.error(
+      '[auth-keycloak] token exchange: could not obtain realm admin token (check KEYCLOAK_REALM_ADMIN / KEYCLOAK_REALM_ADMIN_PASSWORD and admin-cli direct access grants)',
+    );
+    return null;
+  }
 
   let bff: { clientId: string; clientSecret: string };
   try {
     bff = getKeycloakBffCredentials();
-  } catch {
+  } catch (err) {
+    console.error(
+      '[auth-keycloak] token exchange: BFF credentials missing:',
+      err instanceof Error ? err.message : String(err),
+    );
     return null;
   }
 
@@ -496,8 +509,8 @@ export async function exchangeAdminTokenForUser(keycloakUserId: string): Promise
 
     if (!response.ok) {
       const text = await response.text();
-      console.warn(
-        `[auth-keycloak] token exchange failed (${response.status}): ${text.slice(0, 200)}`,
+      console.error(
+        `[auth-keycloak] token exchange failed (${response.status}): ${text.slice(0, 2000)}`,
       );
       return null;
     }
@@ -511,7 +524,7 @@ export async function exchangeAdminTokenForUser(keycloakUserId: string): Promise
 
     return data.access_token ? data : null;
   } catch (err) {
-    console.warn(
+    console.error(
       `[auth-keycloak] token exchange error: ${
         err instanceof Error ? err.message : String(err)
       }`,
