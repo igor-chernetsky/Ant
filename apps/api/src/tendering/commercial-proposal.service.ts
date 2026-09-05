@@ -632,6 +632,10 @@ export class CommercialProposalService {
         contractorSignedAt: true,
         clientSignatureDataUrl: true,
         contractorSignatureDataUrl: true,
+        clientOrgName: true,
+        clientSignatoryName: true,
+        contractorOrgName: true,
+        contractorSignatoryName: true,
       },
     });
 
@@ -657,13 +661,17 @@ export class CommercialProposalService {
       })),
       employerName:
         localized.contractTerms.employerName?.trim() ||
+        contract?.clientOrgName ||
         project.client.displayName ||
         bid.tender.project.client.email ||
         copy.employerFallback,
       employerEmail: project.client.email,
-      employerDisplayName: project.client.displayName,
+      employerDisplayName:
+        contract?.clientSignatoryName || project.client.displayName,
       contractorCompanyName:
-        bid.contractor.companyName ?? copy.contractorFallback,
+        contract?.contractorOrgName ??
+        bid.contractor.companyName ??
+        copy.contractorFallback,
       submittedAt: bid.submittedAt?.toISOString() ?? null,
       locale: targetLocale,
       projectType: project.projectType,

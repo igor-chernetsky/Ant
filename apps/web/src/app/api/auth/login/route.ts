@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   diagnoseKeycloakLoginFailure,
-  repairKeycloakUserAuth,
   resolveKeycloakLoginIdentifiers,
-  shouldAttemptKeycloakAuthRepair,
 } from '@/lib/auth-keycloak-admin';
 import {
   exchangePasswordCredentials,
@@ -24,13 +22,6 @@ const loginRateLimiter = createMemoryRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 12,
 });
-
-const ACCOUNT_ISSUE_CODES = new Set([
-  'password_not_configured',
-  'account_not_ready',
-  'profile_incomplete',
-  'temporary_password',
-]);
 
 function clientIp(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
@@ -163,40 +154,27 @@ export async function POST(request: Request) {
     }
   }
 
-  let result = await attemptLogin(username, password);
-
-  if (!result.ok && shouldAttemptKeycloakAuthRepair(result)) {
-    const repaired = await repairKeycloakUserAuth(username, password);
-    if (repaired) {
-      result = await attemptLogin(username, password);
-    }
-  }
-
-  if (!result.ok && isWrongPasswordError(result)) {
-    const diagnosis = await diagnoseKeycloakLoginFailure(username);
-    if (diagnosis?.code === 'email_not_verified') {
-      const payload = authErrorPayload(result, diagnosis);
-      return NextResponse.json(payload, { status: 401 });
-    }
-    if (diagnosis?.code && ACCOUNT_ISSUE_CODES.has(diagnosis.code)) {
-      const repaired = await repairKeycloakUserAuth(username, password);
-      if (repaired) {
-        result = await attemptLogin(username, password);
-      }
-    }
-  }
+  const result = await attemptLogin(username, password);
 
   if (!result.ok) {
-    console.error(
-      '[auth/login] Keycloak token exchange failed:',
-      result.error,
-      result.description ?? '',
-    );
-    const description = (result.description ?? '').toLowerCase();
-    const diagnosis =
-      isWrongPasswordError(result) || description.includes('not fully set up')
-        ? await diagnoseKeycloakLoginFailure(username)
-        : null;
+    if (!isWrongPasswordError(result)) {
+      console.error(
+        '[auth/login] Keycloak token exchange failed:',
+        result.error,
+        result.description ?? '',
+      );
+    }
+
+    // Only surface the email-verification state so the client can point the
+    // user at the confirmation email. Every other account state returns the
+    // same generic "invalid credentials". We intentionally never auto-repair a
+    // password or account here: that path ran with the caller-supplied password
+    // via the Keycloak Admin API and allowed account takeover for accounts
+    // without a permanent password. Recovery must go through the verified
+    // forgot-password / verify-email flows.
+    const diagnosis = isWrongPasswordError(result)
+      ? await diagnoseKeycloakLoginFailure(username)
+      : null;
     const payload = authErrorPayload(result, diagnosis);
     return NextResponse.json(payload, { status: 401 });
   }

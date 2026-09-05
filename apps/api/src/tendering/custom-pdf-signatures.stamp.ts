@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'fs';
+import { resolve } from 'path';
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from 'pdf-lib';
 
 export interface CustomPdfSignatureParty {
@@ -25,6 +27,40 @@ const LINE_COLOR = rgb(0.25, 0.3, 0.38);
 const TEXT_COLOR = rgb(0.12, 0.16, 0.22);
 const MUTED_COLOR = rgb(0.4, 0.45, 0.52);
 
+/**
+ * Bundled Unicode fonts (SIL OFL). Provide at least one of these files under
+ * apps/api/src/assets/fonts so Thai/Cyrillic party names render on stamped
+ * PDFs:
+ *   - NotoSansThai-Regular.ttf  (Thai + Latin)
+ *   - NotoSans-Regular.ttf      (Latin + Cyrillic)
+ * Without a font file the stamp falls back to the WinAnsi-safe Helvetica path
+ * (legacy behaviour) and non-Latin-1 characters are dropped.
+ */
+const UNICODE_FONT_CANDIDATES = [
+  'NotoSansThai-Regular.ttf',
+  'NotoSans-Regular.ttf',
+] as const;
+
+function fontDirCandidates(): string[] {
+  return [
+    process.env.UNICODE_STAMP_FONT_DIR?.trim(),
+    resolve(process.cwd(), 'assets', 'fonts'),
+    resolve(__dirname, '..', 'assets', 'fonts'),
+  ].filter((value): value is string => Boolean(value));
+}
+
+function loadUnicodeFontBytes(): Buffer | null {
+  for (const dir of fontDirCandidates()) {
+    for (const name of UNICODE_FONT_CANDIDATES) {
+      const file = resolve(dir, name);
+      if (existsSync(file)) {
+        return readFileSync(file);
+      }
+    }
+  }
+  return null;
+}
+
 function toWinAnsiSafe(text: string): string {
   return text
     .split('')
@@ -37,6 +73,11 @@ function toWinAnsiSafe(text: string): string {
     .join('')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function sanitizeStampText(text: string, unicode: boolean): string {
+  const trimmed = text.trim();
+  return (unicode ? trimmed : toWinAnsiSafe(trimmed)).slice(0, 96);
 }
 
 function formatSignedDate(value: Date | string | null | undefined): string | null {
@@ -82,11 +123,12 @@ function drawPartyColumn(params: {
   width: number;
   party: CustomPdfSignatureParty;
   image: Awaited<ReturnType<typeof embedSignatureImage>>;
+  unicode: boolean;
 }) {
-  const { page, font, bold, x, width, party, image } = params;
+  const { page, font, bold, x, width, party, image, unicode } = params;
   let y = params.yTop;
 
-  page.drawText(toWinAnsiSafe(party.label) || 'Party', {
+  page.drawText(sanitizeStampText(party.label || 'Party', unicode), {
     x,
     y,
     size: LABEL_SIZE,
@@ -95,9 +137,9 @@ function drawPartyColumn(params: {
   });
   y -= 14;
 
-  const org = toWinAnsiSafe(party.orgName?.trim() ?? '');
+  const org = sanitizeStampText(party.orgName ?? '', unicode);
   if (org) {
-    page.drawText(org.slice(0, 48), {
+    page.drawText(org, {
       x,
       y,
       size: BODY_SIZE,
@@ -178,15 +220,16 @@ function drawSignatureBlock(params: {
   rightImage: Awaited<ReturnType<typeof embedSignatureImage>>;
   title: string;
   originY: number;
+  unicode: boolean;
 }) {
-  const { page, font, bold, left, right, leftImage, rightImage, title } =
+  const { page, font, bold, left, right, leftImage, rightImage, title, unicode } =
     params;
   const { width } = page.getSize();
   const contentWidth = width - MARGIN * 2;
   const colWidth = (contentWidth - COL_GAP) / 2;
   let y = params.originY + CUSTOM_PDF_SIGNATURE_BLOCK_HEIGHT - 18;
 
-  page.drawText(toWinAnsiSafe(title) || 'Signatures', {
+  page.drawText(sanitizeStampText(title || 'Signatures', unicode), {
     x: MARGIN,
     y,
     size: TITLE_SIZE,
@@ -211,6 +254,7 @@ function drawSignatureBlock(params: {
     width: colWidth,
     party: left,
     image: leftImage,
+    unicode,
   });
   drawPartyColumn({
     page,
@@ -221,6 +265,7 @@ function drawSignatureBlock(params: {
     width: colWidth,
     party: right,
     image: rightImage,
+    unicode,
   });
 }
 
@@ -235,8 +280,23 @@ export async function stampCustomPdfSignatures(
   const pdfDoc = await PDFDocument.load(input.pdfBuffer, {
     ignoreEncryption: true,
   });
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  let font: PDFFont;
+  let bold: PDFFont;
+  let unicode = false;
+
+  const unicodeBytes = loadUnicodeFontBytes();
+  if (unicodeBytes) {
+    // A single Unicode font covers both regular and bold stamp text; a real
+    // bold variant is unnecessary at this small size.
+    font = await pdfDoc.embedFont(unicodeBytes, { subset: true });
+    bold = font;
+    unicode = true;
+  } else {
+    font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  }
+
   const leftImage = await embedSignatureImage(
     pdfDoc,
     input.left.signatureDataUrl,
@@ -263,6 +323,7 @@ export async function stampCustomPdfSignatures(
     rightImage,
     title,
     originY: MARGIN,
+    unicode,
   });
 
   const bytes = await pdfDoc.save();

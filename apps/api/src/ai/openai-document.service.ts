@@ -77,6 +77,7 @@ Do not invent precise measurements unless readable. Use trade slugs like electri
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
+        signal: AbortSignal.timeout(30_000),
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
@@ -85,6 +86,7 @@ Do not invent precise measurements unless readable. Use trade slugs like electri
           model: this.model,
           temperature: 0.2,
           response_format: { type: 'json_object' },
+          max_tokens: 3000,
           messages: [
             { role: 'system', content: system },
             {
@@ -168,6 +170,7 @@ When analyzing a page batch from a multi-page PDF:
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
+        signal: AbortSignal.timeout(30_000),
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
@@ -176,6 +179,7 @@ When analyzing a page batch from a multi-page PDF:
           model: this.model,
           temperature: 0.2,
           response_format: { type: 'json_object' },
+          max_tokens: 3000,
           messages: [
             { role: 'system', content: system },
             {
@@ -281,6 +285,7 @@ Do not invent facts not present in the batch inputs.`;
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
+        signal: AbortSignal.timeout(30_000),
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
@@ -289,6 +294,7 @@ Do not invent facts not present in the batch inputs.`;
           model: this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini').trim(),
           temperature: 0.2,
           response_format: { type: 'json_object' },
+          max_tokens: 3000,
           messages: [
             { role: 'system', content: system },
             { role: 'user', content: userText },
@@ -407,6 +413,7 @@ Ignore pricing tables unless they clarify scope quantities. Do not invent measur
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
+        signal: AbortSignal.timeout(30_000),
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
@@ -415,6 +422,7 @@ Ignore pricing tables unless they clarify scope quantities. Do not invent measur
           model: this.config.get<string>('OPENAI_MODEL', 'gpt-4o-mini').trim(),
           temperature: 0.2,
           response_format: { type: 'json_object' },
+          max_tokens: 3000,
           messages: [
             { role: 'system', content: system },
             { role: 'user', content: userText },

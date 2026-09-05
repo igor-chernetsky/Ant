@@ -812,6 +812,12 @@ model Contract {
   sourceDocxStorageKey       String?      @unique @map("source_docx_storage_key")
   sourceDocxOriginalName     String?      @map("source_docx_original_name")
   sourceDocxSizeBytes        Int?         @map("source_docx_size_bytes")
+  /// Party names snapshotted at signing so renaming a user/company later does
+  /// not change the names printed on the already-signed contract artifacts.
+  clientOrgName              String?      @map("client_org_name")
+  clientSignatoryName        String?      @map("client_signatory_name")
+  contractorOrgName          String?      @map("contractor_org_name")
+  contractorSignatoryName    String?      @map("contractor_signatory_name")
   createdAt                DateTime       @default(now()) @map("created_at")
   updatedAt                DateTime       @updatedAt @map("updated_at")
   addenda                  ContractAddendum[]
@@ -1096,4 +1102,32 @@ model DefectEvent {
 
   @@index([defectId, createdAt])
   @@map("defect_events")
+}
+
+enum EmailOutboxStatus {
+  pending
+  sent
+  failed
+}
+
+model EmailOutbox {
+  id            String            @id @default(uuid())
+  to            String
+  subject       String
+  html          String            @db.Text
+  text          String            @db.Text
+  from          String?
+  fromName      String?           @map("from_name")
+  replyTo       String?           @map("reply_to")
+  headersJson   Json?             @map("headers_json")
+  status        EmailOutboxStatus @default(pending)
+  attempts      Int               @default(0)
+  lastError     String?           @map("last_error") @db.Text
+  nextAttemptAt DateTime          @default(now()) @map("next_attempt_at")
+  sentAt        DateTime?         @map("sent_at")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  @@index([status, nextAttemptAt])
+  @@map("email_outbox")
 }

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   Param,
@@ -98,12 +99,36 @@ export class ContractorTenderController {
     @Req() req: Request & { user: JwtPayload },
     @Body() body: UpsertContractorProfileDto,
   ) {
-    const user = await this.resolveUser(req);
-    const kind = hasRole(req.user, 'designer') && !hasRole(req.user, 'contractor')
-      ? 'designer'
-      : body.kind === 'designer'
+    const isContractor = hasRole(req.user, 'contractor');
+    const isDesigner = hasRole(req.user, 'designer');
+
+    if (!isContractor && !isDesigner) {
+      throw new ForbiddenException(
+        'A contractor or designer role is required to manage a supply profile',
+      );
+    }
+
+    const kind =
+      body.kind === 'designer'
         ? 'designer'
-        : 'contractor';
+        : body.kind === 'contractor'
+          ? 'contractor'
+          : isDesigner && !isContractor
+            ? 'designer'
+            : 'contractor';
+
+    if (kind === 'designer' && !isDesigner) {
+      throw new ForbiddenException(
+        'A designer role is required to create a designer profile',
+      );
+    }
+    if (kind === 'contractor' && !isContractor) {
+      throw new ForbiddenException(
+        'A contractor role is required to create a contractor profile',
+      );
+    }
+
+    const user = await this.resolveUser(req);
     return this.contractorProfiles.upsertForUser(user.id, { ...body, kind });
   }
 

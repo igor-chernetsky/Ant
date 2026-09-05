@@ -1151,6 +1151,23 @@ export class TendersService {
           b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
       ) ?? null;
 
+    // Only genuine participants (any non-withdrawn bid) or supply-side users on
+    // a currently open tender may see this package. It includes the client's
+    // budget baseline, contract terms and site address, which must not be
+    // readable for arbitrary project ids (draft/estimated/awarded/active/hidden).
+    const isOpenToSupply =
+      project.status === ProjectStatus.clarification ||
+      project.status === ProjectStatus.in_tender;
+
+    if (!myBid && !isOpenToSupply) {
+      return {
+        accessDenied: true,
+        projectStatus: project.status,
+        tenderId: tender?.id ?? null,
+        tenderStatus: tender?.status ?? null,
+      };
+    }
+
     const tenderAwarded =
       tender?.status === TenderStatus.awarded ||
       project.status === ProjectStatus.awarded;
@@ -2203,6 +2220,16 @@ export class TendersService {
         (b) =>
           b.contractorId === profile.id && b.status !== BidStatus.withdrawn,
       ) ?? null;
+
+    const deadlinePassed = isApplicationsDeadlinePassed(tender.closesAt);
+    const tenderOpen = tender.status === TenderStatus.open && !deadlinePassed;
+
+    // Only participants or supply-side users on a currently open tender may
+    // read the tender package (it includes the client's budget baseline and
+    // award status). Everyone else gets a 404 to avoid disclosing existence.
+    if (!myBid && !tenderOpen) {
+      throw new NotFoundException('Tender not found');
+    }
 
     const mapped = this.mapTender(tender);
     // Keep aggregate counts; never expose competitor bid amounts/terms.

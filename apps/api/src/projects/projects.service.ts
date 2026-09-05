@@ -889,8 +889,15 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    const isContractor = userId ? await this.userIsContractor(userId) : false;
-    const isDesigner = userId ? await this.userIsDesigner(userId) : false;
+    // Prefer the realm-role flags derived from the validated JWT (when the
+    // caller provides them) so a self-created DB profile cannot grant
+    // supply-side read access without the matching Keycloak realm role.
+    const isContractor =
+      options?.isContractorRole ??
+      (userId ? await this.userIsContractor(userId) : false);
+    const isDesigner =
+      options?.isDesignerRole ??
+      (userId ? await this.userIsDesigner(userId) : false);
     const isAwardedContractor = userId
       ? await this.userIsAwardedContractor(userId, projectId)
       : false;

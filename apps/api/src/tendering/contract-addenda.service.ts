@@ -908,40 +908,77 @@ export class ContractAddendaService {
       : participant.clientSignatureDataUrl;
 
     const now = new Date();
-    const data =
-      participant.isSelectedContractor
-        ? {
-            contractorSignedAt: now,
-            ...(signatureDataUrl
-              ? { contractorSignatureDataUrl: signatureDataUrl }
-              : {}),
-          }
-        : {
-            clientSignedAt: now,
-            ...(signatureDataUrl
-              ? { clientSignatureDataUrl: signatureDataUrl }
-              : {}),
-          };
+    const isContractor = participant.isSelectedContractor;
+    const data = isContractor
+      ? {
+          contractorSignedAt: now,
+          ...(signatureDataUrl
+            ? { contractorSignatureDataUrl: signatureDataUrl }
+            : {}),
+        }
+      : {
+          clientSignedAt: now,
+          ...(signatureDataUrl
+            ? { clientSignatureDataUrl: signatureDataUrl }
+            : {}),
+        };
 
-    const otherSigned = participant.isSelectedContractor
-      ? Boolean(row.clientSignedAt)
-      : Boolean(row.contractorSignedAt);
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (!isContractor) {
+        const current = await tx.contractAddendum.findFirst({
+          where: { id: row.id, contractId: participant.contractId },
+          select: { contractorSignedAt: true },
+        });
+        if (!current?.contractorSignedAt) {
+          throw new BadRequestException(
+            'The contractor must sign this additional agreement first',
+          );
+        }
+      }
 
-    const updated = await this.prisma.contractAddendum.update({
-      where: { id: row.id },
-      data: {
-        ...data,
-        ...(otherSigned
-          ? { status: ContractAddendumStatus.fully_signed }
-          : {}),
-      },
-      include: {
-        attachments: {
-          where: { status: { not: DocumentStatus.deleted } },
-          orderBy: { createdAt: 'asc' },
-        },
-      },
+      // Claim the caller's own signature slot atomically so a concurrent
+      // double-submit cannot leave the addendum stuck in pending_signatures.
+      const claim = await tx.contractAddendum.updateMany({
+        where: isContractor
+          ? { id: row.id, contractorSignedAt: null }
+          : { id: row.id, clientSignedAt: null },
+        data,
+      });
+
+      if (claim.count === 0) {
+        throw new BadRequestException('You have already signed');
+      }
+
+      const current = await tx.contractAddendum.findFirstOrThrow({
+        where: { id: row.id, contractId: participant.contractId },
+      });
+
+      const bothSigned =
+        Boolean(current.clientSignedAt) && Boolean(current.contractorSignedAt);
+
+      if (
+        bothSigned &&
+        current.status !== ContractAddendumStatus.fully_signed
+      ) {
+        return tx.contractAddendum.update({
+          where: { id: row.id },
+          data: { status: ContractAddendumStatus.fully_signed },
+        });
+      }
+
+      return current;
     });
+
+    const updatedWithAttachments =
+      await this.prisma.contractAddendum.findUniqueOrThrow({
+        where: { id: updated.id },
+        include: {
+          attachments: {
+            where: { status: { not: DocumentStatus.deleted } },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
 
     const otherUserId = participant.isSelectedContractor
       ? participant.clientUserId
@@ -971,7 +1008,7 @@ export class ContractAddendaService {
       );
     }
 
-    return this.toResponse(updated, participant);
+    return this.toResponse(updatedWithAttachments, participant);
   }
 
   async presignAttachment(
@@ -1279,6 +1316,9 @@ export class ContractAddendaService {
       where: { id: projectId },
       select: {
         client: { select: { displayName: true, email: true } },
+        contract: {
+          select: { clientOrgName: true, contractorOrgName: true },
+        },
         tender: {
           select: {
             awardedBid: {
@@ -1292,9 +1332,14 @@ export class ContractAddendaService {
     });
     return {
       clientName:
-        project?.client.displayName || project?.client.email || null,
+        project?.contract?.clientOrgName ??
+        project?.client.displayName ??
+        project?.client.email ??
+        null,
       contractorName:
-        project?.tender?.awardedBid?.contractor.companyName ?? null,
+        project?.contract?.contractorOrgName ??
+        project?.tender?.awardedBid?.contractor.companyName ??
+        null,
     };
   }
 

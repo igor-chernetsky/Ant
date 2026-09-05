@@ -2,6 +2,9 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as mammoth from 'mammoth';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 
+/** Cap on decompressed DOCX→HTML size to blunt zip-ratio bombs. */
+const MAX_CONVERTED_HTML_LENGTH = 8 * 1024 * 1024;
+
 @Injectable()
 export class DocxToPdfService {
   private readonly logger = new Logger(DocxToPdfService.name);
@@ -17,6 +20,11 @@ export class DocxToPdfService {
     try {
       const result = await mammoth.convertToHtml({ buffer: docxBuffer });
       bodyHtml = result.value?.trim() || '<p></p>';
+      if (bodyHtml.length > MAX_CONVERTED_HTML_LENGTH) {
+        throw new BadRequestException(
+          'DOCX content is too large to convert. Try uploading a PDF instead.',
+        );
+      }
       if (result.messages?.length) {
         this.logger.debug(
           `DOCX conversion notes: ${result.messages
@@ -26,6 +34,9 @@ export class DocxToPdfService {
         );
       }
     } catch (err: unknown) {
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
       this.logger.warn(
         `DOCX→HTML failed: ${err instanceof Error ? err.message : String(err)}`,
       );

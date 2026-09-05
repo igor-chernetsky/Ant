@@ -763,13 +763,17 @@ export class ContractsService {
             pdfBuffer: buffer,
             left: {
               label: 'Client',
-              orgName: client?.displayName || client?.email || null,
+              orgName:
+                contract.clientOrgName ??
+                client?.displayName ??
+                client?.email ??
+                null,
               signedAt: contract.clientSignedAt,
               signatureDataUrl: contract.clientSignatureDataUrl,
             },
             right: {
               label: 'Contractor',
-              orgName: contractor?.companyName || null,
+              orgName: contract.contractorOrgName ?? contractor?.companyName ?? null,
               signedAt: contract.contractorSignedAt,
               signatureDataUrl: contract.contractorSignatureDataUrl,
             },
@@ -876,38 +880,59 @@ export class ContractsService {
     }
 
     const now = new Date();
-    const otherPartySigned = isClient
-      ? Boolean(contract.contractorSignedAt)
-      : Boolean(contract.clientSignedAt);
-
-    const updateData: Prisma.ContractUpdateInput = isClient
+    const clientOrg =
+      project.client?.displayName?.trim() || project.client?.email?.trim() || null;
+    const contractorOrg =
+      project.tender?.awardedBid?.contractor.companyName?.trim() || null;
+    const signatureData = isClient
       ? {
           clientSignedAt: now,
           clientSignatureDataUrl: signatureDataUrl,
+          clientOrgName: clientOrg,
+          clientSignatoryName: clientOrg,
         }
       : {
           contractorSignedAt: now,
           contractorSignatureDataUrl: signatureDataUrl,
+          contractorOrgName: contractorOrg,
+          contractorSignatoryName: contractorOrg,
         };
 
-    if (otherPartySigned) {
-      updateData.status = ContractStatus.fully_signed;
-    }
-
     const updated = await this.prisma.$transaction(async (tx) => {
-      const nextContract = await tx.contract.update({
-        where: { id: contract.id },
-        data: updateData,
+      // Claim the caller's own signature slot atomically. A concurrent
+      // double-submit (or a same-user race) fails here instead of wedging the
+      // contract in pending_signatures with both timestamps already set.
+      const claim = await tx.contract.updateMany({
+        where: isClient
+          ? { id: contract.id, clientSignedAt: null }
+          : { id: contract.id, contractorSignedAt: null },
+        data: signatureData,
       });
 
-      if (nextContract.status === ContractStatus.fully_signed) {
+      if (claim.count === 0) {
+        throw new BadRequestException('You have already signed this contract');
+      }
+
+      const current = await tx.contract.findUniqueOrThrow({
+        where: { id: contract.id },
+      });
+
+      const bothSigned =
+        Boolean(current.clientSignedAt) && Boolean(current.contractorSignedAt);
+
+      if (bothSigned && current.status !== ContractStatus.fully_signed) {
+        const promoted = await tx.contract.update({
+          where: { id: contract.id },
+          data: { status: ContractStatus.fully_signed },
+        });
         await tx.project.update({
           where: { id: projectId },
           data: { status: ProjectStatus.active },
         });
+        return promoted;
       }
 
-      return nextContract;
+      return current;
     });
 
     const refreshedProject = await this.prisma.project.findUniqueOrThrow({

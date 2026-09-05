@@ -51,6 +51,7 @@ Rules — be CONSERVATIVE:
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
+        signal: AbortSignal.timeout(30_000),
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
@@ -59,6 +60,7 @@ Rules — be CONSERVATIVE:
           model: this.model,
           temperature: 0.1,
           response_format: { type: 'json_object' },
+          max_tokens: 1500,
           messages: [
             { role: 'system', content: system },
             { role: 'user', content: user },
@@ -148,6 +150,7 @@ Do not rewrite or replace the original project description.`;
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
+        signal: AbortSignal.timeout(30_000),
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
@@ -156,6 +159,7 @@ Do not rewrite or replace the original project description.`;
           model: this.model,
           temperature: 0.3,
           response_format: { type: 'json_object' },
+          max_tokens: 1500,
           messages: [
             { role: 'system', content: system },
             { role: 'user', content: user },
