@@ -3922,6 +3922,29 @@ pre {
   font-size: 0.9rem;
 }
 
+.input-error,
+.input-error:focus {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 15%, transparent) !important;
+  outline-color: var(--danger) !important;
+}
+
+.field-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+/* Keep a focused/invalid field visible above the on-screen keyboard. */
+.modal-form input,
+.modal-form textarea,
+.modal-form select {
+  scroll-margin-top: 4rem;
+  scroll-margin-bottom: 4rem;
+}
+
 .intake-card {
   border-color: #bfdbfe;
 }

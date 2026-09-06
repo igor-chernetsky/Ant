@@ -214,6 +214,9 @@ export const ru: Messages = {
     roleContractorDesc: 'Хочу находить проекты и подавать предложения.',
     roleDesignerDesc:
       'Хочу предлагать услуги проектирования и оформления разрешений.',
+    requiredField: 'Это поле обязательно',
+    invalidEmail: 'Введите корректный email',
+    passwordMin: 'Пароль должен быть не короче 8 символов',
     acceptPrivacyPrefix: 'Я принимаю',
     acceptTermsPrefix: 'Я принимаю',
     acceptClientAgreementPrefix: 'Я принимаю',

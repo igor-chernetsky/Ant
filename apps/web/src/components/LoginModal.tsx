@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -36,6 +36,27 @@ const ROLE_ORDER: Array<keyof typeof ROLE_KEYS> = [
   'contractor',
   'designer',
 ];
+
+type AuthField = 'username' | 'email' | 'password' | 'displayName';
+type FieldErrors = Partial<Record<AuthField, string>>;
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function mapServerErrorToFields(message: string): AuthField[] {
+  const m = message.toLowerCase();
+  if (
+    m.includes('invalid username or password') ||
+    m.includes('invalid credentials')
+  ) {
+    return ['username', 'password'];
+  }
+  if (m.includes('already exists')) return ['email'];
+  if (m.includes('password must be at least')) return ['password'];
+  if (m.includes('email and password are required')) {
+    return ['email', 'password'];
+  }
+  return [];
+}
 
 function RoleGlyph({ role }: { role: keyof typeof ROLE_KEYS }) {
   const stroke = {
@@ -159,6 +180,44 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const displayNameRef = useRef<HTMLInputElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  const fieldRefs: Record<AuthField, React.RefObject<HTMLInputElement | null>> = {
+    username: usernameRef,
+    email: emailRef,
+    password: passwordRef,
+    displayName: displayNameRef,
+  };
+
+  const focusField = (field: AuthField) => {
+    const ref = fieldRefs[field];
+    requestAnimationFrame(() => {
+      ref.current?.focus({ preventScroll: true });
+      ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  };
+
+  const clearFieldError = (field: AuthField) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  // Keep the top-level (non-field) error above the on-screen keyboard.
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [error]);
 
   if (!isOpen) {
     return null;
@@ -172,6 +231,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     setMode(next);
     setError(null);
     setSuccessNotice(null);
+    setFieldErrors({});
     setPasswordVisible(false);
     setAcceptedPrivacy(false);
     setAcceptedClientAgreement(false);
@@ -181,10 +241,35 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     }
   };
 
+  const validateFields = (): FieldErrors => {
+    const errors: FieldErrors = {};
+    if (mode === 'signin') {
+      if (!username.trim()) errors.username = t('auth.requiredField');
+      else if (!EMAIL_RE.test(username.trim())) {
+        errors.username = t('auth.invalidEmail');
+      }
+      if (!password) errors.password = t('auth.requiredField');
+    } else if (mode === 'forgot') {
+      if (!email.trim()) errors.email = t('auth.requiredField');
+      else if (!EMAIL_RE.test(email.trim())) {
+        errors.email = t('auth.invalidEmail');
+      }
+    } else {
+      if (!email.trim()) errors.email = t('auth.requiredField');
+      else if (!EMAIL_RE.test(email.trim())) {
+        errors.email = t('auth.invalidEmail');
+      }
+      if (!password) errors.password = t('auth.requiredField');
+      else if (password.length < 8) errors.password = t('auth.passwordMin');
+    }
+    return errors;
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
     setSuccessNotice(null);
+    setFieldErrors({});
 
     const needsClientAgreement = roles.includes('client');
     const needsContractorAgreement =
@@ -196,6 +281,18 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         (needsContractorAgreement && !acceptedContractorAgreement))
     ) {
       setError(t('auth.acceptLegalRequired'));
+      return;
+    }
+
+    // Highlight + focus the first invalid field so the error stays visible even
+    // when the on-screen keyboard covers the bottom of the form.
+    const fieldValidation = validateFields();
+    if (Object.keys(fieldValidation).length > 0) {
+      setFieldErrors(fieldValidation);
+      const first = (
+        ['username', 'email', 'displayName', 'password'] as AuthField[]
+      ).find((field) => fieldValidation[field]);
+      if (first) focusField(first);
       return;
     }
 
@@ -250,15 +347,26 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         }
       }
     } catch (err: unknown) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
           : mode === 'signin'
             ? t('auth.signInFailed')
             : mode === 'forgot'
               ? t('auth.forgotPasswordFailed')
-              : t('auth.signUpFailed'),
-      );
+              : t('auth.signUpFailed');
+
+      const fields = mapServerErrorToFields(message);
+      if (fields.length > 0) {
+        const mapped: FieldErrors = {};
+        for (const field of fields) {
+          mapped[field] = message;
+        }
+        setFieldErrors(mapped);
+        focusField(fields[0]);
+      } else {
+        setError(message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -291,9 +399,22 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
       className="modal-backdrop"
       role="presentation"
       onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
+        if (event.target !== event.currentTarget) {
+          return;
         }
+        const active = document.activeElement;
+        const isFormField =
+          active instanceof HTMLElement &&
+          (active.tagName === 'INPUT' ||
+            active.tagName === 'TEXTAREA' ||
+            active.tagName === 'SELECT' ||
+            active.isContentEditable);
+        if (isFormField) {
+          // Keyboard is likely open — dismiss it without losing the form.
+          active.blur();
+          return;
+        }
+        onClose();
       }}
     >
       <div
@@ -316,30 +437,58 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
         <p className="muted modal-subtitle">{subtitle}</p>
 
-        <form onSubmit={handleSubmit} className="modal-form">
+        <form onSubmit={handleSubmit} className="modal-form" noValidate>
           {mode === 'signin' ? (
             <label>
               {t('common.email')}
               <input
+                ref={usernameRef}
                 type="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="next"
                 autoComplete="username"
                 value={username}
-                onChange={(event) => setUsername(event.target.value)}
+                onChange={(event) => {
+                  setUsername(event.target.value);
+                  clearFieldError('username');
+                }}
                 placeholder={t('auth.emailPlaceholder')}
+                aria-invalid={fieldErrors.username ? true : undefined}
+                className={fieldErrors.username ? 'input-error' : undefined}
                 required
               />
+              {fieldErrors.username && (
+                <p className="field-error">{fieldErrors.username}</p>
+              )}
             </label>
           ) : mode === 'forgot' ? (
             <label>
               {t('common.email')}
               <input
+                ref={emailRef}
                 type="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="go"
                 autoComplete="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  clearFieldError('email');
+                }}
                 placeholder={t('auth.emailPlaceholder')}
+                aria-invalid={fieldErrors.email ? true : undefined}
+                className={fieldErrors.email ? 'input-error' : undefined}
                 required
               />
+              {fieldErrors.email && (
+                <p className="field-error">{fieldErrors.email}</p>
+              )}
             </label>
           ) : (
             <>
@@ -348,6 +497,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                 <input
                   type="text"
                   autoComplete="name"
+                  enterKeyHint="next"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
                   placeholder={t('common.optional')}
@@ -356,13 +506,27 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
               <label>
                 {t('common.email')}
                 <input
+                  ref={emailRef}
                   type="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="next"
                   autoComplete="email"
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                    clearFieldError('email');
+                  }}
                   placeholder={t('auth.emailPlaceholder')}
+                  aria-invalid={fieldErrors.email ? true : undefined}
+                  className={fieldErrors.email ? 'input-error' : undefined}
                   required
                 />
+                {fieldErrors.email && (
+                  <p className="field-error">{fieldErrors.email}</p>
+                )}
               </label>
               <fieldset className="tag-fieldset auth-role-fieldset">
                 <legend className="auth-role-legend">
@@ -420,13 +584,23 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
               {t('common.password')}
               <div className="password-field">
                 <input
+                  ref={passwordRef}
                   type={passwordVisible ? 'text' : 'password'}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint={mode === 'signin' ? 'go' : 'done'}
                   autoComplete={
                     mode === 'signin' ? 'current-password' : 'new-password'
                   }
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    clearFieldError('password');
+                  }}
                   minLength={mode === 'signup' ? 8 : undefined}
+                  aria-invalid={fieldErrors.password ? true : undefined}
+                  className={fieldErrors.password ? 'input-error' : undefined}
                   required
                 />
                 <button
@@ -444,6 +618,9 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                   <EyeIcon crossed={passwordVisible} />
                 </button>
               </div>
+              {fieldErrors.password && (
+                <p className="field-error">{fieldErrors.password}</p>
+              )}
             </label>
           )}
 
@@ -533,7 +710,11 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             </div>
           )}
 
-          {error && <p className="form-error">{error}</p>}
+          {error && (
+            <p className="form-error" ref={errorRef}>
+              {error}
+            </p>
+          )}
           {successNotice && (
             <p className="auth-success-notice">{successNotice}</p>
           )}
