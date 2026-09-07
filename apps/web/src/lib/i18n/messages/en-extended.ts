@@ -1727,6 +1727,10 @@ export const enExtended = {
       "Edit the English contract text. This is the master for the English PDF; translations use the structured template for now.",
     editorReadOnlyHint:
       "The contract is fully signed. The English document is shown read-only.",
+    editorToggleLang: "Contract document ({lang})",
+    editorHintLang: "Edit the contract text in {lang}.",
+    editorReadOnlyHintLang:
+      "The contract is fully signed. The {lang} document is shown read-only.",
     saveDocument: "Save document",
     regenerateDocument: "Regenerate from terms",
     regeneratingDocument: "Regenerating…",

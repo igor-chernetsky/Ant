@@ -1726,6 +1726,10 @@ export const thExtended = {
       "แก้ไขข้อความสัญญาภาษาอังกฤษ ใช้เป็นต้นฉบับสำหรับ PDF ภาษาอังกฤษ ส่วนหลายภาษายังใช้เทมเพลต",
     editorReadOnlyHint:
       "ลงนามครบแล้ว เอกสารภาษาอังกฤษแสดงแบบอ่านอย่างเดียว",
+    editorToggleLang: "เอกสารสัญญา ({lang})",
+    editorHintLang: "แก้ไขข้อความสัญญาเป็นภาษา{lang}",
+    editorReadOnlyHintLang:
+      "ลงนามครบแล้ว เอกสารภาษา{lang}แสดงแบบอ่านอย่างเดียว",
     saveDocument: "บันทึกเอกสาร",
     regenerateDocument: "สร้างใหม่จากเงื่อนไข",
     regeneratingDocument: "กำลังสร้างใหม่…",

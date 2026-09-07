@@ -165,6 +165,7 @@ export function ContractDocumentEditor({
   const hasAnySignature = Boolean(
     contract.clientSignedAt || contract.contractorSignedAt,
   );
+  const docLangLabel = LOCALE_LABELS[normalizeContractLocale(contract.bodyLocale)];
 
   useEffect(() => {
     setRegenLocale(normalizeContractLocale(contract.bodyLocale));
@@ -318,13 +319,15 @@ export function ContractDocumentEditor({
   return (
     <details ref={detailsRef} className="contract-secondary-details" id="contract-document-editor">
       <summary className="contract-secondary-details-summary">
-        {t('contractPanel.editorToggle')}
+        {t('contractPanel.editorToggleLang', { lang: docLangLabel })}
       </summary>
       <div className="contract-secondary-details-body">
         <p className="muted contract-document-editor-hint">
           {readOnly
-            ? t('contractPanel.editorReadOnlyHint')
-            : t('contractPanel.editorHint')}
+            ? t('contractPanel.editorReadOnlyHintLang', {
+                lang: docLangLabel,
+              })
+            : t('contractPanel.editorHintLang', { lang: docLangLabel })}
         </p>
 
         {!readOnly && editor && (
