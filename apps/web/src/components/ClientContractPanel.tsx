@@ -30,7 +30,7 @@ export function ClientContractPanel({
   project,
   onProjectUpdated,
 }: ClientContractPanelProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { me } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -72,7 +72,7 @@ export function ClientContractPanel({
     }
     void loadTender();
     void loadContract();
-  }, [project.status, loadTender, loadContract]);
+  }, [project.status, loadTender, loadContract, locale]);
 
   useEffect(() => {
     if (!focusContractEditor || clearedContractQueryRef.current) {

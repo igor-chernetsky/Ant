@@ -14,6 +14,7 @@ import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { JwtPayload } from '../auth/jwt-payload';
 import { UsersService } from '../users/users.service';
+import { resolveLocaleFromRequest } from '../localization/request-locale';
 import { ContractsService } from './contracts.service';
 import type {
   CompleteCustomContractFileDto,
@@ -42,7 +43,8 @@ export class ProjectContractController {
     @Param('projectId') projectId: string,
   ) {
     const user = await this.resolveUser(req);
-    const contract = await this.contracts.getForProject(user.id, projectId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    const contract = await this.contracts.getForProject(user.id, projectId, locale);
     return contract ?? { contract: null };
   }
 

@@ -133,7 +133,7 @@ export async function signProjectContract(
 export async function updateProjectContractDocument(
   projectId: string,
   englishBodyHtml: string,
-  options?: { asContractor?: boolean },
+  options?: { asContractor?: boolean; locale?: Locale },
 ): Promise<ProjectContract> {
   const asContractor = Boolean(options?.asContractor);
   const path = asContractor
@@ -142,7 +142,7 @@ export async function updateProjectContractDocument(
   const response = await fetchWithAuth(path, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ englishBodyHtml }),
+    body: JSON.stringify({ englishBodyHtml, locale: options?.locale }),
   });
   if (!response.ok) {
     await parseError(response, 'Failed to save contract document');

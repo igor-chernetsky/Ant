@@ -13,6 +13,7 @@ export interface SignContractDto {
 
 export interface UpdateContractDocumentDto {
   englishBodyHtml: string;
+  locale?: string;
 }
 
 export interface RegenerateContractDocumentDto {

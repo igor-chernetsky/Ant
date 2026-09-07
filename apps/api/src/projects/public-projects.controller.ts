@@ -31,6 +31,7 @@ export class PublicProjectsController {
     @Query('propertyType') propertyTypeQuery?: string | string[],
     @Query('limit') limitQuery?: string,
     @Query('offset') offsetQuery?: string,
+    @Query('available') availableQuery?: string,
   ) {
     const tagSlugs = normalizeTagQuery(tagQuery);
     const statuses = normalizeTagQuery(statusQuery);
@@ -52,7 +53,10 @@ export class PublicProjectsController {
       projectTrack,
       propertyTypeSlugs,
       locale,
-      { isAdmin: Boolean(req.user && hasRole(req.user, 'admin')) },
+      {
+        isAdmin: Boolean(req.user && hasRole(req.user, 'admin')),
+        availableOnly: availableQuery === '1',
+      },
       {
         limit: parseOptionalInt(limitQuery),
         offset: parseOptionalInt(offsetQuery),

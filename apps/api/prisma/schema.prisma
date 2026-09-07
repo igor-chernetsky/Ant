@@ -805,6 +805,8 @@ model Contract {
   /// Locale of the editable contract body (en | ru | th). Column name kept for
   /// parity with the addendum editor.
   bodyLocale               String         @default("en") @map("body_locale")
+  /// Per-locale contract body HTML (locale -> html). Populated lazily on view/edit.
+  bodyHtmlByLocale         Json?          @map("body_html_by_locale")
   customFileStorageKey       String?      @unique @map("custom_file_storage_key")
   customFileOriginalName     String?      @map("custom_file_original_name")
   customFileContentType      String?      @map("custom_file_content_type")

@@ -117,6 +117,7 @@ export function HomePageClient({
       areaSlug: next.areaSlug || undefined,
       projectTrack: next.projectTrack,
       propertyTypes: next.propertyTypes,
+      available: next.onlyAvailable,
       limit: PUBLIC_PROJECTS_PAGE_SIZE,
       offset,
     }),

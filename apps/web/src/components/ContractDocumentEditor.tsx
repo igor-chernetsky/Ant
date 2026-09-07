@@ -149,7 +149,7 @@ export function ContractDocumentEditor({
   initialOpen = false,
   onSaved,
 }: ContractDocumentEditorProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const readOnly = !contract.canEditDocument || contract.fullySigned;
   const [busy, setBusy] = useState(false);
@@ -267,7 +267,7 @@ export function ContractDocumentEditor({
       const updated = await updateProjectContractDocument(
         projectId,
         editor.getHTML(),
-        { asContractor },
+        { asContractor, locale },
       );
       baselineHtmlRef.current = editor.getHTML();
       setDirty(false);

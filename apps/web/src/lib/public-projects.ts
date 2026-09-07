@@ -45,6 +45,8 @@ export interface PublicProjectListFilters {
   areaSlug?: string;
   projectTrack?: ProjectTrack | null;
   propertyTypes?: string[];
+  /** Server-side: return only projects the viewer can actually open. */
+  available?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -84,6 +86,9 @@ export async function fetchPublicProjects(
   }
   if (filters.areaSlug?.trim()) {
     params.append('area', filters.areaSlug.trim());
+  }
+  if (filters.available) {
+    params.set('available', '1');
   }
   params.set(
     'limit',

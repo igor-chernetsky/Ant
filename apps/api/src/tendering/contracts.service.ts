@@ -92,10 +92,77 @@ export class ContractsService {
     private readonly commercialProposal: CommercialProposalService,
   ) {}
 
+  private readBodyByLocale(contract: Contract): Record<string, string> {
+    const raw = contract.bodyHtmlByLocale;
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      return raw as Record<string, string>;
+    }
+    return {};
+  }
+
+  private async persistBodyForLocale(
+    contract: Contract,
+    locale: SupportedLocale,
+    html: string,
+  ): Promise<void> {
+    const map = this.readBodyByLocale(contract);
+    const nextMap = { ...map, [locale]: html };
+    await this.prisma.contract.update({
+      where: { id: contract.id },
+      data: {
+        bodyHtmlByLocale: nextMap as unknown as Prisma.InputJsonValue,
+        bodyLocale: locale,
+        ...(locale === 'en' ? { englishBodyHtml: html } : {}),
+      },
+    });
+  }
+
+  private async getContractBody(
+    contract: Contract,
+    bidId: string,
+    locale: SupportedLocale,
+  ): Promise<string | null> {
+    if (contract.customFileStorageKey || contract.sourceDocxStorageKey) {
+      return null;
+    }
+    const map = this.readBodyByLocale(contract);
+    const existing = map[locale]?.trim();
+    if (existing) {
+      return existing;
+    }
+    if (locale === 'en' && contract.englishBodyHtml?.trim()) {
+      return contract.englishBodyHtml;
+    }
+    const html = await this.commercialProposal.generateEnglishBodyHtml(
+      bidId,
+      locale,
+    );
+    await this.persistBodyForLocale(contract, locale, html);
+    return html;
+  }
+
+  private async resolveBodyHtml(
+    contract: Contract,
+    locale?: SupportedLocale,
+  ): Promise<string | null> {
+    if (contract.customFileStorageKey || contract.sourceDocxStorageKey) {
+      return null;
+    }
+    if (locale) {
+      return this.getContractBody(contract, contract.bidId, locale);
+    }
+    const map = this.readBodyByLocale(contract);
+    const fallbackLocale = parseContractLocale(contract.bodyLocale);
+    return (
+      map[fallbackLocale]?.trim() || contract.englishBodyHtml?.trim() || null
+    );
+  }
+
   private async toResponse(
     contract: Contract,
     project: Project,
     participant: Pick<ContractParticipant, 'isClient' | 'isSelectedContractor'>,
+    locale?: SupportedLocale,
   ): Promise<ContractResponse> {
     const clientSigned = Boolean(contract.clientSignedAt);
     const contractorSigned = Boolean(contract.contractorSignedAt);
@@ -103,6 +170,7 @@ export class ContractsService {
     const hasCustomContract = Boolean(
       contract.customFileStorageKey || contract.sourceDocxStorageKey,
     );
+    const bodyHtml = await this.resolveBodyHtml(contract, locale);
     const canSign =
       project.status === ProjectStatus.awarded &&
       contract.status === ContractStatus.pending_signatures &&
@@ -161,12 +229,8 @@ export class ContractsService {
       hasContractorSignature: Boolean(contract.contractorSignatureDataUrl),
       clientSignatureDataUrl: contract.clientSignatureDataUrl,
       contractorSignatureDataUrl: contract.contractorSignatureDataUrl,
-      englishBodyHtml: hasCustomContract
-        ? null
-        : contract.englishBodyHtml
-          ? stripContractSignaturesBlock(contract.englishBodyHtml)
-          : null,
-      bodyLocale: parseContractLocale(contract.bodyLocale),
+      englishBodyHtml: bodyHtml ? stripContractSignaturesBlock(bodyHtml) : null,
+      bodyLocale: locale ?? parseContractLocale(contract.bodyLocale),
       hasCustomContract,
       customFile: mapDualCustomFileMeta(contract),
       canSign,
@@ -302,21 +366,20 @@ export class ContractsService {
   async getForProject(
     userId: string,
     projectId: string,
+    locale?: SupportedLocale,
   ): Promise<ContractResponse | null> {
     const participant = await this.loadParticipant(userId, projectId);
-    let contract = participant.project.contract;
+    const contract = participant.project.contract;
     if (!contract) {
       return null;
     }
 
-    if (!contract.englishBodyHtml?.trim() && !contract.customFileStorageKey) {
-      contract = await this.ensureEnglishBodyHtml(
-        contract,
-        normalizeSourceLocale(participant.project.sourceLocale),
-      );
-    }
-
-    return await this.toResponse(contract, participant.project, participant);
+    return await this.toResponse(
+      contract,
+      participant.project,
+      participant,
+      locale ?? parseContractLocale(contract.bodyLocale),
+    );
   }
 
   async getContractorDocumentDownloadUrl(
@@ -384,19 +447,28 @@ export class ContractsService {
       );
     }
 
-    const previousBody = (contract.englishBodyHtml ?? '').trim();
+    const locale = parseContractLocale(dto.locale ?? contract.bodyLocale);
+    const map = this.readBodyByLocale(contract);
+    const previousBody = (
+      map[locale] ??
+      (locale === 'en' ? contract.englishBodyHtml : null) ??
+      ''
+    ).trim();
     if (previousBody === sanitized) {
-      return await this.toResponse(contract, project, participant);
+      return await this.toResponse(contract, project, participant, locale);
     }
 
     const hadSignatures = Boolean(
       contract.clientSignedAt || contract.contractorSignedAt,
     );
 
+    const nextMap = { ...map, [locale]: sanitized };
     const updated = await this.prisma.contract.update({
       where: { id: contract.id },
       data: {
-        englishBodyHtml: sanitized,
+        bodyHtmlByLocale: nextMap as unknown as Prisma.InputJsonValue,
+        bodyLocale: locale,
+        ...(locale === 'en' ? { englishBodyHtml: sanitized } : {}),
         ...(hadSignatures
           ? {
               status: ContractStatus.pending_signatures,
@@ -411,7 +483,7 @@ export class ContractsService {
 
     this.notifyOtherPartyOfContractChange(participant, projectId, 'document');
 
-    return await this.toResponse(updated, project, participant);
+    return await this.toResponse(updated, project, participant, locale);
   }
 
   async regenerateDocument(
@@ -434,6 +506,8 @@ export class ContractsService {
       contract.bidId,
       locale,
     );
+    const map = this.readBodyByLocale(contract);
+    const nextMap = { ...map, [locale]: body };
     const previousCustomKey = contract.customFileStorageKey;
     const previousDocxKey = contract.sourceDocxStorageKey;
     const hadCustomFile = Boolean(previousCustomKey || previousDocxKey);
@@ -445,8 +519,9 @@ export class ContractsService {
     const updated = await this.prisma.contract.update({
       where: { id: contract.id },
       data: {
-        englishBodyHtml: body,
+        bodyHtmlByLocale: nextMap as unknown as Prisma.InputJsonValue,
         bodyLocale: locale,
+        ...(locale === 'en' ? { englishBodyHtml: body } : {}),
         customFileStorageKey: null,
         customFileOriginalName: null,
         customFileContentType: null,
@@ -483,7 +558,7 @@ export class ContractsService {
       );
     }
 
-    return await this.toResponse(updated, project, participant);
+    return await this.toResponse(updated, project, participant, locale);
   }
 
   async presignCustomFile(
@@ -840,9 +915,15 @@ export class ContractsService {
         contract.bidId,
         locale,
       );
+      const map = this.readBodyByLocale(contract);
+      const nextMap = { ...map, [locale]: body };
       return this.prisma.contract.update({
         where: { id: contract.id },
-        data: { englishBodyHtml: body, bodyLocale: locale },
+        data: {
+          bodyHtmlByLocale: nextMap as unknown as Prisma.InputJsonValue,
+          bodyLocale: locale,
+          ...(locale === 'en' ? { englishBodyHtml: body } : {}),
+        },
       });
     } catch {
       return contract;

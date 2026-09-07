@@ -79,7 +79,7 @@ export function ContractorProjectPanel({
   clarificationSummary = null,
   projectType,
 }: ContractorProjectPanelProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const {
     formatParticipationLabel,
     formatTenderStatus,
@@ -149,7 +149,7 @@ export function ContractorProjectPanel({
     } finally {
       setLoading(false);
     }
-  }, [projectId, t]);
+  }, [projectId, t, locale]);
 
   useEffect(() => {
     void loadParticipation();

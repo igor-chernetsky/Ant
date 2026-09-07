@@ -295,7 +295,7 @@ export class ProjectsService {
     projectTrack: ProjectTrack | null = null,
     propertyTypeSlugs: string[] = [],
     viewerLocale?: SupportedLocale,
-    viewerOptions?: { isAdmin?: boolean },
+    viewerOptions?: { isAdmin?: boolean; availableOnly?: boolean },
     pagination?: { limit?: number; offset?: number },
   ): Promise<PublicProjectListPage> {
     const { limit, offset } = normalizeDiscoverPagination(pagination);
@@ -349,61 +349,70 @@ export class ProjectsService {
           }
         : undefined;
 
+    const availableOnly = Boolean(viewerOptions?.availableOnly);
+
     const orClauses: Prisma.ProjectWhereInput[] = [];
 
-    if (statusFilters.length > 0) {
-      const publicAllowed = statusFilters.filter((status): status is ProjectStatus =>
-        DISCOVERY_STATUSES.includes(status),
-      );
-      if (publicAllowed.length > 0) {
-        orClauses.push({
-          status: { in: publicAllowed },
-          isHidden: false,
-        });
+    if (availableOnly) {
+      if (!userId) {
+        return emptyPage();
+      }
+      orClauses.push(...this.buildAvailableOnlyOrClauses(userId, viewer));
+    } else {
+      if (statusFilters.length > 0) {
+        const publicAllowed = statusFilters.filter((status): status is ProjectStatus =>
+          DISCOVERY_STATUSES.includes(status),
+        );
+        if (publicAllowed.length > 0) {
+          orClauses.push({
+            status: { in: publicAllowed },
+            isHidden: false,
+          });
+        }
+
+        if (userId) {
+          const ownAllowed = statusFilters.filter((status): status is ProjectStatus =>
+            CLIENT_WORKSPACE_STATUSES.includes(status),
+          );
+          if (ownAllowed.length > 0) {
+            orClauses.push({
+              clientId: userId,
+              status: { in: ownAllowed },
+              isHidden: false,
+            });
+          }
+        }
       }
 
-      if (userId) {
-        const ownAllowed = statusFilters.filter((status): status is ProjectStatus =>
-          CLIENT_WORKSPACE_STATUSES.includes(status),
-        );
-        if (ownAllowed.length > 0) {
+      if (orClauses.length === 0 && !includesCompleted) {
+        orClauses.push({
+          status: { in: DISCOVERY_STATUSES },
+          isHidden: false,
+        });
+        if (userId) {
           orClauses.push({
             clientId: userId,
-            status: { in: ownAllowed },
+            status: { in: CLIENT_WORKSPACE_STATUSES },
             isHidden: false,
           });
         }
       }
-    }
 
-    if (orClauses.length === 0 && !includesCompleted) {
-      orClauses.push({
-        status: { in: DISCOVERY_STATUSES },
-        isHidden: false,
-      });
-      if (userId) {
-        orClauses.push({
-          clientId: userId,
-          status: { in: CLIENT_WORKSPACE_STATUSES },
-          isHidden: false,
-        });
-      }
-    }
-
-    if (includesCompleted) {
-      if (!userId) {
-        if (orClauses.length === 0) {
-          return emptyPage();
+      if (includesCompleted) {
+        if (!userId) {
+          if (orClauses.length === 0) {
+            return emptyPage();
+          }
+        } else {
+          orClauses.push({
+            status: ProjectStatus.completed,
+            isHidden: false,
+            OR: [
+              { clientId: userId },
+              { id: { in: [...participantProjectIds] } },
+            ],
+          });
         }
-      } else {
-        orClauses.push({
-          status: ProjectStatus.completed,
-          isHidden: false,
-          OR: [
-            { clientId: userId },
-            { id: { in: [...participantProjectIds] } },
-          ],
-        });
       }
     }
 
@@ -659,6 +668,41 @@ export class ProjectsService {
       },
       project.projectType,
     );
+  }
+
+  /** Where clauses for "only projects this viewer can actually open". */
+  private buildAvailableOnlyOrClauses(
+    userId: string,
+    viewer: DiscoverViewerContext,
+  ): Prisma.ProjectWhereInput[] {
+    const clauses: Prisma.ProjectWhereInput[] = [
+      { clientId: userId, isHidden: false },
+    ];
+
+    if (viewer.awardedProjectIds.size > 0) {
+      clauses.push({ id: { in: [...viewer.awardedProjectIds] } });
+    }
+
+    const openStatuses = [
+      ProjectStatus.clarification,
+      ProjectStatus.in_tender,
+    ];
+    if (viewer.isContractor) {
+      clauses.push({
+        status: { in: openStatuses },
+        isHidden: false,
+        projectType: { not: ProjectType.design },
+      });
+    }
+    if (viewer.isDesigner) {
+      clauses.push({
+        status: { in: openStatuses },
+        isHidden: false,
+        projectType: ProjectType.design,
+      });
+    }
+
+    return clauses;
   }
 
   private async mapPublicProjectCards(

@@ -287,7 +287,8 @@ export class ContractorTenderController {
     @Param('projectId') projectId: string,
   ) {
     const user = await this.resolveUser(req);
-    const contract = await this.contracts.getForProject(user.id, projectId);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    const contract = await this.contracts.getForProject(user.id, projectId, locale);
     return contract ?? { contract: null };
   }
 
