@@ -23,6 +23,8 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { platformSuccessFeeAmount } from '../notifications/platform-fees';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { normalizeSourceLocale } from '../localization/locale.utils';
+import type { SupportedLocale } from '../users/locale.types';
 import { CONTRACT_ATTACHMENT_VERIFICATION_CATEGORIES } from '../verification/verification.types';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
@@ -36,10 +38,12 @@ import {
   isCustomContractStorageKeyForContract,
   MAX_CUSTOM_CONTRACT_BYTES,
   normalizeRequiredSignatureDataUrl,
+  parseContractLocale,
   type CompleteCustomContractFileDto,
   type ContractResponse,
   type DownloadCustomContractDto,
   type PresignCustomContractFileDto,
+  type RegenerateContractDocumentDto,
   type SignContractDto,
   type UpdateContractDocumentDto,
 } from './contracts.types';
@@ -162,6 +166,7 @@ export class ContractsService {
         : contract.englishBodyHtml
           ? stripContractSignaturesBlock(contract.englishBodyHtml)
           : null,
+      bodyLocale: parseContractLocale(contract.bodyLocale),
       hasCustomContract,
       customFile: mapDualCustomFileMeta(contract),
       canSign,
@@ -305,7 +310,10 @@ export class ContractsService {
     }
 
     if (!contract.englishBodyHtml?.trim() && !contract.customFileStorageKey) {
-      contract = await this.ensureEnglishBodyHtml(contract);
+      contract = await this.ensureEnglishBodyHtml(
+        contract,
+        normalizeSourceLocale(participant.project.sourceLocale),
+      );
     }
 
     return await this.toResponse(contract, participant.project, participant);
@@ -409,6 +417,7 @@ export class ContractsService {
   async regenerateDocument(
     userId: string,
     projectId: string,
+    dto: RegenerateContractDocumentDto = {},
   ): Promise<ContractResponse> {
     const participant = await this.loadParticipant(userId, projectId);
     const { project } = participant;
@@ -420,8 +429,10 @@ export class ContractsService {
 
     this.assertEditableContract(contract, project);
 
+    const locale = parseContractLocale(dto.locale ?? contract.bodyLocale);
     const body = await this.commercialProposal.generateEnglishBodyHtml(
       contract.bidId,
+      locale,
     );
     const previousCustomKey = contract.customFileStorageKey;
     const previousDocxKey = contract.sourceDocxStorageKey;
@@ -435,6 +446,7 @@ export class ContractsService {
       where: { id: contract.id },
       data: {
         englishBodyHtml: body,
+        bodyLocale: locale,
         customFileStorageKey: null,
         customFileOriginalName: null,
         customFileContentType: null,
@@ -815,7 +827,10 @@ export class ContractsService {
     };
   }
 
-  async ensureEnglishBodyHtml(contract: Contract): Promise<Contract> {
+  async ensureEnglishBodyHtml(
+    contract: Contract,
+    locale: SupportedLocale,
+  ): Promise<Contract> {
     if (contract.englishBodyHtml?.trim()) {
       return contract;
     }
@@ -823,10 +838,11 @@ export class ContractsService {
     try {
       const body = await this.commercialProposal.generateEnglishBodyHtml(
         contract.bidId,
+        locale,
       );
       return this.prisma.contract.update({
         where: { id: contract.id },
-        data: { englishBodyHtml: body },
+        data: { englishBodyHtml: body, bodyLocale: locale },
       });
     } catch {
       return contract;
@@ -1015,6 +1031,13 @@ export class ContractsService {
     if (!contract || contract.englishBodyHtml?.trim()) {
       return;
     }
-    await this.ensureEnglishBodyHtml(contract);
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { sourceLocale: true },
+    });
+    await this.ensureEnglishBodyHtml(
+      contract,
+      normalizeSourceLocale(project?.sourceLocale),
+    );
   }
 }

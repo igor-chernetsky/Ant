@@ -40,6 +40,7 @@ import type {
   CompleteCustomContractFileDto,
   DownloadCustomContractDto,
   PresignCustomContractFileDto,
+  RegenerateContractDocumentDto,
   SignContractDto,
   UpdateContractDocumentDto,
 } from './contracts.types';
@@ -369,9 +370,10 @@ export class ContractorTenderController {
   async regenerateContractDocument(
     @Req() req: Request & { user: JwtPayload },
     @Param('projectId') projectId: string,
+    @Body() body?: RegenerateContractDocumentDto,
   ) {
     const user = await this.resolveUser(req);
-    return this.contracts.regenerateDocument(user.id, projectId);
+    return this.contracts.regenerateDocument(user.id, projectId, body ?? {});
   }
 
   @Post('projects/:projectId/contract/sign')

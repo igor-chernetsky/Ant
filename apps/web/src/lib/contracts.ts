@@ -3,6 +3,7 @@ import {
   deliverFetchedBlob,
   openPendingPreviewWindow,
 } from './blob-download';
+import type { Locale } from '@/lib/i18n';
 
 export type ContractStatus = 'pending_signatures' | 'fully_signed';
 
@@ -62,6 +63,7 @@ export interface ProjectContract {
   clientSignatureDataUrl: string | null;
   contractorSignatureDataUrl: string | null;
   englishBodyHtml: string | null;
+  bodyLocale: string;
   hasCustomContract: boolean;
   customFile: ContractCustomFile | null;
   canSign: boolean;
@@ -150,13 +152,17 @@ export async function updateProjectContractDocument(
 
 export async function regenerateProjectContractDocument(
   projectId: string,
-  options?: { asContractor?: boolean },
+  options?: { asContractor?: boolean; locale?: Locale },
 ): Promise<ProjectContract> {
   const asContractor = Boolean(options?.asContractor);
   const path = asContractor
     ? `/api/contractor/projects/${encodeURIComponent(projectId)}/contract/document/regenerate`
     : `/api/projects/${encodeURIComponent(projectId)}/contract/document/regenerate`;
-  const response = await fetchWithAuth(path, { method: 'POST' });
+  const response = await fetchWithAuth(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ locale: options?.locale }),
+  });
   if (!response.ok) {
     await parseError(response, 'Failed to regenerate contract document');
   }

@@ -84,7 +84,7 @@ function AddendumEditor({
   asContractor: boolean;
   onSaved: (row: ContractAddendum) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const readOnly = !addendum.canEditDocument || addendum.fullySigned;
   const [busy, setBusy] = useState(false);
@@ -92,7 +92,7 @@ function AddendumEditor({
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [regenLocale, setRegenLocale] = useState<Locale>(
-    addendum.bodyLocale ?? 'en',
+    addendum.bodyLocale ?? locale,
   );
   const baselineHtmlRef = useRef(addendum.englishBodyHtml || '<p></p>');
   const hasAnySignature = Boolean(
@@ -100,8 +100,8 @@ function AddendumEditor({
   );
 
   useEffect(() => {
-    setRegenLocale(addendum.bodyLocale ?? 'en');
-  }, [addendum.bodyLocale, addendum.id]);
+    setRegenLocale(addendum.bodyLocale ?? locale);
+  }, [addendum.bodyLocale, addendum.id, locale]);
 
   const editor = useEditor({
     extensions: [

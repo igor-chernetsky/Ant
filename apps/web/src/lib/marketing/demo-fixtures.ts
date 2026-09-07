@@ -376,6 +376,7 @@ export const demoContractAwaitingContractor: ProjectContract = {
   clientSignatureDataUrl: null,
   contractorSignatureDataUrl: null,
   englishBodyHtml: null,
+  bodyLocale: 'en',
   hasCustomContract: false,
   customFile: null,
   canSign: false,

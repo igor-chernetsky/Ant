@@ -357,7 +357,10 @@ export class CommercialProposalService {
     };
   }
 
-  async generateEnglishBodyHtml(bidId: string): Promise<string> {
+  async generateEnglishBodyHtml(
+    bidId: string,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<string> {
     const bid = await this.prisma.bid.findUnique({
       where: { id: bidId },
       include: {
@@ -372,7 +375,7 @@ export class CommercialProposalService {
       throw new BadRequestException('Bid has no contract amount');
     }
 
-    const data = await this.buildProposalDataForLocale(bid, 'en');
+    const data = await this.buildProposalDataForLocale(bid, locale);
     const fullHtml = renderCommercialProposalHtml(data);
     return stripContractSignaturesBlock(extractBodyInnerHtml(fullHtml));
   }

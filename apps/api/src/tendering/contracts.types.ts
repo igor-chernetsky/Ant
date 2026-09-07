@@ -1,3 +1,9 @@
+import {
+  DEFAULT_LOCALE,
+  isSupportedLocale,
+  type SupportedLocale,
+} from '../users/locale.types';
+
 export type ContractStatus = 'pending_signatures' | 'fully_signed';
 
 export interface SignContractDto {
@@ -7,6 +13,15 @@ export interface SignContractDto {
 
 export interface UpdateContractDocumentDto {
   englishBodyHtml: string;
+}
+
+export interface RegenerateContractDocumentDto {
+  locale?: string;
+}
+
+export function parseContractLocale(value?: string | null): SupportedLocale {
+  const trimmed = value?.trim().toLowerCase() ?? '';
+  return isSupportedLocale(trimmed) ? trimmed : DEFAULT_LOCALE;
 }
 
 export interface PresignCustomContractFileDto {
@@ -70,6 +85,7 @@ export interface ContractResponse {
   clientSignatureDataUrl: string | null;
   contractorSignatureDataUrl: string | null;
   englishBodyHtml: string | null;
+  bodyLocale: string;
   hasCustomContract: boolean;
   customFile: ContractCustomFileMeta | null;
   canSign: boolean;

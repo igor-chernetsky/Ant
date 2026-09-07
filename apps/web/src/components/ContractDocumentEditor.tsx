@@ -10,6 +10,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import {
+  LOCALE_LABELS,
+  SUPPORTED_LOCALES,
+  type Locale,
+} from '@/lib/i18n';
+import {
   regenerateProjectContractDocument,
   updateProjectContractDocument,
   type ProjectContract,
@@ -124,6 +129,10 @@ function TableIcon() {
   );
 }
 
+function normalizeContractLocale(value: string | null | undefined): Locale {
+  return value === 'th' || value === 'ru' || value === 'en' ? value : 'en';
+}
+
 interface ContractDocumentEditorProps {
   projectId: string;
   contract: ProjectContract;
@@ -147,12 +156,19 @@ export function ContractDocumentEditor({
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [regenLocale, setRegenLocale] = useState<Locale>(
+    normalizeContractLocale(contract.bodyLocale),
+  );
   const baselineHtmlRef = useRef(contract.englishBodyHtml || '<p></p>');
   const detailsRef = useRef<HTMLDetailsElement>(null);
   const openedInitiallyRef = useRef(false);
   const hasAnySignature = Boolean(
     contract.clientSignedAt || contract.contractorSignedAt,
   );
+
+  useEffect(() => {
+    setRegenLocale(normalizeContractLocale(contract.bodyLocale));
+  }, [contract.bodyLocale, contract.id]);
 
   const syncDirtyFromEditor = (html: string) => {
     setDirty(html !== baselineHtmlRef.current);
@@ -278,6 +294,7 @@ export function ContractDocumentEditor({
     try {
       const updated = await regenerateProjectContractDocument(projectId, {
         asContractor,
+        locale: regenLocale,
       });
       onSaved?.(updated);
       if (editor) {
@@ -400,14 +417,32 @@ export function ContractDocumentEditor({
                 ? t('common.saving')
                 : t('contractPanel.saveDocument')}
             </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => void handleRegenerate()}
-            >
-              {t('contractPanel.regenerateDocument')}
-            </button>
+            <div className="addendum-regen-group">
+              <label className="addendum-regen-locale">
+                <span className="addendum-regen-locale-label">
+                  {t('contractPanel.documentLanguage')}
+                </span>
+                <select
+                  value={regenLocale}
+                  disabled={busy}
+                  onChange={(e) => setRegenLocale(e.target.value as Locale)}
+                >
+                  {SUPPORTED_LOCALES.map((code) => (
+                    <option key={code} value={code}>
+                      {LOCALE_LABELS[code]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy}
+                onClick={() => void handleRegenerate()}
+              >
+                {t('contractPanel.regenerateDocument')}
+              </button>
+            </div>
             {saved && (
               <p className="muted">{t('contractPanel.documentSaved')}</p>
             )}
