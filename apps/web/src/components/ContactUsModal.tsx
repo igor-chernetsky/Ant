@@ -23,6 +23,7 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
   const [message, setMessage] = useState('');
   const [honeypot, setHoneypot] = useState('');
   const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
   const [flash, setFlash] = useState<FlashToastState | null>(null);
   const openedAtRef = useRef(0);
 
@@ -32,6 +33,7 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
     setMessage('');
     setHoneypot('');
     setFlash(null);
+    setSent(false);
     openedAtRef.current = Date.now();
   }, [isOpen, me?.email]);
 
@@ -58,28 +60,18 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
     setBusy(true);
     setFlash(null);
     try {
-      // Honeypot / too-fast guards: pretend to accept so bots get no signal.
+      // Honeypot / too-fast guards: silently accept so bots get no signal.
       const looksAutomated =
         honeypot.trim().length > 0 ||
         Date.now() - openedAtRef.current < MIN_SUBMIT_ELAPSED_MS;
-      if (looksAutomated) {
-        setFlash({
-          tone: 'success',
-          message: t('header.contactFormSent'),
+      if (!looksAutomated) {
+        await submitContactMessage({
+          ...parseContactInput(contact),
+          message: message.trim(),
         });
-        setMessage('');
-        return;
       }
-
-      await submitContactMessage({
-        ...parseContactInput(contact),
-        message: message.trim(),
-      });
-      setFlash({
-        tone: 'success',
-        message: t('header.contactFormSent'),
-      });
       setMessage('');
+      setSent(true);
     } catch (err: unknown) {
       setFlash({
         tone: 'error',
@@ -90,6 +82,13 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
       setBusy(false);
     }
   };
+
+  // Briefly show the green "sent" state, then close the dialog.
+  useEffect(() => {
+    if (!sent) return;
+    const timer = setTimeout(onClose, 1800);
+    return () => clearTimeout(timer);
+  }, [sent, onClose]);
 
   if (!isOpen || typeof document === 'undefined') {
     return null;
@@ -183,16 +182,32 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
             </label>
 
             <div className="contact-us-form-actions">
-              <button type="button" className="secondary" onClick={onClose} disabled={busy}>
-                {t('common.cancel')}
-              </button>
-              <button
-                type="submit"
-                className="primary"
-                disabled={busy || !message.trim() || !contact.trim()}
-              >
-                {busy ? t('common.pleaseWait') : t('header.contactFormSubmit')}
-              </button>
+              {sent ? (
+                <button type="button" className="primary contact-us-sent" disabled>
+                  <span aria-hidden>✓</span>
+                  {t('header.contactFormSentButton')}
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={onClose}
+                    disabled={busy}
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="primary"
+                    disabled={busy || !message.trim() || !contact.trim()}
+                  >
+                    {busy
+                      ? t('common.pleaseWait')
+                      : t('header.contactFormSubmit')}
+                  </button>
+                </>
+              )}
             </div>
           </form>
         </div>

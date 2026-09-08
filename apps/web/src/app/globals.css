@@ -12544,6 +12544,27 @@ select:disabled {
   flex: 1 1 auto;
 }
 
+.contact-us-sent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background: #059669;
+  border-color: #059669;
+  cursor: default;
+}
+
+.contact-us-sent:hover,
+.contact-us-sent:focus {
+  background: #059669;
+  border-color: #059669;
+}
+
+.contact-us-sent span {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .admin-no-profile-hint {
   margin: 0 0 1rem;
   padding: 0.75rem 0.85rem;

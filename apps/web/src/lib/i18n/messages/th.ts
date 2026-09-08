@@ -44,6 +44,7 @@ export const th: Messages = {
     contactFormMessagePlaceholder: 'เราช่วยอะไรคุณได้บ้าง?',
     contactFormSubmit: 'ส่งข้อความ',
     contactFormSent: 'ส่งข้อความแล้ว เราจะติดต่อกลับโดยเร็ว',
+    contactFormSentButton: 'ส่งข้อความแล้ว',
     contactFormSendFailed: 'ส่งข้อความไม่สำเร็จ',
     primaryNav: 'เมนูหลัก',
     menu: 'เมนู',

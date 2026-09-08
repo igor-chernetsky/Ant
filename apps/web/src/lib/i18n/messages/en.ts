@@ -43,6 +43,7 @@ export const en = {
     contactFormMessagePlaceholder: 'How can we help?',
     contactFormSubmit: 'Send message',
     contactFormSent: 'Message sent. We will get back to you soon.',
+    contactFormSentButton: 'Message sent',
     contactFormSendFailed: 'Failed to send message',
     primaryNav: 'Primary',
     menu: 'Menu',

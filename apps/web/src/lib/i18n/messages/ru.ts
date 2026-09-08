@@ -44,6 +44,7 @@ export const ru: Messages = {
     contactFormMessagePlaceholder: 'Чем мы можем помочь?',
     contactFormSubmit: 'Отправить',
     contactFormSent: 'Сообщение отправлено. Мы скоро ответим.',
+    contactFormSentButton: 'Сообщение отправлено',
     contactFormSendFailed: 'Не удалось отправить сообщение',
     primaryNav: 'Основная навигация',
     menu: 'Меню',
