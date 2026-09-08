@@ -1,9 +1,12 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { createMemoryRateLimiter } from '../common/rate-limit';
 import { DEFAULT_PLATFORM_ADMIN_EMAIL } from './platform-fees';
 import { MailService } from './mail.service';
 
@@ -11,10 +14,36 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const PHONE_RE = /^[+()\d\s.-]{6,32}$/;
 const MAX_MESSAGE_LEN = 5000;
 
+/** A single contact identifier can submit at most this often. */
+const CONTACT_IDENTIFIER_LIMITER = createMemoryRateLimiter({
+  windowMs: 15 * 60_000,
+  max: 3,
+});
+
+/** Per-IP guard so a scripted flood cannot rotate identifiers. */
+const CONTACT_IP_LIMITER = createMemoryRateLimiter({
+  windowMs: 15 * 60_000,
+  max: 20,
+});
+
 export interface SubmitContactMessageDto {
   email?: string;
   phone?: string;
   message: string;
+}
+
+export interface SubmitContactMessageContext {
+  clientIp?: string;
+}
+
+function rateLimited(): never {
+  throw new HttpException(
+    {
+      message: 'Too many messages. Please try again later.',
+      code: 'rate_limited',
+    },
+    HttpStatus.TOO_MANY_REQUESTS,
+  );
 }
 
 @Injectable()
@@ -24,7 +53,10 @@ export class ContactService {
     private readonly config: ConfigService,
   ) {}
 
-  async submitContactMessage(body: SubmitContactMessageDto): Promise<{ sent: true }> {
+  async submitContactMessage(
+    body: SubmitContactMessageDto,
+    context: SubmitContactMessageContext = {},
+  ): Promise<{ sent: true }> {
     if (!this.mail.isConfigured()) {
       throw new ServiceUnavailableException('SMTP is not configured');
     }
@@ -47,6 +79,19 @@ export class ContactService {
     }
     if (message.length > MAX_MESSAGE_LEN) {
       throw new BadRequestException('Message is too long');
+    }
+
+    // Rate limiting by the contact identifier and (when known) the IP.
+    const contactKey = email || `phone:${phone}`;
+    const identifierCheck = CONTACT_IDENTIFIER_LIMITER.check(contactKey);
+    if (!identifierCheck.ok) {
+      rateLimited();
+    }
+    if (context.clientIp) {
+      const ipCheck = CONTACT_IP_LIMITER.check(context.clientIp);
+      if (!ipCheck.ok) {
+        rateLimited();
+      }
     }
 
     const to =

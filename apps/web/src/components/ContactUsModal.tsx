@@ -1,12 +1,15 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FlashToast, type FlashToastState } from '@/components/FlashToast';
 import { useTranslation } from '@/components/LocaleProvider';
 import { parseContactInput, submitContactMessage } from '@/lib/contact';
 import { LEGAL_CONTACT_EMAIL } from '@/lib/legal/branding';
 import type { MeResponse } from '@/lib/session';
+
+/** Bots typically submit a form faster than a human can fill it. */
+const MIN_SUBMIT_ELAPSED_MS = 4000;
 
 interface ContactUsModalProps {
   isOpen: boolean;
@@ -18,14 +21,18 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
   const { t } = useTranslation();
   const [contact, setContact] = useState('');
   const [message, setMessage] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const [busy, setBusy] = useState(false);
   const [flash, setFlash] = useState<FlashToastState | null>(null);
+  const openedAtRef = useRef(0);
 
   useEffect(() => {
     if (!isOpen) return;
     setContact(me?.email?.trim() ?? '');
     setMessage('');
+    setHoneypot('');
     setFlash(null);
+    openedAtRef.current = Date.now();
   }, [isOpen, me?.email]);
 
   useEffect(() => {
@@ -51,6 +58,19 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
     setBusy(true);
     setFlash(null);
     try {
+      // Honeypot / too-fast guards: pretend to accept so bots get no signal.
+      const looksAutomated =
+        honeypot.trim().length > 0 ||
+        Date.now() - openedAtRef.current < MIN_SUBMIT_ELAPSED_MS;
+      if (looksAutomated) {
+        setFlash({
+          tone: 'success',
+          message: t('header.contactFormSent'),
+        });
+        setMessage('');
+        return;
+      }
+
       await submitContactMessage({
         ...parseContactInput(contact),
         message: message.trim(),
@@ -125,6 +145,18 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
           </div>
 
           <form className="contact-us-form" onSubmit={(e) => void handleSubmit(e)}>
+            <div className="form-honeypot" aria-hidden="true">
+              <label htmlFor="contact-company">Company</label>
+              <input
+                id="contact-company"
+                type="text"
+                name="company"
+                tabIndex={-1}
+                autoComplete="off"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            </div>
             <label className="contact-us-field">
               {t('header.contactFormContact')}
               <input
