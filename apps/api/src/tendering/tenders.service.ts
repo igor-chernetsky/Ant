@@ -335,6 +335,16 @@ export class TendersService {
       ),
     );
 
+    // Localize the shared cost-breakdown rows too, otherwise their trade names
+    // stay in the project language and no longer match the localized bid rows.
+    mapped.defaultCostBreakdown =
+      await this.projectLocalization.localizeCostBreakdownForViewer(
+        projectId,
+        mapped.defaultCostBreakdown,
+        locale,
+        project.sourceLocale,
+      );
+
     return mapped;
   }
 
@@ -904,6 +914,13 @@ export class TendersService {
     mapped.bids = await Promise.all(
       mapped.bids.map((b) => this.localizeBidResponse(projectId, b, locale)),
     );
+    mapped.defaultCostBreakdown =
+      await this.projectLocalization.localizeCostBreakdownForViewer(
+        projectId,
+        mapped.defaultCostBreakdown,
+        locale,
+        project?.sourceLocale,
+      );
     return mapped;
   }
 

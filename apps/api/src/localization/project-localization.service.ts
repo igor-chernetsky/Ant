@@ -10,7 +10,10 @@ import {
 } from '../users/locale.types';
 import { ContentTranslationService } from './content-translation.service';
 import { normalizeSourceLocale } from './locale.utils';
-import { OpenAiTranslationService } from './openai-translation.service';
+import {
+  OpenAiTranslationService,
+  hashSourceText,
+} from './openai-translation.service';
 import type {
   BidContractTerms,
   BidTermsV1,
@@ -240,9 +243,15 @@ export class ProjectLocalizationService implements OnModuleInit {
       ? await Promise.all(
           terms.lineItems.map(async (item, index) => ({
             ...item,
-            trade:
-              (await translate(`${entityKey}.line.${index}.trade`, item.trade)) ??
-              item.trade,
+            // Trade names share one cache key with the tender cost-breakdown
+            // template so the comparison table can merge its rows.
+            trade: item.trade?.trim()
+              ? await this.translateTradeName(
+                  projectId,
+                  item.trade,
+                  targetLocale,
+                )
+              : item.trade,
             description: item.description?.trim()
               ? ((await translate(
                   `${entityKey}.line.${index}.description`,
@@ -388,9 +397,9 @@ export class ProjectLocalizationService implements OnModuleInit {
     const lineItems = await Promise.all(
       (input.lineItems ?? []).map(async (item, index) => ({
         ...item,
-        trade:
-          (await translate(`bid.${bidId}.line.${index}.trade`, item.trade)) ??
-          item.trade,
+        trade: item.trade?.trim()
+          ? await this.translateTradeName(projectId, item.trade, targetLocale)
+          : item.trade,
         description: item.description?.trim()
           ? ((await translate(
               `bid.${bidId}.line.${index}.description`,
@@ -758,6 +767,68 @@ export class ProjectLocalizationService implements OnModuleInit {
     );
 
     return { items: next, cacheMiss };
+  }
+
+  /**
+   * Shared cache key for a trade name. The tender template and every bid line
+   * item seeded from it carry the same source text, so keying on that text
+   * guarantees a single translation per trade. The bid comparison table merges
+   * its rows by trade label, so labels translated independently for the
+   * template and for each bid would split into duplicate rows with empty
+   * amounts.
+   */
+  private tradeFieldKey(sourceText: string): string {
+    return `trade.${hashSourceText(sourceText)}`;
+  }
+
+  private translateTradeName(
+    projectId: string,
+    sourceText: string,
+    targetLocale: SupportedLocale,
+  ): Promise<string> {
+    return this.translations.translateAndCacheTextAuto({
+      projectId,
+      fieldKey: this.tradeFieldKey(sourceText),
+      sourceText,
+      targetLocale,
+    });
+  }
+
+  /**
+   * Localize a project's default cost breakdown for an in-app viewer,
+   * translating trade names and descriptions on demand so the comparison table
+   * rows match the localized bid line items instead of staying in the project
+   * language.
+   */
+  async localizeCostBreakdownForViewer(
+    projectId: string,
+    items: DefaultCostBreakdownItem[],
+    targetLocale: SupportedLocale,
+    sourceLocale?: string | null,
+  ): Promise<DefaultCostBreakdownItem[]> {
+    if (items.length === 0) {
+      return items;
+    }
+    if (normalizeSourceLocale(sourceLocale) === targetLocale) {
+      return items;
+    }
+
+    return Promise.all(
+      items.map(async (item, index) => ({
+        ...item,
+        trade: item.trade?.trim()
+          ? await this.translateTradeName(projectId, item.trade, targetLocale)
+          : item.trade,
+        description: item.description?.trim()
+          ? await this.translations.translateAndCacheTextAuto({
+              projectId,
+              fieldKey: `defaultCost.${index}.description`,
+              sourceText: item.description,
+              targetLocale,
+            })
+          : item.description,
+      })),
+    );
   }
 
   async localizeTenderPackageTexts(

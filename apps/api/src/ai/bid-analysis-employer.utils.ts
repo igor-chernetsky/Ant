@@ -16,6 +16,7 @@ Contract & payment terms — employer perspective:
 - Warranty / defect notification period: LONGER is BETTER for the employer. Never call a longer period a weakness.
 - Shorter timeline and earlier works start are strengths for the employer when price and other commercial terms are comparable.
 - When two or more bids have the same (or nearly the same) price AND comparable advance / retention / warranty / delay damages, you MUST use timeline as the decisive factor: prefer earlier worksStartDate, then shorter durationDays / earlier worksFinishDate. Do not return recommendedBidId=null solely because price and contract terms match if timeline differs.
+- Timeline vs price (numeric rule, mandatory): a shorter duration justifies a HIGHER price ONLY when the duration reduction in % is LARGER than the price premium in % AND payment/warranty terms are not worse. If the price premium (in %) exceeds the duration saving (in %), recommend the CHEAPER bid — a shorter schedule alone must not win. Example: +30% price for a 1-day gain on a ~40-day schedule (~2.5%) is NOT a justification; never recommend the pricier bid in that case.
 - Flag missing worksStartDate / worksFinishDate / durationDays as employer risk when other bids provide them.
 
 When comparing two bids on the same term, always explain why it helps or hurts the EMPLOYER.
@@ -129,6 +130,101 @@ function commercialTermsComparable(
   }
 
   return true;
+}
+
+/** Cheapest bid by total amount (the natural alternative to a pricier pick). */
+export function cheapestBid(
+  bids: BidAnalysisBidInput[],
+): BidAnalysisBidInput | null {
+  if (bids.length === 0) return null;
+  return [...bids].sort((a, b) => Number(a.amount) - Number(b.amount))[0]!;
+}
+
+/** How much more expensive `bid` is compared to `base`, in percent. */
+export function pricePremiumPercent(
+  bid: BidAnalysisBidInput,
+  base: BidAnalysisBidInput,
+): number {
+  const baseAmount = Number(base.amount);
+  const amount = Number(bid.amount);
+  if (!Number.isFinite(baseAmount) || baseAmount <= 0 || !Number.isFinite(amount)) {
+    return 0;
+  }
+  return ((amount - baseAmount) / baseAmount) * 100;
+}
+
+/** How much shorter `bid` is compared to `base`, in percent of the base duration. */
+export function durationGainPercent(
+  bid: BidAnalysisBidInput,
+  base: BidAnalysisBidInput,
+): number {
+  const baseDays = bidDurationDays(base);
+  const days = bidDurationDays(bid);
+  if (baseDays == null || days == null || baseDays <= 0) return 0;
+  return ((baseDays - days) / baseDays) * 100;
+}
+
+/** Does `bid` offer materially better payment / warranty terms than `other`? */
+export function hasBetterEmployerTerms(
+  bid: BidAnalysisBidInput,
+  other: BidAnalysisBidInput,
+): boolean {
+  const advance = effectiveAdvancePercent(bid);
+  const otherAdvance = effectiveAdvancePercent(other);
+  if (advance != null && otherAdvance != null && advance < otherAdvance - 0.05) {
+    return true;
+  }
+
+  const warranty = bid.terms?.contractTerms?.defectNotificationMonths;
+  const otherWarranty = other.terms?.contractTerms?.defectNotificationMonths;
+  if (warranty != null && otherWarranty != null && warranty > otherWarranty) {
+    return true;
+  }
+
+  const retention = bid.terms?.contractTerms?.retentionPercent;
+  const otherRetention = other.terms?.contractTerms?.retentionPercent;
+  if (
+    retention != null &&
+    otherRetention != null &&
+    retention > otherRetention + 0.05
+  ) {
+    return true;
+  }
+
+  const penalty = parseDailyPenaltyPercent(
+    bid.terms?.contractTerms?.delayDamagesNotes,
+  );
+  const otherPenalty = parseDailyPenaltyPercent(
+    other.terms?.contractTerms?.delayDamagesNotes,
+  );
+  if (penalty != null && otherPenalty != null && penalty > otherPenalty + 0.001) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Employer rule: a shorter duration justifies a higher price ONLY when the
+ * duration saving (in %) is LARGER than the price premium (in %) and the
+ * pricier bid is not worse on payment / warranty terms.
+ *
+ * e.g. +30% price for a 1-day gain on a 40-day schedule (~2.5%) is NOT justified.
+ */
+export function timelinePremiumUnjustified(
+  bid: BidAnalysisBidInput,
+  base: BidAnalysisBidInput,
+): boolean {
+  if (bid.id === base.id) return false;
+
+  const premium = pricePremiumPercent(bid, base);
+  if (premium <= 0) return false;
+
+  if (hasBetterEmployerTerms(bid, base)) return false;
+
+  const gain = durationGainPercent(bid, base);
+  if (gain <= 0) return true;
+  return premium > gain;
 }
 
 /**
@@ -319,6 +415,32 @@ export function buildEmployerComparisonFacts(context: BidAnalysisContext): strin
             : '';
       lines.push(`  ${bidLabel(row.bid)}: ${row.finish}${marker}`);
     });
+  }
+
+  const cheapest = cheapestBid(bids);
+  if (cheapest) {
+    const premiumRows = bids
+      .filter((bid) => bid.id !== cheapest.id)
+      .map((bid) => ({
+        bid,
+        premium: pricePremiumPercent(bid, cheapest),
+        gain: durationGainPercent(bid, cheapest),
+        justified: !timelinePremiumUnjustified(bid, cheapest),
+      }));
+    if (premiumRows.length > 0) {
+      lines.push(
+        `VALUE RULE — a shorter duration justifies a higher price ONLY when the duration saving (in %) is LARGER than the price premium (in %); otherwise the cheaper bid ${bidLabel(cheapest)} wins:`,
+      );
+      for (const row of premiumRows) {
+        lines.push(
+          `  ${bidLabel(row.bid)}: +${row.premium.toFixed(1)}% price vs ${bidLabel(cheapest)}, ${row.gain.toFixed(1)}% shorter duration${
+            row.justified
+              ? ' ← timeline may justify the premium'
+              : ' ← NOT justified by the timeline alone'
+          }`,
+        );
+      }
+    }
   }
 
   const timelineWinner = pickTimelineTiebreaker(bids);
@@ -656,6 +778,31 @@ export function enforceEmployerBidAnalysis(
       if (!reasoning.includes(tieNote)) {
         reasoning = `${reasoning}\n\n${tieNote}`.trim();
       }
+      confidence = Math.max(confidence, 0.55);
+    }
+  }
+
+  // Value rule: a small timeline gain must not justify a large price premium.
+  const cheapest = cheapestBid(context.bids);
+  if (recommendedBidId != null && cheapest) {
+    const recommended =
+      context.bids.find((bid) => bid.id === recommendedBidId) ?? null;
+    if (
+      recommended &&
+      recommended.id !== cheapest.id &&
+      timelinePremiumUnjustified(recommended, cheapest)
+    ) {
+      const premium = pricePremiumPercent(recommended, cheapest);
+      const gain = durationGainPercent(recommended, cheapest);
+      const gainText =
+        gain > 0
+          ? `saves only ${gain.toFixed(1)}% of the works duration`
+          : 'offers no shorter works duration';
+      const note = `Cheaper bid preferred: ${bidLabel(recommended)} costs ${premium.toFixed(1)}% more and ${gainText}, while its payment/warranty terms are not better. ${bidLabel(cheapest)} is recommended instead.`;
+      recommendedBidId = cheapest.id;
+      recommendedCompanyName = cheapest.companyName;
+      summary = `${summary} ${note}`.trim();
+      reasoning = `${reasoning}\n\n${note}`.trim();
       confidence = Math.max(confidence, 0.55);
     }
   }

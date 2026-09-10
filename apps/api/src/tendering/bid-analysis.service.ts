@@ -24,7 +24,7 @@ type BidForFingerprint = Pick<
 >;
 
 /** Bump when employer ranking rules change so cached analyses can be regenerated. */
-const BID_ANALYSIS_LOGIC_VERSION = 'employer-timeline-v1';
+const BID_ANALYSIS_LOGIC_VERSION = 'employer-timeline-v2-value-rule';
 
 @Injectable()
 export class BidAnalysisService {

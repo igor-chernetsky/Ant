@@ -44,7 +44,7 @@ export function TenderSummaryCard({
   project,
   onUpdated,
 }: TenderSummaryCardProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { formatTenderStatus } = useAppFormatters();
   const [tender, setTender] = useState<Tender | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,7 +117,7 @@ export function TenderSummaryCard({
     } finally {
       setLoading(false);
     }
-  }, [projectId, t]);
+  }, [projectId, t, locale]);
 
   const refreshProject = useCallback(async () => {
     const { fetchProject } = await import('@/lib/projects');

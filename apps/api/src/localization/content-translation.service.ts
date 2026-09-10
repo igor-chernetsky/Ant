@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { SupportedLocale } from '../users/locale.types';
 import {
   hashSourceText,
+  isMetaCommentaryTranslation,
   OpenAiTranslationService,
 } from './openai-translation.service';
 
@@ -36,7 +37,11 @@ export class ContentTranslationService {
       },
     });
 
-    if (cached && cached.sourceHash === hashSourceText(sourceText)) {
+    if (
+      cached &&
+      cached.sourceHash === hashSourceText(sourceText) &&
+      !isMetaCommentaryTranslation(cached.translatedText)
+    ) {
       return cached.translatedText;
     }
 
@@ -101,7 +106,11 @@ export class ContentTranslationService {
       },
     });
 
-    if (cached && cached.sourceHash === sourceHash) {
+    if (
+      cached &&
+      cached.sourceHash === sourceHash &&
+      !isMetaCommentaryTranslation(cached.translatedText)
+    ) {
       return cached.translatedText;
     }
 
@@ -156,7 +165,11 @@ export class ContentTranslationService {
       },
     });
 
-    if (cached && cached.sourceHash === sourceHash) {
+    if (
+      cached &&
+      cached.sourceHash === sourceHash &&
+      !isMetaCommentaryTranslation(cached.translatedText)
+    ) {
       return cached.translatedText;
     }
 

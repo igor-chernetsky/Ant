@@ -31,7 +31,7 @@ export default function ProjectBidsPage() {
   const params = useParams<{ id: string }>();
   const projectId = params.id;
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { formatTenderStatus } = useAppFormatters();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
 
@@ -96,7 +96,7 @@ export default function ProjectBidsPage() {
         setRefreshing(false);
       }
     },
-    [projectId, sessionReady, me, router, t],
+    [projectId, sessionReady, me, router, t, locale],
   );
 
   useEffect(() => {
