@@ -77,7 +77,9 @@ export class ProgressService {
     userId: string,
     projectId: string,
   ): Promise<ProgressOverviewDto> {
-    const ctx = await this.loadContext(userId, projectId);
+    const ctx = await this.loadContext(userId, projectId, {
+      requireActive: false,
+    });
     const claims = await this.prisma.progressClaim.findMany({
       where: { projectId },
       include: claimInclude,
@@ -140,7 +142,6 @@ export class ProgressService {
   ): Promise<ProgressClaimDto> {
     const ctx = await this.loadContext(userId, projectId);
     this.assertContractor(ctx);
-    this.assertActive(ctx.project.status);
 
     const existing = await this.prisma.progressClaim.findFirst({
       where: {
@@ -240,7 +241,6 @@ export class ProgressService {
   ): Promise<ProgressClaimDto> {
     const ctx = await this.loadContext(userId, projectId);
     this.assertContractor(ctx);
-    this.assertActive(ctx.project.status);
 
     const claim = await this.requireClaim(projectId, claimId);
     if (claim.status !== ProgressClaimStatus.draft) {
@@ -351,7 +351,6 @@ export class ProgressService {
   ): Promise<ProgressClaimDto> {
     const ctx = await this.loadContext(userId, projectId);
     this.assertContractor(ctx);
-    this.assertActive(ctx.project.status);
 
     const claim = await this.requireClaim(projectId, claimId);
     if (claim.status !== ProgressClaimStatus.draft) {
@@ -703,14 +702,6 @@ export class ProgressService {
     }
   }
 
-  private assertActive(status: ProjectStatus) {
-    if (status !== ProjectStatus.active) {
-      throw new BadRequestException(
-        'Progress claims are available after the contract is fully signed and the project is active',
-      );
-    }
-  }
-
   private async requireClaim(projectId: string, claimId: string) {
     const claim = await this.prisma.progressClaim.findFirst({
       where: { id: claimId, projectId },
@@ -757,7 +748,11 @@ export class ProgressService {
     ]);
   }
 
-  private async loadContext(userId: string, projectId: string) {
+  private async loadContext(
+    userId: string,
+    projectId: string,
+    options?: { requireActive?: boolean },
+  ) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {
@@ -793,6 +788,17 @@ export class ProgressService {
     }
     if (!role) {
       throw new ForbiddenException('Access denied');
+    }
+
+    // The overview stays readable after completion so both parties keep the
+    // claim history; every mutating endpoint requires an active project.
+    if (
+      options?.requireActive !== false &&
+      project.status !== ProjectStatus.active
+    ) {
+      throw new BadRequestException(
+        'Progress claims are available after the contract is fully signed and the project is active',
+      );
     }
 
     const terms = (bid.termsJson ?? {}) as BidTermsV1;

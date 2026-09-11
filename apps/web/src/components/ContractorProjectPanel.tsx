@@ -20,6 +20,7 @@ import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
+import { isProjectWorkspaceReadOnly } from '@/lib/project-workspace';
 import { isDesignerUser } from '@/lib/session';
 import {
   fetchBidCounterOffers,
@@ -627,6 +628,7 @@ export function ContractorProjectPanel({
             projectId={projectId}
             asContractor
             enabled={Boolean(contract?.fullySigned)}
+            readOnly={isProjectWorkspaceReadOnly(participation.projectStatus)}
             reusedSignatureDataUrl={
               contract?.contractorSignatureDataUrl ?? null
             }

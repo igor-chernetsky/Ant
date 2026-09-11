@@ -54,6 +54,11 @@ interface ContractAddendaPanelProps {
   /** Only show when the main contract is fully signed. */
   enabled: boolean;
   /**
+   * Completed projects keep their additional agreements as history: the list
+   * stays visible while creating and editing is hidden (the API rejects it too).
+   */
+  readOnly?: boolean;
+  /**
    * Drawn signature from the fully signed main contract for the current party.
    * Reused on addendum sign; shown as a read-only preview.
    */
@@ -966,6 +971,7 @@ export function ContractAddendaPanel({
   projectId,
   asContractor = false,
   enabled,
+  readOnly = false,
   reusedSignatureDataUrl = null,
 }: ContractAddendaPanelProps) {
   const { t, locale } = useTranslation();
@@ -1065,18 +1071,22 @@ export function ContractAddendaPanel({
     <section className="tender-subsection addenda-panel">
       <div className="addenda-panel-header">
         <h3 className="tender-subsection-title">{t('addenda.title')}</h3>
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => {
-            setCreateError(null);
-            setCreateOpen(true);
-          }}
-        >
-          {t('addenda.create')}
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              setCreateError(null);
+              setCreateOpen(true);
+            }}
+          >
+            {t('addenda.create')}
+          </button>
+        )}
       </div>
-      <p className="muted">{t('addenda.hint')}</p>
+      <p className="muted">
+        {readOnly ? t('addenda.readOnlyHint') : t('addenda.hint')}
+      </p>
 
       {loading ? (
         <p className="muted">{t('addenda.loading')}</p>

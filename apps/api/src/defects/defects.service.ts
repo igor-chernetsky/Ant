@@ -323,6 +323,7 @@ export class DefectsService {
   ): Promise<DefectDto> {
     const ctx = await this.loadContext(userId, projectId);
     this.assertClient(ctx);
+    this.assertActive(ctx.project.status);
 
     const defect = await this.requireDefect(projectId, defectId);
     if (defect.status !== DefectStatus.submitted) {
@@ -365,6 +366,7 @@ export class DefectsService {
   ): Promise<DefectDto> {
     const ctx = await this.loadContext(userId, projectId);
     this.assertClient(ctx);
+    this.assertActive(ctx.project.status);
 
     const defect = await this.requireDefect(projectId, defectId);
     if (defect.status !== DefectStatus.submitted) {
@@ -490,12 +492,8 @@ export class DefectsService {
       throw new ForbiddenException('Access denied');
     }
 
-    if (project.status !== ProjectStatus.active) {
-      throw new BadRequestException(
-        'Defect tracking is available while the project is active',
-      );
-    }
-
+    // Reads stay available after completion so both parties keep the defect
+    // history; every mutating endpoint calls assertActive separately.
     return { project, bid, role };
   }
 

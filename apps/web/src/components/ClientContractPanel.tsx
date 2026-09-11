@@ -13,16 +13,16 @@ import { useSession } from '@/components/SessionProvider';
 import { useTranslation } from '@/components/LocaleProvider';
 import { fetchProjectContract, type ProjectContract } from '@/lib/contracts';
 import { fetchProject, type Project } from '@/lib/projects';
+import {
+  isContractProjectStatus,
+  isProjectWorkspaceReadOnly,
+} from '@/lib/project-workspace';
 import { fetchProjectTender, type Tender } from '@/lib/tendering';
 
 interface ClientContractPanelProps {
   projectId: string;
   project: Project;
   onProjectUpdated?: (project: Project) => void;
-}
-
-export function isContractProjectStatus(status: string): boolean {
-  return status === 'awarded' || status === 'active';
 }
 
 export function ClientContractPanel({
@@ -131,7 +131,9 @@ export function ClientContractPanel({
       <p className="muted client-contract-hint">
         {project.status === 'active'
           ? t('contractPanel.activeHint')
-          : t('contractPanel.hint')}
+          : isProjectWorkspaceReadOnly(project.status)
+            ? t('contractPanel.completedHint')
+            : t('contractPanel.hint')}
       </p>
 
       {loading ? (
@@ -173,6 +175,7 @@ export function ClientContractPanel({
           <ContractAddendaPanel
             projectId={projectId}
             enabled={Boolean(contract?.fullySigned)}
+            readOnly={isProjectWorkspaceReadOnly(project.status)}
             reusedSignatureDataUrl={contract?.clientSignatureDataUrl ?? null}
           />
 

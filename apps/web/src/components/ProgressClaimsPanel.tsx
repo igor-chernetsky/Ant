@@ -7,6 +7,10 @@ import { formatThb } from '@/lib/estimate';
 import { computeBidCostAdjustments } from '@/lib/bid-cost-adjustments';
 import { computeRetentionPeriod } from '@/lib/progress-claim';
 import {
+  isClaimsProjectStatus,
+  isProjectWorkspaceReadOnly,
+} from '@/lib/project-workspace';
+import {
   approveProgressClaim,
   attachAdvancePaymentSlips,
   attachProgressClaimPaymentSlips,
@@ -82,7 +86,7 @@ export function ProgressClaimsPanel({
   }, [projectId, t]);
 
   useEffect(() => {
-    if (projectStatus !== 'active') return;
+    if (!isClaimsProjectStatus(projectStatus)) return;
     void reload();
   }, [projectStatus, reload]);
 
@@ -91,6 +95,10 @@ export function ProgressClaimsPanel({
   const isSubmitted = openClaim?.status === 'submitted';
   const isContractor = overview?.role === 'contractor';
   const isClient = overview?.role === 'client';
+  // Completed projects keep the claim history visible, with no actions left.
+  const readOnly = isProjectWorkspaceReadOnly(projectStatus);
+  const canContractorAct = isContractor && !readOnly;
+  const canClientAct = isClient && !readOnly;
 
   const preview = useMemo(() => {
     if (!overview || !isDraft) return null;
@@ -153,7 +161,7 @@ export function ProgressClaimsPanel({
     };
   }, [overview, isDraft, percentDraft]);
 
-  if (projectStatus !== 'active') {
+  if (!isClaimsProjectStatus(projectStatus)) {
     return null;
   }
 
@@ -549,7 +557,9 @@ export function ProgressClaimsPanel({
         <div>
           <h2 className="section-title">{t('progressSection.title')}</h2>
           <p className="muted progress-claims-hint">
-            {t('progressSection.hint')}
+            {readOnly
+              ? t('progressSection.readOnlyHint')
+              : t('progressSection.hint')}
           </p>
         </div>
         {overview && (
@@ -581,7 +591,7 @@ export function ProgressClaimsPanel({
                 <strong>{formatThb(overview.advancePaymentAmount)}</strong>
               </div>
               {renderPaymentSlips(overview.advancePaymentSlips, {
-                canEdit: isClient,
+                canEdit: canClientAct,
                 onAdd: () => advancePaymentSlipInputRef.current?.click(),
                 onDelete: (attachmentId) =>
                   void handleDeleteAdvanceSlip(attachmentId),
@@ -617,7 +627,7 @@ export function ProgressClaimsPanel({
             }}
           />
 
-          {isContractor && !openClaim && (
+          {canContractorAct && !openClaim && (
             <div className="progress-claims-actions">
               <button
                 type="button"
@@ -683,7 +693,7 @@ export function ProgressClaimsPanel({
                           </span>
                         </td>
                         <td>
-                          {isDraft && isContractor ? (
+                          {isDraft && canContractorAct ? (
                             <input
                               type="number"
                               className="progress-claim-percent-input"
@@ -755,12 +765,12 @@ export function ProgressClaimsPanel({
                 </div>
               </dl>
 
-              {(isDraft && isContractor) || openClaim.note ? (
+              {(isDraft && canContractorAct) || openClaim.note ? (
                 <label className="progress-claim-note">
                   <span className="field-label">
                     {t('progressSection.note')}
                   </span>
-                  {isDraft && isContractor ? (
+                  {isDraft && canContractorAct ? (
                     <textarea
                       rows={2}
                       value={noteDraft}
@@ -774,7 +784,7 @@ export function ProgressClaimsPanel({
                 </label>
               ) : null}
 
-              {isDraft && isContractor && (
+              {isDraft && canContractorAct && (
                 <div className="progress-claims-actions">
                   <button
                     type="button"
@@ -795,7 +805,7 @@ export function ProgressClaimsPanel({
                 </div>
               )}
 
-              {isSubmitted && isClient && (
+              {isSubmitted && canClientAct && (
                 <div className="progress-claims-actions progress-claims-actions--review">
                   <label className="progress-claim-note">
                     <span className="field-label">
@@ -860,7 +870,7 @@ export function ProgressClaimsPanel({
                       ) : null}
                       {claim.status === 'approved' &&
                         renderPaymentSlips(claim.paymentSlips, {
-                          canEdit: isClient,
+                          canEdit: canClientAct,
                           onAdd: () => {
                             setPaymentSlipClaimId(claim.id);
                             claimPaymentSlipInputRef.current?.click();

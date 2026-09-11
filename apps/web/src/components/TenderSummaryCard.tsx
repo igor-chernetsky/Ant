@@ -26,6 +26,7 @@ import {
   type ApplicationsDeadlineValue,
 } from '@/components/TenderApplicationsDeadlineFields';
 import { HELP_TIP_IDS } from '@/lib/help-tips';
+import { isContractProjectStatus } from '@/lib/project-workspace';
 import { tenderHasStaleEmptyResponses } from '@/lib/directory-invite-suggest';
 import type { ContractorCoveragePreview } from '@/lib/tendering';
 
@@ -135,8 +136,7 @@ export function TenderSummaryCard({
     if (!tender) return;
     if (
       tender.status === 'awarded' &&
-      project.status !== 'awarded' &&
-      project.status !== 'active'
+      !isContractProjectStatus(project.status)
     ) {
       void refreshProject();
     }

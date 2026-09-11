@@ -68,6 +68,11 @@ type Participant = {
   projectId: string;
   contractId: string;
   projectTitle: string;
+  /**
+   * Project status at load time. Completed projects keep read access to their
+   * addenda as history, but every mutating entry point requires `active`.
+   */
+  projectStatus: ProjectStatus;
   clientUserId: string;
   contractorUserId: string;
   isClient: boolean;
@@ -291,28 +296,38 @@ export class ContractAddendaService {
 
   private toResponse(
     row: AddendumWithAttachments,
-    participant: Pick<Participant, 'isClient' | 'isSelectedContractor'>,
+    participant: Pick<
+      Participant,
+      'isClient' | 'isSelectedContractor' | 'projectStatus'
+    >,
   ): ContractAddendumResponse {
     const fullySigned = row.status === ContractAddendumStatus.fully_signed;
+    // Completed projects keep addenda visible as history only.
+    const mutable = participant.projectStatus === ProjectStatus.active;
     const customFile = mapDualCustomFileMeta(row);
     const hasCustomFile = Boolean(customFile);
     const canSign =
+      mutable &&
       !fullySigned &&
       ((participant.isSelectedContractor && !row.contractorSignedAt) ||
         (participant.isClient &&
           Boolean(row.contractorSignedAt) &&
           !row.clientSignedAt));
     const canEditDocument =
+      mutable &&
       !fullySigned &&
       !hasCustomFile &&
       (participant.isClient || participant.isSelectedContractor);
     const canReplaceFile =
+      mutable &&
       !fullySigned &&
       (participant.isClient || participant.isSelectedContractor);
     const canManageAttachments =
+      mutable &&
       !fullySigned &&
       (participant.isClient || participant.isSelectedContractor);
     const canDelete =
+      mutable &&
       !fullySigned &&
       (participant.isClient || participant.isSelectedContractor);
     const attachments = (row.attachments ?? [])
@@ -377,11 +392,6 @@ export class ContractAddendaService {
         'Additional agreements are only available after the main contract is fully signed',
       );
     }
-    if (project.status !== ProjectStatus.active) {
-      throw new BadRequestException(
-        'Additional agreements are only available while the project is active',
-      );
-    }
 
     const contractorUserId = project.tender?.awardedBid?.contractor.userId;
     if (!contractorUserId) {
@@ -403,6 +413,7 @@ export class ContractAddendaService {
       projectId: project.id,
       contractId: project.contract.id,
       projectTitle: project.title,
+      projectStatus: project.status,
       clientUserId: project.clientId,
       contractorUserId,
       isClient,
@@ -412,6 +423,23 @@ export class ContractAddendaService {
       contractorSignatureDataUrl: project.contract.contractorSignatureDataUrl,
       bidCostAdjustments: bidTerms?.costAdjustments ?? null,
     };
+  }
+
+  /**
+   * Addenda become read-only history once the project is completed, so every
+   * mutating entry point loads the participant through this guard.
+   */
+  private async loadMutableParticipant(
+    userId: string,
+    projectId: string,
+  ): Promise<Participant> {
+    const participant = await this.loadParticipant(userId, projectId);
+    if (participant.projectStatus !== ProjectStatus.active) {
+      throw new BadRequestException(
+        'Additional agreements can only be changed while the project is active',
+      );
+    }
+    return participant;
   }
 
   private finalizeAddendumHtml(
@@ -467,7 +495,7 @@ export class ContractAddendaService {
     projectId: string,
     dto: CreateAddendumFromTextDto,
   ): Promise<ContractAddendumResponse> {
-    const participant = await this.loadParticipant(userId, projectId);
+    const participant = await this.loadMutableParticipant(userId, projectId);
     const description = dto.description?.trim();
     if (!description || description.length < 10) {
       throw new BadRequestException(
@@ -529,7 +557,7 @@ export class ContractAddendaService {
     projectId: string,
     dto: CreateAddendumFromFileDto,
   ): Promise<ContractAddendumResponse> {
-    const participant = await this.loadParticipant(userId, projectId);
+    const participant = await this.loadMutableParticipant(userId, projectId);
     const count = await this.prisma.contractAddendum.count({
       where: { contractId: participant.contractId },
     });
@@ -599,7 +627,7 @@ export class ContractAddendaService {
     projectId: string,
     dto: PresignAddendumFileDto,
   ) {
-    await this.loadParticipant(userId, projectId);
+    await this.loadMutableParticipant(userId, projectId);
     const fileName = sanitizeFileName(dto.fileName?.trim() ?? '');
     if (!fileName) throw new BadRequestException('fileName is required');
     const contentType = dto.contentType?.trim().toLowerCase();
@@ -879,7 +907,7 @@ export class ContractAddendaService {
     addendumId: string,
     _dto: SignAddendumDto = {},
   ): Promise<ContractAddendumResponse> {
-    const participant = await this.loadParticipant(userId, projectId);
+    const participant = await this.loadMutableParticipant(userId, projectId);
     const row = await this.prisma.contractAddendum.findFirst({
       where: { id: addendumId, contractId: participant.contractId },
     });
@@ -1147,7 +1175,7 @@ export class ContractAddendaService {
     projectId: string,
     addendumId: string,
   ): Promise<void> {
-    const participant = await this.loadParticipant(userId, projectId);
+    const participant = await this.loadMutableParticipant(userId, projectId);
     const row = await this.prisma.contractAddendum.findFirst({
       where: { id: addendumId, contractId: participant.contractId },
       include: {
@@ -1472,6 +1500,11 @@ export class ContractAddendaService {
       where: { id: addendumId, contractId: participant.contractId },
     });
     if (!row) throw new NotFoundException('Additional agreement not found');
+    if (participant.projectStatus !== ProjectStatus.active) {
+      throw new BadRequestException(
+        'Additional agreements can only be changed while the project is active',
+      );
+    }
     if (row.status === ContractAddendumStatus.fully_signed) {
       throw new BadRequestException(
         'Fully signed additional agreements cannot be changed',

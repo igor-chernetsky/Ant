@@ -1607,6 +1607,8 @@ export const enExtended = {
     title: "Work progress",
     hint:
       "Contractor reports % complete by trade. Amounts recalculate with Preliminary, OH&P and VAT. Previously approved totals are deducted from each new claim.",
+    readOnlyHint:
+      "The project is completed, so progress claims are read-only. The approved history stays available for both parties.",
     approvedToDate: "Approved to date",
     remaining: "Remaining",
     contractTotal: "Contract total",
@@ -1666,6 +1668,8 @@ export const enExtended = {
       "Report issues found during the build. The awarded contractor can accept, decline, or fix them; you confirm when the fix is done.",
     hintDesign:
       "Report issues found during design work. The awarded designer can accept, decline, or fix them; you confirm when the fix is done.",
+    readOnlyHint:
+      "The project is completed, so defects are read-only. The reported history stays available for both parties.",
     reportLabel: "Describe the defect",
     reportPlaceholder: "What is wrong and where?",
     attachmentsOptional: "Photos or documents (optional)",
@@ -1719,6 +1723,8 @@ export const enExtended = {
     hint: "Review the contract draft and sign to activate the project.",
     activeHint:
       "The project is active. You can still open past applications and compare bids.",
+    completedHint:
+      "The project is completed. The contract and its additional agreements stay available as a record.",
     viewApplications: "View applications",
     loading: "Loading contract…",
     commercialProposalToggle: "Commercial proposal terms",
@@ -1798,6 +1804,8 @@ export const enExtended = {
   addenda: {
     title: "Additional agreements",
     hint: "After the main contract is signed, either party can create an addendum. The contractor signs first, then the client.",
+    readOnlyHint:
+      "The project is completed, so additional agreements can no longer be created or changed.",
     create: "New additional agreement",
     loading: "Loading additional agreements…",
     empty: "No additional agreements yet.",

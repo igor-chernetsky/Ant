@@ -33,6 +33,10 @@ import {
 } from '@/lib/documents';
 import { formatDateTime } from '@/lib/projects';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import {
+  isClaimsProjectStatus,
+  isProjectWorkspaceReadOnly,
+} from '@/lib/project-workspace';
 
 interface DefectsPanelProps {
   projectId: string;
@@ -266,6 +270,10 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
   const isDesign = overview?.isDesignProject ?? false;
   const isClient = overview?.role === 'client';
   const isContractor = overview?.role === 'contractor';
+  // Completed projects keep the defect history visible without any action.
+  const readOnly = isProjectWorkspaceReadOnly(projectStatus);
+  const canClientAct = isClient && !readOnly;
+  const canContractorAct = isContractor && !readOnly;
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -284,7 +292,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
   }, [projectId, t]);
 
   useEffect(() => {
-    if (projectStatus !== 'active') return;
+    if (!isClaimsProjectStatus(projectStatus)) return;
     void reload();
   }, [projectStatus, reload]);
 
@@ -294,7 +302,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
     [isDesign, t],
   );
 
-  if (projectStatus !== 'active') {
+  if (!isClaimsProjectStatus(projectStatus)) {
     return null;
   }
 
@@ -407,7 +415,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
   return (
     <section className="card" id="defects-panel">
       <h2 className="section-title">{t('defectsSection.title')}</h2>
-      <p className="muted">{hint}</p>
+      <p className="muted">{readOnly ? t('defectsSection.readOnlyHint') : hint}</p>
 
       {loading && <p className="muted">{t('common.loading')}</p>}
       {error && (
@@ -416,7 +424,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
         </p>
       )}
 
-      {isClient && (
+      {canClientAct && (
         <div className="defect-compose">
           <label className="field-label" htmlFor="defect-description">
             {t('defectsSection.reportLabel')}
@@ -471,7 +479,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                   </span>
                 </div>
                 <div className="defect-item-header-actions">
-                  {isClient &&
+                  {canClientAct &&
                     (defect.status === 'reported' ||
                       defect.status === 'declined') && (
                       <button
@@ -502,7 +510,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
               </div>
               <p className="defect-description">{defect.description}</p>
 
-              {isContractor && defect.status === 'reported' && (
+              {canContractorAct && defect.status === 'reported' && (
                 <div className="defect-actions">
                   <button
                     type="button"
@@ -546,7 +554,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                 </div>
               )}
 
-              {isContractor && defect.status === 'declined' && (
+              {canContractorAct && defect.status === 'declined' && (
                 <div className="defect-actions">
                   <button
                     type="button"
@@ -563,7 +571,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                 </div>
               )}
 
-              {isClient && defect.status === 'declined' && (
+              {canClientAct && defect.status === 'declined' && (
                 <div className="defect-actions">
                   <textarea
                     className="textarea"
@@ -612,7 +620,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                 </div>
               )}
 
-              {isContractor && defect.status === 'in_progress' && (
+              {canContractorAct && defect.status === 'in_progress' && (
                 <div className="defect-actions">
                   <textarea
                     className="textarea"
@@ -661,7 +669,7 @@ export function DefectsPanel({ projectId, projectStatus }: DefectsPanelProps) {
                 </div>
               )}
 
-              {isClient && defect.status === 'submitted' && (
+              {canClientAct && defect.status === 'submitted' && (
                 <div className="defect-actions">
                   <button
                     type="button"
