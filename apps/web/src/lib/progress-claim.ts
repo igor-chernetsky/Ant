@@ -22,6 +22,26 @@ export function computeRetentionPeriod(input: {
   return Math.min(raw, room);
 }
 
+/**
+ * Advance payment recovery for one certificate — mirrors the API helper in
+ * `progress-claim.util.ts`: deductions are made at the amortisation rate on the
+ * certificate amount excluding VAT, capped by the advance still outstanding.
+ */
+export function computeAdvanceRecoveryPeriod(input: {
+  /** Certificate amount for the period, excluding VAT. */
+  base: number;
+  percent: number;
+  outstanding: number;
+}): number {
+  const base = Math.max(0, roundMoney(input.base));
+  const percent = Math.max(0, input.percent);
+  if (base <= 0 || percent <= 0) {
+    return 0;
+  }
+  const raw = roundMoney((base * percent) / 100);
+  return Math.min(raw, Math.max(0, roundMoney(input.outstanding)));
+}
+
 export function computeClaimPeriodTotals(input: {
   worksPeriod: number;
   preliminaryPercent: number;
@@ -33,6 +53,8 @@ export function computeClaimPeriodTotals(input: {
   retentionLimitPercent: number;
   contractGrandTotal: number;
   retentionHeldToDate: number;
+  advanceRecoveryPercent: number;
+  advanceOutstanding: number;
 }) {
   const cum = computeBidCostAdjustments({
     worksSubtotal: input.worksCumulative,
@@ -54,13 +76,26 @@ export function computeClaimPeriodTotals(input: {
     contractGrandTotal: input.contractGrandTotal,
     retentionHeldToDate: input.retentionHeldToDate,
   });
+  const advanceRecoveryPeriod = computeAdvanceRecoveryPeriod({
+    base:
+      input.worksPeriod +
+      period.preliminaryAmount +
+      period.overheadProfitAmount,
+    percent: input.advanceRecoveryPercent,
+    outstanding: input.advanceOutstanding,
+  });
   return {
     worksPeriod: input.worksPeriod,
     preliminaryPeriod: period.preliminaryAmount,
     overheadProfitPeriod: period.overheadProfitAmount,
     vatPeriod: period.vatAmount,
     grandPeriod,
+    grandCumulative: cum.grandTotal,
     retentionPeriod,
-    payablePeriod: Math.max(0, grandPeriod - retentionPeriod),
+    advanceRecoveryPeriod,
+    payablePeriod: Math.max(
+      0,
+      grandPeriod - retentionPeriod - advanceRecoveryPeriod,
+    ),
   };
 }

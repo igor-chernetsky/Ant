@@ -13684,6 +13684,32 @@ button.header-nav-link,
   font-size: 0.82rem;
 }
 
+.progress-advance-payment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.85rem;
+}
+
+.progress-advance-payment-meta > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.progress-advance-payment-meta dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.progress-advance-payment-meta dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 .progress-payment-slip-actions {
   display: flex;
   flex-wrap: wrap;

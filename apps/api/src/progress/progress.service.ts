@@ -16,7 +16,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { DocumentsService } from '../documents/documents.service';
 import { ContractorProfilesService } from '../tendering/contractor-profiles.service';
 import type { BidTermsV1 } from '../tendering/tendering.types';
-import { computeProgressClaim, roundMoney } from './progress-claim.util';
+import {
+  computeAdvanceRecoveryPeriod,
+  computeProgressClaim,
+  computeRetentionPeriod,
+  roundMoney,
+} from './progress-claim.util';
 import type {
   PaymentSlipCompleteDto,
   PaymentSlipPresignDto,
@@ -62,6 +67,48 @@ function resolveAdvancePayment(
     percent,
     amount: percent > 0 ? roundMoney((contractAmount * percent) / 100) : 0,
   };
+}
+
+/**
+ * Context needed to re-derive the deductions of a claim. `loadContext`
+ * satisfies this shape structurally, so it can be passed straight through.
+ */
+interface ClaimDeductionContext {
+  contractGrandTotal: number;
+  retentionPercent: number;
+  retentionLimitPercent: number;
+  retentionHeldToDate: number;
+  advanceRecoveryPercent: number;
+  advanceOutstanding: number;
+}
+
+/**
+ * Amortisation rate used to repay the advance from each payment certificate.
+ *
+ * Recovery only starts once the client has actually sent the advance payment
+ * slips. An explicit contract rate wins; otherwise the rate is derived so the
+ * advance is repaid in full by Practical Completion — the advance itself is a
+ * share of the VAT-inclusive contract sum, while the certificate base excludes
+ * VAT, so reusing the advance percentage would leave a shortfall.
+ */
+function resolveAdvanceRecoveryPercent(input: {
+  terms: BidTermsV1;
+  advanceAmount: number;
+  contractBaseTotal: number;
+  advanceConfirmed: boolean;
+}): number {
+  if (!input.advanceConfirmed || input.advanceAmount <= 0) {
+    return 0;
+  }
+  const explicit =
+    input.terms.contractTerms?.advancePaymentAmortisationPercent ?? 0;
+  if (explicit > 0) {
+    return Math.min(100, explicit);
+  }
+  if (input.contractBaseTotal <= 0) {
+    return 0;
+  }
+  return Math.min(100, (input.advanceAmount / input.contractBaseTotal) * 100);
 }
 
 @Injectable()
@@ -124,6 +171,10 @@ export class ProgressService {
       advancePaymentPercent: ctx.advancePaymentPercent,
       advancePaymentAmount: ctx.advancePaymentAmount,
       advancePaymentSlips: this.toPaymentSlipDtos(advanceAttachments, ctx.role),
+      advancePaymentConfirmed: ctx.advancePaymentConfirmed,
+      advanceRecoveryPercent: ctx.advanceRecoveryPercent,
+      advanceRecoveredToDate: ctx.advanceRecoveredToDate,
+      advanceOutstanding: ctx.advanceOutstanding,
       baselineLines: ctx.baselineLines.map((line) => ({
         trade: line.trade,
         description: line.description ?? null,
@@ -158,7 +209,9 @@ export class ProgressService {
           'A progress claim is already awaiting client approval',
         );
       }
-      return this.toClaimDto(existing, ctx.role);
+      await this.refreshDraftTotals(existing, ctx);
+      const refreshed = await this.requireClaim(projectId, existing.id);
+      return this.toClaimDto(refreshed, ctx.role);
     }
 
     const lastApproved = await this.prisma.progressClaim.findFirst({
@@ -190,6 +243,10 @@ export class ProgressService {
         contractGrandTotal: ctx.contractGrandTotal,
         retentionHeldToDate: ctx.retentionHeldToDate,
       },
+      {
+        percent: ctx.advanceRecoveryPercent,
+        outstanding: ctx.advanceOutstanding,
+      },
     );
 
     const created = await this.prisma.progressClaim.create({
@@ -213,6 +270,8 @@ export class ProgressService {
         grandPeriod: computed.totals.grandPeriod,
         retentionPercent: computed.totals.retentionPercent,
         retentionPeriod: computed.totals.retentionPeriod,
+        advanceRecoveryPercent: computed.totals.advanceRecoveryPercent,
+        advanceRecoveryPeriod: computed.totals.advanceRecoveryPeriod,
         payablePeriod: computed.totals.payablePeriod,
         lines: {
           create: computed.lines.map((line, index) => ({
@@ -298,6 +357,10 @@ export class ProgressService {
         contractGrandTotal: ctx.contractGrandTotal,
         retentionHeldToDate: ctx.retentionHeldToDate,
       },
+      {
+        percent: ctx.advanceRecoveryPercent,
+        outstanding: ctx.advanceOutstanding,
+      },
     );
 
     await this.prisma.$transaction([
@@ -323,6 +386,8 @@ export class ProgressService {
           grandPeriod: computed.totals.grandPeriod,
           retentionPercent: computed.totals.retentionPercent,
           retentionPeriod: computed.totals.retentionPeriod,
+          advanceRecoveryPercent: computed.totals.advanceRecoveryPercent,
+          advanceRecoveryPeriod: computed.totals.advanceRecoveryPeriod,
           payablePeriod: computed.totals.payablePeriod,
           lines: {
             create: computed.lines.map((line, index) => ({
@@ -356,7 +421,11 @@ export class ProgressService {
     if (claim.status !== ProgressClaimStatus.draft) {
       throw new BadRequestException('Only draft claims can be submitted');
     }
-    if (dec(claim.grandPeriod) <= 0) {
+    // Refresh before submitting so the client reviews the current retention and
+    // advance recovery, not the figures stored when the draft was created.
+    await this.refreshDraftTotals(claim, ctx);
+    const refreshed = await this.requireClaim(projectId, claimId);
+    if (dec(refreshed.grandPeriod) <= 0) {
       throw new BadRequestException(
         'Increase progress above the previously approved amounts before submitting',
       );
@@ -702,6 +771,50 @@ export class ProgressService {
     }
   }
 
+  /**
+   * Re-derive a stored draft's deductions from the current contract context —
+   * retention and advance recovery — leaving the certified works figures the
+   * contractor entered untouched. Used when the draft is reopened or submitted,
+   * so a draft created before the advance was confirmed (or before recovery
+   * existed) cannot be submitted with a stale payable.
+   */
+  private async refreshDraftTotals(
+    claim: Prisma.ProgressClaimGetPayload<{ include: typeof claimInclude }>,
+    ctx: ClaimDeductionContext,
+  ): Promise<void> {
+    const worksPeriod = dec(claim.worksPeriod);
+    const retentionPeriod = computeRetentionPeriod({
+      worksPeriod,
+      retentionPercent: ctx.retentionPercent,
+      retentionLimitPercent: ctx.retentionLimitPercent,
+      contractGrandTotal: ctx.contractGrandTotal,
+      retentionHeldToDate: ctx.retentionHeldToDate,
+    });
+    const advanceRecoveryPercent = ctx.advanceRecoveryPercent;
+    const advanceRecoveryPeriod = computeAdvanceRecoveryPeriod({
+      base:
+        worksPeriod +
+        dec(claim.preliminaryPeriod) +
+        dec(claim.overheadProfitPeriod),
+      percent: advanceRecoveryPercent,
+      outstanding: ctx.advanceOutstanding,
+    });
+
+    await this.prisma.progressClaim.update({
+      where: { id: claim.id },
+      data: {
+        retentionPercent: ctx.retentionPercent,
+        retentionPeriod,
+        advanceRecoveryPercent,
+        advanceRecoveryPeriod,
+        payablePeriod: Math.max(
+          0,
+          dec(claim.grandPeriod) - retentionPeriod - advanceRecoveryPeriod,
+        ),
+      },
+    });
+  }
+
   private async requireClaim(projectId: string, claimId: string) {
     const claim = await this.prisma.progressClaim.findFirst({
       where: { id: claimId, projectId },
@@ -898,7 +1011,7 @@ export class ProgressService {
 
     const approvedClaims = await this.prisma.progressClaim.findMany({
       where: { projectId, status: ProgressClaimStatus.approved },
-      select: { retentionPeriod: true },
+      select: { retentionPeriod: true, advanceRecoveryPeriod: true },
     });
     const retentionHeldToDate = approvedClaims.reduce(
       (sum, claim) => sum + dec(claim.retentionPeriod),
@@ -906,6 +1019,34 @@ export class ProgressService {
     );
 
     const advance = resolveAdvancePayment(bid, terms, contractGrandTotal);
+
+    // Recovery starts only once the client has sent the advance payment slips.
+    const submittedAdvanceSlips = await this.prisma.paymentSlipAttachment.count({
+      where: {
+        projectId,
+        progressClaimId: null,
+        submittedAt: { not: null },
+        document: { status: { not: DocumentStatus.deleted } },
+      },
+    });
+    const advanceRecoveredToDate = approvedClaims.reduce(
+      (sum, claim) => sum + dec(claim.advanceRecoveryPeriod),
+      0,
+    );
+    const advanceOutstanding = Math.max(
+      0,
+      advance.amount - advanceRecoveredToDate,
+    );
+    const advanceRecoveryPercent = resolveAdvanceRecoveryPercent({
+      terms,
+      advanceAmount: advance.amount,
+      contractBaseTotal: Math.max(
+        0,
+        contractTotals.totals.grandCumulative -
+          contractTotals.totals.vatCumulative,
+      ),
+      advanceConfirmed: submittedAdvanceSlips > 0,
+    });
 
     return {
       project,
@@ -920,6 +1061,10 @@ export class ProgressService {
       retentionHeldToDate,
       advancePaymentPercent: advance.percent,
       advancePaymentAmount: advance.amount,
+      advancePaymentConfirmed: submittedAdvanceSlips > 0,
+      advanceRecoveryPercent,
+      advanceRecoveredToDate,
+      advanceOutstanding,
     };
   }
 
@@ -981,6 +1126,8 @@ export class ProgressService {
       grandPeriod: dec(claim.grandPeriod),
       retentionPercent: claim.retentionPercent,
       retentionPeriod: dec(claim.retentionPeriod),
+      advanceRecoveryPercent: claim.advanceRecoveryPercent,
+      advanceRecoveryPeriod: dec(claim.advanceRecoveryPeriod),
       payablePeriod: dec(claim.payablePeriod),
       paymentSlips: this.toPaymentSlipDtos(
         claim.paymentSlipAttachments,

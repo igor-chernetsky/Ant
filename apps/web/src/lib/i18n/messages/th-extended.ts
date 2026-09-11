@@ -842,6 +842,12 @@ export const thExtended = {
     contractPeriodMonths: "ระยะสัญญา (เดือน)",
     advancePaymentPercent: "เงินมัดจำ (%)",
     fixedAdvanceThb: "มัดจำคงที่ (บาท)",
+    advanceRepaymentPercent: "หักคืนเงินล่วงหน้า (%)",
+    advanceRepaymentAuto: "อัตโนมัติ",
+    advanceRepaymentHint:
+      "แต่ละงวดจะหักคืน {percent}% ของยอดที่รับรอง จนกว่าเงินล่วงหน้าจะถูกคืนครบ",
+    advanceRepaymentAutoHint:
+      "เว้นว่างไว้เพื่อให้ระบบหักคืนเงินล่วงหน้าอัตโนมัติจากแต่ละงวด และครบเมื่อส่งมอบงาน",
     retentionPercent: "เงินค้ำประกัน (%)",
     retentionCapPercent: "เพดานเงินค้ำประกัน (%)",
     warrantyMonths: "การรับประกัน (เดือน)",
@@ -1625,6 +1631,13 @@ export const thExtended = {
     colPeriod: "ช่วงนี้",
     worksPeriod: "รับรองช่วงนี้",
     retentionPeriod: "เงินประกัน ({percent}%)",
+    advanceRecoveryPeriod: "หักคืนเงินล่วงหน้า ({percent}%)",
+    advanceRecoveredToDate: "คืนเงินล่วงหน้าแล้ว",
+    advanceOutstanding: "เงินล่วงหน้าคงเหลือ",
+    advanceRepaymentRate: "อัตราการหักคืน",
+    advanceRepaymentRateValue: "{percent}% ต่อใบรับรอง",
+    advanceNotConfirmedHint:
+      "การหักคืนเงินล่วงหน้าจะเริ่มเมื่อคุณส่งสลิปเงินล่วงหน้าให้ผู้รับเหมาแล้ว",
     dueThisPeriod: "รับรองรวมช่วงนี้",
     payableThisPeriod: "ยอดชำระช่วงนี้",
     attachPaymentSlip: "เพิ่มสลิปการชำระ",

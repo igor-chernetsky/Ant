@@ -101,13 +101,18 @@ function buildAdvanceText(
   copy: CommercialProposalCopy,
   locale: SupportedLocale,
 ): string {
+  // The repayment rule is part of the advance clause: the platform recovers the
+  // advance from progress certificates, so the contract has to say so.
+  const rate = terms?.advancePaymentAmortisationPercent ?? 0;
+  const repayment =
+    rate > 0 ? copy.advanceRepaymentRated(rate) : copy.advanceRepaymentAuto;
   if (terms?.advancePaymentAmount != null && terms.advancePaymentAmount > 0) {
-    return formatThb(terms.advancePaymentAmount, locale);
+    return `${formatThb(terms.advancePaymentAmount, locale)}. ${repayment}`;
   }
   const pct = terms?.advancePaymentPercent;
   if (pct != null && pct > 0) {
     const value = (amount * pct) / 100;
-    return copy.advancePercentOf(pct, formatThb(value, locale));
+    return `${copy.advancePercentOf(pct, formatThb(value, locale))}. ${repayment}`;
   }
   return copy.noAdvancePayment;
 }
@@ -1265,6 +1270,9 @@ export function normalizeContractTerms(
       raw.advancePaymentAmount != null && Number.isFinite(raw.advancePaymentAmount)
         ? Math.max(0, raw.advancePaymentAmount)
         : undefined,
+    advancePaymentAmortisationPercent: pct(
+      raw.advancePaymentAmortisationPercent,
+    ),
     worksStartDate: trim(raw.worksStartDate),
     worksFinishDate: trim(raw.worksFinishDate),
     contractPeriodMonths:

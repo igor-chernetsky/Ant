@@ -80,6 +80,10 @@ export interface CommercialProposalCopy {
   dash: string;
   noAdvancePayment: string;
   advancePercentOf: (pct: number, amount: string) => string;
+  /** Advance repayment clause when an explicit amortisation rate is set. */
+  advanceRepaymentRated: (pct: number) => string;
+  /** Advance repayment clause when the platform derives the rate. */
+  advanceRepaymentAuto: string;
   paymentAdvanceTiming: string;
   paymentShortPeriodFinal: string;
   paymentMonthlyProgress: string;
@@ -216,6 +220,10 @@ const EN: CommercialProposalCopy = {
   noAdvancePayment: 'No advance payment.',
   advancePercentOf: (pct, amount) =>
     `${pct}% of the Contract Amount (${amount})`,
+  advanceRepaymentRated: (pct) =>
+    `The Advance Payment shall be repaid through deductions from each Payment Certificate at the amortisation rate of ${pct}% of the amount of each Payment Certificate (excluding the Advance Payment and VAT), until the Advance Payment has been repaid in full.`,
+  advanceRepaymentAuto:
+    'The Advance Payment shall be repaid through deductions from each Payment Certificate at the amortisation rate stated in the Appendix to Tender (excluding the Advance Payment and VAT), until the Advance Payment has been repaid in full. Unless otherwise stated, the amortisation rate shall be such that the Advance Payment is repaid in full by the date of Practical Completion.',
   paymentAdvanceTiming:
     'The Advance Payment (if any) shall be paid by the Employer no later than two (2) weeks before the Works Commencement Date, unless the Parties agree otherwise when preparing this Commercial Proposal.',
   paymentShortPeriodFinal:
@@ -416,6 +424,10 @@ const RU: CommercialProposalCopy = {
   noAdvancePayment: 'Авансовый платёж не предусмотрен.',
   advancePercentOf: (pct, amount) =>
     `${pct}% от Суммы договора (${amount})`,
+  advanceRepaymentRated: (pct) =>
+    `Авансовый платёж возвращается путём удержаний из каждого платёжного сертификата по ставке амортизации ${pct}% от суммы каждого платёжного сертификата (за исключением самого авансового платежа и VAT) до полного возврата авансового платежа.`,
+  advanceRepaymentAuto:
+    'Авансовый платёж возвращается путём удержаний из каждого платёжного сертификата по ставке амортизации, указанной в Приложении к тендеру (за исключением самого авансового платежа и VAT), до полного возврата авансового платежа. Если иное не указано, ставка амортизации определяется так, чтобы авансовый платёж был возвращён полностью к дате практического завершения работ.',
   paymentAdvanceTiming:
     'Авансовый платёж (при наличии) выплачивается Заказчиком не позднее чем за две (2) недели до Даты начала работ, если иное не согласовано Сторонами при составлении настоящего Коммерческого предложения.',
   paymentShortPeriodFinal:
@@ -615,6 +627,10 @@ const TH: CommercialProposalCopy = {
   noAdvancePayment: 'ไม่มีเงินล่วงหน้า',
   advancePercentOf: (pct, amount) =>
     `${pct}% ของมูลค่าสัญญา (${amount})`,
+  advanceRepaymentRated: (pct) =>
+    `เงินล่วงหน้าจะถูกหักคืนจากใบรับรองการจ่ายเงินแต่ละงวดในอัตราการตัดจำหน่าย ${pct}% ของจำนวนเงินในใบรับรองการจ่ายเงินแต่ละฉบับ (ไม่รวมเงินล่วงหน้าและ VAT) จนกว่าจะคืนเงินล่วงหน้าครบถ้วน`,
+  advanceRepaymentAuto:
+    'เงินล่วงหน้าจะถูกหักคืนจากใบรับรองการจ่ายเงินแต่ละงวดในอัตราการตัดจำหน่ายที่ระบุไว้ในภาคผนวกของสัญญา (ไม่รวมเงินล่วงหน้าและ VAT) จนกว่าจะคืนเงินล่วงหน้าครบถ้วน เว้นแต่จะระบุไว้เป็นอย่างอื่น อัตราการตัดจำหน่ายต้องทำให้เงินล่วงหน้าถูกคืนครบเมื่อถึงวันส่งมอบงาน',
   paymentAdvanceTiming:
     'เงินล่วงหน้า (ถ้ามี) ต้องชำระโดยผู้ว่าจ้างไม่ช้ากว่าสอง (2) สัปดาห์ก่อนวันเริ่มงาน เว้นแต่คู่สัญญาจะตกลงเป็นอย่างอื่นเมื่อจัดทำข้อเสนอเชิงพาณิชย์นี้',
   paymentShortPeriodFinal:

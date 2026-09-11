@@ -845,6 +845,12 @@ export const ruExtended = {
     contractPeriodMonths: "Срок договора (мес.)",
     advancePaymentPercent: "Аванс (%)",
     fixedAdvanceThb: "Фиксированный аванс (THB)",
+    advanceRepaymentPercent: "Возврат аванса (%)",
+    advanceRepaymentAuto: "Авто",
+    advanceRepaymentHint:
+      "Каждая заявка возвращает {percent}% сертифицированной суммы, пока аванс не будет возвращён полностью.",
+    advanceRepaymentAutoHint:
+      "Оставьте пустым — аванс будет возвращаться автоматически из заявок и закроется к практической сдаче.",
     retentionPercent: "Удержание (%)",
     retentionCapPercent: "Предел удержания (%)",
     warrantyMonths: "Гарантия (мес.)",
@@ -1628,6 +1634,13 @@ export const ruExtended = {
     colPeriod: "За период",
     worksPeriod: "Принято за период",
     retentionPeriod: "Удержание ({percent}%)",
+    advanceRecoveryPeriod: "Возврат аванса ({percent}%)",
+    advanceRecoveredToDate: "Аванс возвращён на дату",
+    advanceOutstanding: "Остаток аванса",
+    advanceRepaymentRate: "Ставка возврата",
+    advanceRepaymentRateValue: "{percent}% за сертификат",
+    advanceNotConfirmedHint:
+      "Возврат аванса начнётся после того, как вы отправите платёжки по авансу подрядчику.",
     dueThisPeriod: "Сертифицировано за период",
     payableThisPeriod: "К оплате за период",
     attachPaymentSlip: "Добавить платёжку",

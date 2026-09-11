@@ -50,6 +50,9 @@ export interface ProgressClaim {
   grandPeriod: number;
   retentionPercent: number;
   retentionPeriod: number;
+  /** Amortisation rate used to repay the advance payment on this certificate. */
+  advanceRecoveryPercent: number;
+  advanceRecoveryPeriod: number;
   payablePeriod: number;
   paymentSlips: ProgressPaymentSlip[];
   submittedAt: string | null;
@@ -84,6 +87,12 @@ export interface ProgressOverview {
   advancePaymentPercent: number;
   advancePaymentAmount: number;
   advancePaymentSlips: ProgressPaymentSlip[];
+  /** True once the client has sent the advance payment slips to the contractor. */
+  advancePaymentConfirmed: boolean;
+  /** Amortisation rate applied to each certificate to repay the advance. */
+  advanceRecoveryPercent: number;
+  advanceRecoveredToDate: number;
+  advanceOutstanding: number;
   baselineLines: ProgressBaselineLine[];
   openClaim: ProgressClaim | null;
   claims: ProgressClaim[];

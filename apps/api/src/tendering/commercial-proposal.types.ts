@@ -20,6 +20,12 @@ export interface BidContractTerms {
   advancePaymentPercent?: number;
   /** Optional fixed advance amount (THB); overrides percent when set. */
   advancePaymentAmount?: number;
+  /**
+   * Amortisation rate (%) deducted from each progress payment certificate to
+   * repay the advance. Unset means the rate is derived so the advance is repaid
+   * in full by Practical Completion.
+   */
+  advancePaymentAmortisationPercent?: number;
   /** Works commencement date (ISO date). */
   worksStartDate?: string;
   /** Planned works completion date (ISO date). */

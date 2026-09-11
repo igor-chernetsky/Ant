@@ -35,7 +35,34 @@ export interface ProgressClaimTotals {
   grandPeriod: number;
   retentionPercent: number;
   retentionPeriod: number;
+  /** Amortisation rate used to repay the advance payment on this certificate. */
+  advanceRecoveryPercent: number;
+  advanceRecoveryPeriod: number;
   payablePeriod: number;
+}
+
+/**
+ * Advance payment recovery for one certificate.
+ *
+ * Mirrors the contract clause: deductions are made at the amortisation rate on
+ * the amount of the certificate (works + Preliminary + OH&P, excluding the
+ * advance payment itself and VAT), until the advance has been repaid in full.
+ */
+export function computeAdvanceRecoveryPeriod(input: {
+  /** Certificate amount for the period, excluding VAT. */
+  base: number;
+  /** Amortisation rate in percent (0 disables the deduction). */
+  percent: number;
+  /** Advance still outstanding before this certificate. */
+  outstanding: number;
+}): number {
+  const base = Math.max(0, roundMoney(input.base));
+  const percent = Math.max(0, input.percent);
+  if (base <= 0 || percent <= 0) {
+    return 0;
+  }
+  const raw = roundMoney((base * percent) / 100);
+  return Math.min(raw, Math.max(0, roundMoney(input.outstanding)));
 }
 
 function clampPercent(value: number): number {
@@ -98,6 +125,13 @@ export function computeProgressClaim(
     contractGrandTotal: 0,
     retentionHeldToDate: 0,
   },
+  advanceRecovery: {
+    percent: number;
+    outstanding: number;
+  } = {
+    percent: 0,
+    outstanding: 0,
+  },
 ): { lines: ProgressLineComputed[]; totals: ProgressClaimTotals } {
   const computedLines: ProgressLineComputed[] = lines.map((line) => {
     const amounts = computeLineAmounts(line);
@@ -158,7 +192,17 @@ export function computeProgressClaim(
     contractGrandTotal: retention.contractGrandTotal,
     retentionHeldToDate: retention.retentionHeldToDate,
   });
-  const payablePeriod = Math.max(0, grandPeriod - retentionPeriod);
+  // The advance is recovered from the certificate value excluding VAT.
+  const advanceRecoveryPercent = Math.max(0, advanceRecovery.percent);
+  const advanceRecoveryPeriod = computeAdvanceRecoveryPeriod({
+    base: worksPeriod + preliminaryPeriod + overheadProfitPeriod,
+    percent: advanceRecoveryPercent,
+    outstanding: advanceRecovery.outstanding,
+  });
+  const payablePeriod = Math.max(
+    0,
+    grandPeriod - retentionPeriod - advanceRecoveryPeriod,
+  );
 
   return {
     lines: computedLines,
@@ -175,6 +219,8 @@ export function computeProgressClaim(
       grandPeriod,
       retentionPercent: retention.retentionPercent,
       retentionPeriod,
+      advanceRecoveryPercent,
+      advanceRecoveryPeriod,
       payablePeriod,
     },
   };

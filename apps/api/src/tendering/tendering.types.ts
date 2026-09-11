@@ -22,6 +22,12 @@ export interface BidContractTerms {
   contractorRepresentative?: string;
   advancePaymentPercent?: number;
   advancePaymentAmount?: number;
+  /**
+   * Amortisation rate (%) deducted from each progress payment certificate to
+   * repay the advance. Unset means the rate is derived so the advance is repaid
+   * in full by Practical Completion.
+   */
+  advancePaymentAmortisationPercent?: number;
   worksStartDate?: string;
   /** Planned works completion date (ISO date). */
   worksFinishDate?: string;

@@ -254,7 +254,7 @@ export function BidContractTermsFields({
           </label>
         </div>
 
-        <div className="bid-proposal-form-row bid-proposal-form-row--pair">
+        <div className="bid-proposal-form-row bid-proposal-form-row--triple">
           <label className="bid-proposal-field">
             <span className="field-label">
               {t('contractTerms.advancePaymentPercent')}
@@ -291,7 +291,37 @@ export function BidContractTermsFields({
               }
             />
           </label>
+          <label className="bid-proposal-field">
+            <span className="field-label">
+              {t('contractTerms.advanceRepaymentPercent')}
+            </span>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              disabled={fieldDisabled('advancePaymentAmortisationPercent')}
+              value={value.advancePaymentAmortisationPercent ?? ''}
+              placeholder={t('contractTerms.advanceRepaymentAuto')}
+              onChange={(e) =>
+                set(
+                  'advancePaymentAmortisationPercent',
+                  e.target.value === '' ? undefined : Number(e.target.value),
+                )
+              }
+            />
+          </label>
         </div>
+        {(value.advancePaymentPercent ?? 0) > 0 ||
+        (value.advancePaymentAmount ?? 0) > 0 ? (
+          <p className="muted bid-contract-terms-hint">
+            {value.advancePaymentAmortisationPercent != null
+              ? t('contractTerms.advanceRepaymentHint', {
+                  percent: value.advancePaymentAmortisationPercent,
+                })
+              : t('contractTerms.advanceRepaymentAutoHint')}
+          </p>
+        ) : null}
 
         <div className="bid-proposal-form-row bid-proposal-form-row--triple">
           <label className="bid-proposal-field">

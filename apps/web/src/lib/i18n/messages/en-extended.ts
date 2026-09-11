@@ -843,6 +843,12 @@ export const enExtended = {
     contractPeriodMonths: "Contract period (months)",
     advancePaymentPercent: "Advance payment (%)",
     fixedAdvanceThb: "Fixed advance (THB)",
+    advanceRepaymentPercent: "Advance repayment (%)",
+    advanceRepaymentAuto: "Auto",
+    advanceRepaymentHint:
+      "Each progress claim repays {percent}% of the certified amount until the advance is repaid in full.",
+    advanceRepaymentAutoHint:
+      "Leave empty to repay the advance automatically over the certificates, in full by Practical Completion.",
     retentionPercent: "Retention (%)",
     retentionCapPercent: "Retention cap (%)",
     warrantyMonths: "Warranty (months)",
@@ -1626,6 +1632,13 @@ export const enExtended = {
     colPeriod: "This period",
     worksPeriod: "Accepted this period",
     retentionPeriod: "Retention ({percent}%)",
+    advanceRecoveryPeriod: "Advance repayment ({percent}%)",
+    advanceRecoveredToDate: "Advance repaid to date",
+    advanceOutstanding: "Advance outstanding",
+    advanceRepaymentRate: "Repayment rate",
+    advanceRepaymentRateValue: "{percent}% per certificate",
+    advanceNotConfirmedHint:
+      "The advance repayment starts once you send the advance payment slips to the contractor.",
     dueThisPeriod: "Certified this period",
     payableThisPeriod: "Payable this period",
     attachPaymentSlip: "Add payment slip",

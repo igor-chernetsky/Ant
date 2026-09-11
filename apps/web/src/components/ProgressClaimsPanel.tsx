@@ -4,8 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } f
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { formatThb } from '@/lib/estimate';
-import { computeBidCostAdjustments } from '@/lib/bid-cost-adjustments';
-import { computeRetentionPeriod } from '@/lib/progress-claim';
+import { computeClaimPeriodTotals } from '@/lib/progress-claim';
 import {
   isClaimsProjectStatus,
   isProjectWorkspaceReadOnly,
@@ -124,41 +123,22 @@ export function ProgressClaimsPanel({
     });
     const worksCumulative = lines.reduce((s, l) => s + l.amountCumulative, 0);
     const worksPeriod = lines.reduce((s, l) => s + l.amountPeriod, 0);
-    const cum = computeBidCostAdjustments({
-      worksSubtotal: worksCumulative,
-      preliminaryPercent: overview.preliminaryPercent,
-      overheadProfitPercent: overview.overheadProfitPercent,
-      vatPercent: overview.vatPercent,
-    });
-    const period = computeBidCostAdjustments({
-      worksSubtotal: worksPeriod,
-      preliminaryPercent: overview.preliminaryPercent,
-      overheadProfitPercent: overview.overheadProfitPercent,
-      vatPercent: overview.vatPercent,
-    });
-    const grandPeriod = Math.max(
-      0,
-      cum.grandTotal - overview.approvedGrandCumulative,
-    );
-    const retentionPeriod = computeRetentionPeriod({
+    // Same math the API applies when it persists the claim.
+    const totals = computeClaimPeriodTotals({
       worksPeriod,
+      worksCumulative,
+      preliminaryPercent: overview.preliminaryPercent,
+      overheadProfitPercent: overview.overheadProfitPercent,
+      vatPercent: overview.vatPercent,
+      approvedGrandCumulative: overview.approvedGrandCumulative,
       retentionPercent: overview.retentionPercent,
       retentionLimitPercent: overview.retentionLimitPercent,
       contractGrandTotal: overview.contractGrandTotal,
       retentionHeldToDate: overview.retentionHeldToDate,
+      advanceRecoveryPercent: overview.advanceRecoveryPercent,
+      advanceOutstanding: overview.advanceOutstanding,
     });
-    const payablePeriod = Math.max(0, grandPeriod - retentionPeriod);
-    return {
-      lines,
-      worksPeriod,
-      preliminaryPeriod: period.preliminaryAmount,
-      overheadProfitPeriod: period.overheadProfitAmount,
-      vatPeriod: period.vatAmount,
-      grandPeriod,
-      retentionPeriod,
-      payablePeriod,
-      grandCumulative: cum.grandTotal,
-    };
+    return { lines, ...totals };
   }, [overview, isDraft, percentDraft]);
 
   if (!isClaimsProjectStatus(projectStatus)) {
@@ -547,6 +527,12 @@ export function ProgressClaimsPanel({
       : openClaim?.payablePeriod ?? periodGrand;
   const retentionPercent =
     openClaim?.retentionPercent ?? overview?.retentionPercent ?? 0;
+  const periodAdvanceRecovery =
+    isDraft && preview
+      ? preview.advanceRecoveryPeriod
+      : openClaim?.advanceRecoveryPeriod ?? 0;
+  const advanceRecoveryPercent =
+    openClaim?.advanceRecoveryPercent ?? overview?.advanceRecoveryPercent ?? 0;
   const showAdvanceSection =
     overview != null &&
     (overview.advancePaymentAmount > 0 || overview.advancePaymentPercent > 0);
@@ -590,6 +576,34 @@ export function ProgressClaimsPanel({
                 <h3>{t('progressSection.advancePaymentTitle')}</h3>
                 <strong>{formatThb(overview.advancePaymentAmount)}</strong>
               </div>
+              <dl className="progress-advance-payment-meta">
+                <div>
+                  <dt>{t('progressSection.advanceRecoveredToDate')}</dt>
+                  <dd>{formatThb(overview.advanceRecoveredToDate)}</dd>
+                </div>
+                <div>
+                  <dt>{t('progressSection.advanceOutstanding')}</dt>
+                  <dd>{formatThb(overview.advanceOutstanding)}</dd>
+                </div>
+                {overview.advanceRecoveryPercent > 0 && (
+                  <div>
+                    <dt>{t('progressSection.advanceRepaymentRate')}</dt>
+                    <dd>
+                      {t('progressSection.advanceRepaymentRateValue', {
+                        percent: String(
+                          Math.round(overview.advanceRecoveryPercent * 100) /
+                            100,
+                        ),
+                      })}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              {!overview.advancePaymentConfirmed && (
+                <p className="muted progress-advance-payment-hint">
+                  {t('progressSection.advanceNotConfirmedHint')}
+                </p>
+              )}
               {renderPaymentSlips(overview.advancePaymentSlips, {
                 canEdit: canClientAct,
                 onAdd: () => advancePaymentSlipInputRef.current?.click(),
@@ -757,6 +771,17 @@ export function ProgressClaimsPanel({
                       })}
                     </dt>
                     <dd>−{formatThb(periodRetention)}</dd>
+                  </div>
+                )}
+                {advanceRecoveryPercent > 0 && (
+                  <div className="progress-claim-totals-deduction">
+                    <dt>
+                      {t('progressSection.advanceRecoveryPeriod', {
+                        percent:
+                          Math.round(advanceRecoveryPercent * 100) / 100,
+                      })}
+                    </dt>
+                    <dd>−{formatThb(periodAdvanceRecovery)}</dd>
                   </div>
                 )}
                 <div className="progress-claim-totals-grand">
