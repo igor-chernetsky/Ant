@@ -29,6 +29,10 @@ export class AdminClientsService {
       projects: { some: {} },
     };
 
+    if (!query.includeDeleted) {
+      where.deletedAt = null;
+    }
+
     const term = query.q?.trim();
     if (term) {
       where.AND = [
@@ -51,6 +55,7 @@ export class AdminClientsService {
           displayName: true,
           preferredLocale: true,
           createdAt: true,
+          deletedAt: true,
           projects: {
             select: {
               status: true,
@@ -86,6 +91,7 @@ export class AdminClientsService {
         preferredLocale: true,
         createdAt: true,
         updatedAt: true,
+        deletedAt: true,
         projects: {
           select: {
             id: true,
@@ -125,6 +131,7 @@ export class AdminClientsService {
       displayName: user.displayName,
       preferredLocale: user.preferredLocale,
       createdAt: user.createdAt,
+      deletedAt: user.deletedAt,
       projects: user.projects.map((p) => ({
         status: p.status,
         updatedAt: p.updatedAt,
@@ -178,6 +185,7 @@ export class AdminClientsService {
     displayName: string | null;
     preferredLocale: string;
     createdAt: Date;
+    deletedAt?: Date | null;
     projects: Array<{
       status: ProjectStatus;
       updatedAt: Date;
@@ -203,6 +211,7 @@ export class AdminClientsService {
       ).length,
       lastProjectAt:
         lastProjectAt != null ? new Date(lastProjectAt).toISOString() : null,
+      deletedAt: row.deletedAt?.toISOString() ?? null,
     };
   }
 

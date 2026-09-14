@@ -14,6 +14,7 @@ import {
 } from '@/lib/account-roles';
 import {
   accountProfileName,
+  hasSupplyProfile,
   isContractorUser,
   isDesignerUser,
   refreshSessionTokens,
@@ -86,10 +87,10 @@ export default function AccountPage() {
     }
   };
 
-  const isContractor =
-    me?.isContractor || me?.roles?.includes('contractor') || false;
-  const isDesigner =
-    me?.isDesigner || me?.roles?.includes('designer') || false;
+  // Chips and hints state the roles the account actually has (realm roles), so a
+  // local profile without the role does not look like a granted permission.
+  const isContractor = Boolean(me?.roles?.includes('contractor'));
+  const isDesigner = Boolean(me?.roles?.includes('designer'));
   const isClient = Boolean(me?.roles?.includes('client'));
 
   const currentRoleLabels = useMemo(() => {
@@ -164,7 +165,7 @@ export default function AccountPage() {
               <dl className="meta-grid account-profile-meta">
                 <div>
                   <dt>
-                    {isContractorUser(me)
+                    {hasSupplyProfile(me) || isContractorUser(me)
                       ? t('account.companyName')
                       : t('account.name')}
                   </dt>

@@ -29,15 +29,16 @@ export async function addAccountRoles(params: {
   };
 }
 
+/**
+ * Role check that mirrors the API guards: only the Keycloak realm role counts.
+ * A contractor/designer profile row without the realm role cannot manage or use
+ * supply features, so the "become a …" action must stay available for it.
+ */
 export function accountHasRole(
   me: MeResponse | null,
   role: SelfServeAccountRole,
 ): boolean {
-  if (!me) return false;
-  if (me.roles?.includes(role)) return true;
-  if (role === 'contractor' && me.isContractor) return true;
-  if (role === 'designer' && me.isDesigner) return true;
-  return false;
+  return Boolean(me?.roles?.includes(role));
 }
 
 export function missingSelfServeRoles(

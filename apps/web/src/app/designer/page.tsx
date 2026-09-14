@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ContractorApplicationTile } from '@/components/ContractorApplicationTile';
+import { BecomeRoleModal } from '@/components/BecomeRoleModal';
 import { ContractorReviewsPanel } from '@/components/ContractorReviewsPanel';
 import { ContractorVerificationPanel } from '@/components/ContractorVerificationPanel';
 import { ContractorPortfolioPanel } from '@/components/ContractorPortfolioPanel';
@@ -16,6 +17,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { TradeTagPicker } from '@/components/TradeTagPicker';
 import { useSession } from '@/components/SessionProvider';
 import { HELP_TIP_IDS } from '@/lib/help-tips';
+import { isApiErrorCode } from '@/lib/api-error';
 import {
   DEFAULT_SERVICE_LOCATION,
   fetchLocationCatalog,
@@ -83,6 +85,7 @@ export default function DesignerPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [becomeRoleOpen, setBecomeRoleOpen] = useState(false);
   const [showCompletedApplications, setShowCompletedApplications] =
     useState(false);
 
@@ -90,6 +93,10 @@ export default function DesignerPage() {
     () => tradeTags.filter((tag) => tag.groupSlug !== 'service'),
     [tradeTags],
   );
+
+  // Managing a supply profile requires the Keycloak realm role — the API rejects
+  // the save otherwise, so offer to add the role instead of an unusable form.
+  const hasDesignerRole = Boolean(me?.roles?.includes('designer'));
 
   const loadAll = useCallback(async () => {
     setError(null);
@@ -185,9 +192,15 @@ export default function DesignerPage() {
       setSelectedTagSlugs(prof.tagSlugs);
       await refreshSession();
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : t('contractor.saveProfileFailed'),
-      );
+      if (isApiErrorCode(err, 'role_required')) {
+        // The token lost the realm role after the page rendered — offer to add it.
+        setError(t('designer.roleRequiredHint'));
+        setBecomeRoleOpen(true);
+      } else {
+        setError(
+          err instanceof Error ? err.message : t('contractor.saveProfileFailed'),
+        );
+      }
     } finally {
       setBusy(false);
     }
@@ -416,7 +429,21 @@ export default function DesignerPage() {
           </section>
         )}
 
-        {ready && me && !profile && (
+        {ready && me && !hasDesignerRole && (
+          <section className="card cta designer-role-required">
+            <h2 className="section-title">{t('designer.roleRequiredTitle')}</h2>
+            <p className="muted">{t('designer.roleRequiredHint')}</p>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => setBecomeRoleOpen(true)}
+            >
+              {t('account.becomeDesigner')}
+            </button>
+          </section>
+        )}
+
+        {ready && me && hasDesignerRole && !profile && (
           <section className="card">
             <HelpTip
               tipId={HELP_TIP_IDS.designerRegister}
@@ -439,7 +466,7 @@ export default function DesignerPage() {
           </section>
         )}
 
-        {ready && me && profile && (
+        {ready && me && hasDesignerRole && profile && (
           <>
             <section className="card portal-profile-card">
               <h2 className="section-title">{t('designer.yourProfile')}</h2>
@@ -529,6 +556,16 @@ export default function DesignerPage() {
             await refreshSession();
             await loadAll();
           })();
+        }}
+      />
+
+      <BecomeRoleModal
+        role="designer"
+        isOpen={becomeRoleOpen}
+        onClose={() => setBecomeRoleOpen(false)}
+        onSuccess={async () => {
+          await refreshSession();
+          await loadAll();
         }}
       />
     </PageShell>

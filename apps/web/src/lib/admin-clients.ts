@@ -9,6 +9,8 @@ export interface AdminClientListItem {
   projectCount: number;
   activeProjectCount: number;
   lastProjectAt: string | null;
+  /** Set when the account was soft-deleted by an admin. */
+  deletedAt: string | null;
 }
 
 export interface AdminClientListPage {
@@ -90,4 +92,25 @@ export async function fetchAdminClient(
     await parseError(response, 'Failed to load client');
   }
   return response.json() as Promise<AdminClientDetail>;
+}
+
+export interface AdminAccountDeleteResult {
+  ok: true;
+  deletedAt: string | null;
+  keycloakRemoved: boolean;
+  keycloakMessage: string | null;
+}
+
+/** Soft-delete a client: hidden in the platform and removed from Keycloak. */
+export async function deleteAdminClient(
+  clientId: string,
+): Promise<AdminAccountDeleteResult> {
+  const response = await fetchWithAuth(
+    `/api/admin/clients/${encodeURIComponent(clientId)}`,
+    { method: 'DELETE' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to delete the account');
+  }
+  return response.json() as Promise<AdminAccountDeleteResult>;
 }

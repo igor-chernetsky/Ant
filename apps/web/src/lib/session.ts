@@ -15,12 +15,30 @@ export function canCreateProject(me: MeResponse | null): boolean {
   return Boolean(me?.roles?.includes('client'));
 }
 
+/**
+ * Capability checks for the supply side. These read the Keycloak realm roles
+ * from the token and mirror the API guards — a local contractor profile row is
+ * NOT a role, so it must never be treated as permission to act as supply.
+ */
+export function hasContractorRole(me: MeResponse | null): boolean {
+  return Boolean(me?.roles?.includes('contractor'));
+}
+
+export function hasDesignerRole(me: MeResponse | null): boolean {
+  return Boolean(me?.roles?.includes('designer'));
+}
+
+/** Has a supply-side profile on the platform. Presentation only, not a permission. */
+export function hasSupplyProfile(me: MeResponse | null): boolean {
+  return Boolean(me?.isContractor || me?.isDesigner);
+}
+
 export function isContractorUser(me: MeResponse | null): boolean {
-  return Boolean(me?.isContractor || me?.roles?.includes('contractor'));
+  return hasContractorRole(me);
 }
 
 export function isDesignerUser(me: MeResponse | null): boolean {
-  return Boolean(me?.isDesigner || me?.roles?.includes('designer'));
+  return hasDesignerRole(me);
 }
 
 export function isAdminUser(me: MeResponse | null): boolean {
@@ -31,9 +49,17 @@ export function isSupplySideUser(me: MeResponse | null): boolean {
   return isContractorUser(me) || isDesignerUser(me);
 }
 
+/**
+ * Display-only: present the account as supply side when it either holds a supply
+ * realm role or keeps a local supply profile.
+ */
+export function isSupplyAccount(me: MeResponse | null): boolean {
+  return hasSupplyProfile(me) || isSupplySideUser(me);
+}
+
 /** Profile name shown in account and header — company name for supply side. */
 export function accountProfileName(me: MeResponse): string | null {
-  if (isContractorUser(me) || isDesignerUser(me)) {
+  if (isSupplyAccount(me)) {
     const company = me.companyName?.trim();
     if (company) return company;
   }
@@ -42,9 +68,7 @@ export function accountProfileName(me: MeResponse): string | null {
 }
 
 export function accountProfileLabel(me: MeResponse): string {
-  return isContractorUser(me) || isDesignerUser(me)
-    ? 'Company name'
-    : 'Name';
+  return isSupplyAccount(me) ? 'Company name' : 'Name';
 }
 
 /** Label in the site header — same full name as on the account page. */

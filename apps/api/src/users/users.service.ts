@@ -3,6 +3,8 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Prisma, User } from '@prisma/client';
 import { extractKeycloakSub, JwtPayload } from '../auth/jwt-payload';
@@ -54,6 +56,11 @@ export class UsersService {
       });
 
       if (existing) {
+        if (existing.deletedAt) {
+          // The Keycloak identity was removed by an admin; a still-valid access
+          // token must not keep the account usable.
+          throw new UnauthorizedException('Account has been deleted');
+        }
         return this.prisma.user.update({
           where: { keycloakSub },
           data: {
@@ -125,6 +132,56 @@ export class UsersService {
       select: { id: true, kind: true },
     });
     return Boolean(profile && profile.kind === 'contractor');
+  }
+
+  /**
+   * Mark a user deleted: hidden from admin lists and unable to authenticate.
+   *
+   * The row is kept on purpose — projects, contracts, addenda, progress claims,
+   * defects and reviews cascade from `users`, so a physical delete would destroy
+   * the other party's legal history. Returns the Keycloak subject so the caller
+   * can remove the identity there.
+   */
+  async softDeleteUser(
+    adminUserId: string,
+    userId: string,
+  ): Promise<{
+    id: string;
+    email: string | null;
+    keycloakSub: string;
+    deletedAt: string;
+    alreadyDeleted: boolean;
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, keycloakSub: true, deletedAt: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.deletedAt) {
+      return {
+        id: user.id,
+        email: user.email,
+        keycloakSub: user.keycloakSub,
+        deletedAt: user.deletedAt.toISOString(),
+        alreadyDeleted: true,
+      };
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: user.id },
+      data: { deletedAt: new Date(), deletedByUserId: adminUserId },
+      select: { deletedAt: true },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      keycloakSub: user.keycloakSub,
+      deletedAt: (updated.deletedAt ?? new Date()).toISOString(),
+      alreadyDeleted: false,
+    };
   }
 
   async isDesigner(userId: string): Promise<boolean> {

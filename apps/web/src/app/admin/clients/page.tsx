@@ -10,6 +10,7 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
+  deleteAdminClient,
   fetchAdminClient,
   fetchAdminClients,
   type AdminClientDetail,
@@ -18,6 +19,7 @@ import {
 import { formatThb } from '@/lib/estimate';
 import { formatDateTime } from '@/lib/projects';
 import { isAdmin } from '@/lib/verification';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 function clientLabel(item: Pick<AdminClientListItem, 'displayName' | 'email'>) {
   return item.displayName?.trim() || item.email?.trim() || '—';
@@ -71,7 +73,9 @@ function AdminClientsContent() {
   const [detail, setDetail] = useState<AdminClientDetail | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadList = useCallback(async (search = appliedQ) => {
     const page = await fetchAdminClients({
@@ -101,6 +105,50 @@ function AdminClientsContent() {
       }
     },
     [t],
+  );
+
+  /**
+   * Soft-delete the account: the platform row is kept (projects, contracts and
+   * reviews stay intact) and the Keycloak identity is removed.
+   */
+  const handleDelete = useCallback(
+    async (item: AdminClientListItem) => {
+      const confirmed = await confirm({
+        title: t('admin.deleteUserConfirmTitle'),
+        message: t('admin.deleteUserConfirmBody', { name: clientLabel(item) }),
+        confirmLabel: t('admin.deleteUserConfirmAction'),
+        tone: 'danger',
+      });
+      if (!confirmed) return;
+
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        const result = await deleteAdminClient(item.id);
+        setNotice(
+          result.keycloakRemoved
+            ? t('admin.deleteUserDone')
+            : t('admin.deleteUserKeycloakPending'),
+        );
+        const wasSelected = selectedId === item.id;
+        if (wasSelected) {
+          setDetail(null);
+          setSelectedId(null);
+        }
+        const items = await loadList();
+        if (wasSelected && items[0]) {
+          await openDetail(items[0].id);
+        }
+      } catch (err: unknown) {
+        setError(
+          err instanceof Error ? err.message : t('admin.deleteUserFailed'),
+        );
+      } finally {
+        setBusy(false);
+      }
+    },
+    [confirm, loadList, openDetail, selectedId, t],
   );
 
   useEffect(() => {
@@ -229,6 +277,7 @@ function AdminClientsContent() {
               </div>
 
               {error && !detail ? <p className="form-error">{error}</p> : null}
+              {notice ? <p className="admin-role-notice">{notice}</p> : null}
 
               {list.length === 0 ? (
                 <p className="muted">{t('admin.clientsEmpty')}</p>
@@ -241,6 +290,7 @@ function AdminClientsContent() {
                         <th>{t('admin.clientsColEmail')}</th>
                         <th>{t('admin.clientsColProjects')}</th>
                         <th>{t('admin.clientsColRegistered')}</th>
+                        <th>{t('admin.colActions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -280,6 +330,19 @@ function AdminClientsContent() {
                             <td>{item.projectCount}</td>
                             <td className="muted">
                               {formatDateTime(item.createdAt)}
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="danger"
+                                disabled={busy}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleDelete(item);
+                                }}
+                              >
+                                {t('admin.deleteUserAction')}
+                              </button>
                             </td>
                           </tr>
                         );
@@ -504,6 +567,8 @@ function AdminClientsContent() {
           })();
         }}
       />
+
+      {confirmDialog}
     </PageShell>
   );
 }

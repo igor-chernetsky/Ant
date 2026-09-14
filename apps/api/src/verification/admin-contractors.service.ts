@@ -17,6 +17,7 @@ import { normalizePreferredContactMethods } from '../tendering/contractor-contac
 import {
   AdminContractorDetail,
   AdminContractorListItem,
+  AdminSupplyRoleGap,
   ContractorVerificationDocumentResponse,
   RejectContractorDto,
 } from './verification.types';
@@ -51,7 +52,11 @@ export class AdminContractorsService {
     includeNoProfile = false,
   ): Promise<AdminContractorListItem[]> {
     const profiles = await this.prisma.contractorProfile.findMany({
-      where: status ? { verificationStatus: status } : undefined,
+      where: {
+        ...(status ? { verificationStatus: status } : {}),
+        // Soft-deleted accounts are hidden from the admin lists.
+        user: { deletedAt: null },
+      },
       include: {
         user: true,
         _count: {
@@ -78,6 +83,7 @@ export class AdminContractorsService {
       where: {
         keycloakRoles: { has: 'contractor' },
         contractorProfile: { is: null },
+        deletedAt: null,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -91,6 +97,64 @@ export class AdminContractorsService {
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     );
+  }
+
+  /**
+   * Supply profiles whose owner does not hold the matching realm role — accounts
+   * created before the role became mandatory. An admin action backfills them
+   * through the Keycloak Admin API.
+   */
+  async listSupplyRoleGaps(): Promise<AdminSupplyRoleGap[]> {
+    const profiles = await this.prisma.contractorProfile.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            keycloakSub: true,
+            keycloakRoles: true,
+            deletedAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return profiles
+      .filter(
+        (profile) =>
+          !profile.user.deletedAt &&
+          !profile.user.keycloakRoles.includes(profile.kind),
+      )
+      .map((profile) => ({
+        userId: profile.userId,
+        kind: profile.kind,
+        companyName: profile.companyName,
+        email: profile.user.email,
+        displayName: profile.user.displayName,
+        keycloakSub: profile.user.keycloakSub,
+        verificationStatus: profile.verificationStatus,
+      }));
+  }
+
+  /** Resolve an admin list id (profile id or `user:<userId>`) to a user id. */
+  async resolveUserId(contractorId: string): Promise<string> {
+    if (contractorId.startsWith('user:')) {
+      const userId = contractorId.slice('user:'.length).trim();
+      if (!userId) {
+        throw new NotFoundException('Contractor not found');
+      }
+      return userId;
+    }
+    const profile = await this.prisma.contractorProfile.findUnique({
+      where: { id: contractorId },
+      select: { userId: true },
+    });
+    if (!profile) {
+      throw new NotFoundException('Contractor not found');
+    }
+    return profile.userId;
   }
 
   async getContractor(contractorId: string): Promise<AdminContractorDetail> {

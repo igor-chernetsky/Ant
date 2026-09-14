@@ -104,9 +104,12 @@ export class ContractorTenderController {
     const isDesigner = hasRole(req.user, 'designer');
 
     if (!isContractor && !isDesigner) {
-      throw new ForbiddenException(
-        'A contractor or designer role is required to manage a supply profile',
-      );
+      throw new ForbiddenException({
+        message:
+          'A contractor or designer role is required to manage a supply profile',
+        code: 'role_required',
+        requiredRoles: ['contractor', 'designer'],
+      });
     }
 
     const kind =
@@ -119,14 +122,18 @@ export class ContractorTenderController {
             : 'contractor';
 
     if (kind === 'designer' && !isDesigner) {
-      throw new ForbiddenException(
-        'A designer role is required to create a designer profile',
-      );
+      throw new ForbiddenException({
+        message: 'A designer role is required to create a designer profile',
+        code: 'role_required',
+        requiredRoles: ['designer'],
+      });
     }
     if (kind === 'contractor' && !isContractor) {
-      throw new ForbiddenException(
-        'A contractor role is required to create a contractor profile',
-      );
+      throw new ForbiddenException({
+        message: 'A contractor role is required to create a contractor profile',
+        code: 'role_required',
+        requiredRoles: ['contractor'],
+      });
     }
 
     const user = await this.resolveUser(req);

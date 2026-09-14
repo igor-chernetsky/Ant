@@ -8,13 +8,16 @@ import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import {
   approveAdminContractor,
+  deleteAdminContractor,
   fetchAdminContractor,
   fetchAdminContractors,
   getAdminContractorDocumentUrl,
   isAdmin,
   rejectAdminContractor,
+  syncAdminSupplyRoles,
   type AdminContractorDetail,
   type AdminContractorListItem,
   type ContractorVerificationStatus,
@@ -35,7 +38,9 @@ export default function AdminContractorsPage() {
   const [rejectComment, setRejectComment] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [imagePreviews, setImagePreviews] = useState<Record<string, string>>(
     {},
   );
@@ -181,8 +186,74 @@ export default function AdminContractorsPage() {
     }
   };
 
-  const handleDocOpen = async (documentId: string) => {
-    if (!selectedId) return;
+  /** Soft-delete the account: the profile is kept, the identity is removed. */
+  const handleDelete = async () => {
+    if (!detail) return;
+    const label =
+      detail.companyName ?? detail.displayName ?? detail.email ?? detail.id;
+    const confirmed = await confirm({
+      title: t('admin.deleteUserConfirmTitle'),
+      message: t('admin.deleteUserConfirmBody', { name: label }),
+      confirmLabel: t('admin.deleteUserConfirmAction'),
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await deleteAdminContractor(detail.id);
+      setNotice(
+        result.keycloakRemoved
+          ? t('admin.deleteUserDone')
+          : t('admin.deleteUserKeycloakPending'),
+      );
+      setDetail(null);
+      setSelectedId(null);
+      setImagePreviews({});
+      await loadList();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('admin.deleteUserFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Grant the realm role to supply profiles created before it was required. */
+  const handleSyncRoles = async () => {
+    const confirmed = await confirm({
+      title: t('admin.syncRolesConfirmTitle'),
+      message: t('admin.syncRolesConfirmBody'),
+      confirmLabel: t('admin.syncRolesConfirmAction'),
+    });
+    if (!confirmed) return;
+
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await syncAdminSupplyRoles();
+      setNotice(
+        t('admin.syncRolesDone', {
+          granted: String(result.granted.length),
+          skipped: String(result.skipped.length),
+          failed: String(result.failed.length),
+        }),
+      );
+      await loadList();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('admin.syncRolesFailed'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDocOpen = async (documentId: string) => {    if (!selectedId) return;
     try {
       const { downloadUrl } = await getAdminContractorDocumentUrl(
         selectedId,
@@ -254,6 +325,17 @@ export default function AdminContractorsPage() {
         {ready && me && isAdmin(me.roles) && (
           <section className="admin-verification-layout">
             <section className="card admin-verification-sidebar">
+              <div className="admin-sidebar-tools">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => void handleSyncRoles()}
+                >
+                  {t('admin.syncRolesAction')}
+                </button>
+              </div>
+              {notice ? <p className="admin-role-notice">{notice}</p> : null}
               <div
                 className="admin-filter-bar"
                 role="group"
@@ -487,6 +569,20 @@ export default function AdminContractorsPage() {
                       </button>
                     </div>
                   )}
+
+                  <div className="admin-review-actions admin-account-actions">
+                    <p className="muted doc-hint">
+                      {t('admin.deleteUserHint')}
+                    </p>
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={busy}
+                      onClick={() => void handleDelete()}
+                    >
+                      {t('admin.deleteUserAction')}
+                    </button>
+                  </div>
                 </>
               )}
             </section>
@@ -506,6 +602,8 @@ export default function AdminContractorsPage() {
           })();
         }}
       />
+
+      {confirmDialog}
     </PageShell>
   );
 }

@@ -299,6 +299,9 @@ export const ruExtended = {
     yourProfile: "Ваш профиль",
     profileHint:
       "Обновите данные компании, районы работы и специализации проектирования.",
+    roleRequiredTitle: "Нужен доступ проектировщика",
+    roleRequiredHint:
+      "Для управления профилем проектировщика нужна роль «проектировщик» в аккаунте. Добавьте её, чтобы продолжить — данные профиля сохранятся.",
   },
   contractor: {
     portalTitle: "Кабинет подрядчика",
@@ -350,6 +353,9 @@ export const ruExtended = {
     applicationsAria: "Мои заявки",
     loadFailed: "Не удалось загрузить",
     saveProfileFailed: "Не удалось сохранить профиль",
+    roleRequiredTitle: "Нужен доступ подрядчика",
+    roleRequiredHint:
+      "Для управления профилем подрядчика нужна роль «подрядчик» в аккаунте. Добавьте её, чтобы продолжить — данные профиля сохранятся.",
     bidLabel: "Ставка {amount}",
     participationTitle: "Ваше участие",
     participationHintStructuredCollecting: "Отправьте вопросы для уточнения один раз. Заказчик откроет тендер для предложений, когда будет готов.",
@@ -510,6 +516,26 @@ export const ruExtended = {
     clientsColEmail: "Email",
     clientsColProjects: "Проекты",
     clientsColRegistered: "Регистрация",
+    colActions: "Действия",
+    deleteUserAction: "Удалить аккаунт",
+    deleteUserHint:
+      "Аккаунт удаляется из Keycloak и скрывается здесь. Проекты, договоры и отзывы сохраняются.",
+    deleteUserConfirmTitle: "Удалить этот аккаунт?",
+    deleteUserConfirmBody:
+      "{name} будет разлогинен и удалён в Keycloak. Проекты, договоры и отзывы сохранятся, чтобы у второй стороны остались её записи. Отменить это из админки нельзя.",
+    deleteUserConfirmAction: "Удалить аккаунт",
+    deleteUserDone: "Аккаунт удалён и убран из Keycloak.",
+    deleteUserKeycloakPending:
+      "Аккаунт скрыт в платформе, но удалить его в Keycloak не удалось. Повторите, чтобы завершить очистку.",
+    deleteUserFailed: "Не удалось удалить аккаунт",
+    syncRolesAction: "Выдать недостающие роли",
+    syncRolesConfirmTitle: "Выдать недостающие роли?",
+    syncRolesConfirmBody:
+      "Всем профилям подрядчика/проектировщика, у владельцев которых нет соответствующей realm-роли в Keycloak, роль будет выдана. Аккаунты с ролью пропускаются.",
+    syncRolesConfirmAction: "Выдать роли",
+    syncRolesDone:
+      "Роли выданы: {granted}, уже были: {skipped}, ошибок: {failed}.",
+    syncRolesFailed: "Не удалось выдать роли",
     clientsActiveCount: "{count} активн.",
     clientsSectionOverview: "Обзор",
     clientsSectionProjects: "Проекты",

@@ -10375,6 +10375,28 @@ select:disabled {
   gap: 0.35rem;
 }
 
+.admin-account-actions {
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  justify-items: start;
+}
+
+.admin-sidebar-tools {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.65rem;
+}
+
+.admin-role-notice {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-muted, #f8fafc);
+  font-size: 0.85rem;
+}
+
 .admin-verification-page {
   width: 100%;
   max-width: none;

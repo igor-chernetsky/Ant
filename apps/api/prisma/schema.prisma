@@ -171,6 +171,10 @@ model User {
   keycloakRoles    String[]  @default([]) @map("keycloak_roles")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
+  /// Soft delete: the Keycloak identity is removed, the row is kept so projects,
+  /// contracts and reviews stay intact. Deleted users cannot authenticate.
+  deletedAt        DateTime? @map("deleted_at")
+  deletedByUserId  String?   @map("deleted_by_user_id")
   projects    Project[]
   documents   Document[]
   contractorProfile ContractorProfile? @relation("ContractorProfileUser")
@@ -195,6 +199,7 @@ model User {
   progressClaimsReviewed   ProgressClaim[] @relation("ProgressClaimReviewedBy")
   defectEvents             DefectEvent[]
 
+  @@index([deletedAt])
   @@map("users")
 }
 

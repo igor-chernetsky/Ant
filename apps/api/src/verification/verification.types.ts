@@ -54,6 +54,17 @@ export interface AdminContractorDetail extends AdminContractorListItem {
   documents: ContractorVerificationDocumentResponse[];
 }
 
+/** Supply profile whose owner is missing the matching Keycloak realm role. */
+export interface AdminSupplyRoleGap {
+  userId: string;
+  kind: SupplyProfileKind;
+  companyName: string | null;
+  email: string | null;
+  displayName: string | null;
+  keycloakSub: string;
+  verificationStatus: string;
+}
+
 export const CONTRACTOR_VERIFICATION_DOC_CATEGORIES: Array<{
   value: ContractorVerificationDocCategory;
   label: string;

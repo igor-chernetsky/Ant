@@ -1,4 +1,5 @@
 import { fetchWithAuth } from './auth-client';
+import { ApiError } from './api-error';
 
 export type { ClarificationAttachment } from './clarification-attachments';
 import type { ClarificationAttachment } from './clarification-attachments';
@@ -320,14 +321,22 @@ export interface ContractorTenderView {
 async function parseError(response: Response, fallback: string): Promise<never> {
   const body = (await response.json().catch(() => null)) as {
     message?: string | string[];
+    code?: string;
+    requiredRoles?: string[];
   } | null;
   const message = body?.message;
-  if (Array.isArray(message)) {
-    throw new Error(message.join(', '));
-  }
-  throw new Error(
-    typeof message === 'string' ? message : fallback,
-  );
+  const text = Array.isArray(message)
+    ? message.join(', ')
+    : typeof message === 'string'
+      ? message
+      : fallback;
+  throw new ApiError(text, {
+    status: response.status,
+    code: typeof body?.code === 'string' ? body.code : undefined,
+    requiredRoles: Array.isArray(body?.requiredRoles)
+      ? body.requiredRoles.filter((role): role is string => typeof role === 'string')
+      : undefined,
+  });
 }
 
 export async function fetchProjectTender(

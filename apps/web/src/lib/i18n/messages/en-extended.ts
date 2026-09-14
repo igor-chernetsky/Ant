@@ -299,6 +299,9 @@ export const enExtended = {
     yourProfile: "Your profile",
     profileHint:
       "Update company details, service areas, and the design specialties you offer.",
+    roleRequiredTitle: "Designer access required",
+    roleRequiredHint:
+      "Managing a designer profile needs the designer role on your account. Add it to continue — your existing profile data is kept.",
   },
   contractor: {
     portalTitle: "Contractor portal",
@@ -350,6 +353,9 @@ export const enExtended = {
     applicationsAria: "My applications",
     loadFailed: "Failed to load",
     saveProfileFailed: "Failed to save profile",
+    roleRequiredTitle: "Contractor access required",
+    roleRequiredHint:
+      "Managing a contractor profile needs the contractor role on your account. Add it to continue — your existing profile data is kept.",
     bidLabel: "Bid {amount}",
     participationTitle: "Your participation",
     participationHintStructuredCollecting: "Submit your clarification questions once. The client will open the tender for proposals when ready.",
@@ -509,6 +515,26 @@ export const enExtended = {
     clientsColEmail: "Email",
     clientsColProjects: "Projects",
     clientsColRegistered: "Registered",
+    colActions: "Actions",
+    deleteUserAction: "Delete account",
+    deleteUserHint:
+      "The account is removed from Keycloak and hidden here. Projects, contracts and reviews are kept.",
+    deleteUserConfirmTitle: "Delete this account?",
+    deleteUserConfirmBody:
+      "{name} will be signed out of the platform and deleted in Keycloak. Projects, contracts and reviews are kept, so the other party keeps its records. This cannot be undone from the admin panel.",
+    deleteUserConfirmAction: "Delete account",
+    deleteUserDone: "Account deleted and removed from Keycloak.",
+    deleteUserKeycloakPending:
+      "Account hidden in the platform, but the Keycloak identity could not be removed. Retry to finish the cleanup.",
+    deleteUserFailed: "Failed to delete the account",
+    syncRolesAction: "Grant missing supply roles",
+    syncRolesConfirmTitle: "Grant missing roles?",
+    syncRolesConfirmBody:
+      "Every contractor/designer profile whose owner lacks the matching Keycloak realm role will be granted it. Accounts that already have the role are skipped.",
+    syncRolesConfirmAction: "Grant roles",
+    syncRolesDone:
+      "Roles granted: {granted}, already had: {skipped}, failed: {failed}.",
+    syncRolesFailed: "Failed to grant roles",
     clientsActiveCount: "{count} active",
     clientsSectionOverview: "Overview",
     clientsSectionProjects: "Projects",

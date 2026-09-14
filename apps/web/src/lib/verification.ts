@@ -268,3 +268,43 @@ export async function getAdminContractorDocumentUrl(
   }
   return response.json() as Promise<{ downloadUrl: string; originalName: string }>;
 }
+
+export interface AdminAccountDeleteResult {
+  ok: true;
+  deletedAt: string | null;
+  keycloakRemoved: boolean;
+  keycloakMessage: string | null;
+}
+
+/** Soft-delete the account behind a supply profile (Keycloak identity removed). */
+export async function deleteAdminContractor(
+  contractorId: string,
+): Promise<AdminAccountDeleteResult> {
+  const response = await fetchWithAuth(
+    `/api/admin/contractors/${encodeURIComponent(contractorId)}`,
+    { method: 'DELETE' },
+  );
+  if (!response.ok) {
+    await parseError(response, 'Failed to delete the account');
+  }
+  return response.json() as Promise<AdminAccountDeleteResult>;
+}
+
+export interface AdminSupplyRoleSyncResult {
+  ok: true;
+  candidates: number;
+  granted: string[];
+  skipped: string[];
+  failed: Array<{ email: string | null; message: string }>;
+}
+
+/** Grant the missing realm role to supply profiles created before it was required. */
+export async function syncAdminSupplyRoles(): Promise<AdminSupplyRoleSyncResult> {
+  const response = await fetchWithAuth('/api/admin/contractors/sync-roles', {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    await parseError(response, 'Failed to sync supply roles');
+  }
+  return response.json() as Promise<AdminSupplyRoleSyncResult>;
+}

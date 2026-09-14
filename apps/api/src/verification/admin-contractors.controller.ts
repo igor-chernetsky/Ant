@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -42,9 +43,31 @@ export class AdminContractorsController {
     );
   }
 
+  /**
+   * Declared before `:contractorId` so the literal path wins the route match.
+   */
+  @Get('supply-role-gaps')
+  supplyRoleGaps() {
+    return this.adminContractors.listSupplyRoleGaps();
+  }
+
   @Get(':contractorId')
   getOne(@Param('contractorId') contractorId: string) {
     return this.adminContractors.getContractor(contractorId);
+  }
+
+  /**
+   * Soft-delete the account behind a supply profile. Accepts a profile id or a
+   * `user:<userId>` id, mirroring the detail route.
+   */
+  @Delete(':contractorId')
+  async remove(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('contractorId') contractorId: string,
+  ) {
+    const admin = await this.resolveUser(req);
+    const userId = await this.adminContractors.resolveUserId(contractorId);
+    return this.usersService.softDeleteUser(admin.id, userId);
   }
 
   @Post(':contractorId/approve')

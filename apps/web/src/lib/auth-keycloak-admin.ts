@@ -209,17 +209,27 @@ async function fetchRoleRepresentation(
   return (await response.json()) as KeycloakRoleRepresentation;
 }
 
+/**
+ * Assign realm roles. Returns which of the requested roles do not exist in the
+ * realm, so callers never report success for a role that was silently skipped.
+ */
 async function assignRealmRoles(
   adminToken: string,
   userId: string,
   roles: SelfAssignableRole[],
-): Promise<boolean> {
+): Promise<{ ok: boolean; missing: string[] }> {
   const { baseUrl, realm } = getKeycloakBaseAndRealm();
-  const roleRepresentations = (
-    await Promise.all(roles.map((role) => fetchRoleRepresentation(adminToken, role)))
-  ).filter((role): role is KeycloakRoleRepresentation => Boolean(role));
+  const representations = await Promise.all(
+    roles.map((role) => fetchRoleRepresentation(adminToken, role)),
+  );
+  const roleRepresentations = representations.filter(
+    (role): role is KeycloakRoleRepresentation => Boolean(role),
+  );
+  const missing = roles.filter((_, index) => !representations[index]);
 
-  if (roleRepresentations.length === 0) return false;
+  if (roleRepresentations.length === 0) {
+    return { ok: false, missing };
+  }
 
   const response = await fetch(
     `${baseUrl}/admin/realms/${realm}/users/${userId}/role-mappings/realm`,
@@ -239,9 +249,9 @@ async function assignRealmRoles(
       `[auth-keycloak] assignRealmRoles failed (${response.status}):`,
       await response.text().catch(() => ''),
     );
-    return false;
+    return { ok: false, missing };
   }
-  return true;
+  return { ok: true, missing };
 }
 
 async function fetchUserRealmRoleNames(
@@ -324,7 +334,14 @@ export async function addKeycloakSelfAssignableRoles(params: {
     params.keycloakUserId,
     toAdd,
   );
-  if (!assigned) {
+  if (assigned.missing.length > 0) {
+    return {
+      ok: false,
+      status: 502,
+      message: `Role is not configured in Keycloak: ${assigned.missing.join(', ')}`,
+    };
+  }
+  if (!assigned.ok) {
     return {
       ok: false,
       status: 502,
@@ -333,6 +350,111 @@ export async function addKeycloakSelfAssignableRoles(params: {
   }
 
   return { ok: true, added: toAdd, alreadyHad };
+}
+
+/**
+ * Grant a single supply realm role to an existing account. Used by the admin
+ * backfill for profiles created before the realm role was required.
+ */
+export async function grantRealmRoleToUser(params: {
+  keycloakUserId: string;
+  role: SelfAssignableRole;
+}): Promise<{ ok: boolean; alreadyHeld?: boolean; message?: string }> {
+  let adminToken: string | null = null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch (error) {
+    console.error('[auth-keycloak] admin token for role backfill failed', error);
+    return { ok: false, message: 'Role update is temporarily unavailable' };
+  }
+  if (!adminToken) {
+    return { ok: false, message: 'Unable to connect to Keycloak admin API' };
+  }
+
+  const existing = new Set(
+    (await fetchUserRealmRoleNames(adminToken, params.keycloakUserId)).map(
+      (name) => name.toLowerCase(),
+    ),
+  );
+  if (existing.has(params.role)) {
+    return { ok: true, alreadyHeld: true };
+  }
+
+  const assigned = await assignRealmRoles(adminToken, params.keycloakUserId, [
+    params.role,
+  ]);
+  if (assigned.missing.length > 0) {
+    return {
+      ok: false,
+      message: `Role is not configured in Keycloak: ${assigned.missing.join(', ')}`,
+    };
+  }
+  if (!assigned.ok) {
+    return { ok: false, message: 'Failed to assign role' };
+  }
+  return { ok: true, alreadyHeld: false };
+}
+
+/**
+ * Delete a user in Keycloak. A user that is already gone counts as success so
+ * the platform record can still be cleaned up after a manual removal.
+ */
+export async function deleteKeycloakUser(params: {
+  keycloakUserId: string;
+}): Promise<
+  { ok: true; alreadyGone: boolean } | { ok: false; status: number; message: string }
+> {
+  let adminToken: string | null = null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch (error) {
+    console.error('[auth-keycloak] admin token for user delete failed', error);
+    return {
+      ok: false,
+      status: 503,
+      message: 'Account deletion is temporarily unavailable',
+    };
+  }
+  if (!adminToken) {
+    return {
+      ok: false,
+      status: 503,
+      message: 'Unable to connect to Keycloak admin API',
+    };
+  }
+
+  const { baseUrl, realm } = getKeycloakBaseAndRealm();
+  const keycloakUserId = params.keycloakUserId.trim();
+  if (!keycloakUserId) {
+    return { ok: false, status: 400, message: 'Keycloak user id is required' };
+  }
+
+  const response = await fetch(
+    `${baseUrl}/admin/realms/${realm}/users/${encodeURIComponent(keycloakUserId)}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${adminToken}` },
+      cache: 'no-store',
+    },
+  );
+
+  if (response.status === 404) {
+    return { ok: true, alreadyGone: true };
+  }
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    console.error(
+      '[auth-keycloak] delete user failed:',
+      response.status,
+      detail,
+    );
+    return {
+      ok: false,
+      status: 502,
+      message: 'Failed to delete the account in Keycloak',
+    };
+  }
+  return { ok: true, alreadyGone: false };
 }
 
 async function fetchKeycloakUser(
@@ -1004,7 +1126,35 @@ export async function createKeycloakUser(params: {
     };
   }
 
-  await assignRealmRoles(adminToken, userId, normalizedRoles);
+  const roleAssignment = await assignRealmRoles(
+    adminToken,
+    userId,
+    normalizedRoles,
+  );
+  if (
+    normalizedRoles.length > 0 &&
+    (!roleAssignment.ok || roleAssignment.missing.length > 0)
+  ) {
+    // An account without its role cannot use the platform, and reporting success
+    // would leave a silently broken login. Roll the user back so signup can be
+    // retried once the realm is fixed.
+    const rollback = await deleteKeycloakUser({ keycloakUserId: userId });
+    console.error(
+      '[auth-keycloak] signup role assignment failed:',
+      roleAssignment.missing.length > 0
+        ? `missing roles: ${roleAssignment.missing.join(', ')}`
+        : 'assignment rejected',
+      rollback.ok ? '(user rolled back)' : '(rollback failed)',
+    );
+    return {
+      ok: false,
+      status: 500,
+      message:
+        roleAssignment.missing.length > 0
+          ? `Account role is not configured: ${roleAssignment.missing.join(', ')}`
+          : 'Failed to assign the account role. Please try again.',
+    };
+  }
 
   const passwordSet = await setKeycloakUserPassword(
     adminToken,

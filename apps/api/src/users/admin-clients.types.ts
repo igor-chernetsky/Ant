@@ -7,6 +7,8 @@ export interface AdminClientListItem {
   projectCount: number;
   activeProjectCount: number;
   lastProjectAt: string | null;
+  /** Set when the account was soft-deleted by an admin. */
+  deletedAt: string | null;
 }
 
 export interface AdminClientListPage {
@@ -21,6 +23,8 @@ export interface AdminClientListQuery {
   q?: string;
   limit?: number;
   offset?: number;
+  /** Include accounts already soft-deleted (default false). */
+  includeDeleted?: boolean;
 }
 
 export interface AdminClientProjectSummary {

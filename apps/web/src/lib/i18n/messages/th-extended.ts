@@ -297,6 +297,9 @@ export const thExtended = {
     createProfile: "สร้างโปรไฟล์ผู้ออกแบบ",
     yourProfile: "โปรไฟล์ของคุณ",
     profileHint: "อัปเดตข้อมูลบริษัท พื้นที่ให้บริการ และความเชี่ยวชาญด้านการออกแบบ",
+    roleRequiredTitle: "ต้องมีสิทธิ์ผู้ออกแบบ",
+    roleRequiredHint:
+      "การจัดการโปรไฟล์ผู้ออกแบบต้องมีบทบาทผู้ออกแบบในบัญชีของคุณ เพิ่มบทบาทเพื่อดำเนินการต่อ ข้อมูลโปรไฟล์เดิมจะยังอยู่",
   },
   contractor: {
     portalTitle: "พอร์ทัลผู้รับเหมา",
@@ -348,6 +351,9 @@ export const thExtended = {
     applicationsAria: "ใบสมัครของฉัน",
     loadFailed: "โหลดไม่สำเร็จ",
     saveProfileFailed: "บันทึกโปรไฟล์ไม่สำเร็จ",
+    roleRequiredTitle: "ต้องมีสิทธิ์ผู้รับเหมา",
+    roleRequiredHint:
+      "การจัดการโปรไฟล์ผู้รับเหมาต้องมีบทบาทผู้รับเหมาในบัญชีของคุณ เพิ่มบทบาทเพื่อดำเนินการต่อ ข้อมูลโปรไฟล์เดิมจะยังอยู่",
     bidLabel: "เสนอราคา {amount}",
     participationTitle: "การมีส่วนร่วมของคุณ",
     participationHintStructuredCollecting: "ส่งคำถามชี้แจงครั้งเดียว ลูกค้าจะเปิดการประมูลสำหรับข้อเสนอเมื่อพร้อม",
@@ -507,6 +513,26 @@ export const thExtended = {
     clientsColEmail: "อีเมล",
     clientsColProjects: "โครงการ",
     clientsColRegistered: "ลงทะเบียน",
+    colActions: "การจัดการ",
+    deleteUserAction: "ลบบัญชี",
+    deleteUserHint:
+      "บัญชีจะถูกลบออกจาก Keycloak และซ่อนจากที่นี่ โครงการ สัญญา และรีวิวจะยังคงอยู่",
+    deleteUserConfirmTitle: "ลบบัญชีนี้หรือไม่?",
+    deleteUserConfirmBody:
+      "{name} จะถูกออกจากระบบและลบใน Keycloak โครงการ สัญญา และรีวิวจะยังคงอยู่ เพื่อให้อีกฝ่ายยังมีบันทึกของตน การลบนี้ย้อนกลับจากหน้าแอดมินไม่ได้",
+    deleteUserConfirmAction: "ลบบัญชี",
+    deleteUserDone: "ลบบัญชีและนำออกจาก Keycloak แล้ว",
+    deleteUserKeycloakPending:
+      "ซ่อนบัญชีในแพลตฟอร์มแล้ว แต่ลบใน Keycloak ไม่สำเร็จ ลองใหม่เพื่อให้การลบเสร็จสมบูรณ์",
+    deleteUserFailed: "ลบบัญชีไม่สำเร็จ",
+    syncRolesAction: "ให้สิทธิ์ที่ขาดอยู่",
+    syncRolesConfirmTitle: "ให้สิทธิ์ที่ขาดอยู่หรือไม่?",
+    syncRolesConfirmBody:
+      "โปรไฟล์ผู้รับเหมา/ผู้ออกแบบที่เจ้าของยังไม่มีบทบาทใน Keycloak จะได้รับบทบาทนั้น ส่วนบัญชีที่มีบทบาทแล้วจะข้ามไป",
+    syncRolesConfirmAction: "ให้สิทธิ์",
+    syncRolesDone:
+      "ให้สิทธิ์แล้ว: {granted}, มีอยู่แล้ว: {skipped}, ล้มเหลว: {failed}",
+    syncRolesFailed: "ให้สิทธิ์ไม่สำเร็จ",
     clientsActiveCount: "ใช้งาน {count}",
     clientsSectionOverview: "ภาพรวม",
     clientsSectionProjects: "โครงการ",
