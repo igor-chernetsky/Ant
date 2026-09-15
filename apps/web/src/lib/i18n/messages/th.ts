@@ -37,6 +37,7 @@ export const th: Messages = {
     contactDialogLead:
       'ติดต่อทีมงานทางอีเมล หรือส่งข้อความผ่านแบบฟอร์มด้านล่าง',
     contactSendEmail: 'ส่งอีเมล',
+    contactMessageOn: 'ส่งข้อความถึงเราทาง {channel}',
     contactOrSendForm: 'หรือส่งข้อความถึงเรา',
     contactFormContact: 'อีเมลหรือเบอร์โทร',
     contactFormContactPlaceholder: 'you@example.com หรือ +66 ...',
@@ -172,6 +173,7 @@ export const th: Messages = {
     help: 'ช่วยเหลือ',
     forClients: 'สำหรับลูกค้า',
     forContractors: 'สำหรับผู้รับเหมา',
+    followUs: 'ติดตามเรา',
   },
   auth: {
     welcomeBack: 'ยินดีต้อนรับกลับ',

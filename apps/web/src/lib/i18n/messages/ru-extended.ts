@@ -2087,6 +2087,9 @@ export const ruExtended = {
     workflowPrevAria: "Предыдущий этап",
     workflowNextAria: "Следующий этап",
     workflowStepOf: "Этап {current} из {total}",
+    communityTitle: "Подписывайтесь на BuilTHAI",
+    communityLead:
+      "Новости продукта, примеры проектов и советы подрядчикам — мы в Facebook.",
     demo: {
       projectTitle: "Реновация служебной зоны отеля в Бангкоке",
       projectDescription:

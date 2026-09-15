@@ -37,6 +37,7 @@ export const ru: Messages = {
     contactDialogLead:
       'Напишите нам на email или отправьте сообщение через форму ниже.',
     contactSendEmail: 'Написать на email',
+    contactMessageOn: 'Написать нам в {channel}',
     contactOrSendForm: 'Или отправьте сообщение',
     contactFormContact: 'Email или телефон',
     contactFormContactPlaceholder: 'you@example.com или +66 ...',
@@ -172,6 +173,7 @@ export const ru: Messages = {
     help: 'Помощь',
     forClients: 'Для заказчиков',
     forContractors: 'Для подрядчиков',
+    followUs: 'Мы в соцсетях',
   },
   auth: {
     welcomeBack: 'С возвращением',

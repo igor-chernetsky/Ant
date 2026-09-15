@@ -1,5 +1,6 @@
 import { resolveAppBaseUrl } from '@/lib/app-base-url';
 import { LEGAL_CONTACT_EMAIL, LEGAL_PLATFORM_NAME } from '@/lib/legal/branding';
+import { SOCIAL_LINKS } from '@/lib/social-links';
 import { translate } from '@/lib/i18n';
 
 export type JsonLdObject = Record<string, unknown>;
@@ -20,6 +21,8 @@ export function organizationJsonLd(): JsonLdObject {
     email: LEGAL_CONTACT_EMAIL,
     description:
       'AI-powered construction marketplace for clients and contractors in Thailand.',
+    // Tells search engines which social profiles belong to the brand.
+    sameAs: SOCIAL_LINKS.map((link) => link.href),
   };
 }
 

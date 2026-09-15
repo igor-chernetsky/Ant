@@ -6,6 +6,7 @@ import { FlashToast, type FlashToastState } from '@/components/FlashToast';
 import { useTranslation } from '@/components/LocaleProvider';
 import { parseContactInput, submitContactMessage } from '@/lib/contact';
 import { LEGAL_CONTACT_EMAIL } from '@/lib/legal/branding';
+import { SOCIAL_LINKS } from '@/lib/social-links';
 import type { MeResponse } from '@/lib/session';
 
 /** Bots typically submit a form faster than a human can fill it. */
@@ -133,6 +134,18 @@ export function ContactUsModal({ isOpen, onClose, me }: ContactUsModalProps) {
               <span>{t('header.contactSendEmail')}</span>
               <span className="contact-us-email-address">{LEGAL_CONTACT_EMAIL}</span>
             </a>
+            {SOCIAL_LINKS.map((link) => (
+              <a
+                key={link.id}
+                href={link.href}
+                className="secondary contact-us-email-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <span>{t('header.contactMessageOn', { channel: link.label })}</span>
+                <span className="contact-us-email-address">{link.handle}</span>
+              </a>
+            ))}
           </div>
 
           <div

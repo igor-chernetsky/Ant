@@ -2082,6 +2082,9 @@ export const thExtended = {
     workflowPrevAria: "ขั้นตอนก่อนหน้า",
     workflowNextAria: "ขั้นตอนถัดไป",
     workflowStepOf: "ขั้นตอน {current} จาก {total}",
+    communityTitle: "ติดตาม BuilTHAI",
+    communityLead:
+      "ข่าวผลิตภัณฑ์ ตัวอย่างโครงการ และเคล็ดลับสำหรับผู้รับเหมา — ติดตามเราบน Facebook",
     demo: {
       projectTitle: "ปรับปรุงพื้นที่หลังบ้านโรงแรมกรุงเทพฯ",
       projectDescription:

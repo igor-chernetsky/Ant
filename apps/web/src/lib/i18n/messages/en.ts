@@ -36,6 +36,7 @@ export const en = {
     contactDialogLead:
       'Reach our team by email or send a message from the form below.',
     contactSendEmail: 'Send email',
+    contactMessageOn: 'Message us on {channel}',
     contactOrSendForm: 'Or send us a message',
     contactFormContact: 'Your email or phone',
     contactFormContactPlaceholder: 'you@example.com or +66 ...',
@@ -171,6 +172,7 @@ export const en = {
     help: 'Help',
     forClients: 'For clients',
     forContractors: 'For contractors',
+    followUs: 'Follow us',
   },
   auth: {
     welcomeBack: 'Welcome back',

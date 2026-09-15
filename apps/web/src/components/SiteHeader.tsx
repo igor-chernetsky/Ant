@@ -16,6 +16,7 @@ import { ContactUsModal } from '@/components/ContactUsModal';
 import { HeaderNotifications, HeaderNotificationsInline } from '@/components/HeaderNotifications';
 import { useInAppNotifications } from '@/components/InAppNotificationsProvider';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { SocialLinks } from '@/components/SocialLinks';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   canCreateProject,
@@ -501,6 +502,13 @@ export function SiteHeader({
                   {renderNavItem(contactNavItem, closeMenu)}
                 </div>
               </nav>
+
+              <div className="header-mobile-drawer-section header-mobile-drawer-social">
+                <p className="header-mobile-drawer-label">
+                  {t('footer.followUs')}
+                </p>
+                <SocialLinks className="social-links--drawer" />
+              </div>
 
               {me ? (
                 <div className="header-mobile-drawer-footer">

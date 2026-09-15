@@ -5,6 +5,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { PageShell } from '@/components/PageShell';
 import { SiteHeader } from '@/components/SiteHeader';
+import { SocialLinks } from '@/components/SocialLinks';
 import { useSession } from '@/components/SessionProvider';
 import {
   ProductTourCta,
@@ -74,6 +75,19 @@ function itemsFromKeys<T>(
   map: (index: number) => T,
 ): T[] {
   return Array.from({ length: count }, (_, index) => map(index + 1));
+}
+
+/** Social profiles block shown near the end of both product-tour landings. */
+function TourCommunityBlock() {
+  const { t } = useTranslation();
+
+  return (
+    <section className="card product-tour-community">
+      <h2 className="section-title">{t('explainer.communityTitle')}</h2>
+      <p className="muted">{t('explainer.communityLead')}</p>
+      <SocialLinks className="social-links--tour" />
+    </section>
+  );
 }
 
 function ClientTourPage({ base }: { base: string }) {
@@ -238,6 +252,8 @@ function ClientTourPage({ base }: { base: string }) {
 
       <ProductTourFaq title={t(`${base}.faqTitle`)} items={faq} />
 
+      <TourCommunityBlock />
+
       <ProductTourCta
         title={t(`${base}.finalTitle`)}
         primaryLabel={t(`${base}.finalPrimaryCta`)}
@@ -363,6 +379,8 @@ function ContractorTourPage({ base }: { base: string }) {
       />
 
       <ProductTourFaq title={t(`${base}.faqTitle`)} items={faq} />
+
+      <TourCommunityBlock />
 
       <ProductTourCta
         title={t(`${base}.finalTitle`)}

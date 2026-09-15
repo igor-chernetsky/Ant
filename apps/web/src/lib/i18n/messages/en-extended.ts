@@ -2084,6 +2084,9 @@ export const enExtended = {
     workflowPrevAria: "Previous step",
     workflowNextAria: "Next step",
     workflowStepOf: "Step {current} of {total}",
+    communityTitle: "Follow BuilTHAI",
+    communityLead:
+      "Product news, project examples and contractor tips — follow us on Facebook.",
     demo: {
       projectTitle: "Hotel Bangkok back of house renovation",
       projectDescription:

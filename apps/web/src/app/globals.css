@@ -419,6 +419,66 @@ body {
   font-size: 0.9rem;
 }
 
+.site-footer-social {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.site-footer-social-label {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.social-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.social-link:hover,
+.social-link:focus-visible {
+  color: var(--accent);
+}
+
+.social-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface, #fff);
+}
+
+.product-tour-community {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.product-tour-community .social-links {
+  margin-top: 0.25rem;
+}
+
+.header-mobile-drawer-social .social-links {
+  padding: 0.25rem 0;
+}
+
 .legal-page {
   max-width: 46rem;
 }

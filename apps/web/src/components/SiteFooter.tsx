@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslation } from '@/components/LocaleProvider';
+import { SocialLinks } from '@/components/SocialLinks';
 
 export function SiteFooter() {
   const { t } = useTranslation();
@@ -39,6 +40,12 @@ export function SiteFooter() {
             {t('footer.contractorAgreement')}
           </Link>
         </nav>
+        <div className="site-footer-social">
+          <p className="site-footer-social-label muted">
+            {t('footer.followUs')}
+          </p>
+          <SocialLinks className="social-links--footer" />
+        </div>
       </div>
     </footer>
   );
