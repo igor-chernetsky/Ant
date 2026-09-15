@@ -70,8 +70,13 @@ export class DefaultCostBreakdownService {
   }
 
   /**
-   * Prefer ballpark estimate lines when the stored tender template is empty
-   * or clearly thinner than the latest estimate (e.g. AI collapsed 9 lines to 2).
+   * Resolve the cost-breakdown template for a tender.
+   *
+   * A stored template is authoritative: the client edits those rows by hand in
+   * the publish modal, so re-deriving the list from the ballpark estimate — even
+   * when the stored one is shorter — silently discarded their additions and
+   * removals before the contractor ever saw them. Deriving happens only while
+   * nothing is stored yet.
    */
   async resolveForTender(
     tenderId: string,
@@ -79,9 +84,12 @@ export class DefaultCostBreakdownService {
     storedRaw: unknown,
   ): Promise<DefaultCostBreakdownItem[]> {
     const stored = this.parseStored(storedRaw);
-    const estimateItems = await this.itemsFromLatestEstimate(projectId);
+    if (stored.length > 0) {
+      return stored;
+    }
 
-    if (estimateItems.length > 0 && estimateItems.length > stored.length) {
+    const estimateItems = await this.itemsFromLatestEstimate(projectId);
+    if (estimateItems.length > 0) {
       await this.prisma.tender.update({
         where: { id: tenderId },
         data: {
@@ -90,10 +98,6 @@ export class DefaultCostBreakdownService {
         },
       });
       return estimateItems;
-    }
-
-    if (stored.length > 0) {
-      return stored;
     }
 
     return this.generateAndStoreForTender(tenderId, projectId);

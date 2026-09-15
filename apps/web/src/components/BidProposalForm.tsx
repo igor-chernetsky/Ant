@@ -97,22 +97,67 @@ function activeLineItemsFrom(
   return activeBreakdownLineItems(lineItems);
 }
 
+function normalizeBreakdownTrade(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+/**
+ * Build the breakdown rows shown in the form.
+ *
+ * The client's cost breakdown defines which trades are priced, so its rows come
+ * first and in its order: a trade the client added must appear and one the
+ * client removed from the list must not be presented as required. Amounts
+ * already entered carry over by trade name.
+ *
+ * Rows the contractor added themselves are appended — the editor lets them
+ * extend the list, so they must not lose priced work when the form reopens.
+ *
+ * `templateAuthoritative: false` is used where the form edits a copy of a
+ * contractor's own proposal (client counter-offer, applied offer) — there the
+ * saved rows stay as they are.
+ */
 function lineItemsFromTerms(
   terms: BidTerms | null | undefined,
   defaults?: DefaultCostBreakdownItem[],
+  options?: { templateAuthoritative?: boolean },
 ): BidLineItem[] {
-  if (terms?.lineItems?.length) {
-    return terms.lineItems.map((item) => ({ ...item }));
-  }
+  const saved = (terms?.lineItems ?? []).map((item) => ({ ...item }));
   const template = (defaults ?? []).filter((item) => item.trade.trim());
-  if (template.length > 0) {
-    return template.map((item) => ({
-      trade: item.trade.trim(),
-      description: item.description?.trim() ?? '',
-      amount: 0,
-    }));
+
+  if (!options?.templateAuthoritative || template.length === 0) {
+    return saved.length > 0
+      ? saved
+      : template.map((item) => ({
+          trade: item.trade.trim(),
+          description: item.description?.trim() ?? '',
+          amount: 0,
+        }));
   }
-  return [];
+
+  const savedByTrade = new Map(
+    saved.map((item) => [normalizeBreakdownTrade(item.trade), item]),
+  );
+  const templateKeys = new Set(
+    template.map((item) => normalizeBreakdownTrade(item.trade)),
+  );
+
+  const rows: BidLineItem[] = template.map((item) => {
+    const existing = savedByTrade.get(normalizeBreakdownTrade(item.trade));
+    return {
+      trade: item.trade.trim(),
+      description:
+        existing?.description?.trim() || item.description?.trim() || '',
+      amount: existing?.amount ?? 0,
+    };
+  });
+
+  for (const item of saved) {
+    if (!templateKeys.has(normalizeBreakdownTrade(item.trade))) {
+      rows.push(item);
+    }
+  }
+
+  return rows;
 }
 
 function hasProjectBreakdownTemplate(
@@ -264,7 +309,9 @@ export function BidProposalForm({
     defaultScopeSummary(projectTermsSeed, projectContext),
   );
   const [lineItems, setLineItems] = useState<BidLineItem[]>(() =>
-    lineItemsFromTerms(terms, defaultCostBreakdown),
+    lineItemsFromTerms(terms, defaultCostBreakdown, {
+      templateAuthoritative: breakdownMode === 'create' && !prefillOffer,
+    }),
   );
   const [showBreakdown, setShowBreakdown] = useState(() => {
     const hasSavedBreakdown = (terms?.lineItems?.length ?? 0) > 0;
@@ -561,7 +608,10 @@ export function BidProposalForm({
             onChange={(e) => {
               setShowBreakdown(e.target.checked);
               if (e.target.checked && lineItems.length === 0) {
-                const seeded = lineItemsFromTerms(terms, defaultCostBreakdown);
+                const seeded = lineItemsFromTerms(terms, defaultCostBreakdown, {
+                  templateAuthoritative:
+                    breakdownMode === 'create' && !prefillOffer,
+                });
                 setLineItems(seeded.length > 0 ? seeded : [emptyLineItem()]);
               }
             }}
