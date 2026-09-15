@@ -711,8 +711,20 @@ ${footer}
   async notifyContractorVerificationApproved(params: {
     contractorUserId: string;
     companyName: string | null;
+    profileKind: 'contractor' | 'designer';
   }): Promise<void> {
     const label = params.companyName?.trim() || 'your company';
+
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.contractor_verification_approved,
+      href: this.supplyPortalPath(params.profileKind),
+      payload: {
+        companyName: params.companyName?.trim() || null,
+        profileKind: params.profileKind,
+      },
+    });
+
     await this.sendAccountEmail({
       userId: params.contractorUserId,
       kind: NotificationEmailKind.contractor_verification_approved,
@@ -729,8 +741,21 @@ ${footer}
     contractorUserId: string;
     companyName: string | null;
     comment: string;
+    profileKind: 'contractor' | 'designer';
   }): Promise<void> {
     const label = params.companyName?.trim() || 'your company';
+
+    await this.createInAppNotification({
+      userId: params.contractorUserId,
+      kind: InAppNotificationKind.contractor_verification_rejected,
+      href: this.supplyPortalPath(params.profileKind),
+      payload: {
+        companyName: params.companyName?.trim() || null,
+        profileKind: params.profileKind,
+        rejectionReason: params.comment,
+      },
+    });
+
     await this.sendAccountEmail({
       userId: params.contractorUserId,
       kind: NotificationEmailKind.contractor_verification_rejected,
@@ -741,6 +766,11 @@ ${footer}
       ctaLabel: 'Open contractor portal',
       textBody: `Verification not approved for ${label}.\n\nReason: ${params.comment}`,
     });
+  }
+
+  /** In-app destination for supply users: their own portal. */
+  private supplyPortalPath(profileKind: 'contractor' | 'designer'): string {
+    return profileKind === 'designer' ? '/designer' : '/contractor';
   }
 
   async notifyClientBidEnrolled(params: {

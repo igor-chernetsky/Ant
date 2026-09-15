@@ -158,6 +158,14 @@ export const en = {
       contractorProjectCompletionConfirmedTitle: 'Contractor confirmed project completion',
       contractorProjectCompletionConfirmedBody:
         'The contractor confirmed completion of {project}. The project is now closed.',
+      contractorVerificationApprovedTitle: 'Verification approved',
+      contractorVerificationApprovedBody:
+        'Verification for {company} was approved. Verified features are now available.',
+      contractorVerificationRejectedTitle: 'Verification not approved',
+      contractorVerificationRejectedBody:
+        'Verification for {company} was not approved.',
+      contractorVerificationRejectedBodyWithReason:
+        'Verification for {company} was not approved. Reason: {reason}',
       genericProjectBody: 'Related to {project}.',
     },
   },

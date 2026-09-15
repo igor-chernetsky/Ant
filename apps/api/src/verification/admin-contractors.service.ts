@@ -325,6 +325,9 @@ export class AdminContractorsService {
       this.notifications.notifyContractorVerificationApproved({
         contractorUserId: profile.userId,
         companyName: profile.companyName,
+        profileKind: profile.kind === SupplyProfileKind.designer
+          ? 'designer'
+          : 'contractor',
       }),
     );
 
@@ -357,6 +360,9 @@ export class AdminContractorsService {
         contractorUserId: profile.userId,
         companyName: profile.companyName,
         comment,
+        profileKind: profile.kind === SupplyProfileKind.designer
+          ? 'designer'
+          : 'contractor',
       }),
     );
 

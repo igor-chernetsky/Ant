@@ -159,6 +159,14 @@ export const ru: Messages = {
       contractorProjectCompletionConfirmedTitle: 'Подрядчик подтвердил завершение проекта',
       contractorProjectCompletionConfirmedBody:
         'Подрядчик подтвердил завершение проекта {project}. Проект закрыт.',
+      contractorVerificationApprovedTitle: 'Верификация подтверждена',
+      contractorVerificationApprovedBody:
+        'Верификация «{company}» подтверждена. Проверенные функции доступны.',
+      contractorVerificationRejectedTitle: 'Верификация не подтверждена',
+      contractorVerificationRejectedBody:
+        'Верификация «{company}» не подтверждена.',
+      contractorVerificationRejectedBodyWithReason:
+        'Верификация «{company}» не подтверждена. Причина: {reason}',
       genericProjectBody: 'Связано с проектом {project}.',
     },
   },

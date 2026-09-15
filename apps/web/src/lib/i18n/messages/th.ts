@@ -159,6 +159,14 @@ export const th: Messages = {
       contractorProjectCompletionConfirmedTitle: 'ผู้รับเหมายืนยันการปิดโครงการ',
       contractorProjectCompletionConfirmedBody:
         'ผู้รับเหมายืนยันการปิดโครงการ {project} โครงการปิดแล้ว',
+      contractorVerificationApprovedTitle: 'ยืนยันการตรวจสอบแล้ว',
+      contractorVerificationApprovedBody:
+        'การตรวจสอบของ {company} ได้รับการอนุมัติ ฟีเจอร์สำหรับผู้ที่ยืนยันแล้วใช้งานได้',
+      contractorVerificationRejectedTitle: 'การตรวจสอบไม่ผ่าน',
+      contractorVerificationRejectedBody:
+        'การตรวจสอบของ {company} ไม่ผ่านการอนุมัติ',
+      contractorVerificationRejectedBodyWithReason:
+        'การตรวจสอบของ {company} ไม่ผ่านการอนุมัติ เหตุผล: {reason}',
       genericProjectBody: 'เกี่ยวข้องกับ {project}',
     },
   },

@@ -80,6 +80,10 @@ export function formatInAppNotificationTitle(
       return t('notifications.kinds.clientProjectCompletionConfirmedTitle');
     case 'contractor_project_completion_confirmed':
       return t('notifications.kinds.contractorProjectCompletionConfirmedTitle');
+    case 'contractor_verification_approved':
+      return t('notifications.kinds.contractorVerificationApprovedTitle');
+    case 'contractor_verification_rejected':
+      return t('notifications.kinds.contractorVerificationRejectedTitle');
     default:
       return t('notifications.title');
   }
@@ -249,6 +253,21 @@ export function formatInAppNotificationBody(
       return t('notifications.kinds.contractorProjectCompletionConfirmedBody', {
         project: projectTitle || t('common.dash'),
       });
+    case 'contractor_verification_approved':
+      return t('notifications.kinds.contractorVerificationApprovedBody', {
+        company: companyName || t('common.dash'),
+      });
+    case 'contractor_verification_rejected': {
+      const reason = payloadString(item.payload, 'rejectionReason');
+      return reason
+        ? t('notifications.kinds.contractorVerificationRejectedBodyWithReason', {
+            company: companyName || t('common.dash'),
+            reason,
+          })
+        : t('notifications.kinds.contractorVerificationRejectedBody', {
+            company: companyName || t('common.dash'),
+          });
+    }
     default:
       return projectTitle
         ? t('notifications.kinds.genericProjectBody', { project: projectTitle })
