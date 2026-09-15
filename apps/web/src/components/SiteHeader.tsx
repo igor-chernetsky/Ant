@@ -562,6 +562,11 @@ export function SiteHeader({
             aria-label={t('header.primaryNav')}
           >
             {desktopNav.map((item) => renderNavItem(item))}
+            {/* Icon-only so it costs one small pill next to Contact us. */}
+            <SocialLinks
+              className="social-links--header"
+              showLabels={false}
+            />
           </nav>
         </div>
 

@@ -479,6 +479,38 @@ body {
   padding: 0.25rem 0;
 }
 
+/* Header placement: an icon-only pill matching the nav links next to it. */
+.social-links--header {
+  gap: 0.15rem;
+}
+
+.social-links--header .social-link {
+  width: 2.25rem;
+  height: 2.25rem;
+  justify-content: center;
+  padding: 0;
+  border-radius: 8px;
+  color: var(--text);
+}
+
+.social-links--header .social-link:hover,
+.social-links--header .social-link:focus-visible {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+}
+
+.social-links--header .social-link-icon {
+  width: auto;
+  height: auto;
+  border: 0;
+  background: none;
+}
+
+.social-links--header .social-link-icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
 .legal-page {
   max-width: 46rem;
 }
