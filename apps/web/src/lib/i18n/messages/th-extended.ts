@@ -574,6 +574,9 @@ export const thExtended = {
     noProfileHint:
       "ผู้ใช้ลงทะเบียนเป็นผู้รับเหมาแล้ว แต่ยังไม่ได้สร้างโปรไฟล์ในพอร์ทัล",
     contractorDetails: "รายละเอียดผู้รับเหมา",
+    tradesRequested: "ประเภทงานที่บริษัทแจ้งไว้",
+    noTrades: "ยังไม่ได้เลือกประเภทงาน",
+    tradesOtherGroup: "งานอื่น ๆ",
     selectContractorPrompt:
       "เลือกผู้รับเหมาหรือผู้ออกแบบเพื่อดูรายละเอียด",
     documents: "เอกสาร",

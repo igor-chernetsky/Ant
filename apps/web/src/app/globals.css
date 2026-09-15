@@ -10382,6 +10382,36 @@ select:disabled {
   justify-items: start;
 }
 
+.admin-trade-groups {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.35rem 0 1.25rem;
+}
+
+.admin-trade-group-label {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-trade-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-trade-chip {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-muted, #f8fafc);
+  font-size: 0.82rem;
+}
+
 .admin-sidebar-tools {
   display: flex;
   justify-content: flex-end;

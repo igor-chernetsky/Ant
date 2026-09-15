@@ -17,6 +17,7 @@ import { normalizePreferredContactMethods } from '../tendering/contractor-contac
 import {
   AdminContractorDetail,
   AdminContractorListItem,
+  AdminContractorTrade,
   AdminSupplyRoleGap,
   ContractorVerificationDocumentResponse,
   RejectContractorDto,
@@ -187,8 +188,39 @@ export class AdminContractorsService {
       ...this.toListItem(profile),
       projectTypes: profile.projectTypes,
       tagSlugs: profile.tagSlugs,
+      trades: await this.resolveTrades(profile.tagSlugs),
       documents: profile.verificationDocuments.map((d) => this.toDocResponse(d)),
     };
+  }
+
+  /**
+   * Resolve the trade slugs a company selected into readable labels, keeping the
+   * order the company chose. A slug with no catalog row (e.g. a tag retired
+   * after the profile was saved) is still listed by its slug rather than dropped.
+   */
+  private async resolveTrades(
+    tagSlugs: string[],
+  ): Promise<AdminContractorTrade[]> {
+    if (tagSlugs.length === 0) {
+      return [];
+    }
+
+    const tags = await this.prisma.tag.findMany({
+      where: { slug: { in: tagSlugs } },
+      include: { group: true },
+    });
+    const bySlug = new Map(tags.map((tag) => [tag.slug, tag]));
+
+    const trades: AdminContractorTrade[] = [];
+    for (const slug of tagSlugs) {
+      const tag = bySlug.get(slug);
+      trades.push({
+        slug,
+        label: tag?.label ?? slug,
+        groupLabel: tag?.group?.label ?? null,
+      });
+    }
+    return trades;
   }
 
   private toListItem(
@@ -272,6 +304,7 @@ export class AdminContractorsService {
       ...this.toNoProfileListItem(user),
       projectTypes: [],
       tagSlugs: [],
+      trades: [],
       documents: [],
     };
   }

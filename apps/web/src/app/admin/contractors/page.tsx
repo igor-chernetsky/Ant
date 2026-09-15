@@ -20,6 +20,7 @@ import {
   syncAdminSupplyRoles,
   type AdminContractorDetail,
   type AdminContractorListItem,
+  type AdminContractorTrade,
   type ContractorVerificationStatus,
   type SupplyProfileKind,
 } from '@/lib/verification';
@@ -92,6 +93,24 @@ export default function AdminContractorsPage() {
   }, [filter, list]);
 
   const hasDesigners = filteredList.some((item) => item.kind === 'designer');
+
+  /** Trades the company selected, grouped by trade group for readability. */
+  const tradeGroups = useMemo(() => {
+    const groups = new Map<string, AdminContractorTrade[]>();
+    for (const trade of detail?.trades ?? []) {
+      const key = trade.groupLabel ?? '';
+      const existing = groups.get(key);
+      if (existing) {
+        existing.push(trade);
+      } else {
+        groups.set(key, [trade]);
+      }
+    }
+    return [...groups.entries()].map(([groupLabel, items]) => ({
+      groupLabel,
+      items,
+    }));
+  }, [detail]);
 
   const formatRoleLabel = (kind: SupplyProfileKind) =>
     kind === 'designer'
@@ -491,6 +510,37 @@ export default function AdminContractorsPage() {
                       </dd>
                     </div>
                   </dl>
+
+                  <h3 className="tag-section-label">
+                    {t('admin.tradesRequested')}
+                  </h3>
+                  {tradeGroups.length === 0 ? (
+                    <p className="muted">{t('admin.noTrades')}</p>
+                  ) : (
+                    <div className="admin-trade-groups">
+                      {tradeGroups.map((group) => (
+                        <div
+                          key={group.groupLabel || 'ungrouped'}
+                          className="admin-trade-group"
+                        >
+                          <p className="muted admin-trade-group-label">
+                            {group.groupLabel || t('admin.tradesOtherGroup')}
+                          </p>
+                          <ul className="admin-trade-chip-list">
+                            {group.items.map((trade) => (
+                              <li
+                                key={trade.slug}
+                                className="admin-trade-chip"
+                                title={trade.slug}
+                              >
+                                {trade.label}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {!detail.hasProfile ? (
                     <p className="admin-no-profile-hint muted">{t('admin.noProfileHint')}</p>

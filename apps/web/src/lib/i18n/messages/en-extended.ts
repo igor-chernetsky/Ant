@@ -576,6 +576,9 @@ export const enExtended = {
     noProfileHint:
       "This user registered as a contractor but has not created a supply profile yet.",
     contractorDetails: "Contractor details",
+    tradesRequested: "Trades requested by company",
+    noTrades: "No trades selected yet.",
+    tradesOtherGroup: "Other trades",
     selectContractorPrompt: "Select a contractor or designer to review details.",
     documents: "Documents",
     noDocuments: "No documents.",

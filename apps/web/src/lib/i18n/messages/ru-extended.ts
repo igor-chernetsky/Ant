@@ -577,6 +577,9 @@ export const ruExtended = {
     noProfileHint:
       "Пользователь зарегистрировался как подрядчик, но ещё не создал профиль в портале.",
     contractorDetails: "Данные подрядчика",
+    tradesRequested: "Виды работ, заявленные компанией",
+    noTrades: "Виды работ ещё не выбраны.",
+    tradesOtherGroup: "Прочие работы",
     selectContractorPrompt:
       "Выберите подрядчика или проектировщика, чтобы посмотреть детали.",
     documents: "Документы",

@@ -52,9 +52,18 @@ export interface AdminContractorListItem {
   hasProfile: boolean;
 }
 
+/** A trade the company asked to be listed for, resolved to a readable label. */
+export interface AdminContractorTrade {
+  slug: string;
+  label: string;
+  groupLabel: string | null;
+}
+
 export interface AdminContractorDetail extends AdminContractorListItem {
   projectTypes: string[];
   tagSlugs?: string[];
+  /** Trades requested by the company, in the order they selected them. */
+  trades?: AdminContractorTrade[];
   documents: ContractorVerificationDocument[];
 }
 
