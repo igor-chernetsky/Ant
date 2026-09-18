@@ -10,6 +10,11 @@ import {
   SupplyProfileKind,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  coerceServiceLocations,
+  getArea,
+  getRegion,
+} from '../locations/locations.util';
 import { StorageService } from '../storage/storage.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ContractorProfilesService } from '../tendering/contractor-profiles.service';
@@ -17,6 +22,7 @@ import { normalizePreferredContactMethods } from '../tendering/contractor-contac
 import {
   AdminContractorDetail,
   AdminContractorListItem,
+  AdminContractorLocation,
   AdminContractorTrade,
   AdminSupplyRoleGap,
   ContractorVerificationDocumentResponse,
@@ -189,8 +195,31 @@ export class AdminContractorsService {
       projectTypes: profile.projectTypes,
       tagSlugs: profile.tagSlugs,
       trades: await this.resolveTrades(profile.tagSlugs),
+      serviceLocations: this.resolveServiceLocations(
+        profile.serviceLocationsJson,
+      ),
       documents: profile.verificationDocuments.map((d) => this.toDocResponse(d)),
     };
+  }
+
+  /**
+   * Resolve the stored service areas into readable labels. The profile's
+   * `regionCode` only holds the country code, so these areas are the actual
+   * coverage the company asked for.
+   */
+  private resolveServiceLocations(raw: unknown): AdminContractorLocation[] {
+    return coerceServiceLocations(raw).map((location) => {
+      const regionLabel =
+        getRegion(location.regionSlug)?.label ?? location.regionSlug;
+      const areaLabel = location.areaSlug
+        ? (getArea(location.areaSlug)?.label ?? null)
+        : null;
+      return {
+        regionSlug: location.regionSlug,
+        areaSlug: location.areaSlug ?? null,
+        label: areaLabel ? `${areaLabel}, ${regionLabel}` : regionLabel,
+      };
+    });
   }
 
   /**
@@ -305,6 +334,7 @@ export class AdminContractorsService {
       projectTypes: [],
       tagSlugs: [],
       trades: [],
+      serviceLocations: [],
       documents: [],
     };
   }

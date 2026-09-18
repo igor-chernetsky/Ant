@@ -94,6 +94,15 @@ export default function AdminContractorsPage() {
 
   const hasDesigners = filteredList.some((item) => item.kind === 'designer');
 
+  /** Regions/areas the company covers, in the order it selected them. */
+  const locationLabels = useMemo(
+    () =>
+      (detail?.serviceLocations ?? [])
+        .map((location) => location.label)
+        .filter(Boolean),
+    [detail],
+  );
+
   /** Trades the company selected, grouped by trade group for readability. */
   const tradeGroups = useMemo(() => {
     const groups = new Map<string, AdminContractorTrade[]>();
@@ -472,8 +481,12 @@ export default function AdminContractorsPage() {
                       </dd>
                     </div>
                     <div>
-                      <dt>{t('common.region')}</dt>
-                      <dd>{detail.regionCode ?? t('common.dash')}</dd>
+                      <dt>{t('location.serviceAreas')}</dt>
+                      <dd>
+                        {locationLabels.length > 0
+                          ? locationLabels.join(' · ')
+                          : t('common.dash')}
+                      </dd>
                     </div>
                     <div>
                       <dt>{t('contractor.preferredContactLabel')}</dt>

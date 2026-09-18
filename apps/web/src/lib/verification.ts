@@ -59,11 +59,21 @@ export interface AdminContractorTrade {
   groupLabel: string | null;
 }
 
+/** A service area the company covers, resolved to a readable label. */
+export interface AdminContractorLocation {
+  regionSlug: string;
+  areaSlug: string | null;
+  /** `"Area, Region"`, or just the region when the whole region is covered. */
+  label: string;
+}
+
 export interface AdminContractorDetail extends AdminContractorListItem {
   projectTypes: string[];
   tagSlugs?: string[];
   /** Trades requested by the company, in the order they selected them. */
   trades?: AdminContractorTrade[];
+  /** Regions/areas the company covers, in the order they selected them. */
+  serviceLocations?: AdminContractorLocation[];
   documents: ContractorVerificationDocument[];
 }
 
