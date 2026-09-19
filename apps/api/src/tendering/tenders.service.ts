@@ -25,7 +25,10 @@ import { ContractorProfilesService } from './contractor-profiles.service';
 import { TenderAutoCloseService } from './tender-auto-close.service';
 import { TenderMatchingService } from './tender-matching.service';
 import { TenderClarificationsService } from './tender-clarifications.service';
-import { DefaultCostBreakdownService } from './default-cost-breakdown.service';
+import {
+  DefaultCostBreakdownService,
+  itemsMatch,
+} from './default-cost-breakdown.service';
 import { ProjectsService } from '../projects/projects.service';
 import type { ProjectBriefV1 } from '../projects/project-brief';
 import { inferPropertyOwnershipForm } from '../projects/discover-filters';
@@ -422,16 +425,22 @@ export class TendersService {
     const project = await this.assertProjectOwner(projectId, clientId);
     const tender = await this.prisma.tender.findUnique({
       where: { projectId },
+      include: {
+        bids: {
+          where: { status: { not: BidStatus.withdrawn } },
+          select: { id: true },
+        },
+      },
     });
 
-    const defaultCostBreakdown =
-      tender != null
-        ? await this.costBreakdown.resolveForTender(
-            tender.id,
-            projectId,
-            tender.defaultCostBreakdown,
-          )
-        : await this.costBreakdown.generateForProject(projectId);
+    const defaultCostBreakdown = tender
+      ? await this.costBreakdown.resolveForTender(
+          tender.id,
+          projectId,
+          tender.defaultCostBreakdown,
+          { autoSync: await this.breakdownAutoSyncAllowed(tender) },
+        )
+      : await this.restoreOrGenerateBreakdown(projectId);
 
     let clarificationSummary = project.clarificationSummary;
     if (
@@ -455,6 +464,44 @@ export class TendersService {
       clarificationSummary,
       defaultCostBreakdown,
       contractTerms: this.resolveProjectContractTerms(project),
+    };
+  }
+
+  /**
+   * Template for a project that currently has no tender: restore the list kept
+   * from a previous publication (revert to preparation) instead of regenerating
+   * the initial structure from the estimate.
+   */
+  private async restoreOrGenerateBreakdown(
+    projectId: string,
+  ): Promise<DefaultCostBreakdownItem[]> {
+    const saved = await this.readSavedBreakdown(projectId);
+    if (saved.items.length > 0) {
+      return saved.items;
+    }
+    return this.costBreakdown.generateForProject(projectId);
+  }
+
+  /** Breakdown kept on the project when the tender was reverted. */
+  private async readSavedBreakdown(
+    projectId: string,
+  ): Promise<{
+    items: DefaultCostBreakdownItem[];
+    editedAt: Date | null;
+  }> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { savedCostBreakdownJson: true },
+    });
+    const raw = project?.savedCostBreakdownJson as {
+      items?: unknown;
+      editedAt?: unknown;
+    } | null;
+    const parsedEditedAt =
+      typeof raw?.editedAt === 'string' ? Date.parse(raw.editedAt) : Number.NaN;
+    return {
+      items: this.costBreakdown.parseStored(raw?.items),
+      editedAt: Number.isFinite(parsedEditedAt) ? new Date(parsedEditedAt) : null,
     };
   }
 
@@ -503,16 +550,27 @@ export class TendersService {
 
     const existing = await this.prisma.tender.findUnique({
       where: { projectId },
-      select: { id: true },
+      include: {
+        bids: {
+          where: { status: { not: BidStatus.withdrawn } },
+          select: { id: true },
+        },
+      },
     });
     if (existing) {
-      return this.mapTender(await this.loadTender(existing.id));
+      return this.applyPackageToExistingTender(project, existing, dto);
     }
 
     const now = new Date();
     const structuredClarification =
       project.clarificationMode === ClarificationMode.structured_qa;
     const closesAt = resolveApplicationsCloseAt(dto);
+    const savedBreakdown = dto?.defaultCostBreakdown?.length
+      ? null
+      : await this.readSavedBreakdown(projectId);
+    const initialBreakdown = dto?.defaultCostBreakdown?.length
+      ? this.normalizePublishCostBreakdown(dto.defaultCostBreakdown)
+      : (savedBreakdown?.items ?? []);
 
     const tender = await this.prisma.$transaction(async (tx) => {
       const created = await tx.tender.create({
@@ -521,32 +579,44 @@ export class TendersService {
           status: structuredClarification ? TenderStatus.draft : TenderStatus.open,
           opensAt: structuredClarification ? null : now,
           closesAt,
-          ...(dto?.defaultCostBreakdown?.length
+          ...(initialBreakdown.length > 0
             ? {
                 defaultCostBreakdown:
-                  this.normalizePublishCostBreakdown(
-                    dto.defaultCostBreakdown,
-                  ) as unknown as Prisma.InputJsonValue,
+                  initialBreakdown as unknown as Prisma.InputJsonValue,
               }
+            : {}),
+          ...(savedBreakdown?.editedAt
+            ? { defaultCostBreakdownEditedAt: savedBreakdown.editedAt }
             : {}),
         },
         include: this.includeTenderRelations(),
       });
 
-      await tx.project.update({
-        where: { id: projectId },
-        data: {
-          status: structuredClarification
-            ? ProjectStatus.clarification
-            : ProjectStatus.in_tender,
-          ...this.projectPublishPackageUpdate(dto),
-        },
-      });
+      const projectData: Prisma.ProjectUpdateInput = {
+        status: structuredClarification
+          ? ProjectStatus.clarification
+          : ProjectStatus.in_tender,
+        ...this.projectPublishPackageUpdate(dto),
+      };
+      if (savedBreakdown && savedBreakdown.items.length > 0) {
+        // Consumed — the tender now owns the restored list.
+        projectData.savedCostBreakdownJson = Prisma.DbNull;
+      } else if (dto?.defaultCostBreakdown?.length) {
+        // A fresh list supersedes anything kept from an earlier revert.
+        projectData.savedCostBreakdownJson = Prisma.DbNull;
+      }
+      await tx.project.update({ where: { id: projectId }, data: projectData });
 
       return created;
     });
 
-    if (!dto?.defaultCostBreakdown?.length) {
+    if (dto?.defaultCostBreakdown?.length) {
+      await this.markBreakdownEditedIfCustom(
+        tender.id,
+        projectId,
+        dto.defaultCostBreakdown,
+      );
+    } else if (!savedBreakdown || savedBreakdown.items.length === 0) {
       await this.costBreakdown.generateAndStoreForTender(tender.id, projectId);
     }
 
@@ -567,6 +637,107 @@ export class TendersService {
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
     return this.mapTender(await this.loadTender(tender.id));
+  }
+
+  /**
+   * Publish was requested while a tender row already exists.
+   *
+   * This happens whenever the client's page still believes the tender is missing:
+   * a stale/soft-navigated state, a second tab, or a tender created meanwhile by
+   * the recovery paths. Silently returning the existing tender used to discard the
+   * package the client had just edited — including the cost breakdown — so the
+   * contractor later received the initial structure instead of the client's list.
+   */
+  private async applyPackageToExistingTender(
+    project: { id: string },
+    tender: {
+      id: string;
+      status: TenderStatus;
+      bids: Array<{ id: string }>;
+    },
+    dto?: PublishTenderDto,
+  ): Promise<TenderResponse> {
+    if (!dto) {
+      return this.mapTender(await this.loadTender(tender.id));
+    }
+
+    if (tender.bids.length > 0) {
+      throw new BadRequestException(
+        'Contractors have already applied, so the tender package can no longer be replaced',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (dto.defaultCostBreakdown?.length) {
+        await tx.tender.update({
+          where: { id: tender.id },
+          data: {
+            defaultCostBreakdown: this.normalizePublishCostBreakdown(
+              dto.defaultCostBreakdown,
+            ) as unknown as Prisma.InputJsonValue,
+          },
+        });
+      }
+      const projectData = this.projectPublishPackageUpdate(dto);
+      if (Object.keys(projectData).length > 0) {
+        await tx.project.update({ where: { id: project.id }, data: projectData });
+      }
+    });
+
+    await this.markBreakdownEditedIfCustom(
+      tender.id,
+      project.id,
+      dto.defaultCostBreakdown,
+    );
+
+    return this.mapTender(await this.loadTender(tender.id));
+  }
+
+  /**
+   * True while the template may still follow the ballpark estimate: the client
+   * has never submitted a list of their own and nobody has applied yet. Once the
+   * client edits the rows by hand, or a contractor prices them, the list freezes.
+   */
+  private async breakdownAutoSyncAllowed(tender: {
+    status: TenderStatus;
+    defaultCostBreakdownEditedAt: Date | null;
+    bids: Array<{ id: string }>;
+  }): Promise<boolean> {
+    if (tender.defaultCostBreakdownEditedAt != null) {
+      return false;
+    }
+    if (tender.bids.length > 0) {
+      return false;
+    }
+    return (
+      tender.status === TenderStatus.draft ||
+      tender.status === TenderStatus.open
+    );
+  }
+
+  /**
+   * Record that the client submitted a list that differs from the one derived
+   * from the estimate, so auto-sync stops treating the estimate as the source.
+   * Returns true when the submitted list was recognised as a custom one.
+   */
+  private async markBreakdownEditedIfCustom(
+    tenderId: string,
+    projectId: string,
+    submitted: DefaultCostBreakdownItem[] | undefined,
+  ): Promise<boolean> {
+    if (!submitted?.length) {
+      return false;
+    }
+    const estimateItems =
+      await this.costBreakdown.estimateTemplateForProject(projectId);
+    if (estimateItems.length > 0 && itemsMatch(estimateItems, submitted)) {
+      return false;
+    }
+    await this.prisma.tender.update({
+      where: { id: tenderId },
+      data: { defaultCostBreakdownEditedAt: new Date() },
+    });
+    return true;
   }
 
   async startTender(
@@ -646,15 +817,25 @@ export class TendersService {
       project.clarificationMode,
     );
 
-    const existingBreakdown = this.costBreakdown.parseStored(
-      updated.defaultCostBreakdown,
+    // Mark a custom list BEFORE resolving, otherwise auto-sync would replace the
+    // list the client just submitted with the estimate-derived one.
+    const markedCustom = await this.markBreakdownEditedIfCustom(
+      updated.id,
+      projectId,
+      dto?.defaultCostBreakdown,
     );
+    const autoSyncAllowed =
+      !markedCustom &&
+      (await this.breakdownAutoSyncAllowed({
+        status: updated.status,
+        defaultCostBreakdownEditedAt: updated.defaultCostBreakdownEditedAt,
+        bids: updated.bids.filter((bid) => bid.status !== BidStatus.withdrawn),
+      }));
     await this.costBreakdown.resolveForTender(
       updated.id,
       projectId,
-      existingBreakdown.length > 0
-        ? updated.defaultCostBreakdown
-        : [],
+      updated.defaultCostBreakdown ?? [],
+      { autoSync: autoSyncAllowed },
     );
 
     this.notifications.dispatch(
@@ -719,7 +900,14 @@ export class TendersService {
 
   private async defaultCostBreakdownForTender(
     tender:
-      | { id: string; projectId: string; defaultCostBreakdown: unknown }
+      | {
+          id: string;
+          projectId: string;
+          defaultCostBreakdown: unknown;
+          defaultCostBreakdownEditedAt: Date | null;
+          status: TenderStatus;
+          bids: Array<{ id: string; status: BidStatus }>;
+        }
       | null
       | undefined,
   ): Promise<DefaultCostBreakdownItem[]> {
@@ -730,6 +918,7 @@ export class TendersService {
       tender.id,
       tender.projectId,
       tender.defaultCostBreakdown,
+      { autoSync: await this.breakdownAutoSyncAllowed(tender) },
     );
   }
 
@@ -783,15 +972,34 @@ export class TendersService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.tender.delete({ where: { id: tender.id } });
       await tx.project.update({
         where: { id: projectId },
         data: {
           status: ProjectStatus.estimated,
           estimateAdjustmentsJson: Prisma.DbNull,
+          // Keep the client's cost breakdown so the next publication restores it
+          // instead of regenerating the initial structure from the estimate.
+          savedCostBreakdownJson: this.savedBreakdownPayload(tender),
         },
       });
+      await tx.tender.delete({ where: { id: tender.id } });
     });
+  }
+
+  /** Payload kept on the project when a published tender is reverted. */
+  private savedBreakdownPayload(tender: {
+    defaultCostBreakdown: unknown;
+    defaultCostBreakdownEditedAt: Date | null;
+  }): Prisma.InputJsonValue | typeof Prisma.DbNull {
+    const items = this.costBreakdown.parseStored(tender.defaultCostBreakdown);
+    if (items.length === 0) {
+      return Prisma.DbNull;
+    }
+    return {
+      items,
+      editedAt: tender.defaultCostBreakdownEditedAt?.toISOString() ?? null,
+      savedAt: new Date().toISOString(),
+    } as unknown as Prisma.InputJsonValue;
   }
 
   async selectBid(

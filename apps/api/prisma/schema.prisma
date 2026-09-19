@@ -403,6 +403,12 @@ model Project {
   scopeSummary         String?  @map("scope_summary") @db.Text
   sourceLocale         String   @default("en") @map("source_locale")
   tenderContractTermsJson Json? @map("tender_contract_terms_json")
+  /**
+   * Cost breakdown kept when the tender is reverted to preparation, so the next
+   * publication restores the client's list instead of regenerating it from the
+   * estimate. Shape: `{ items: DefaultCostBreakdownItem[]; editedAt: string | null }`.
+   */
+  savedCostBreakdownJson Json? @map("saved_cost_breakdown_json")
   linkedProjectId      String?          @unique @map("linked_project_id")
   linkedProject        Project?         @relation("ProjectLink", fields: [linkedProjectId], references: [id], onDelete: SetNull)
   linkedFrom           Project?         @relation("ProjectLink")
@@ -624,6 +630,12 @@ model Tender {
   awardedBid   Bid?         @relation("AwardedBid", fields: [awardedBidId], references: [id], onDelete: SetNull)
   bidAnalysisJson Json?       @map("bid_analysis_json")
   defaultCostBreakdown Json?  @map("default_cost_breakdown")
+  /**
+   * Set when the client submits a cost breakdown that differs from the one
+   * derived from the ballpark estimate. Until then the template follows the
+   * estimate; afterwards the client's list is authoritative.
+   */
+  defaultCostBreakdownEditedAt DateTime? @map("default_cost_breakdown_edited_at")
   nextContenderNumber Int     @default(1) @map("next_contender_number")
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")

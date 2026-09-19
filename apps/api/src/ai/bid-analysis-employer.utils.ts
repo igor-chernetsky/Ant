@@ -19,6 +19,13 @@ Contract & payment terms — employer perspective:
 - Timeline vs price (numeric rule, mandatory): a shorter duration justifies a HIGHER price ONLY when the duration reduction in % is LARGER than the price premium in % AND payment/warranty terms are not worse. If the price premium (in %) exceeds the duration saving (in %), recommend the CHEAPER bid — a shorter schedule alone must not win. Example: +30% price for a 1-day gain on a ~40-day schedule (~2.5%) is NOT a justification; never recommend the pricier bid in that case.
 - Flag missing worksStartDate / worksFinishDate / durationDays as employer risk when other bids provide them.
 
+- Do NOT restate numeric rankings and do NOT name a winner in the summary or reasoning text.
+  The platform appends the verified rankings and the final verdict verbatim, so any
+  second opinion in your prose can contradict them. Use your prose for scope
+  coverage, missing or vague items, quality concerns and employer risks only.
+- When a term is marked EQUAL in employerComparisonFacts, never present it as an
+  advantage or a disadvantage for either bid — say the term is equal or omit it.
+
 When comparing two bids on the same term, always explain why it helps or hurts the EMPLOYER.
 Do NOT write "reduces financial risk" for terms that mainly protect the contractor (low advance, low penalties).
 
@@ -271,6 +278,48 @@ export function isNumericTermBullet(text: string): boolean {
   return NUMERIC_TERM_BULLET_RE.test(text);
 }
 
+/**
+ * Append one ranked block to the facts.
+ *
+ * When every bid shares the same value the block says so explicitly. Printing a
+ * ranked list instead used to label the first row "best" and the last "worst"
+ * even when all values were identical, which invited the model to present a
+ * difference that does not exist.
+ */
+function appendRankingBlock<T extends string | number>(params: {
+  lines: string[];
+  title: string;
+  rows: Array<{ bid: BidAnalysisBidInput; value: T }>;
+  compare: (a: T, b: T) => number;
+  formatValue: (value: T) => string;
+  bestSuffix: string;
+  worstSuffix: string;
+}): void {
+  const { lines, title, rows, compare, formatValue, bestSuffix, worstSuffix } =
+    params;
+  if (rows.length < 2) {
+    return;
+  }
+
+  const sorted = [...rows].sort((a, b) => compare(a.value, b.value));
+  const best = sorted[0]!;
+  const worst = sorted[sorted.length - 1]!;
+
+  lines.push(title);
+  if (compare(best.value, worst.value) === 0) {
+    lines.push(
+      `  EQUAL for all bids: ${formatValue(best.value)} — no advantage either way for the employer.`,
+    );
+    return;
+  }
+
+  sorted.forEach((row, index) => {
+    const marker =
+      index === 0 ? bestSuffix : index === sorted.length - 1 ? worstSuffix : '';
+    lines.push(`  ${bidLabel(row.bid)}: ${formatValue(row.value)}${marker}`);
+  });
+}
+
 export function buildEmployerComparisonFacts(context: BidAnalysisContext): string {
   const { bids } = context;
   if (bids.length < 2) {
@@ -281,141 +330,102 @@ export function buildEmployerComparisonFacts(context: BidAnalysisContext): strin
     'VERIFIED NUMERIC RANKINGS (binding — do not invert these comparisons):',
   ];
 
-  const byPrice = [...bids].sort(
-    (a, b) => Number(a.amount) - Number(b.amount),
-  );
-  lines.push('Total price — LOWER is BETTER for the employer:');
-  byPrice.forEach((bid, index) => {
-    const marker =
-      index === 0
-        ? ' ← LOWEST (best for employer)'
-        : index === byPrice.length - 1
-          ? ' ← HIGHEST'
-          : '';
-    lines.push(
-      `  ${index + 1}. ${bidLabel(bid)}: ${formatThb(Number(bid.amount))}${marker}`,
-    );
+  appendRankingBlock({
+    lines,
+    title: 'Total price — LOWER is BETTER for the employer:',
+    rows: bids.map((bid) => ({ bid, value: Number(bid.amount) })),
+    compare: (a, b) => a - b,
+    formatValue: formatThb,
+    bestSuffix: ' ← LOWEST (best for employer)',
+    worstSuffix: ' ← HIGHEST',
   });
 
-  const advanceRows = bids
-    .map((bid) => ({ bid, advance: effectiveAdvancePercent(bid) }))
-    .filter((row): row is { bid: BidAnalysisBidInput; advance: number } =>
-      row.advance != null,
-    )
-    .sort((a, b) => a.advance - b.advance);
-  if (advanceRows.length >= 2) {
-    lines.push('Advance payment — LOWER % is BETTER for the employer:');
-    advanceRows.forEach((row, index) => {
-      const marker =
-        index === 0
-          ? ' ← LOWEST (best for employer)'
-          : index === advanceRows.length - 1
-            ? ' ← HIGHEST (worst for employer)'
-            : '';
-      lines.push(
-        `  ${bidLabel(row.bid)}: ${row.advance.toFixed(1)}%${marker}`,
-      );
-    });
-  }
+  appendRankingBlock({
+    lines,
+    title: 'Advance payment — LOWER % is BETTER for the employer:',
+    rows: bids
+      .map((bid) => ({ bid, value: effectiveAdvancePercent(bid) }))
+      .filter(
+        (row): row is { bid: BidAnalysisBidInput; value: number } =>
+          row.value != null,
+      ),
+    compare: (a, b) => a - b,
+    formatValue: (value) => `${value.toFixed(1)}%`,
+    bestSuffix: ' ← LOWEST (best for employer)',
+    worstSuffix: ' ← HIGHEST (worst for employer)',
+  });
 
-  const warrantyRows = bids
-    .map((bid) => ({
-      bid,
-      months: bid.terms?.contractTerms?.defectNotificationMonths ?? null,
-    }))
-    .filter(
-      (row): row is { bid: BidAnalysisBidInput; months: number } =>
-        row.months != null,
-    )
-    .sort((a, b) => a.months - b.months);
-  if (warrantyRows.length >= 2) {
-    lines.push(
-      'Defect notification / warranty — LONGER is BETTER for the employer:',
-    );
-    warrantyRows.forEach((row, index) => {
-      const marker =
-        index === 0
-          ? ' ← SHORTEST (worst for employer)'
-          : index === warrantyRows.length - 1
-            ? ' ← LONGEST (best for employer)'
-            : '';
-      lines.push(
-        `  ${bidLabel(row.bid)}: ${row.months} months${marker}`,
-      );
-    });
-  }
+  appendRankingBlock({
+    lines,
+    title: 'Defect notification / warranty — LONGER is BETTER for the employer:',
+    rows: bids
+      .map((bid) => ({
+        bid,
+        value: bid.terms?.contractTerms?.defectNotificationMonths ?? null,
+      }))
+      .filter(
+        (row): row is { bid: BidAnalysisBidInput; value: number } =>
+          row.value != null,
+      ),
+    compare: (a, b) => a - b,
+    formatValue: (value) => `${value} months`,
+    bestSuffix: ' ← SHORTEST (worst for employer)',
+    worstSuffix: ' ← LONGEST (best for employer)',
+  });
 
-  const startRows = bids
-    .map((bid) => ({
-      bid,
-      start: parseWorksIsoDate(bid.terms?.contractTerms?.worksStartDate),
-    }))
-    .filter(
-      (row): row is { bid: BidAnalysisBidInput; start: string } =>
-        row.start != null,
-    )
-    .sort((a, b) => a.start.localeCompare(b.start));
-  if (startRows.length >= 2) {
-    lines.push(
+  appendRankingBlock({
+    lines,
+    title:
       'Works start date — EARLIER is BETTER for the employer when price/terms are comparable:',
-    );
-    startRows.forEach((row, index) => {
-      const marker =
-        index === 0
-          ? ' ← EARLIEST (best for employer)'
-          : index === startRows.length - 1
-            ? ' ← LATEST'
-            : '';
-      lines.push(`  ${bidLabel(row.bid)}: ${row.start}${marker}`);
-    });
-  }
+    rows: bids
+      .map((bid) => ({
+        bid,
+        value: parseWorksIsoDate(bid.terms?.contractTerms?.worksStartDate),
+      }))
+      .filter(
+        (row): row is { bid: BidAnalysisBidInput; value: string } =>
+          row.value != null,
+      ),
+    compare: (a, b) => a.localeCompare(b),
+    formatValue: (value) => value,
+    bestSuffix: ' ← EARLIEST (best for employer)',
+    worstSuffix: ' ← LATEST',
+  });
 
-  const durationRows = bids
-    .map((bid) => ({ bid, days: bidDurationDays(bid) }))
-    .filter(
-      (row): row is { bid: BidAnalysisBidInput; days: number } =>
-        row.days != null,
-    )
-    .sort((a, b) => a.days - b.days);
-  if (durationRows.length >= 2) {
-    lines.push(
+  appendRankingBlock({
+    lines,
+    title:
       'Works duration — SHORTER is BETTER for the employer when price/terms are comparable:',
-    );
-    durationRows.forEach((row, index) => {
-      const marker =
-        index === 0
-          ? ' ← SHORTEST (best for employer)'
-          : index === durationRows.length - 1
-            ? ' ← LONGEST'
-            : '';
-      lines.push(`  ${bidLabel(row.bid)}: ${row.days} days${marker}`);
-    });
-  }
+    rows: bids
+      .map((bid) => ({ bid, value: bidDurationDays(bid) }))
+      .filter(
+        (row): row is { bid: BidAnalysisBidInput; value: number } =>
+          row.value != null,
+      ),
+    compare: (a, b) => a - b,
+    formatValue: (value) => `${value} days`,
+    bestSuffix: ' ← SHORTEST (best for employer)',
+    worstSuffix: ' ← LONGEST',
+  });
 
-  const finishRows = bids
-    .map((bid) => ({
-      bid,
-      finish: parseWorksIsoDate(bid.terms?.contractTerms?.worksFinishDate),
-    }))
-    .filter(
-      (row): row is { bid: BidAnalysisBidInput; finish: string } =>
-        row.finish != null,
-    )
-    .sort((a, b) => a.finish.localeCompare(b.finish));
-  if (finishRows.length >= 2) {
-    lines.push(
+  appendRankingBlock({
+    lines,
+    title:
       'Works finish date — EARLIER is BETTER for the employer when price/terms are comparable:',
-    );
-    finishRows.forEach((row, index) => {
-      const marker =
-        index === 0
-          ? ' ← EARLIEST finish (best for employer)'
-          : index === finishRows.length - 1
-            ? ' ← LATEST finish'
-            : '';
-      lines.push(`  ${bidLabel(row.bid)}: ${row.finish}${marker}`);
-    });
-  }
+    rows: bids
+      .map((bid) => ({
+        bid,
+        value: parseWorksIsoDate(bid.terms?.contractTerms?.worksFinishDate),
+      }))
+      .filter(
+        (row): row is { bid: BidAnalysisBidInput; value: string } =>
+          row.value != null,
+      ),
+    compare: (a, b) => a.localeCompare(b),
+    formatValue: (value) => value,
+    bestSuffix: ' ← EARLIEST finish (best for employer)',
+    worstSuffix: ' ← LATEST finish',
+  });
 
   const cheapest = cheapestBid(bids);
   if (cheapest) {
@@ -568,21 +578,6 @@ function mentionsBid(
   });
 }
 
-export function sanitizeEmployerReasoning(
-  text: string,
-  context: BidAnalysisContext,
-): string {
-  if (!text?.trim()) {
-    return text;
-  }
-
-  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
-  const kept = sentences.filter(
-    (sentence) => !sentenceContradictsEmployerFacts(sentence, context),
-  );
-  return kept.join(' ').trim();
-}
-
 function sentenceContradictsEmployerFacts(
   sentence: string,
   context: BidAnalysisContext,
@@ -671,6 +666,136 @@ function sentenceContradictsEmployerFacts(
   return false;
 }
 
+/**
+ * Deterministic verdict text for the FINAL recommendation.
+ *
+ * The narrative shown to the employer must never contradict the decision, so the
+ * summary is written by the platform from the same facts the decision was based
+ * on — the model only discusses scope, coverage and quality risks.
+ */
+export function buildEmployerVerdict(
+  context: BidAnalysisContext,
+  recommendedBidId: string | null,
+): string {
+  const winner = recommendedBidId
+    ? (context.bids.find((bid) => bid.id === recommendedBidId) ?? null)
+    : null;
+  if (!winner) {
+    return 'No bid could be recommended from the submitted data — review scope coverage and the flagged risks before choosing.';
+  }
+
+  const amount = Number(winner.amount);
+  const cheapest = cheapestBid(context.bids);
+  const isCheapest =
+    cheapest == null || amountsAreTied(amount, Number(cheapest.amount));
+  if (isCheapest) {
+    // Explain the rejected alternative so the shorter schedule noted in the facts
+    // does not look like an oversight.
+    const faster = context.bids
+      .filter((bid) => bid.id !== winner.id)
+      .map((bid) => ({
+        bid,
+        gain: durationGainPercent(bid, winner),
+        premium: pricePremiumPercent(bid, winner),
+      }))
+      .filter(
+        (row) => row.gain > 0 && timelinePremiumUnjustified(row.bid, winner),
+      )
+      .sort((a, b) => b.gain - a.gain)[0];
+    const clause = faster
+      ? ` ${bidLabel(faster.bid)} is ${faster.gain.toFixed(1)}% faster but costs ${faster.premium.toFixed(1)}% more, which the shorter schedule alone does not justify.`
+      : '';
+    return `${bidLabel(winner)} is the lowest-priced bid at ${formatThb(amount)} and is recommended.${clause}`;
+  }
+
+  const premium = pricePremiumPercent(winner, cheapest);
+  const gain = durationGainPercent(winner, cheapest);
+  const betterTerms = hasBetterEmployerTerms(winner, cheapest);
+  const reason = betterTerms
+    ? 'its payment/warranty terms are better for the employer'
+    : gain > premium
+      ? `it saves ${gain.toFixed(1)}% of the works duration against a ${premium.toFixed(1)}% price premium`
+      : 'the balance of price, schedule and contract terms is better overall';
+
+  return `${bidLabel(winner)} is recommended at ${formatThb(amount)}, ${premium.toFixed(1)}% above the cheapest bid ${bidLabel(cheapest)}, because ${reason}.`;
+}
+
+// `\b` is ASCII-only, so Russian/Thai alternatives are matched without it.
+const RANKED_ATTRIBUTE_PATTERNS = [
+  /\b(price|cost|amount|thb|฿|advance|payment|upfront|retention|holdback|warranty|defect|notification|penalt|liquidated|damages|timeline|schedule|duration|days?|months?|start|finish|completion|earlier|later|faster|slower|shorter|longer|cheaper|expensive|lowest|highest|best|worst)\b/i,
+  /(цена|стоимост|аванс|гарант|срок|удержан|неустойк|дороже|дешевле|быстрее|медленнее|длительн)/i,
+  /(ราคา|เงินล่วงหน้า|ระยะเวลา|ประกัน|สัญญา)/,
+];
+
+const RECOMMENDATION_PATTERNS = [
+  /\b(recommend|recommended|recommendation|should (choose|select|pick)|best (choice|option|value)|preferred|winner|award (them|it)|go with)\b/i,
+  /(выбира|рекоменд|лучш(ий|его) вариант)/i,
+  /(แนะนำ|เลือก)/,
+];
+
+const COMPARISON_PATTERNS = [
+  /\b(better|worse|superior|inferior|advantage|disadvantage|more|less|fewer|lower|higher|greater|stronger|weaker|versus|vs\.?)\b/i,
+  /(лучше|хуже|больше|меньше|выгодн)/i,
+  /(ดีกว่า|แย่กว่า|มากกว่า|น้อยกว่า)/,
+];
+
+function matchesAnyPattern(text: string, patterns: RegExp[]): boolean {
+  return patterns.some((pattern) => pattern.test(text));
+}
+
+/**
+ * Keep only sentences that discuss scope, coverage, quality or employer risks —
+ * i.e. what the model is genuinely better at than the platform rules.
+ *
+ * Anything that ranks bids or names a winner is dropped: the platform appends the
+ * verified rankings and the verdict, and a second, unverifiable opinion next to
+ * them is what produced self-contradicting analyses.
+ */
+export function filterEmployerScopeProse(
+  text: string,
+  context: BidAnalysisContext,
+): string {
+  if (!text?.trim()) {
+    return '';
+  }
+
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+  const kept = sentences.filter((sentence) => {
+    const trimmed = sentence.trim();
+    if (!trimmed) return false;
+    if (sentenceContradictsEmployerFacts(trimmed, context)) return false;
+    if (matchesAnyPattern(trimmed, RECOMMENDATION_PATTERNS)) return false;
+
+    const mentionsAnyBid = context.bids.some((bid) =>
+      mentionsBid(trimmed, bid),
+    );
+    const mentionsRankedTerm = matchesAnyPattern(trimmed, RANKED_ATTRIBUTE_PATTERNS);
+    const compares = matchesAnyPattern(trimmed, COMPARISON_PATTERNS);
+
+    // A sentence about a specific bid that also touches a ranked attribute or
+    // compares bids is a ranking claim, not a scope observation.
+    if (mentionsAnyBid && mentionsRankedTerm) return false;
+    if (mentionsAnyBid && compares) return false;
+    if (mentionsRankedTerm && compares) return false;
+    return true;
+  });
+
+  return kept.join(' ').trim();
+}
+
+/** Compose the final narrative: verified facts, the verdict, then scope prose. */
+export function buildEmployerNarrative(params: {
+  facts: string;
+  verdict: string;
+  scopeProse: string;
+  separator?: string;
+}): string {
+  return [params.facts, params.verdict, params.scopeProse]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(params.separator ?? ' ');
+}
+
 export function buildDeterministicEmployerComparison(
   bid: BidAnalysisBidInput,
   allBids: BidAnalysisBidInput[],
@@ -702,13 +827,36 @@ export function buildDeterministicEmployerComparison(
   return { strengths, weaknesses, riskFlags };
 }
 
+/**
+ * Merge the model's comparison with the verified numbers.
+ *
+ * The recommendation is resolved first (model pick, corrected by the timeline
+ * tie-breaker and the price/timeline value rule); the narrative is then written
+ * from that decision, so the text cannot argue for a different winner.
+ */
 export function enforceEmployerBidAnalysis(
   result: BidAnalysisResult,
   context: BidAnalysisContext,
 ): BidAnalysisResult {
-  const factualNarrative = buildEmployerFactualNarrative(context);
-  const sanitizedSummary = sanitizeEmployerReasoning(result.summary, context);
-  const sanitizedReasoning = sanitizeEmployerReasoning(result.reasoning, context);
+  const { recommendedBidId, recommendedCompanyName } =
+    resolveEmployerRecommendation(result, context);
+  const winner = recommendedBidId
+    ? (context.bids.find((bid) => bid.id === recommendedBidId) ?? null)
+    : null;
+
+  const facts = buildEmployerFactualNarrative(context);
+  const verdict = buildEmployerVerdict(context, recommendedBidId);
+  const scopeProse = filterEmployerScopeProse(result.reasoning, context);
+
+  // The panel renders the summary above the reasoning, so the summary is the
+  // verdict only and the reasoning carries the verified facts it is based on.
+  const summary = verdict || facts;
+  const reasoning = buildEmployerNarrative({
+    facts,
+    verdict,
+    scopeProse,
+    separator: '\n\n',
+  });
 
   const comparisons = context.bids.map((bid) => {
     const ai = result.comparisons.find((item) => item.bidId === bid.id);
@@ -737,24 +885,40 @@ export function enforceEmployerBidAnalysis(
     };
   });
 
-  const timelineWinner = pickTimelineTiebreaker(context.bids);
+  return {
+    ...result,
+    recommendedBidId,
+    recommendedCompanyName: recommendedCompanyName ?? winner?.companyName ?? null,
+    summary,
+    reasoning,
+    comparisons,
+    confidence: winner ? Math.max(result.confidence, 0.55) : result.confidence,
+  };
+}
+
+/**
+ * Final employer recommendation.
+ *
+ * Starts from the model's pick (it is the only signal about scope coverage) and
+ * corrects it with two deterministic rules:
+ *  - equal price and comparable terms → the better works schedule wins;
+ *  - a price premium larger than the duration saving, with no better terms → the
+ *    cheaper bid wins.
+ */
+export function resolveEmployerRecommendation(
+  result: BidAnalysisResult,
+  context: BidAnalysisContext,
+): { recommendedBidId: string | null; recommendedCompanyName: string | null } {
+  const cheapest = cheapestBid(context.bids);
   let recommendedBidId = result.recommendedBidId;
   let recommendedCompanyName = result.recommendedCompanyName;
-  let summary =
-    factualNarrative && !sanitizedSummary.includes(factualNarrative)
-      ? `${factualNarrative} ${sanitizedSummary}`.trim()
-      : sanitizedSummary || factualNarrative;
-  let reasoning =
-    factualNarrative && !sanitizedReasoning.includes(factualNarrative)
-      ? `${factualNarrative}\n\n${sanitizedReasoning}`.trim()
-      : sanitizedReasoning || factualNarrative;
-  let confidence = result.confidence;
 
+  const timelineWinner = pickTimelineTiebreaker(context.bids);
   if (
     timelineWinner &&
     (recommendedBidId == null || recommendedBidId !== timelineWinner.id)
   ) {
-    // Prefer timeline only when AI left no pick, or when the current pick is
+    // Prefer timeline only when the model left no pick, or when its pick is
     // among the price-tied set (do not override a cheaper bid).
     const minAmount = Math.min(
       ...context.bids.map((bid) => Number(bid.amount)),
@@ -771,19 +935,9 @@ export function enforceEmployerBidAnalysis(
     if (recommendedBidId == null || currentIsPriceTied) {
       recommendedBidId = timelineWinner.id;
       recommendedCompanyName = timelineWinner.companyName;
-      const tieNote = `With matching price and commercial terms, ${bidLabel(timelineWinner)} is preferred for the better works schedule.`;
-      if (!summary.includes('works schedule') && !summary.includes('starts earlier')) {
-        summary = `${summary} ${tieNote}`.trim();
-      }
-      if (!reasoning.includes(tieNote)) {
-        reasoning = `${reasoning}\n\n${tieNote}`.trim();
-      }
-      confidence = Math.max(confidence, 0.55);
     }
   }
 
-  // Value rule: a small timeline gain must not justify a large price premium.
-  const cheapest = cheapestBid(context.bids);
   if (recommendedBidId != null && cheapest) {
     const recommended =
       context.bids.find((bid) => bid.id === recommendedBidId) ?? null;
@@ -792,30 +946,12 @@ export function enforceEmployerBidAnalysis(
       recommended.id !== cheapest.id &&
       timelinePremiumUnjustified(recommended, cheapest)
     ) {
-      const premium = pricePremiumPercent(recommended, cheapest);
-      const gain = durationGainPercent(recommended, cheapest);
-      const gainText =
-        gain > 0
-          ? `saves only ${gain.toFixed(1)}% of the works duration`
-          : 'offers no shorter works duration';
-      const note = `Cheaper bid preferred: ${bidLabel(recommended)} costs ${premium.toFixed(1)}% more and ${gainText}, while its payment/warranty terms are not better. ${bidLabel(cheapest)} is recommended instead.`;
       recommendedBidId = cheapest.id;
       recommendedCompanyName = cheapest.companyName;
-      summary = `${summary} ${note}`.trim();
-      reasoning = `${reasoning}\n\n${note}`.trim();
-      confidence = Math.max(confidence, 0.55);
     }
   }
 
-  return {
-    ...result,
-    recommendedBidId,
-    recommendedCompanyName,
-    summary,
-    reasoning,
-    comparisons,
-    confidence,
-  };
+  return { recommendedBidId, recommendedCompanyName };
 }
 
 export function parseDailyPenaltyPercent(

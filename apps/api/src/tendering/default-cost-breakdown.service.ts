@@ -13,6 +13,25 @@ import {
   MAX_DEFAULT_COST_BREAKDOWN_ITEMS,
 } from './tendering.types';
 
+/** Do two breakdown templates describe the same rows, in the same order? */
+export function itemsMatch(
+  a: DefaultCostBreakdownItem[],
+  b: DefaultCostBreakdownItem[],
+): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  return a.every((item, index) => {
+    const other = b[index];
+    if (!other) return false;
+    return (
+      item.trade.trim().toLowerCase() === other.trade.trim().toLowerCase() &&
+      (item.description?.trim() ?? '').toLowerCase() ===
+        (other.description?.trim() ?? '').toLowerCase()
+    );
+  });
+}
+
 @Injectable()
 export class DefaultCostBreakdownService {
   private readonly logger = new Logger(DefaultCostBreakdownService.name);
@@ -77,18 +96,41 @@ export class DefaultCostBreakdownService {
    * when the stored one is shorter — silently discarded their additions and
    * removals before the contractor ever saw them. Deriving happens only while
    * nothing is stored yet.
+   *
+   * `autoSync` is passed while the client has never submitted a list of their own
+   * and no contractor has applied yet: there the template follows the estimate, so
+   * an updated budget is not silently ignored.
    */
   async resolveForTender(
     tenderId: string,
     projectId: string,
     storedRaw: unknown,
+    options?: { autoSync?: boolean },
   ): Promise<DefaultCostBreakdownItem[]> {
     const stored = this.parseStored(storedRaw);
+
+    if (options?.autoSync) {
+      const estimateItems = await this.estimateTemplateForProject(projectId);
+      if (estimateItems.length > 0 && !itemsMatch(estimateItems, stored)) {
+        await this.prisma.tender.update({
+          where: { id: tenderId },
+          data: {
+            defaultCostBreakdown:
+              estimateItems as unknown as Prisma.InputJsonValue,
+          },
+        });
+        return estimateItems;
+      }
+      if (stored.length > 0) {
+        return stored;
+      }
+    }
+
     if (stored.length > 0) {
       return stored;
     }
 
-    const estimateItems = await this.itemsFromLatestEstimate(projectId);
+    const estimateItems = await this.estimateTemplateForProject(projectId);
     if (estimateItems.length > 0) {
       await this.prisma.tender.update({
         where: { id: tenderId },
@@ -101,6 +143,16 @@ export class DefaultCostBreakdownService {
     }
 
     return this.generateAndStoreForTender(tenderId, projectId);
+  }
+
+  /**
+   * Deterministic template derived from the latest ballpark estimate (no AI).
+   * Used for auto-sync and to tell whether the client edited the list by hand.
+   */
+  async estimateTemplateForProject(
+    projectId: string,
+  ): Promise<DefaultCostBreakdownItem[]> {
+    return this.itemsFromLatestEstimate(projectId);
   }
 
   async generateForProject(projectId: string): Promise<DefaultCostBreakdownItem[]> {

@@ -15,6 +15,13 @@ const emptyRow = (): DefaultCostBreakdownItem => ({
   description: '',
 });
 
+/**
+ * Mirrors `MAX_DEFAULT_COST_BREAKDOWN_ITEMS` on the API, which trims the stored
+ * template to this many rows. A higher cap here would silently drop whatever the
+ * client added beyond it, so the contractor would receive a shorter list.
+ */
+const MAX_COST_BREAKDOWN_ITEMS = 20;
+
 export function CostBreakdownTemplateEditor({
   items,
   onChange,
@@ -72,7 +79,7 @@ export function CostBreakdownTemplateEditor({
       <button
         type="button"
         className="secondary"
-        disabled={disabled || items.length >= 24}
+        disabled={disabled || items.length >= MAX_COST_BREAKDOWN_ITEMS}
         onClick={() => onChange([...items, emptyRow()])}
       >
         {t('common.addLine')}

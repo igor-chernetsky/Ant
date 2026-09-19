@@ -23,8 +23,12 @@ type BidForFingerprint = Pick<
   'id' | 'status' | 'amount' | 'durationDays' | 'termsJson' | 'updatedAt'
 >;
 
-/** Bump when employer ranking rules change so cached analyses can be regenerated. */
-const BID_ANALYSIS_LOGIC_VERSION = 'employer-timeline-v2-value-rule';
+/**
+ * Bump when employer ranking rules change so cached analyses can be regenerated.
+ * v3: the verdict is written deterministically and the model no longer restates
+ * rankings — v2 texts can argue for a different winner than the final decision.
+ */
+const BID_ANALYSIS_LOGIC_VERSION = 'employer-timeline-v3-deterministic-verdict';
 
 @Injectable()
 export class BidAnalysisService {
