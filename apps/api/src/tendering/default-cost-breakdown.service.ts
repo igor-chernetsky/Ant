@@ -174,12 +174,16 @@ export class DefaultCostBreakdownService {
       : [];
     const brief = (project.briefJson as ProjectBriefV1 | null) ?? null;
 
-    // Ballpark lines are the source of truth when present — do not let AI
-    // collapse a detailed estimate into a short generic template.
+    // The client sees the ballpark estimate WITH their adjustments applied
+    // (added / excluded lines, design fee), so the template must be derived from
+    // that same list — deriving it from the raw estimate lines produced a
+    // published breakdown that did not match the budget on the project page.
     if (estimateLines.length > 0) {
-      return this.normalizeItems(this.itemsFromEstimateLines(estimateLines));
+      return this.itemsFromLatestEstimate(projectId);
     }
 
+    // No ballpark lines at all: fall back to AI / brief packages. Never let AI
+    // collapse a detailed estimate into a short generic template.
     const items =
       (await this.generateWithOpenAi({
         title: project.title,
