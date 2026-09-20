@@ -24,29 +24,78 @@ export function normalizeAppOrigin(url: string): string {
   return trimmed;
 }
 
-export function resolveAppBaseUrl(options?: {
-  nextPublicAppUrl?: string;
-  webAppUrl?: string;
-  vercelUrl?: string;
-}): string {
-  const nextPublic =
-    options?.nextPublicAppUrl ?? process.env.NEXT_PUBLIC_APP_URL;
-  const webApp = options?.webAppUrl ?? process.env.WEB_APP_URL;
-  const vercel = options?.vercelUrl ?? process.env.VERCEL_URL;
-
-  for (const raw of [nextPublic, webApp]) {
+function resolveFirstConfigured(
+  candidates: Array<string | undefined>,
+): string | null {
+  for (const raw of candidates) {
     const trimmed = raw?.trim();
     if (trimmed) {
       return normalizeAppOrigin(trimmed);
     }
   }
+  return null;
+}
 
-  const vercelTrimmed = vercel?.trim();
-  if (vercelTrimmed) {
+let warnedMissingOrigin = false;
+
+function warnMissingOriginOnce(): void {
+  if (warnedMissingOrigin) return;
+  warnedMissingOrigin = true;
+  console.warn(
+    `[app-base-url] Neither NEXT_PUBLIC_APP_URL nor WEB_APP_URL is set — using ${CANONICAL_APP_ORIGIN} for canonical URLs, sitemap.xml and JSON-LD. Set NEXT_PUBLIC_APP_URL in Vercel to keep them on the production host.`,
+  );
+}
+
+/**
+ * Origin for canonical URLs, `metadataBase`, sitemap.xml and JSON-LD.
+ *
+ * Deliberately ignores `VERCEL_URL`: on a preview deployment that is a
+ * `*.vercel.app` host, and letting it leak into canonicals points Google at a
+ * throwaway domain and de-indexes production. Use
+ * {@link resolveLinkBaseUrl} when you need preview-aware links.
+ */
+export function resolveAppBaseUrl(options?: {
+  nextPublicAppUrl?: string;
+  webAppUrl?: string;
+}): string {
+  const configured = resolveFirstConfigured([
+    options?.nextPublicAppUrl ?? process.env.NEXT_PUBLIC_APP_URL,
+    options?.webAppUrl ?? process.env.WEB_APP_URL,
+  ]);
+  if (configured) {
+    return configured;
+  }
+
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
+    warnMissingOriginOnce();
+    return CANONICAL_APP_ORIGIN;
+  }
+
+  return 'http://localhost:3000';
+}
+
+/**
+ * Origin for links we send out (verification and password-reset e-mails).
+ * Unlike {@link resolveAppBaseUrl} this keeps `VERCEL_URL` so preview
+ * deployments can be tested end-to-end.
+ */
+export function resolveLinkBaseUrl(options?: {
+  nextPublicAppUrl?: string;
+  webAppUrl?: string;
+  vercelUrl?: string;
+}): string {
+  const configured = resolveFirstConfigured([
+    options?.nextPublicAppUrl ?? process.env.NEXT_PUBLIC_APP_URL,
+    options?.webAppUrl ?? process.env.WEB_APP_URL,
+  ]);
+  if (configured) {
+    return configured;
+  }
+
+  const vercel = (options?.vercelUrl ?? process.env.VERCEL_URL)?.trim();
+  if (vercel) {
     return normalizeAppOrigin(
-      vercelTrimmed.startsWith('http')
-        ? vercelTrimmed
-        : `https://${vercelTrimmed}`,
+      vercel.startsWith('http') ? vercel : `https://${vercel}`,
     );
   }
 

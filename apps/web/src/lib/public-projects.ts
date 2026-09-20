@@ -131,10 +131,47 @@ export async function fetchPublicProjects(
 
 import type { Project } from '@/lib/projects';
 
+/**
+ * Public "locked" projection of a discoverable project — what the API returns
+ * for `/projects/:id` when the project card is public but the viewer may not
+ * open the full workspace (awarded / active / completed, or a tender without a
+ * matching supply profile). No ballpark, documents, bids, clarifications,
+ * contract or progress data.
+ */
+export interface LockedPublicProject {
+  locked: true;
+  id: string;
+  title: string;
+  description: string | null;
+  projectType: string;
+  propertyType: string | null;
+  district: string | null;
+  locationRegionSlug: string;
+  locationAreaSlug: string | null;
+  locationNote: string | null;
+  regionCode: string;
+  status: string;
+  readinessScore: number;
+  tags: PublicProjectTag[];
+  workPackages: string[];
+  bidCount: number;
+  applicationsDeadlinePassed: boolean;
+  coverImageUrl: string | null;
+  updatedAt: string;
+}
+
+export type PublicProjectDetail = Project | LockedPublicProject;
+
+export function isLockedPublicProject(
+  project: PublicProjectDetail | null | undefined,
+): project is LockedPublicProject {
+  return Boolean(project && (project as LockedPublicProject).locked === true);
+}
+
 export async function fetchPublicProject(
   id: string,
   options?: { inviteToken?: string | null },
-): Promise<Project> {
+): Promise<PublicProjectDetail> {
   const invite = options?.inviteToken?.trim();
   const qs = invite ? `?invite=${encodeURIComponent(invite)}` : '';
   const response = await fetch(
@@ -155,7 +192,7 @@ export async function fetchPublicProject(
     throw new Error(body?.message ?? 'Failed to load project');
   }
 
-  return response.json() as Promise<Project>;
+  return response.json() as Promise<PublicProjectDetail>;
 }
 
 export async function fetchContractorParticipantProject(

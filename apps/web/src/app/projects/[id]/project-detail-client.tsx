@@ -65,6 +65,7 @@ import { isContractorUser, isDesignerUser, isAdminUser } from '@/lib/session';
 import {
   fetchPublicProject,
   fetchContractorParticipantProject,
+  isLockedPublicProject,
 } from '@/lib/public-projects';
 
 type AuthState = 'loading' | 'guest' | 'authenticated';
@@ -88,7 +89,16 @@ function guessContentType(file: File): string | null {
   return ext ? (map[ext] ?? null) : null;
 }
 
-export function ProjectDetailPageClient() {
+export function ProjectDetailPageClient({
+  initialProject = null,
+}: {
+  /**
+   * Public project fetched during server rendering. Seeding state with it means
+   * the first HTML paint already contains the project (title, location, budget,
+   * scope, documents) instead of a loading placeholder — good for SEO and LCP.
+   */
+  initialProject?: Project | null;
+} = {}) {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -98,9 +108,10 @@ export function ProjectDetailPageClient() {
   const projectId = params.id;
   const inviteToken = searchParams.get('invite');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const firstLoadRef = useRef(true);
 
   const [authState, setAuthState] = useState<AuthState>('loading');
-  const [project, setProject] = useState<Project | null>(null);
+  const [project, setProject] = useState<Project | null>(initialProject);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [docCategory, setDocCategory] = useState<DocumentCategory>('blueprint');
   const [uploading, setUploading] = useState(false);
@@ -111,7 +122,7 @@ export function ProjectDetailPageClient() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [adminInviteOpen, setAdminInviteOpen] = useState(false);
-  const [pageReady, setPageReady] = useState(false);
+  const [pageReady, setPageReady] = useState(Boolean(initialProject));
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadDocuments = useCallback(
@@ -130,14 +141,33 @@ export function ProjectDetailPageClient() {
     [projectId, inviteToken],
   );
 
+  /**
+   * The API answers with a locked teaser when it declines full access. Rather
+   * than seeding that partial object into `project`, re-render the route so the
+   * server component shows `<LockedProjectView />`.
+   */
+  const handleLockedPayload = useCallback(() => {
+    setProject(null);
+    setDocuments([]);
+    setError(null);
+    setPageReady(false);
+    router.refresh();
+  }, [router]);
+
   const loadProjectView = useCallback(async () => {
     if (!projectId || !sessionReady) return;
 
     setError(null);
-    setProject(null);
-    setDocuments([]);
-    setIsOwner(false);
-    setPageReady(false);
+    // Keep the server-rendered project visible on the first pass; only blank the
+    // view on later reloads (session refresh, bfcache restore).
+    if (firstLoadRef.current) {
+      firstLoadRef.current = false;
+    } else {
+      setProject(null);
+      setDocuments([]);
+      setIsOwner(false);
+      setPageReady(false);
+    }
 
     const profile = me;
     setAuthState(profile ? 'authenticated' : 'guest');
@@ -189,6 +219,10 @@ export function ProjectDetailPageClient() {
       if (profile && isAdminUser(profile)) {
         try {
           const data = await fetchPublicProject(projectId, { inviteToken });
+          if (isLockedPublicProject(data)) {
+            handleLockedPayload();
+            return;
+          }
           setProject(data);
           setIsOwner(false);
           await loadDocuments(true);
@@ -209,6 +243,10 @@ export function ProjectDetailPageClient() {
 
       try {
         const data = await fetchPublicProject(projectId, { inviteToken });
+        if (isLockedPublicProject(data)) {
+          handleLockedPayload();
+          return;
+        }
         setProject(data);
         setIsOwner(false);
         await loadDocuments(Boolean(profile));
@@ -236,7 +274,7 @@ export function ProjectDetailPageClient() {
       }
       setPageReady(true);
     }
-  }, [projectId, loadDocuments, me, sessionReady, t, inviteToken, router]);
+  }, [projectId, loadDocuments, me, sessionReady, t, inviteToken, router, handleLockedPayload]);
 
   useEffect(() => {
     if (!sessionReady) return;
@@ -467,7 +505,7 @@ export function ProjectDetailPageClient() {
       />
 
       <main className="project-detail-main main-content">
-        {authState === 'loading' || !pageReady ? (
+        {!pageReady ? (
           <section className="card">
             <p className="muted">{t('common.loading')}</p>
           </section>

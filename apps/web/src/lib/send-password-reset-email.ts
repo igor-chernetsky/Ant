@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { resolveAppBaseUrl } from '@/lib/app-base-url';
+import { resolveLinkBaseUrl } from '@/lib/app-base-url';
 import { createPasswordResetToken } from '@/lib/password-reset-token';
 
 function buildPasswordResetEmailHtml(resetUrl: string): string {
@@ -68,7 +68,7 @@ export async function sendAppPasswordResetEmail(params: {
     };
   }
 
-  const resetUrl = `${resolveAppBaseUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+  const resetUrl = `${resolveLinkBaseUrl()}/reset-password?token=${encodeURIComponent(token)}`;
 
   const transport = nodemailer.createTransport({
     host,

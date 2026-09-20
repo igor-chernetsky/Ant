@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { resolveAppBaseUrl } from '@/lib/app-base-url';
+import { resolveLinkBaseUrl } from '@/lib/app-base-url';
 import { createEmailVerificationToken } from '@/lib/email-verification-token';
 
 function buildVerificationEmailHtml(verifyUrl: string): string {
@@ -68,7 +68,7 @@ export async function sendAppVerificationEmail(params: {
     };
   }
 
-  const verifyUrl = `${resolveAppBaseUrl()}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
+  const verifyUrl = `${resolveLinkBaseUrl()}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
 
   const transport = nodemailer.createTransport({
     host,

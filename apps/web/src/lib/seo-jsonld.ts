@@ -1,7 +1,7 @@
 import { resolveAppBaseUrl } from '@/lib/app-base-url';
 import { LEGAL_CONTACT_EMAIL, LEGAL_PLATFORM_NAME } from '@/lib/legal/branding';
 import { SOCIAL_LINKS } from '@/lib/social-links';
-import { translate } from '@/lib/i18n';
+import { DEFAULT_LOCALE, translate, type Locale } from '@/lib/i18n';
 
 export type JsonLdObject = Record<string, unknown>;
 
@@ -21,6 +21,15 @@ export function organizationJsonLd(): JsonLdObject {
     email: LEGAL_CONTACT_EMAIL,
     description:
       'AI-powered construction marketplace for clients and contractors in Thailand.',
+    areaServed: { '@type': 'Country', name: 'Thailand' },
+    knowsLanguage: ['en', 'th', 'ru'],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      email: LEGAL_CONTACT_EMAIL,
+      contactType: 'customer support',
+      areaServed: 'TH',
+      availableLanguage: ['en', 'th', 'ru'],
+    },
     // Tells search engines which social profiles belong to the brand.
     sameAs: SOCIAL_LINKS.map((link) => link.href),
   };
@@ -64,14 +73,15 @@ export function faqPageJsonLd(
 
 export function explainerFaqItems(
   audience: 'clients' | 'contractors',
+  locale: Locale = DEFAULT_LOCALE,
 ): Array<{ question: string; answer: string }> {
   const base = `explainer.${audience}.faq`;
   const count = audience === 'clients' ? 8 : 6;
   const items: Array<{ question: string; answer: string }> = [];
 
   for (let index = 1; index <= count; index += 1) {
-    const question = translate('en', `${base}.item${index}Question`);
-    const answer = translate('en', `${base}.item${index}Answer`);
+    const question = translate(locale, `${base}.item${index}Question`);
+    const answer = translate(locale, `${base}.item${index}Answer`);
     if (question.startsWith('explainer.') || answer.startsWith('explainer.')) {
       continue;
     }

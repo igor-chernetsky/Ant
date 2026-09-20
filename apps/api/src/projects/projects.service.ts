@@ -82,6 +82,10 @@ import {
   AdminProjectListPage,
   AdminProjectListQuery,
 
+  LockedPublicProject,
+  PublicProjectDetail,
+  isLockedPublicProject,
+
 } from './projects.types';
 
 import { ProjectReviewsService } from './project-reviews.service';
@@ -992,8 +996,20 @@ export class ProjectsService {
       isDesignerRole?: boolean;
       inviteToken?: string | null;
     },
-  ): Promise<ProjectResponse> {
-    const project = await this.assertCanOpenProject(projectId, userId, options);
+  ): Promise<PublicProjectDetail> {
+    let project: Project;
+    try {
+      project = await this.assertCanOpenProject(projectId, userId, options);
+    } catch (err) {
+      if (!(err instanceof NotFoundException)) {
+        throw err;
+      }
+      const locked = await this.buildLockedPublicProject(projectId, viewerLocale);
+      if (!locked) {
+        throw err;
+      }
+      return locked;
+    }
 
     const withTags = await this.prisma.project.findUnique({
       where: { id: project.id },
@@ -1022,6 +1038,89 @@ export class ProjectsService {
     return response;
   }
 
+  /**
+   * Detail-page projection for a project whose card is already public but that
+   * the viewer may not open (see `canOpenProjectDetail`). Returning content
+   * instead of 404 keeps discoverable project URLs indexable and avoids
+   * handing crawlers a sitemap full of 404s.
+   *
+   * Returns `null` when the project must stay invisible: missing, hidden, or in
+   * a status that is not publicly viewable at all.
+   */
+  private async buildLockedPublicProject(
+    projectId: string,
+    viewerLocale?: SupportedLocale,
+  ): Promise<LockedPublicProject | null> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        ...this.includeTags(),
+        tender: { select: { status: true, closesAt: true } },
+      },
+    });
+
+    if (!project || project.isHidden || !isPubliclyViewable(project.status)) {
+      return null;
+    }
+
+    let title = project.title;
+    let description = project.description;
+    if (viewerLocale) {
+      const localized = await this.projectLocalization.localizePublicCard(
+        project,
+        viewerLocale,
+      );
+      title = localized.title;
+      description = localized.description;
+      if (localized.cacheMiss) {
+        this.projectLocalization.scheduleWarmProjectTranslations(project.id);
+      }
+    }
+
+    const [coverByProject, bidCount] = await Promise.all([
+      this.loadCoverUrls([project.id]),
+      this.prisma.bid.count({
+        where: { tender: { projectId: project.id }, status: { not: 'withdrawn' } },
+      }),
+    ]);
+
+    const brief = this.toResponse(project, null).brief;
+    const workPackages = [
+      ...new Set(
+        (brief?.packages ?? [])
+          .map((item) => item.trade?.trim())
+          .filter((trade): trade is string => Boolean(trade)),
+      ),
+    ].slice(0, 12);
+
+    return {
+      locked: true,
+      id: project.id,
+      title,
+      description,
+      projectType: project.projectType,
+      propertyType: project.propertyType,
+      district: project.district,
+      locationRegionSlug: project.locationRegionSlug,
+      locationAreaSlug: project.locationAreaSlug,
+      locationNote: project.locationNote,
+      regionCode: project.regionCode,
+      status: project.status,
+      readinessScore: project.readinessScore,
+      tags: this.mapTags(project).map((tag) => ({
+        slug: tag.slug,
+        label: tag.label,
+      })),
+      workPackages,
+      bidCount,
+      applicationsDeadlinePassed:
+        this.shouldShowApplicationDeadlineWarning(project) &&
+        this.isApplicationsDeadlinePassedForProject(project),
+      coverImageUrl: coverByProject.get(project.id) ?? null,
+      updatedAt: project.updatedAt.toISOString(),
+    };
+  }
+
   async getPublicByIdForParticipant(
     userId: string,
     projectId: string,
@@ -1029,11 +1128,19 @@ export class ProjectsService {
     options?: { isAdmin?: boolean; isContractorRole?: boolean; isDesignerRole?: boolean },
   ): Promise<ProjectResponse> {
     // Same open ACL as public detail (supply side for in_tender, awarded later).
-    return this.getPublicById(projectId, userId, viewerLocale, {
+    const project = await this.getPublicById(projectId, userId, viewerLocale, {
       isAdmin: options?.isAdmin,
       isContractorRole: options?.isContractorRole ?? true,
       isDesignerRole: options?.isDesignerRole ?? true,
     });
+
+    // Participants render the full workspace, so a locked projection is not
+    // useful here — keep the previous "not found" behaviour.
+    if (isLockedPublicProject(project)) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return project;
   }
 
   private async buildPublicProjectResponse(

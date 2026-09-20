@@ -4303,6 +4303,48 @@ pre {
   margin-bottom: 0;
 }
 
+/* Read-only teaser for a discoverable project the viewer may not open. */
+.project-locked-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.project-locked-title {
+  margin: 0;
+}
+
+.project-locked-description {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.project-locked-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.project-locked-works {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.project-locked-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-start;
+  width: 100%;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
 .project-detail-sidebar {
   min-width: 0;
 }

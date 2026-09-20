@@ -124,6 +124,51 @@ export interface PublicProjectCard {
 export const DISCOVER_PAGE_SIZE = 30;
 export const DISCOVER_PAGE_SIZE_MAX = 50;
 
+/**
+ * Public "locked" projection of a discoverable project.
+ *
+ * Served to anonymous visitors (and therefore crawlers) on `/projects/:id` for
+ * projects a non-party may not open: awarded / active / completed, or a tender
+ * the viewer has no matching supply profile for. Cards for these projects are
+ * already public in discovery, so this adds only the detail-page essentials.
+ *
+ * Built field by field on purpose — never spread from `ProjectResponse` — so a
+ * private field added later cannot leak by accident. Notably absent: the client
+ * ballpark (client-private per `mapPublicProjectCards`), documents, bids,
+ * the clarification thread, contracts and progress/defect records.
+ */
+export interface LockedPublicProject {
+  locked: true;
+  id: string;
+  title: string;
+  description: string | null;
+  projectType: ProjectType;
+  propertyType: PropertyType | null;
+  district: string | null;
+  locationRegionSlug: string;
+  locationAreaSlug: string | null;
+  locationNote: string | null;
+  regionCode: string;
+  status: string;
+  readinessScore: number;
+  tags: PublicProjectTag[];
+  /** Trade names the scope was split into — no quantities or descriptions. */
+  workPackages: string[];
+  /** Aggregate proposal count; never bidder identities or amounts. */
+  bidCount: number;
+  applicationsDeadlinePassed: boolean;
+  coverImageUrl: string | null;
+  updatedAt: string;
+}
+
+export type PublicProjectDetail = ProjectResponse | LockedPublicProject;
+
+export function isLockedPublicProject(
+  project: PublicProjectDetail,
+): project is LockedPublicProject {
+  return (project as LockedPublicProject).locked === true;
+}
+
 export interface PublicProjectListPage {
   items: PublicProjectCard[];
   total: number;

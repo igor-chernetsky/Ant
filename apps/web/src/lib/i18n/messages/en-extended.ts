@@ -2403,4 +2403,56 @@ export const enExtended = {
         "Request quotes from local building-material stores — useful for comparing project prices.",
     },
   },
+  projectLocked: {
+    type: "Project type",
+    propertyType: "Property",
+    location: "Location",
+    readiness: "Readiness",
+    proposals: "Proposals received",
+    updated: "Updated",
+    works: "Scope of works",
+    open: "Open project",
+    contactHint: "Your account does not have access to this project yet.",
+    reason: {
+      login_contractor:
+        "Sign in as a verified contractor to open this project.",
+      login_designer: "Sign in as a verified designer to open this project.",
+      contractor_only: "Only verified contractors can open this project.",
+      designer_only: "Only verified designers can open this project.",
+      parties_only:
+        "This project has already been awarded — details are visible to the client and the awarded contractor only.",
+    },
+  },
+  seo: {
+    breadcrumbHome: "Home",
+    breadcrumbProjects: "Projects",
+    breadcrumbForClients: "For clients",
+    breadcrumbForContractors: "For contractors",
+    home: {
+      title: "BuilTHAI — Construction Marketplace in Thailand",
+      description:
+        "AI-powered construction platform: publish a project, get a ballpark estimate, compare contractor bids and manage the contract in Thailand.",
+    },
+    forClients: {
+      title: "Hire a Contractor in Thailand — AI Scope and Ballpark Estimate",
+      description:
+        "Describe your renovation or build, upload plans, and get an AI scope, a ballpark estimate and comparable contractor bids. Free for clients.",
+    },
+    forContractors: {
+      title: "Construction Tenders in Thailand for Contractors",
+      description:
+        "Find renovation and construction projects that match your trades and service areas, ask clarifying questions and submit structured commercial offers.",
+    },
+    help: {
+      title: "How BuilTHAI Works — Guides for Clients and Contractors",
+      description:
+        "Step-by-step guides for clients, contractors and designers: create a project, run a tender, submit offers and sign the contract online in Thailand.",
+    },
+    materials: {
+      title: "Thai Construction Materials Marketplaces and Retailers",
+      description:
+        "Trusted Thai retailers and platforms for construction materials: structural, finishes, plumbing, electrical, kitchen and bath. Compare stores first.",
+    },
+    projectFallbackDescription: "Construction project on BuilTHAI in Thailand.",
+  },
 } as const;

@@ -4,20 +4,29 @@ import {
   readLocaleFromCookieHeader,
 } from '@/lib/locale-request';
 import type {
+  PublicProjectDetail,
   PublicProjectListFilters,
   PublicProjectListPage,
 } from '@/lib/public-projects';
-import type { Project } from '@/lib/projects';
 
 async function fetchBackendJson<T>(
   path: string,
-  options?: { locale?: string; revalidate?: number },
+  options?: {
+    locale?: string;
+    revalidate?: number;
+    /** Forward the viewer's own access token so the API applies their ACL. */
+    accessToken?: string | null;
+  },
 ): Promise<T | null> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
   };
   if (options?.locale) {
     headers[LOCALE_REQUEST_HEADER] = options.locale;
+  }
+  const token = options?.accessToken?.trim();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const response = await fetch(`${getBackendApiUrl()}${path}`, {
@@ -107,14 +116,18 @@ export async function fetchPublicProjectsServer(
 
 export async function fetchPublicProjectServer(
   id: string,
-  options?: { locale?: string; inviteToken?: string | null },
-): Promise<Project | null> {
+  options?: {
+    locale?: string;
+    inviteToken?: string | null;
+    accessToken?: string | null;
+  },
+): Promise<PublicProjectDetail | null> {
   const invite = options?.inviteToken?.trim();
   const qs = invite ? `?invite=${encodeURIComponent(invite)}` : '';
 
-  return fetchBackendJson<Project>(
+  return fetchBackendJson<PublicProjectDetail>(
     `/v1/public/projects/${encodeURIComponent(id)}${qs}`,
-    { locale: options?.locale },
+    { locale: options?.locale, accessToken: options?.accessToken },
   );
 }
 
