@@ -19,7 +19,7 @@ import {
   type SupportedLocale,
 } from '../users/locale.types';
 import { MailService } from './mail.service';
-import { PLATFORM_FACEBOOK_LABEL, PLATFORM_FACEBOOK_URL } from './branding';
+import { PLATFORM_SOCIAL_LINKS } from './branding';
 import { bidMessageEmailCopy } from './notification-i18n';
 import {
   contractorProjectTypeMatches,
@@ -266,9 +266,11 @@ export class NotificationsService {
         `<a href="${escapeHtml(options.unsubscribeUrl)}" style="color:#64748b;">Unsubscribe from project alerts</a>`,
       );
     }
-    footerParts.push(
-      `<a href="${escapeHtml(PLATFORM_FACEBOOK_URL)}" style="color:#64748b;">Follow us on ${escapeHtml(PLATFORM_FACEBOOK_LABEL)}</a>`,
-    );
+    const socialLinks = PLATFORM_SOCIAL_LINKS.map(
+      (link) =>
+        `<a href="${escapeHtml(link.href)}" style="color:#64748b;">${escapeHtml(link.label)}</a>`,
+    ).join(' · ');
+    footerParts.push(`Follow us: ${socialLinks}`);
     const footer =
       `<p style="margin:20px 0 0;font-size:12px;line-height:1.5;color:#94a3b8;">${footerParts.join(' · ')}</p>`;
 

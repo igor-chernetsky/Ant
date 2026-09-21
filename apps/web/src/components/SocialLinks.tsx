@@ -14,9 +14,29 @@ function FacebookGlyph() {
   );
 }
 
+function InstagramGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="currentColor"
+      fillRule="evenodd"
+      clipRule="evenodd"
+      focusable="false"
+    >
+      {/* Outer rounded frame, inner lens and the corner dot, cut out with evenodd. */}
+      <path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9A5.5 5.5 0 0 1 16.5 22h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2Zm0 2A3.5 3.5 0 0 0 4 7.5v9A3.5 3.5 0 0 0 7.5 20h9a3.5 3.5 0 0 0 3.5-3.5v-9A3.5 3.5 0 0 0 16.5 4h-9Zm4.5 3.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM17.25 5.5a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Z" />
+    </svg>
+  );
+}
+
 function SocialGlyph({ id }: { id: SocialLink['id'] }) {
   if (id === 'facebook') {
     return <FacebookGlyph />;
+  }
+  if (id === 'instagram') {
+    return <InstagramGlyph />;
   }
   return null;
 }
