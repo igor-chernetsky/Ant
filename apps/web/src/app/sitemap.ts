@@ -32,21 +32,19 @@ function sitemapChangeFrequency(
 /**
  * Whether `/projects/:id` is reachable by an anonymous visitor.
  *
- * Older API deployments answer 404 to guests for every discoverable project, so
- * advertising project URLs would fill Search Console with 404s. One probe
- * decides the whole sitemap; the hourly revalidation picks up the API deploy
- * automatically, in either deploy order.
+ * Older API deployments answered 404 to guests for every discoverable project,
+ * so advertising project URLs then would fill Search Console with 404s. Only an
+ * explicit 404 disables them: `fetchPublicProjectServer` returns `null` solely
+ * for 404, so a thrown error (network, 5xx) is treated as "assume reachable"
+ * rather than silently emptying the sitemap for an hour.
  */
-async function anonymousProjectDetailIsReachable(): Promise<boolean> {
+async function anonymousProjectDetailIsReachable(
+  projectId: string,
+): Promise<boolean> {
   try {
-    const page = await fetchPublicProjectsServer({ limit: 1, offset: 0 });
-    const first = page.items.find((item) => !item.isHidden);
-    if (!first) {
-      return false;
-    }
-    return (await fetchPublicProjectServer(first.id)) !== null;
+    return (await fetchPublicProjectServer(projectId)) !== null;
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -56,6 +54,7 @@ async function collectProjectEntries(
 ): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [];
   const seen = new Set<string>();
+  let lockedViewsAvailable: boolean | null = null;
 
   for (
     let offset = 0;
@@ -78,6 +77,16 @@ async function collectProjectEntries(
 
     for (const project of page.items) {
       if (project.isHidden || seen.has(project.id)) continue;
+
+      if (lockedViewsAvailable === null) {
+        lockedViewsAvailable = await anonymousProjectDetailIsReachable(
+          project.id,
+        );
+        if (!lockedViewsAvailable) {
+          return entries;
+        }
+      }
+
       seen.add(project.id);
       entries.push({
         url: `${base}/projects/${project.id}`,
@@ -108,9 +117,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: sitemapPriority(path),
   }));
 
-  const projectEntries = (await anonymousProjectDetailIsReachable())
-    ? await collectProjectEntries(base, lastModified)
-    : [];
+  const projectEntries = await collectProjectEntries(base, lastModified);
 
   return [...staticEntries, ...projectEntries];
 }

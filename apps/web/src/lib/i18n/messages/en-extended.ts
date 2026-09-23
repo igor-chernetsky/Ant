@@ -2403,6 +2403,15 @@ export const enExtended = {
         "Request quotes from local building-material stores — useful for comparing project prices.",
     },
   },
+  notFound: {
+    title: "We couldn't find that page",
+    lead:
+      "The link may be broken, or the project may have been removed or made private by its owner.",
+    browseProjects: "Browse projects",
+    help: "How BuilTHAI works",
+    materials: "Materials marketplaces",
+    hint: "Looking for a specific project? Open it from the link the client shared, or sign in to see the projects you are taking part in.",
+  },
   projectLocked: {
     type: "Project type",
     propertyType: "Property",

@@ -85,7 +85,7 @@ export default async function RootLayout({
       <body>
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         <SessionProvider>
-          <LocaleProvider>
+          <LocaleProvider initialLocale={lang}>
             <InAppNotificationsProvider>
               {children}
               <NotificationToasts />

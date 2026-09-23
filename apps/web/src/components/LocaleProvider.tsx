@@ -29,9 +29,25 @@ interface LocaleContextValue {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
-export function LocaleProvider({ children }: { children: ReactNode }) {
+export function LocaleProvider({
+  children,
+  initialLocale,
+}: {
+  children: ReactNode;
+  /**
+   * Locale the server rendered this request with. Passed down from the root
+   * layout so the first client render matches the server exactly — including
+   * the case where the middleware negotiated a language from `Accept-Language`
+   * and no cookie exists yet. Without it the client falls back to
+   * `document.cookie`, which on a first visit is still English and would make
+   * every translated string flash from English to the visitor's language.
+   */
+  initialLocale?: Locale;
+}) {
   const { me, ready, setMe } = useSession();
-  const [locale, setLocaleState] = useState<Locale>(resolveInitialLocale);
+  const [locale, setLocaleState] = useState<Locale>(
+    initialLocale ?? resolveInitialLocale,
+  );
 
   useEffect(() => {
     if (!ready) {
