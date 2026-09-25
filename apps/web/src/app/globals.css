@@ -1386,13 +1386,14 @@ pre {
 }
 
 .home-ad-image-link .home-ad-image {
-  object-fit: cover;
-  transition: transform 0.25s ease;
+  /* Contain, not cover: a promo banner must never lose its edges or text. */
+  object-fit: contain;
 }
 
-.home-ad-image-link:hover .home-ad-image,
-.home-ad-image-link:focus-visible .home-ad-image {
-  transform: scale(1.03);
+.home-ad-image-link:hover .home-ad-image-expand,
+.home-ad-image-link:focus-visible .home-ad-image-expand {
+  /* Cue on hover without scaling, which would crop a contained image. */
+  background: rgba(15, 23, 42, 0.82);
 }
 
 .home-ad-image-link:focus-visible {
