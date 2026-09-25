@@ -67,6 +67,8 @@ export const ruExtended = {
     sponsored: "Реклама",
     ariaLabel: "Промо",
     slideN: "Слайд {n}",
+    imagePreview: "Открыть картинку в полном размере",
+    openLink: "Открыть ссылку",
   },
   filters: {
     ariaLabel: "Фильтры проектов",
@@ -700,7 +702,17 @@ export const ruExtended = {
     adsCopySectionLead:
       "Заполните тексты для каждого языка. Переключайтесь между вкладками.",
     adsHref: "Ссылка (путь или URL)",
+    adsHrefOptional: "Ссылка (необязательно)",
+    adsHrefImageHint:
+      "Оставьте пустой — тогда клик по слайду открывает картинку в полном размере.",
     adsImageUrl: "URL изображения",
+    adsTemplate: "Шаблон слайда",
+    adsTemplate_card: "Карточка",
+    adsTemplate_image: "Только картинка",
+    adsTemplateHint_card: "Картинка рядом с заголовком, описанием и кнопкой.",
+    adsTemplateHint_image:
+      "Картинка на весь слайд. Открывает ссылку, а если ссылки нет — саму картинку в попапе.",
+    adsNoLink: "Без ссылки — открывается попап с картинкой",
     adsTitleField: "Заголовок",
     adsDescription: "Описание",
     adsCta: "Текст кнопки",

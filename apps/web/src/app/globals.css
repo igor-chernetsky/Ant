@@ -1361,6 +1361,105 @@ pre {
   background: #7c3aed;
 }
 
+/* `image` template: the picture is the whole slide. */
+.home-ad-card--image {
+  padding: 0;
+}
+
+.home-ad-image-body {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.home-ad-image-link {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.home-ad-image-link .home-ad-image {
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.home-ad-image-link:hover .home-ad-image,
+.home-ad-image-link:focus-visible .home-ad-image {
+  transform: scale(1.03);
+}
+
+.home-ad-image-link:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: -2px;
+}
+
+.home-ad-image-expand {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.62);
+  color: #fff;
+}
+
+/* Full-size overlay for an image slide without a link. */
+.image-lightbox-backdrop {
+  z-index: 60;
+}
+
+.image-lightbox {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: min(1120px, 94vw);
+  max-height: 92vh;
+}
+
+.image-lightbox-image {
+  display: block;
+  max-width: min(1120px, 94vw);
+  max-height: 92vh;
+  width: auto;
+  height: auto;
+  border-radius: 12px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.image-lightbox-close {
+  position: absolute;
+  top: -0.75rem;
+  right: -0.75rem;
+  z-index: 1;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #0f172a;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
+.image-lightbox-close:hover {
+  background: #f1f5f9;
+}
+
 .admin-projects-page {
   width: 100%;
   max-width: none;
@@ -1762,6 +1861,60 @@ pre {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.85rem;
+}
+
+/* Template picker: one card per layout. */
+.admin-ads-template {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.admin-ads-template-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-ads-template-option:hover {
+  border-color: color-mix(in srgb, var(--accent, #2563eb) 45%, var(--border));
+}
+
+.admin-ads-template-option.is-active {
+  border-color: var(--accent, #2563eb);
+  box-shadow: 0 0 0 1px var(--accent, #2563eb) inset;
+}
+
+.admin-ads-template-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.admin-ads-template-hint {
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.admin-ads-field-hint {
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.admin-ads-template-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text, #0f172a) 70%, #64748b);
 }
 
 .admin-ads-settings-footer {

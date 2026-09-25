@@ -67,6 +67,8 @@ export const enExtended = {
     sponsored: "Sponsored",
     ariaLabel: "Promotions",
     slideN: "Slide {n}",
+    imagePreview: "Open full-size image",
+    openLink: "Open link",
   },
   filters: {
     ariaLabel: "Project filters",
@@ -698,7 +700,17 @@ export const enExtended = {
     adsCopySectionLead:
       "Fill in copy for each language. Use the tabs to switch between locales.",
     adsHref: "Link (path or URL)",
+    adsHrefOptional: "Link (optional)",
+    adsHrefImageHint:
+      "Leave empty and clicking the slide opens the image full size instead.",
     adsImageUrl: "Image URL",
+    adsTemplate: "Slide template",
+    adsTemplate_card: "Card",
+    adsTemplate_image: "Image only",
+    adsTemplateHint_card: "Image next to a title, description and button.",
+    adsTemplateHint_image:
+      "Full-bleed picture on its own. Opens the link, or the image in a popup when there is no link.",
+    adsNoLink: "No link — opens the image in a popup",
     adsTitleField: "Title",
     adsDescription: "Description",
     adsCta: "Button label",

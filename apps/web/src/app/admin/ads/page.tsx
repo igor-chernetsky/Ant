@@ -12,6 +12,7 @@ import {
   updateAdminHomeAd,
   type HomeAdSlide,
   type HomeAdSlideInput,
+  type HomeAdTemplate,
   type LocaleCopy,
 } from '@/lib/home-ads';
 import { isAdmin } from '@/lib/verification';
@@ -19,10 +20,13 @@ import { isAdmin } from '@/lib/verification';
 const LOCALES = ['en', 'ru', 'th'] as const;
 type AdLocale = (typeof LOCALES)[number];
 
+const TEMPLATES: readonly HomeAdTemplate[] = ['card', 'image'];
+
 const EMPTY_COPY: LocaleCopy = { en: '', ru: '', th: '' };
 
 const EMPTY_DRAFT: HomeAdSlideInput = {
   enabled: true,
+  template: 'card',
   href: '',
   imageUrl: '',
   title: { ...EMPTY_COPY },
@@ -61,7 +65,8 @@ export default function AdminAdsPage() {
     setEditingId(slide.id);
     setDraft({
       enabled: slide.enabled,
-      href: slide.href,
+      template: slide.template,
+      href: slide.href ?? '',
       imageUrl: slide.imageUrl,
       title: { ...slide.title },
       description: { ...slide.description },
@@ -213,19 +218,55 @@ export default function AdminAdsPage() {
                   <h3 className="admin-ads-form-section-title">
                     {t('admin.adsSettingsSection')}
                   </h3>
+
+                  <div
+                    className="admin-ads-template"
+                    role="radiogroup"
+                    aria-label={t('admin.adsTemplate')}
+                  >
+                    {TEMPLATES.map((template) => (
+                      <button
+                        key={template}
+                        type="button"
+                        role="radio"
+                        aria-checked={draft.template === template}
+                        className={`admin-ads-template-option${
+                          draft.template === template ? ' is-active' : ''
+                        }`}
+                        onClick={() =>
+                          setDraft((prev) => ({ ...prev, template }))
+                        }
+                      >
+                        <span className="admin-ads-template-name">
+                          {t(`admin.adsTemplate_${template}`)}
+                        </span>
+                        <span className="admin-ads-template-hint muted">
+                          {t(`admin.adsTemplateHint_${template}`)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="admin-ads-settings-grid">
                     <label className="admin-ads-field">
                       <span className="admin-ads-field-label">
-                        {t('admin.adsHref')}
+                        {draft.template === 'image'
+                          ? t('admin.adsHrefOptional')
+                          : t('admin.adsHref')}
                       </span>
                       <input
-                        value={draft.href}
+                        value={draft.href ?? ''}
                         onChange={(e) =>
                           setDraft((prev) => ({ ...prev, href: e.target.value }))
                         }
                         placeholder="/materials"
-                        required
+                        required={draft.template !== 'image'}
                       />
+                      {draft.template === 'image' ? (
+                        <span className="admin-ads-field-hint muted">
+                          {t('admin.adsHrefImageHint')}
+                        </span>
+                      ) : null}
                     </label>
                     <label className="admin-ads-field">
                       <span className="admin-ads-field-label">
@@ -268,85 +309,87 @@ export default function AdminAdsPage() {
                   </div>
                 </div>
 
-                <div className="admin-ads-form-section">
-                  <h3 className="admin-ads-form-section-title">
-                    {t('admin.adsCopySection')}
-                  </h3>
-                  <p className="admin-ads-form-section-lead muted">
-                    {t('admin.adsCopySectionLead')}
-                  </p>
+                {draft.template === 'card' ? (
+                  <div className="admin-ads-form-section">
+                    <h3 className="admin-ads-form-section-title">
+                      {t('admin.adsCopySection')}
+                    </h3>
+                    <p className="admin-ads-form-section-lead muted">
+                      {t('admin.adsCopySectionLead')}
+                    </p>
 
-                  <div
-                    className="admin-ads-locale-tabs"
-                    role="tablist"
-                    aria-label={t('admin.adsCopySection')}
-                  >
+                    <div
+                      className="admin-ads-locale-tabs"
+                      role="tablist"
+                      aria-label={t('admin.adsCopySection')}
+                    >
+                      {LOCALES.map((locale) => (
+                        <button
+                          key={locale}
+                          type="button"
+                          role="tab"
+                          className={`admin-ads-locale-tab${
+                            activeLocale === locale ? ' is-active' : ''
+                          }`}
+                          aria-selected={activeLocale === locale}
+                          onClick={() => setActiveLocale(locale)}
+                        >
+                          {t(`header.lang_${locale}`)}
+                          {localeFilled(locale) ? (
+                            <span className="admin-ads-locale-dot" aria-hidden />
+                          ) : null}
+                        </button>
+                      ))}
+                    </div>
+
                     {LOCALES.map((locale) => (
-                      <button
+                      <div
                         key={locale}
-                        type="button"
-                        role="tab"
-                        className={`admin-ads-locale-tab${
-                          activeLocale === locale ? ' is-active' : ''
-                        }`}
-                        aria-selected={activeLocale === locale}
-                        onClick={() => setActiveLocale(locale)}
+                        className="admin-ads-locale-panel"
+                        role="tabpanel"
+                        hidden={activeLocale !== locale}
                       >
-                        {t(`header.lang_${locale}`)}
-                        {localeFilled(locale) ? (
-                          <span className="admin-ads-locale-dot" aria-hidden />
-                        ) : null}
-                      </button>
+                        <label className="admin-ads-field">
+                          <span className="admin-ads-field-label">
+                            {t('admin.adsTitleField')}
+                          </span>
+                          <input
+                            value={draft.title[locale]}
+                            onChange={(e) =>
+                              setCopy('title', locale, e.target.value)
+                            }
+                            required
+                          />
+                        </label>
+                        <label className="admin-ads-field">
+                          <span className="admin-ads-field-label">
+                            {t('admin.adsDescription')}
+                          </span>
+                          <textarea
+                            rows={4}
+                            value={draft.description[locale]}
+                            onChange={(e) =>
+                              setCopy('description', locale, e.target.value)
+                            }
+                            required
+                          />
+                        </label>
+                        <label className="admin-ads-field">
+                          <span className="admin-ads-field-label">
+                            {t('admin.adsCta')}
+                          </span>
+                          <input
+                            value={draft.ctaLabel[locale]}
+                            onChange={(e) =>
+                              setCopy('ctaLabel', locale, e.target.value)
+                            }
+                            required
+                          />
+                        </label>
+                      </div>
                     ))}
                   </div>
-
-                  {LOCALES.map((locale) => (
-                    <div
-                      key={locale}
-                      className="admin-ads-locale-panel"
-                      role="tabpanel"
-                      hidden={activeLocale !== locale}
-                    >
-                      <label className="admin-ads-field">
-                        <span className="admin-ads-field-label">
-                          {t('admin.adsTitleField')}
-                        </span>
-                        <input
-                          value={draft.title[locale]}
-                          onChange={(e) =>
-                            setCopy('title', locale, e.target.value)
-                          }
-                          required
-                        />
-                      </label>
-                      <label className="admin-ads-field">
-                        <span className="admin-ads-field-label">
-                          {t('admin.adsDescription')}
-                        </span>
-                        <textarea
-                          rows={4}
-                          value={draft.description[locale]}
-                          onChange={(e) =>
-                            setCopy('description', locale, e.target.value)
-                          }
-                          required
-                        />
-                      </label>
-                      <label className="admin-ads-field">
-                        <span className="admin-ads-field-label">
-                          {t('admin.adsCta')}
-                        </span>
-                        <input
-                          value={draft.ctaLabel[locale]}
-                          onChange={(e) =>
-                            setCopy('ctaLabel', locale, e.target.value)
-                          }
-                          required
-                        />
-                      </label>
-                    </div>
-                  ))}
-                </div>
+                ) : null}
 
                 <div className="admin-ads-form-actions">
                   <button type="submit" className="primary" disabled={busy}>
@@ -389,7 +432,14 @@ export default function AdminAdsPage() {
                       </div>
                       <div className="admin-ads-card-main">
                         <div className="admin-ads-card-head">
-                          <strong>{slide.title.en || slide.href}</strong>
+                          <strong>
+                            {slide.title.en ||
+                              slide.href ||
+                              t('admin.adsTemplate_image')}
+                          </strong>
+                          <span className="admin-ads-template-badge">
+                            {t(`admin.adsTemplate_${slide.template}`)}
+                          </span>
                           <span
                             className={`admin-ads-status${
                               slide.enabled ? ' is-enabled' : ''
@@ -400,10 +450,14 @@ export default function AdminAdsPage() {
                               : t('admin.adsDisabled')}
                           </span>
                         </div>
-                        <p className="admin-ads-card-meta muted">{slide.href}</p>
-                        <p className="admin-ads-card-copy muted">
-                          {slide.description.en}
+                        <p className="admin-ads-card-meta muted">
+                          {slide.href ?? t('admin.adsNoLink')}
                         </p>
+                        {slide.description.en ? (
+                          <p className="admin-ads-card-copy muted">
+                            {slide.description.en}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="admin-ads-card-actions">
                         <button

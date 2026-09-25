@@ -67,6 +67,8 @@ export const thExtended = {
     sponsored: "โฆษณา",
     ariaLabel: "โปรโมชัน",
     slideN: "สไลด์ {n}",
+    imagePreview: "เปิดรูปภาพขนาดเต็ม",
+    openLink: "เปิดลิงก์",
   },
   filters: {
     ariaLabel: "ตัวกรองโครงการ",
@@ -697,7 +699,17 @@ export const thExtended = {
     adsCopySectionLead:
       "กรอกข้อความสำหรับแต่ละภาษา ใช้แท็บเพื่อสลับภาษา",
     adsHref: "ลิงก์ (พาธหรือ URL)",
+    adsHrefOptional: "ลิงก์ (ไม่บังคับ)",
+    adsHrefImageHint:
+      "เว้นว่างไว้ แล้วการคลิกสไลด์จะเปิดรูปภาพขนาดเต็มแทน",
     adsImageUrl: "URL รูปภาพ",
+    adsTemplate: "เทมเพลตสไลด์",
+    adsTemplate_card: "การ์ด",
+    adsTemplate_image: "รูปภาพเท่านั้น",
+    adsTemplateHint_card: "รูปภาพพร้อมหัวข้อ คำอธิบาย และปุ่ม",
+    adsTemplateHint_image:
+      "รูปภาพเต็มสไลด์ เปิดลิงก์ หรือถ้าไม่มีลิงก์จะเปิดรูปภาพในป๊อปอัป",
+    adsNoLink: "ไม่มีลิงก์ — เปิดรูปภาพในป๊อปอัป",
     adsTitleField: "หัวข้อ",
     adsDescription: "คำอธิบาย",
     adsCta: "ข้อความปุ่ม",

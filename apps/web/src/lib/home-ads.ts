@@ -6,11 +6,19 @@ export type LocaleCopy = {
   th: string;
 };
 
+/**
+ * Slide layout. `card` is the original layout (image plus copy), `image` shows
+ * the picture alone.
+ */
+export type HomeAdTemplate = 'card' | 'image';
+
 export interface HomeAdSlide {
   id: string;
   sortOrder: number;
   enabled: boolean;
-  href: string;
+  template: HomeAdTemplate;
+  /** Required for `card`; `null` on an `image` slide means "open the lightbox". */
+  href: string | null;
   imageUrl: string;
   title: LocaleCopy;
   description: LocaleCopy;
@@ -22,7 +30,8 @@ export type PublicHomeAdSlide = Omit<HomeAdSlide, 'sortOrder' | 'enabled'>;
 export interface HomeAdSlideInput {
   sortOrder?: number;
   enabled?: boolean;
-  href: string;
+  template?: HomeAdTemplate;
+  href?: string | null;
   imageUrl: string;
   title: LocaleCopy;
   description: LocaleCopy;

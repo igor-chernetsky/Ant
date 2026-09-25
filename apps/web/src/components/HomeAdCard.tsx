@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { ImageLightbox } from '@/components/ImageLightbox';
 import { useTranslation } from '@/components/LocaleProvider';
 import type { PublicHomeAdSlide } from '@/lib/home-ads';
 import type { Locale } from '@/lib/i18n';
@@ -39,73 +40,129 @@ function ExternalIcon() {
   );
 }
 
+function ExpandIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M9 4H4v5" />
+      <path d="M15 20h5v-5" />
+      <path d="M20 9V4h-5" />
+      <path d="M4 15v5h5" />
+    </svg>
+  );
+}
+
 export function HomeAdCard({ slides }: { slides: PublicHomeAdSlide[] }) {
   const { t, locale } = useTranslation();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     setIndex(0);
+    setPreviewOpen(false);
   }, [slides]);
 
   useEffect(() => {
-    if (slides.length < 2 || paused) return;
+    // Keep the slide still while the full-size overlay is open.
+    if (slides.length < 2 || paused || previewOpen) return;
     const timer = window.setInterval(() => {
       setIndex((current) => (current + 1) % slides.length);
     }, ROTATE_MS);
     return () => window.clearInterval(timer);
-  }, [slides.length, paused]);
+  }, [slides.length, paused, previewOpen]);
 
   const slide = slides[index];
   if (!slide) return null;
 
-  const title = copyForLocale(slide.title, locale);
-  const description = copyForLocale(slide.description, locale);
-  const cta = copyForLocale(slide.ctaLabel, locale);
-  const external = isExternalHref(slide.href);
-
-  const ctaClassName = 'home-ad-cta';
-  const ctaInner = (
-    <>
-      {cta}
-      {external ? <ExternalIcon /> : null}
-    </>
-  );
+  const isImageTemplate = slide.template === 'image';
+  const href = slide.href?.trim() ? slide.href : null;
+  const external = href ? isExternalHref(href) : false;
+  const accessibleLabel =
+    copyForLocale(slide.title, locale) || t('homeAds.imagePreview');
 
   return (
     <div className="home-ad-slot">
       <article
-        className="home-ad-card"
+        className={`home-ad-card${isImageTemplate ? ' home-ad-card--image' : ''}`}
         aria-roledescription="carousel"
         aria-label={t('homeAds.ariaLabel')}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
         <span className="home-ad-sponsored">{t('homeAds.sponsored')}</span>
-        <div className="home-ad-body">
-          <div className="home-ad-copy">
-            <h3 className="home-ad-title">{title}</h3>
-            <p className="home-ad-description">{description}</p>
-            {external ? (
+
+        {isImageTemplate ? (
+          <div className="home-ad-image-body">
+            {href ? (
               <a
-                className={ctaClassName}
-                href={slide.href}
+                className="home-ad-image-link"
+                href={href}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={accessibleLabel}
               >
-                {ctaInner}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="home-ad-image" src={slide.imageUrl} alt="" />
               </a>
             ) : (
-              <Link className={ctaClassName} href={slide.href}>
-                {ctaInner}
-              </Link>
+              <button
+                type="button"
+                className="home-ad-image-link"
+                onClick={() => setPreviewOpen(true)}
+                aria-label={accessibleLabel}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="home-ad-image" src={slide.imageUrl} alt="" />
+                <span className="home-ad-image-expand" aria-hidden>
+                  <ExpandIcon />
+                </span>
+              </button>
             )}
           </div>
-          <div className="home-ad-media">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="home-ad-image" src={slide.imageUrl} alt="" />
+        ) : (
+          <div className="home-ad-body">
+            <div className="home-ad-copy">
+              <h3 className="home-ad-title">
+                {copyForLocale(slide.title, locale)}
+              </h3>
+              <p className="home-ad-description">
+                {copyForLocale(slide.description, locale)}
+              </p>
+              {href ? (
+                external ? (
+                  <a
+                    className="home-ad-cta"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {copyForLocale(slide.ctaLabel, locale)}
+                    <ExternalIcon />
+                  </a>
+                ) : (
+                  <Link className="home-ad-cta" href={href}>
+                    {copyForLocale(slide.ctaLabel, locale)}
+                  </Link>
+                )
+              ) : null}
+            </div>
+            <div className="home-ad-media">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="home-ad-image" src={slide.imageUrl} alt="" />
+            </div>
           </div>
-        </div>
+        )}
+
         {slides.length > 1 && (
           <div className="home-ad-dots" role="tablist">
             {slides.map((item, itemIndex) => (
@@ -118,12 +175,23 @@ export function HomeAdCard({ slides }: { slides: PublicHomeAdSlide[] }) {
                 }`}
                 aria-label={t('homeAds.slideN', { n: String(itemIndex + 1) })}
                 aria-selected={itemIndex === index}
-                onClick={() => setIndex(itemIndex)}
+                onClick={() => {
+                  setPreviewOpen(false);
+                  setIndex(itemIndex);
+                }}
               />
             ))}
           </div>
         )}
       </article>
+
+      {isImageTemplate && (
+        <ImageLightbox
+          src={slide.imageUrl}
+          isOpen={previewOpen}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
     </div>
   );
 }
