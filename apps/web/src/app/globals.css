@@ -1908,6 +1908,36 @@ pre {
   line-height: 1.35;
 }
 
+/* Image source: link vs uploaded file. */
+.admin-ads-image-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.admin-ads-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.admin-ads-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.admin-ads-upload-badge {
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .admin-ads-template-badge {
   padding: 0.1rem 0.5rem;
   border-radius: 999px;

@@ -1,15 +1,20 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { LoginModal } from '@/components/LoginModal';
 import { useTranslation } from '@/components/LocaleProvider';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
 import {
+  AD_IMAGE_ACCEPT,
+  MAX_AD_IMAGE_BYTES,
   createAdminHomeAd,
   deleteAdminHomeAd,
   fetchAdminHomeAds,
+  homeAdImageSrc,
   updateAdminHomeAd,
+  uploadAdminHomeAdImage,
+  type HomeAdImageSource,
   type HomeAdSlide,
   type HomeAdSlideInput,
   type HomeAdTemplate,
@@ -21,12 +26,14 @@ const LOCALES = ['en', 'ru', 'th'] as const;
 type AdLocale = (typeof LOCALES)[number];
 
 const TEMPLATES: readonly HomeAdTemplate[] = ['card', 'image'];
+const IMAGE_SOURCES: readonly HomeAdImageSource[] = ['url', 'upload'];
 
 const EMPTY_COPY: LocaleCopy = { en: '', ru: '', th: '' };
 
 const EMPTY_DRAFT: HomeAdSlideInput = {
   enabled: true,
   template: 'card',
+  imageSource: 'url',
   href: '',
   imageUrl: '',
   title: { ...EMPTY_COPY },
@@ -43,8 +50,16 @@ export default function AdminAdsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeLocale, setActiveLocale] = useState<AdLocale>('en');
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  /**
+   * Preview for a file uploaded in this session. The stored image is only
+   * reachable through the API route once the slide exists, so a fresh upload
+   * shows a local object URL until the form is saved.
+   */
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const next = await fetchAdminHomeAds();
@@ -66,12 +81,14 @@ export default function AdminAdsPage() {
     setDraft({
       enabled: slide.enabled,
       template: slide.template,
+      imageSource: slide.imageUploaded ? 'upload' : 'url',
       href: slide.href ?? '',
-      imageUrl: slide.imageUrl,
+      imageUrl: slide.imageUploaded ? '' : (slide.imageUrl ?? ''),
       title: { ...slide.title },
       description: { ...slide.description },
       ctaLabel: { ...slide.ctaLabel },
     });
+    setLocalPreview(null);
     setActiveLocale('en');
     setError(null);
   };
@@ -79,18 +96,81 @@ export default function AdminAdsPage() {
   const resetForm = () => {
     setEditingId(null);
     setDraft(EMPTY_DRAFT);
+    setLocalPreview((previous) => {
+      if (previous) URL.revokeObjectURL(previous);
+      return null;
+    });
     setActiveLocale('en');
+  };
+
+  const handleImageFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setUploading(true);
+    setError(null);
+    try {
+      const storageKey = await uploadAdminHomeAdImage(file);
+      setDraft((prev) => ({
+        ...prev,
+        imageSource: 'upload',
+        imageStorageKey: storageKey,
+        imageUrl: '',
+      }));
+      setLocalPreview((previous) => {
+        if (previous) URL.revokeObjectURL(previous);
+        return URL.createObjectURL(file);
+      });
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('admin.adsImageUploadFailed'),
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const editedSlide = slides.find((slide) => slide.id === editingId) ?? null;
+  /** Image already saved on the server for the slide being edited. */
+  const hasStoredImage = Boolean(editedSlide?.imageUploaded);
+
+  /** Draft payload: only the selected image source is sent to the API. */
+  const buildPayload = (): HomeAdSlideInput => {
+    const {
+      imageStorageKey,
+      imageUrl,
+      imageSource: _imageSource,
+      ...rest
+    } = draft;
+
+    if (draft.imageSource === 'upload') {
+      // Send the key only for a file uploaded in this session. Otherwise the
+      // slide already has its image and the field must stay untouched.
+      return imageStorageKey
+        ? { ...rest, imageSource: 'upload', imageStorageKey }
+        : { ...rest };
+    }
+
+    return { ...rest, imageSource: 'url', imageUrl: (imageUrl ?? '').trim() };
   };
 
   const handleSave = async (event: FormEvent) => {
     event.preventDefault();
+
+    if (draft.imageSource === 'upload' && !draft.imageStorageKey && !hasStoredImage) {
+      setError(t('admin.adsImageRequired'));
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
+      const payload = buildPayload();
       if (editingId) {
-        await updateAdminHomeAd(editingId, draft);
+        await updateAdminHomeAd(editingId, payload);
       } else {
-        await createAdminHomeAd(draft);
+        await createAdminHomeAd(payload);
       }
       resetForm();
       await load();
@@ -268,22 +348,111 @@ export default function AdminAdsPage() {
                         </span>
                       ) : null}
                     </label>
-                    <label className="admin-ads-field">
-                      <span className="admin-ads-field-label">
-                        {t('admin.adsImageUrl')}
-                      </span>
-                      <input
-                        value={draft.imageUrl}
-                        onChange={(e) =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            imageUrl: e.target.value,
-                          }))
-                        }
-                        placeholder="/ads/materials.png"
-                        required
-                      />
-                    </label>
+                  </div>
+
+                  <div className="admin-ads-image-block">
+                    <span className="admin-ads-field-label">
+                      {t('admin.adsImageSource')}
+                    </span>
+
+                    <div
+                      className="admin-ads-template"
+                      role="radiogroup"
+                      aria-label={t('admin.adsImageSource')}
+                    >
+                      {IMAGE_SOURCES.map((source) => (
+                        <button
+                          key={source}
+                          type="button"
+                          role="radio"
+                          aria-checked={draft.imageSource === source}
+                          className={`admin-ads-template-option${
+                            draft.imageSource === source ? ' is-active' : ''
+                          }`}
+                          onClick={() =>
+                            setDraft((prev) => ({ ...prev, imageSource: source }))
+                          }
+                        >
+                          <span className="admin-ads-template-name">
+                            {t(`admin.adsImageSource_${source}`)}
+                          </span>
+                          <span className="admin-ads-template-hint muted">
+                            {t(`admin.adsImageSourceHint_${source}`)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {draft.imageSource === 'upload' ? (
+                      <div className="admin-ads-upload">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          className="sr-only"
+                          accept={AD_IMAGE_ACCEPT}
+                          onChange={(e) => void handleImageFile(e)}
+                          disabled={uploading}
+                        />
+                        <div className="admin-ads-upload-actions">
+                          <button
+                            type="button"
+                            className="secondary"
+                            disabled={uploading}
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            {uploading
+                              ? t('admin.adsImageUploading')
+                              : draft.imageStorageKey
+                                ? t('admin.adsImageReplace')
+                                : t('admin.adsImageUpload')}
+                          </button>
+                          {localPreview ? (
+                            <span className="admin-ads-upload-badge">
+                              {t('admin.adsImageUploaded')}
+                            </span>
+                          ) : null}
+                        </div>
+                        <span className="admin-ads-field-hint muted">
+                          {t('admin.adsImageUploadHint', {
+                            maxMb: String(MAX_AD_IMAGE_BYTES / (1024 * 1024)),
+                          })}
+                        </span>
+                        {localPreview || (hasStoredImage && editedSlide) ? (
+                          <div className="admin-ads-preview">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={
+                                localPreview ?? homeAdImageSrc(editedSlide!)
+                              }
+                              alt=""
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <label className="admin-ads-field">
+                        <span className="admin-ads-field-label">
+                          {t('admin.adsImageUrl')}
+                        </span>
+                        <input
+                          value={draft.imageUrl ?? ''}
+                          onChange={(e) =>
+                            setDraft((prev) => ({
+                              ...prev,
+                              imageUrl: e.target.value,
+                            }))
+                          }
+                          placeholder="/ads/materials.png"
+                          required
+                        />
+                        {draft.imageUrl?.trim() ? (
+                          <div className="admin-ads-preview">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={draft.imageUrl} alt="" />
+                          </div>
+                        ) : null}
+                      </label>
+                    )}
                   </div>
 
                   <div className="admin-ads-settings-footer">
@@ -300,12 +469,6 @@ export default function AdminAdsPage() {
                       />
                       <span>{t('admin.adsEnabled')}</span>
                     </label>
-                    {draft.imageUrl.trim() ? (
-                      <div className="admin-ads-preview">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={draft.imageUrl} alt="" />
-                      </div>
-                    ) : null}
                   </div>
                 </div>
 
@@ -428,7 +591,7 @@ export default function AdminAdsPage() {
                     >
                       <div className="admin-ads-card-preview">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={slide.imageUrl} alt="" />
+                        <img src={homeAdImageSrc(slide)} alt="" />
                       </div>
                       <div className="admin-ads-card-main">
                         <div className="admin-ads-card-head">

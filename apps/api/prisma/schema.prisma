@@ -1012,7 +1012,11 @@ model HomeAdSlide {
   template       HomeAdSlideTemplate @default(card)
   /// Optional: required for `card`, optional for `image` (empty = lightbox).
   href           String?
-  imageUrl       String   @map("image_url")
+  /// External or `/public` image URL. Null when the image was uploaded.
+  imageUrl       String?  @map("image_url")
+  /// Object-storage key of an uploaded image. Null when `imageUrl` is used.
+  /// Exactly one of the two is set; the service enforces it.
+  imageStorageKey String? @map("image_storage_key")
   titleEn        String   @map("title_en")
   titleRu        String   @map("title_ru")
   titleTh        String   @map("title_th")

@@ -706,6 +706,21 @@ export const ruExtended = {
     adsHrefImageHint:
       "Оставьте пустой — тогда клик по слайду открывает картинку в полном размере.",
     adsImageUrl: "URL изображения",
+    adsImageSource: "Изображение",
+    adsImageSource_url: "Ссылка на картинку",
+    adsImageSource_upload: "Загрузить файл",
+    adsImageSourceHint_url:
+      "Файл из /public или любой https-адрес.",
+    adsImageSourceHint_upload:
+      "Хранится в объектном хранилище и отдаётся с нашего домена.",
+    adsImageUpload: "Выбрать картинку",
+    adsImageReplace: "Заменить картинку",
+    adsImageUploading: "Загрузка…",
+    adsImageUploaded: "Готово к сохранению",
+    adsImageUploadHint: "JPEG, PNG, WebP или AVIF, до {maxMb} МБ.",
+    adsImageRequired:
+      "Загрузите картинку или переключитесь на вариант со ссылкой.",
+    adsImageUploadFailed: "Не удалось загрузить картинку",
     adsTemplate: "Шаблон слайда",
     adsTemplate_card: "Карточка",
     adsTemplate_image: "Только картинка",

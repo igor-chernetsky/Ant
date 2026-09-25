@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ImageLightbox } from '@/components/ImageLightbox';
 import { useTranslation } from '@/components/LocaleProvider';
-import type { PublicHomeAdSlide } from '@/lib/home-ads';
+import { homeAdImageSrc, type PublicHomeAdSlide } from '@/lib/home-ads';
 import type { Locale } from '@/lib/i18n';
 
 const ROTATE_MS = 6500;
@@ -87,6 +87,7 @@ export function HomeAdCard({ slides }: { slides: PublicHomeAdSlide[] }) {
   const isImageTemplate = slide.template === 'image';
   const href = slide.href?.trim() ? slide.href : null;
   const external = href ? isExternalHref(href) : false;
+  const imageSrc = homeAdImageSrc(slide);
   const accessibleLabel =
     copyForLocale(slide.title, locale) || t('homeAds.imagePreview');
 
@@ -112,7 +113,7 @@ export function HomeAdCard({ slides }: { slides: PublicHomeAdSlide[] }) {
                 aria-label={accessibleLabel}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="home-ad-image" src={slide.imageUrl} alt="" />
+                <img className="home-ad-image" src={imageSrc} alt="" />
               </a>
             ) : (
               <button
@@ -122,7 +123,7 @@ export function HomeAdCard({ slides }: { slides: PublicHomeAdSlide[] }) {
                 aria-label={accessibleLabel}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="home-ad-image" src={slide.imageUrl} alt="" />
+                <img className="home-ad-image" src={imageSrc} alt="" />
                 <span className="home-ad-image-expand" aria-hidden>
                   <ExpandIcon />
                 </span>
@@ -158,7 +159,7 @@ export function HomeAdCard({ slides }: { slides: PublicHomeAdSlide[] }) {
             </div>
             <div className="home-ad-media">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="home-ad-image" src={slide.imageUrl} alt="" />
+              <img className="home-ad-image" src={imageSrc} alt="" />
             </div>
           </div>
         )}
@@ -187,7 +188,7 @@ export function HomeAdCard({ slides }: { slides: PublicHomeAdSlide[] }) {
 
       {isImageTemplate && (
         <ImageLightbox
-          src={slide.imageUrl}
+          src={imageSrc}
           isOpen={previewOpen}
           onClose={() => setPreviewOpen(false)}
         />
