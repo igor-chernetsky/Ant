@@ -371,6 +371,7 @@ export function ProductTourVideo({
       <div className="product-tour-video-copy">
         <h2 className="section-title">{title}</h2>
         <p className="product-tour-section-body">{body}</p>
+        {note ? <p className="muted product-tour-video-note">{note}</p> : null}
       </div>
       <div className="product-tour-video-frame">
         <video
@@ -382,7 +383,6 @@ export function ProductTourVideo({
           aria-label={title}
         />
       </div>
-      {note ? <p className="muted product-tour-video-note">{note}</p> : null}
     </section>
   );
 }
