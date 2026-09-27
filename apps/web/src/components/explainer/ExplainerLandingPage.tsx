@@ -13,6 +13,7 @@ import {
   ProductTourFaq,
   ProductTourHero,
   ProductTourSection,
+  ProductTourVideo,
   ProductTourWorkflowNav,
   useProductTourLayout,
   useWorkflowScrollSpy,
@@ -20,6 +21,7 @@ import {
   type TourFaqItem,
   type TourWorkflowStep,
 } from '@/components/explainer/ProductTourSections';
+import { PLATFORM_INTRO_VIDEO_SRC } from '@/lib/platform-video';
 import {
   ClientAnalyzePreview,
   ClientClarifyPreview,
@@ -354,6 +356,13 @@ function ContractorTourPage({ base }: { base: string }) {
         secondaryLabel={t(`${base}.heroSecondaryCta`)}
         secondaryHref="/"
         visual={<ContractorHeroPreview />}
+      />
+
+      <ProductTourVideo
+        title={t(`${base}.videoTitle`)}
+        body={t(`${base}.videoBody`)}
+        note={t(`${base}.videoNote`)}
+        src={PLATFORM_INTRO_VIDEO_SRC}
       />
 
       {contractorSections.map((section) => (

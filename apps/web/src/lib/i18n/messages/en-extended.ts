@@ -2305,6 +2305,11 @@ export const enExtended = {
         "Discover construction and renovation projects, understand the scope, ask the right questions and submit structured proposals.",
       heroPrimaryCta: "Create contractor profile",
       heroSecondaryCta: "Browse projects",
+      videoTitle: "How BuilTHAI works for contractors",
+      videoBody:
+        "A short walkthrough of the platform: setting up your company profile, finding projects that match your trades and service areas, clarifying scope with the client, and submitting a structured proposal.",
+      videoNote:
+        "1 minute 40 seconds. Watch before you register so you know what happens at each step.",
       workflow: {
         step1: "Profile",
         step2: "Discover",

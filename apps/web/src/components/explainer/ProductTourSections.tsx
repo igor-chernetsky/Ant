@@ -312,8 +312,47 @@ export function ProductTourSection({
   );
 }
 
-export function ProductTourDifferentiators({
+/**
+ * Platform intro video: full-width block placed right after the hero.
+ *
+ * `preload="metadata"` fetches only the header and first frames, so the first
+ * frame acts as the poster and the 11.5 MB file is downloaded only when the
+ * visitor presses play. No autoplay, so nobody pays for the download by
+ * accident.
+ */
+export function ProductTourVideo({
   title,
+  body,
+  note,
+  src,
+}: {
+  title: string;
+  body: string;
+  note?: string;
+  src: string;
+}) {
+  return (
+    <section className="product-tour-video product-tour-wrap">
+      <div className="product-tour-video-copy">
+        <h2 className="section-title">{title}</h2>
+        <p className="product-tour-section-body">{body}</p>
+      </div>
+      <div className="product-tour-video-frame">
+        <video
+          className="product-tour-video-player"
+          src={src}
+          controls
+          playsInline
+          preload="metadata"
+          aria-label={title}
+        />
+      </div>
+      {note ? <p className="muted product-tour-video-note">{note}</p> : null}
+    </section>
+  );
+}
+
+export function ProductTourDifferentiators({  title,
   items,
 }: {
   title: string;

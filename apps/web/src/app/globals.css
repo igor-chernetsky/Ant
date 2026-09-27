@@ -1386,7 +1386,7 @@ pre {
 }
 
 .home-ad-image-link .home-ad-image {
-  /* Contain, not cover: a promo banner must never lose its edges or text. */
+  /* Fully visible: a promo banner must never lose its edges or text. */
   object-fit: contain;
 }
 
@@ -1395,7 +1395,6 @@ pre {
   /* Cue on hover without scaling, which would crop a contained image. */
   background: rgba(15, 23, 42, 0.82);
 }
-
 .home-ad-image-link:focus-visible {
   outline: 2px solid #7c3aed;
   outline-offset: -2px;
@@ -14913,6 +14912,46 @@ main.product-tour-page {
 
 .product-tour-workflow-mobile {
   display: none;
+}
+
+/* Platform intro video: full-width block after the hero. */
+.product-tour-video {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding-top: clamp(2rem, 4vw, 3.25rem);
+  padding-bottom: clamp(2rem, 4vw, 3.25rem);
+}
+
+.product-tour-video-copy .section-title {
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.5rem, 2.6vw, 2.15rem);
+  letter-spacing: -0.025em;
+}
+
+.product-tour-video-frame {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.product-tour-video-player {
+  width: min(100%, 54rem);
+  /* Matches the 912x576 source; `contain` keeps a replacement file safe. */
+  aspect-ratio: 912 / 576;
+  height: auto;
+  object-fit: contain;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: #0b1220;
+  box-shadow: var(--shadow-glass);
+}
+
+.product-tour-video-note {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  max-width: 38rem;
 }
 
 .product-tour-section {
