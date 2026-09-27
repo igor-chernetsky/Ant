@@ -14,6 +14,7 @@ import {
   ProductTourHero,
   ProductTourSection,
   ProductTourVideo,
+  ProductTourWorkflowIntro,
   ProductTourWorkflowNav,
   useProductTourLayout,
   useWorkflowScrollSpy,
@@ -204,13 +205,6 @@ function ClientTourPage({ base }: { base: string }) {
 
   return (
     <>
-      <ProductTourWorkflowNav
-        steps={workflowSteps}
-        activeId={activeId}
-        onSelect={scrollTo}
-        ariaLabel={t('explainer.workflowNavAria')}
-      />
-
       <ProductTourHero
         kicker={t(`${base}.heroKicker`)}
         title={t(`${base}.heroTitle`)}
@@ -230,10 +224,33 @@ function ClientTourPage({ base }: { base: string }) {
         }
       />
 
-      {sectionConfigs.map((section) => (
+      {/* Benefits before mechanics: the reader should know what they get
+          before investing in a nine-step walkthrough. */}
+      <ProductTourDifferentiators
+        title={t(`${base}.whyTitle`)}
+        items={differentiators}
+      />
+
+      <ProductTourWorkflowIntro
+        title={t(`${base}.workflowTitle`)}
+        body={t(`${base}.workflowLead`)}
+      />
+
+      <ProductTourWorkflowNav
+        steps={workflowSteps}
+        activeId={activeId}
+        onSelect={scrollTo}
+        ariaLabel={t('explainer.workflowNavAria')}
+      />
+
+      {sectionConfigs.map((section, index) => (
           <ProductTourSection
             key={section.id}
             id={section.id}
+            eyebrow={t('explainer.workflowStepOf', {
+              current: String(index + 1),
+              total: String(sectionConfigs.length),
+            })}
             title={t(`${base}.sections.${section.key}Title`)}
             body={t(`${base}.sections.${section.key}Body`)}
             note={
@@ -247,14 +264,15 @@ function ClientTourPage({ base }: { base: string }) {
           />
         ))}
 
-      <ProductTourDifferentiators
-        title={t(`${base}.whyTitle`)}
-        items={differentiators}
+      <ProductTourCta
+        title={t(`${base}.midTitle`)}
+        primaryLabel={t(`${base}.heroPrimaryCta`)}
+        primaryHref="/"
+        secondaryLabel={t(`${base}.heroSecondaryCta`)}
+        secondaryHref="#step-create"
       />
 
       <ProductTourFaq title={t(`${base}.faqTitle`)} items={faq} />
-
-      <TourCommunityBlock />
 
       <ProductTourCta
         title={t(`${base}.finalTitle`)}
@@ -263,6 +281,10 @@ function ClientTourPage({ base }: { base: string }) {
         secondaryLabel={t(`${base}.finalSecondaryCta`)}
         secondaryHref="/"
       />
+
+      {/* Social links close the page instead of interrupting the path from the
+          FAQ to the final call to action. */}
+      <TourCommunityBlock />
     </>
   );
 }
@@ -340,13 +362,6 @@ function ContractorTourPage({ base }: { base: string }) {
 
   return (
     <>
-      <ProductTourWorkflowNav
-        steps={workflowSteps}
-        activeId={activeId}
-        onSelect={scrollTo}
-        ariaLabel={t('explainer.workflowNavAria')}
-      />
-
       <ProductTourHero
         kicker={t(`${base}.heroKicker`)}
         title={t(`${base}.heroTitle`)}
@@ -358,6 +373,7 @@ function ContractorTourPage({ base }: { base: string }) {
         visual={<ContractorHeroPreview />}
       />
 
+      {/* See it working before reading about it. */}
       <ProductTourVideo
         title={t(`${base}.videoTitle`)}
         body={t(`${base}.videoBody`)}
@@ -365,10 +381,32 @@ function ContractorTourPage({ base }: { base: string }) {
         src={PLATFORM_INTRO_VIDEO_SRC}
       />
 
-      {contractorSections.map((section) => (
+      {/* Benefits before mechanics. */}
+      <ProductTourDifferentiators
+        title={t(`${base}.whyTitle`)}
+        items={differentiators}
+      />
+
+      <ProductTourWorkflowIntro
+        title={t(`${base}.workflowTitle`)}
+        body={t(`${base}.workflowLead`)}
+      />
+
+      <ProductTourWorkflowNav
+        steps={workflowSteps}
+        activeId={activeId}
+        onSelect={scrollTo}
+        ariaLabel={t('explainer.workflowNavAria')}
+      />
+
+      {contractorSections.map((section, index) => (
           <ProductTourSection
             key={section.id}
             id={section.id}
+            eyebrow={t('explainer.workflowStepOf', {
+              current: String(index + 1),
+              total: String(contractorSections.length),
+            })}
             title={t(`${base}.sections.${section.key}Title`)}
             body={t(`${base}.sections.${section.key}Body`)}
             note={
@@ -382,14 +420,15 @@ function ContractorTourPage({ base }: { base: string }) {
           />
         ))}
 
-      <ProductTourDifferentiators
-        title={t(`${base}.whyTitle`)}
-        items={differentiators}
+      <ProductTourCta
+        title={t(`${base}.midTitle`)}
+        primaryLabel={t(`${base}.heroPrimaryCta`)}
+        primaryHref="/contractor"
+        secondaryLabel={t(`${base}.heroSecondaryCta`)}
+        secondaryHref="/"
       />
 
       <ProductTourFaq title={t(`${base}.faqTitle`)} items={faq} />
-
-      <TourCommunityBlock />
 
       <ProductTourCta
         title={t(`${base}.finalTitle`)}
@@ -398,6 +437,10 @@ function ContractorTourPage({ base }: { base: string }) {
         secondaryLabel={t(`${base}.finalSecondaryCta`)}
         secondaryHref="/"
       />
+
+      {/* Social links close the page instead of interrupting the path from the
+          FAQ to the final call to action. */}
+      <TourCommunityBlock />
     </>
   );
 }

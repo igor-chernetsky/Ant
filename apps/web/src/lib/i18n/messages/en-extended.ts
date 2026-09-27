@@ -2182,6 +2182,10 @@ export const enExtended = {
         "Turn your project description, plans and documents into a clearer scope, a ballpark estimate and a structured contractor tender.",
       heroPrimaryCta: "Create a project",
       heroSecondaryCta: "See how it works",
+      workflowTitle: "From description to signed contract",
+      workflowLead:
+        "Nine steps, each on the same project record — so nothing is agreed in chat and lost later.",
+      midTitle: "Start with your project description?",
       callouts: {
         scope: "AI-assisted scope",
         estimate: "Ballpark estimate",
@@ -2305,6 +2309,10 @@ export const enExtended = {
         "Discover construction and renovation projects, understand the scope, ask the right questions and submit structured proposals.",
       heroPrimaryCta: "Create contractor profile",
       heroSecondaryCta: "Browse projects",
+      workflowTitle: "From profile to signed contract",
+      workflowLead:
+        "Seven steps, each on the same project record — so you always know what the client asked, what you priced and what was agreed.",
+      midTitle: "Ready to bid on the projects you just saw?",
       videoTitle: "How BuilTHAI works for contractors",
       videoBody:
         "A short walkthrough of the platform: setting up your company profile, finding projects that match your trades and service areas, clarifying scope with the client, and submitting a structured proposal.",

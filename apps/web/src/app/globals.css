@@ -14954,6 +14954,32 @@ main.product-tour-page {
   max-width: 38rem;
 }
 
+/* Heading that introduces the step-by-step block, above the sticky step nav. */
+.product-tour-workflow-intro {
+  padding-top: clamp(2.25rem, 4.5vw, 3.75rem);
+  padding-bottom: 0.5rem;
+}
+
+.product-tour-workflow-intro .section-title {
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.5rem, 2.6vw, 2.15rem);
+  letter-spacing: -0.025em;
+}
+
+/* Keeps the sticky nav visually attached to the heading above it. */
+.product-tour-workflow-intro + .product-tour-workflow-nav {
+  margin-top: 1.5rem;
+}
+
+.product-tour-section-eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent, #2563eb) 88%, #0f172a);
+}
+
 .product-tour-section {
   display: grid;
   grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);

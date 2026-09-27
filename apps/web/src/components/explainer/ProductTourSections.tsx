@@ -26,6 +26,8 @@ export interface TourSectionConfig {
   body: string;
   note?: string;
   preview: ReactNode;
+  /** Small label above the title, e.g. "Step 3 of 7 · Review". */
+  eyebrow?: string;
   reverse?: boolean;
   fullWidth?: boolean;
   band?: boolean;
@@ -273,8 +275,12 @@ export function useWorkflowScrollSpy(sectionIds: readonly string[]) {
   }, [sectionIds]);
 
   const scrollTo = useCallback((id: string) => {
+    // Respect the user's motion preference instead of always animating.
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     document.getElementById(id)?.scrollIntoView({
-      behavior: 'smooth',
+      behavior: reduceMotion ? 'auto' : 'smooth',
       block: 'start',
     });
     setActiveId(id);
@@ -289,6 +295,7 @@ export function ProductTourSection({
   body,
   note,
   preview,
+  eyebrow,
   reverse = false,
   fullWidth = false,
   band = false,
@@ -296,6 +303,7 @@ export function ProductTourSection({
   return (
     <section
       id={id}
+      aria-labelledby={`${id}-title`}
       className={`product-tour-section product-tour-wrap${
         reverse ? ' product-tour-section--reverse' : ''
       }${fullWidth ? ' product-tour-section--full' : ''}${
@@ -303,11 +311,38 @@ export function ProductTourSection({
       }`}
     >
       <div className="product-tour-section-copy">
-        <h2 className="section-title">{title}</h2>
+        {eyebrow ? (
+          <p className="product-tour-section-eyebrow">{eyebrow}</p>
+        ) : null}
+        <h2 id={`${id}-title`} className="section-title">
+          {title}
+        </h2>
         <p className="product-tour-section-body">{body}</p>
         {note ? <p className="muted product-tour-section-note">{note}</p> : null}
       </div>
       <div className="product-tour-section-visual">{preview}</div>
+    </section>
+  );
+}
+
+/**
+ * Heading that introduces the step-by-step block.
+ *
+ * Without it the sticky step nav appeared with no framing, right above the hero
+ * — so a first-time visitor met a seven-item rail before the value proposition.
+ * The intro also gives the long scroll a stated purpose.
+ */
+export function ProductTourWorkflowIntro({
+  title,
+  body,
+}: {
+  title: string;
+  body: string;
+}) {
+  return (
+    <section className="product-tour-workflow-intro product-tour-wrap">
+      <h2 className="section-title">{title}</h2>
+      <p className="product-tour-section-body">{body}</p>
     </section>
   );
 }
@@ -352,7 +387,8 @@ export function ProductTourVideo({
   );
 }
 
-export function ProductTourDifferentiators({  title,
+export function ProductTourDifferentiators({
+  title,
   items,
 }: {
   title: string;
