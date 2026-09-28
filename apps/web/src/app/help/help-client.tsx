@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { HelpHub } from '@/components/help/HelpHub';
 import { LoginModal } from '@/components/LoginModal';
 import { PageShell } from '@/components/PageShell';
-import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { useSession } from '@/components/SessionProvider';
 
@@ -22,7 +21,7 @@ export function HelpPageClient() {
       <main className="content-container main-content">
         <HelpHub />
       </main>
-      <SiteFooter />
+      {/* The footer comes from PageShell — rendering it here duplicated it. */}
       <LoginModal
         isOpen={loginOpen}
         onClose={() => setLoginOpen(false)}
