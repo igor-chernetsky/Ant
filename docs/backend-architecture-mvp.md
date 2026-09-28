@@ -21,7 +21,7 @@ This document defines the target backend architecture for the BuilTHAI MVP. It i
 - One primary market/region at launch (configurable via `region_code`).
 - Modular monolith (not microservices).
 - English as primary language; translation via async jobs.
-- No payments/escrow in MVP. Platform fees are **disclosed in the UI** (contractor-paid signing fee up to USD 20 or 2% of contract — whichever is lower, plus remaining success fee within two weeks) with a temporary **100% trial discount** (amount due = 0). Clients use the core platform for free until premium services are enabled. Actual charge collection is deferred until a billing legal entity and payment provider are in place.
+- No payments/escrow in MVP. Platform fees are **disclosed in the UI** (contractor-paid signing fee up to USD 20 or 2% of contract — whichever is lower, plus remaining success fee within two weeks) with a temporary **100% trial discount** (amount due = 0). The trial end date lives in `PlatformSettings.trialEndsAt`, set in **Admin → Settings**; `null` means no date is configured and the trial keeps running, and signature requests snapshot the amount at creation so trial deals stay at USD 0. Clients use the core platform for free until premium services are enabled. Actual charge collection is deferred until a billing legal entity and payment provider are in place.
 
 ---
 

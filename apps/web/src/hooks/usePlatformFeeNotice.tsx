@@ -5,6 +5,7 @@ import {
   PlatformFeeNoticeDialog,
   type PlatformFeeDialogMode,
 } from '@/components/PlatformFeeNoticeDialog';
+import { usePlatformFeeTrial } from '@/hooks/usePlatformFeeTrial';
 import {
   buildPlatformFeeQuote,
   type PlatformFeeQuote,
@@ -19,6 +20,7 @@ export type SignAuthorizationResult =
   | 'request_sent';
 
 export function usePlatformFeeNotice() {
+  const trial = usePlatformFeeTrial();
   const [state, setState] = useState<{
     mode: PlatformFeeDialogMode;
     quote: PlatformFeeQuote | null;
@@ -55,6 +57,7 @@ export function usePlatformFeeNotice() {
       const quote = buildPlatformFeeQuote({
         contractAmount: input.contractAmount,
         currency: input.currency,
+        trial,
       });
       const profileHref = input.profileHref ?? '/contractor';
       const pending = auth?.latestRequest?.status === 'pending';
@@ -96,7 +99,7 @@ export function usePlatformFeeNotice() {
         });
       });
     },
-    [],
+    [trial],
   );
 
   const handleConfirm = useCallback(async () => {

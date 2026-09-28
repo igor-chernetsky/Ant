@@ -9,6 +9,7 @@ import { MailService } from './mail.service';
 import { NotificationsService } from './notifications.service';
 import { PlatformSettingsService } from './platform-settings.service';
 import { PublicContactController } from './public-contact.controller';
+import { PublicPlatformFeesController } from './public-platform-fees.controller';
 
 @Module({
   imports: [ScheduleModule.forRoot(), LocationsModule, LocalizationModule],
@@ -16,6 +17,7 @@ import { PublicContactController } from './public-contact.controller';
     AdminPlatformSettingsController,
     EmailUnsubscribeController,
     PublicContactController,
+    PublicPlatformFeesController,
   ],
   providers: [
     MailService,

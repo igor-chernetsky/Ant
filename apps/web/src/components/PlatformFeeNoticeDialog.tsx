@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   formatPlatformMoney,
+  formatTrialEndDate,
   formatUsd,
   type PlatformFeeQuote,
 } from '@/lib/platform-fees';
@@ -197,6 +198,13 @@ export function PlatformFeeNoticeDialog({
               })}
             </p>
           )}
+          {quote.trialActive && quote.trialEndsAt ? (
+            <p className="platform-fee-trial-badge">
+              {t('platformFees.trialEndsOn', {
+                date: formatTrialEndDate(quote.trialEndsAt, locale),
+              })}
+            </p>
+          ) : null}
           <p id="platform-fee-dialog-intro" className="confirm-dialog-message">
             {t('platformFees.signIntro')}
           </p>
@@ -261,7 +269,9 @@ export function PlatformFeeNoticeDialog({
             </p>
           )}
           <p className="muted platform-fee-footnote">
-            {t('platformFees.requestNote')}
+            {quote.trialActive
+              ? t('platformFees.requestNote')
+              : t('platformFees.requestNotePaid')}
           </p>
           {error ? (
             <p className="error" role="alert">

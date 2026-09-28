@@ -2,6 +2,10 @@ import { fetchWithAuth } from '@/lib/auth-client';
 
 export interface PlatformSettings {
   contractSignedNotifyEmails: string[];
+  /** Calendar day the free trial ends on (`YYYY-MM-DD`), or null when unset. */
+  trialEndsAt: string | null;
+  /** Derived: is the free trial running right now. */
+  trialActive: boolean;
 }
 
 export interface SendAdminBroadcastInput {
@@ -116,7 +120,9 @@ export async function fetchAdminPlatformSettings(): Promise<PlatformSettings> {
 }
 
 export async function updateAdminPlatformSettings(
-  input: PlatformSettings,
+  input: Pick<PlatformSettings, 'contractSignedNotifyEmails'> & {
+    trialEndsAt: string | null;
+  },
 ): Promise<PlatformSettings> {
   const response = await fetchWithAuth('/api/admin/settings', {
     method: 'PATCH',

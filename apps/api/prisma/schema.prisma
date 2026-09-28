@@ -990,6 +990,10 @@ model TenderInvite {
 model PlatformSettings {
   id                         String   @id @default("default")
   contractSignedNotifyEmails String[] @default([]) @map("contract_signed_notify_emails")
+  /// End of the platform-fee free trial, stored as the last instant of the day
+  /// picked in Admin → Settings. `null` means no date is configured, so the
+  /// trial state falls back to PLATFORM_FEES_TRIAL_ACTIVE.
+  trialEndsAt                DateTime? @map("trial_ends_at")
   createdAt                  DateTime @default(now()) @map("created_at")
   updatedAt                  DateTime @updatedAt @map("updated_at")
 

@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PlatformSettingsService } from '../notifications/platform-settings.service';
 import { buildPlatformFeeSnapshot } from '../notifications/platform-fees';
 import { ContractorProfilesService } from './contractor-profiles.service';
 import type {
@@ -33,6 +34,7 @@ export class SignatureRequestsService {
     private readonly prisma: PrismaService,
     private readonly contractorProfiles: ContractorProfilesService,
     private readonly notifications: NotificationsService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   private mapListItem(row: {
@@ -142,12 +144,17 @@ export class SignatureRequestsService {
     const awardedBid = project.tender?.awardedBid ?? null;
     const contractAmount =
       awardedBid?.amount != null ? Number(awardedBid.amount) : null;
+    // Resolved once here and stored with the request: a request created while the
+    // trial is running keeps `trial_active` / `due_now_payable = 0` forever, even
+    // after the configured end date passes.
+    const trial = await this.platformSettings.resolveTrialState();
     const snapshot = buildPlatformFeeSnapshot({
       contractAmount:
         contractAmount != null && Number.isFinite(contractAmount)
           ? contractAmount
           : null,
       currency: project.tender?.currency ?? 'THB',
+      trialActive: trial.trialActive,
     });
 
     const created = await this.prisma.contractSignatureRequest.create({

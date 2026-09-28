@@ -654,6 +654,13 @@ export const enExtended = {
     settingsContractSignedEmailsHelp:
       "These addresses receive an email when a contract is fully signed (platform fee invoice request).",
     settingsEmailsEmpty: "No emails yet. Add at least one address.",
+    settingsTrialEndsAt: "Free trial ends on",
+    settingsTrialEndsAtSet:
+      "Trial is active until {date} (23:59 UTC). Clear the field to keep it open.",
+    settingsTrialEndsAtUnset:
+      "No end date set, so the free trial keeps running.",
+    settingsTrialEndsAtHelp:
+      "While the trial runs, listed platform fees show a 100% discount and nothing is charged. Signature authorization requests created during the trial keep their USD 0 amount after it ends.",
     settingsAddEmail: "Add email",
     settingsAdd: "Add",
     settingsSave: "Save settings",
@@ -1222,6 +1229,7 @@ export const enExtended = {
       "Before you can sign, review the platform fees and send an authorization request to BuilTHAI admin. The due-now amount is USD 20 or 2% of the contract — whichever is lower. Contractors pay these fees; clients use BuilTHAI for free until premium services are enabled.",
     trialBadge: "Trial — {percent}% discount applied",
     trialPill: "Trial · no charge",
+    trialEndsOn: "Free until {date}",
     accessFeeLabel: "Signing fee (due now)",
     accessFeeValue: "Up to {usd} (this contract: {due})",
     successFeeLabel: "Success fee",
@@ -1239,6 +1247,8 @@ export const enExtended = {
       "Platform fees are charged to the contractor. Clients use the core platform for free until premium services are enabled.",
     requestNote:
       "Submitting this request lets admin verify your bank details and authorize signing. During trial the payable amount is $0, but the request is still required.",
+    requestNotePaid:
+      "Submitting this request lets admin verify your bank details and authorize signing. The trial has ended, so the due-now amount above is payable.",
     submitRequest: "Send authorization request",
     continueTrial: "Continue · $0 due (trial)",
     continuePaid: "Continue",
@@ -1256,10 +1266,13 @@ export const enExtended = {
     summaryTitle: "Platform fees",
     summaryLead:
       "Listed fees for this deal. Trial period: 100% discount — nothing is charged yet. Signing still requires admin authorization.",
+    summaryLeadPaid:
+      "Listed fees for this deal. The trial period has ended, so the due-now amount is payable before signing.",
     summaryAccess: "Signing fee: up to {usd} (this contract: {local}), credited toward the success fee",
     summarySuccess: "Success fee: {percent}% of contract ({amount})",
     summaryRemaining: "Remaining after credit: {amount}",
     summaryDueNow: "Due now (trial): {amount}",
+    summaryDueNowListed: "Due now: {amount}",
     clientNote:
       "Platform fees are paid by the contractor. You can use BuilTHAI for free until premium services are enabled.",
   },

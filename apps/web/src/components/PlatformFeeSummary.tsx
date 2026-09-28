@@ -1,9 +1,11 @@
 'use client';
 
 import { useTranslation } from '@/components/LocaleProvider';
+import { usePlatformFeeTrial } from '@/hooks/usePlatformFeeTrial';
 import {
   buildPlatformFeeQuote,
   formatPlatformMoney,
+  formatTrialEndDate,
   formatUsd,
 } from '@/lib/platform-fees';
 
@@ -20,7 +22,8 @@ export function PlatformFeeSummary({
   compact = false,
 }: PlatformFeeSummaryProps) {
   const { t, locale } = useTranslation();
-  const quote = buildPlatformFeeQuote({ contractAmount, currency });
+  const trial = usePlatformFeeTrial();
+  const quote = buildPlatformFeeQuote({ contractAmount, currency, trial });
 
   const remaining =
     quote.successFeeRemaining != null
@@ -50,8 +53,17 @@ export function PlatformFeeSummary({
         )}
       </div>
       <p className="muted platform-fee-summary-lead">
-        {t('platformFees.summaryLead')}
+        {quote.trialActive
+          ? t('platformFees.summaryLead')
+          : t('platformFees.summaryLeadPaid')}
       </p>
+      {quote.trialActive && quote.trialEndsAt ? (
+        <p className="muted platform-fee-summary-lead">
+          {t('platformFees.trialEndsOn', {
+            date: formatTrialEndDate(quote.trialEndsAt, locale),
+          })}
+        </p>
+      ) : null}
       <ul className="platform-fee-summary-list">
         <li>
           {t('platformFees.summaryAccess', {
@@ -73,9 +85,17 @@ export function PlatformFeeSummary({
           {t('platformFees.summaryRemaining', { amount: remaining })}
         </li>
         <li className="platform-fee-summary-due">
-          {t('platformFees.summaryDueNow', {
-            amount: formatPlatformMoney(0, quote.currency, locale),
-          })}
+          {quote.trialActive
+            ? t('platformFees.summaryDueNow', {
+                amount: formatPlatformMoney(0, quote.currency, locale),
+              })
+            : t('platformFees.summaryDueNowListed', {
+                amount: formatPlatformMoney(
+                  quote.dueNowListed,
+                  quote.currency,
+                  locale,
+                ),
+              })}
         </li>
       </ul>
     </aside>

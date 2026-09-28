@@ -6,7 +6,12 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from './mail.service';
-import { DEFAULT_PLATFORM_ADMIN_EMAIL } from './platform-fees';
+import {
+  DEFAULT_PLATFORM_ADMIN_EMAIL,
+  parseTrialEndDate,
+  resolveTrialActive,
+  trialEndDateOnly,
+} from './platform-fees';
 
 const SETTINGS_ID = 'default';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
@@ -37,10 +42,24 @@ export interface AdminBroadcastAttachmentDto {
 
 export interface PlatformSettingsDto {
   contractSignedNotifyEmails: string[];
+  /** Calendar day the free trial ends on (`YYYY-MM-DD`), or null when unset. */
+  trialEndsAt: string | null;
+  /** Derived: is the free trial running right now. */
+  trialActive: boolean;
 }
 
 export interface UpdatePlatformSettingsDto {
   contractSignedNotifyEmails: string[];
+  /**
+   * `YYYY-MM-DD` to set the trial end, `null`/empty to clear it. Omit the field
+   * to leave the stored value untouched.
+   */
+  trialEndsAt?: string | null;
+}
+
+export interface PlatformTrialState {
+  trialActive: boolean;
+  trialEndsAt: Date | null;
 }
 
 export interface SendAdminBroadcastDto {
@@ -65,27 +84,67 @@ export class PlatformSettingsService {
 
   async getSettings(): Promise<PlatformSettingsDto> {
     const row = await this.ensureSettings();
-    return {
-      contractSignedNotifyEmails: row.contractSignedNotifyEmails,
-    };
+    return this.toDto(row);
   }
 
   async updateSettings(
     body: UpdatePlatformSettingsDto,
   ): Promise<PlatformSettingsDto> {
     const emails = this.normalizeEmails(body.contractSignedNotifyEmails);
+
+    // `undefined` leaves the stored date alone, so other settings screens that
+    // do not know about the trial cannot wipe it.
+    let trialEndsAtUpdate: { trialEndsAt?: Date | null } = {};
+    if (body.trialEndsAt !== undefined) {
+      try {
+        trialEndsAtUpdate = {
+          trialEndsAt: parseTrialEndDate(body.trialEndsAt ?? ''),
+        };
+      } catch (err) {
+        throw new BadRequestException(
+          err instanceof Error ? err.message : 'Invalid trial end date',
+        );
+      }
+    }
+
     const row = await this.prisma.platformSettings.upsert({
       where: { id: SETTINGS_ID },
       create: {
         id: SETTINGS_ID,
         contractSignedNotifyEmails: emails,
+        ...(trialEndsAtUpdate.trialEndsAt
+          ? { trialEndsAt: trialEndsAtUpdate.trialEndsAt }
+          : {}),
       },
       update: {
         contractSignedNotifyEmails: emails,
+        ...trialEndsAtUpdate,
       },
     });
+    return this.toDto(row);
+  }
+
+  /**
+   * Trial state for the fee logic and the public pricing endpoint. Single source
+   * of truth: the admin-configured end date, falling back to the compile-time
+   * flag while no date is set.
+   */
+  async resolveTrialState(): Promise<PlatformTrialState> {
+    const row = await this.ensureSettings();
+    return {
+      trialActive: resolveTrialActive(row.trialEndsAt),
+      trialEndsAt: row.trialEndsAt,
+    };
+  }
+
+  private toDto(row: {
+    contractSignedNotifyEmails: string[];
+    trialEndsAt: Date | null;
+  }): PlatformSettingsDto {
     return {
       contractSignedNotifyEmails: row.contractSignedNotifyEmails,
+      trialEndsAt: trialEndDateOnly(row.trialEndsAt),
+      trialActive: resolveTrialActive(row.trialEndsAt),
     };
   }
 

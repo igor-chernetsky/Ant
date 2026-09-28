@@ -106,7 +106,7 @@ stateDiagram-v2
 
 MVP acceptance: click-to-accept on platform (no e-signature provider).
 
-**Platform fees (contractor-paid, trial disclosure):** Before the contractor signs, the UI shows the listed **signing fee** (USD 20 or 2% of the contract — whichever is lower, credited toward the success fee) and **remaining success fee** (2% minus credit, due within two weeks). During trial the payable amount is **0** (100% discount). Clients see an informational note that they use the core platform for free until premium services are enabled. No payment capture in MVP.
+**Platform fees (contractor-paid, trial disclosure):** Before the contractor signs, the UI shows the listed **signing fee** (USD 20 or 2% of the contract — whichever is lower, credited toward the success fee) and **remaining success fee** (2% minus credit, due within two weeks). During trial the payable amount is **0** (100% discount). The trial end date is set by an admin in **Admin → Settings** (`PlatformSettings.trialEndsAt`, stored as the last instant of the chosen day UTC); with no date configured the trial keeps running. `ContractSignatureRequest` snapshots `trialActive`, `dueNowListed` and `dueNowPayable` when it is created, so requests made during the trial stay at USD 0 after the end date passes. Clients see an informational note that they use the core platform for free until premium services are enabled. No payment capture in MVP.
 
 ---
 

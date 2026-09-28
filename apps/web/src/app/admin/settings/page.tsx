@@ -29,6 +29,9 @@ export default function AdminSettingsPage() {
   const [ready, setReady] = useState(false);
   const [emails, setEmails] = useState<string[]>([]);
   const [draftEmail, setDraftEmail] = useState('');
+  /** `YYYY-MM-DD` from the date input, or '' when no end date is configured. */
+  const [trialEndsAt, setTrialEndsAt] = useState('');
+  const [trialEndsAtSaved, setTrialEndsAtSaved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -59,6 +62,8 @@ export default function AdminSettingsPage() {
   const loadSettings = useCallback(async () => {
     const settings = await fetchAdminPlatformSettings();
     setEmails(settings.contractSignedNotifyEmails);
+    setTrialEndsAt(settings.trialEndsAt ?? '');
+    setTrialEndsAtSaved(settings.trialEndsAt ?? null);
   }, []);
 
   useEffect(() => {
@@ -113,8 +118,11 @@ export default function AdminSettingsPage() {
       }
       const result = await updateAdminPlatformSettings({
         contractSignedNotifyEmails: next,
+        trialEndsAt: trialEndsAt.trim() ? trialEndsAt.trim() : null,
       });
       setEmails(result.contractSignedNotifyEmails);
+      setTrialEndsAt(result.trialEndsAt ?? '');
+      setTrialEndsAtSaved(result.trialEndsAt ?? null);
       setDraftEmail('');
       setSaved(true);
     } catch (err: unknown) {
@@ -327,6 +335,29 @@ export default function AdminSettingsPage() {
                     </li>
                   ))}
                 </ul>
+
+                <label className="admin-settings-field">
+                  {t('admin.settingsTrialEndsAt')}
+                  <input
+                    type="date"
+                    value={trialEndsAt}
+                    disabled={busy}
+                    onChange={(e) => {
+                      setTrialEndsAt(e.target.value);
+                      setSaved(false);
+                    }}
+                  />
+                  <span className="muted doc-hint">
+                    {trialEndsAtSaved
+                      ? t('admin.settingsTrialEndsAtSet', {
+                          date: trialEndsAtSaved,
+                        })
+                      : t('admin.settingsTrialEndsAtUnset')}
+                  </span>
+                </label>
+                <p className="muted doc-hint">
+                  {t('admin.settingsTrialEndsAtHelp')}
+                </p>
 
                 <div className="admin-settings-actions">
                   <button type="submit" className="primary" disabled={busy}>
