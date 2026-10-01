@@ -1444,16 +1444,27 @@ pre {
   top: -0.75rem;
   right: -0.75rem;
   z-index: 1;
+  /* A square box, and the global `button` padding/sizing reset — without these
+     the padded content box turns the 50% radius into an ellipse and pushes the
+     icon off centre. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0;
   width: 2.25rem;
   height: 2.25rem;
   border: 0;
   border-radius: 50%;
   background: #fff;
   color: #0f172a;
-  font-size: 1.4rem;
-  line-height: 1;
+  line-height: 0;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
+.image-lightbox-close svg {
+  display: block;
 }
 
 .image-lightbox-close:hover {

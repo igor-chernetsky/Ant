@@ -64,7 +64,21 @@ export function ImageLightbox({
           onClick={onClose}
           aria-label={t('common.close')}
         >
-          ×
+          {/* A drawn cross instead of the "×" glyph: its ink is centred by
+              geometry, so it stays centred whatever font is loaded. */}
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            aria-hidden
+          >
+            <path d="M6 6l12 12" />
+            <path d="M18 6L6 18" />
+          </svg>
         </button>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="image-lightbox-image" src={src} alt="" />
