@@ -59,7 +59,13 @@ import {
   type Project,
 } from '@/lib/projects';
 import { ProjectLifecyclePanel } from '@/components/ProjectLifecyclePanel';
-import { adminCompleteProject } from '@/lib/project-reviews';
+import { ProjectCompletionBanner } from '@/components/ProjectCompletionBanner';
+import { CompleteProjectReviewModal } from '@/components/CompleteProjectReviewModal';
+import {
+  adminCompleteProject,
+  fetchProjectCompletionContext,
+  type ProjectCompletionContext,
+} from '@/lib/project-reviews';
 import { useSession } from '@/components/SessionProvider';
 import { isContractorUser, isDesignerUser, isAdminUser } from '@/lib/session';
 import {
@@ -123,6 +129,13 @@ export function ProjectDetailPageClient({
   const [isOwner, setIsOwner] = useState(false);
   const [adminInviteOpen, setAdminInviteOpen] = useState(false);
   const [pageReady, setPageReady] = useState(Boolean(initialProject));
+  const [completion, setCompletion] =
+    useState<ProjectCompletionContext | null>(null);
+  const [completionLoading, setCompletionLoading] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [completeMode, setCompleteMode] = useState<'request' | 'confirm'>(
+    'request',
+  );
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadDocuments = useCallback(
@@ -293,6 +306,45 @@ export function ProjectDetailPageClient({
     window.addEventListener('pageshow', onPageShow);
     return () => window.removeEventListener('pageshow', onPageShow);
   }, [sessionReady, loadProjectView, t]);
+
+  const projectStatus = project?.status ?? null;
+
+  const loadCompletion = useCallback(async () => {
+    if (!projectId) return;
+    setCompletionLoading(true);
+    try {
+      setCompletion(await fetchProjectCompletionContext(projectId));
+    } catch {
+      setCompletion(null);
+    } finally {
+      setCompletionLoading(false);
+    }
+  }, [projectId]);
+
+  /**
+   * The hero button, the top banner and the sidebar lifecycle card all read the
+   * same completion context. Fetching it here rather than inside the panel keeps
+   * them in sync after a confirmation, a hide/unhide or a session refresh.
+   */
+  useEffect(() => {
+    const completable =
+      projectStatus === 'active' || projectStatus === 'completed';
+    if (!isOwner || !completable) {
+      setCompletion(null);
+      return;
+    }
+    void loadCompletion();
+  }, [isOwner, projectStatus, loadCompletion]);
+
+  const openCompletionModal = (mode: 'request' | 'confirm') => {
+    setCompleteMode(mode);
+    setCompleteOpen(true);
+  };
+
+  const canConfirmCompletion =
+    isOwner &&
+    projectStatus !== 'completed' &&
+    completion?.canConfirmCompletion === true;
 
   const handleLogout = async () => {
     await signOut();
@@ -514,6 +566,13 @@ export function ProjectDetailPageClient({
         {pageReady && project && (
           <div className="project-detail-layout">
             <div className="project-detail-primary">
+              {canConfirmCompletion && (
+                <ProjectCompletionBanner
+                  contractorName={completion?.contractorName ?? null}
+                  onConfirm={() => openCompletionModal('confirm')}
+                />
+              )}
+
               <ProjectHero
                 project={project}
                 estimateMidAmountThb={
@@ -532,6 +591,17 @@ export function ProjectDetailPageClient({
                 onCardUpdated={setProject}
                 includeSidebar={false}
                 stageStatus={isOwner ? project.status : null}
+                completionAction={
+                  canConfirmCompletion ? (
+                    <button
+                      type="button"
+                      className="primary project-hero-completion-trigger"
+                      onClick={() => openCompletionModal('confirm')}
+                    >
+                      {t('lifecycle.confirmCompletion')}
+                    </button>
+                  ) : null
+                }
               />
 
               {project.guestInviteAccess && (
@@ -872,6 +942,10 @@ export function ProjectDetailPageClient({
                   <ProjectLifecyclePanel
                     project={project}
                     onUpdated={setProject}
+                    completion={completion}
+                    completionLoading={completionLoading}
+                    onRequestCompletion={() => openCompletionModal('request')}
+                    onConfirmCompletion={() => openCompletionModal('confirm')}
                   />
                 )}
               </div>
@@ -923,6 +997,20 @@ export function ProjectDetailPageClient({
           tagSlugs={project.tags.map((tag) => tag.slug)}
           variant="admin"
           onClose={() => setAdminInviteOpen(false)}
+        />
+      )}
+      {project && (
+        <CompleteProjectReviewModal
+          projectId={project.id}
+          mode={completeMode}
+          isOpen={completeOpen}
+          onClose={() => setCompleteOpen(false)}
+          onCompleted={(updated) => {
+            setProject(updated);
+            // A request keeps the status at `active`, so the status-keyed effect
+            // would not re-run: refresh the context explicitly.
+            void loadCompletion();
+          }}
         />
       )}
       {confirmDialog}

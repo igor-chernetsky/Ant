@@ -1444,6 +1444,11 @@ export class TendersService {
       project.tenderContractTermsJson,
     );
 
+    // Only needed when the contractor can actually open the proposal form.
+    const contractorLegalDefaults = myBid
+      ? await this.resolveContractorLegalDefaults(profile, projectId)
+      : {};
+
     let projectScopeSummary = project.scopeSummary;
     let projectClarificationSummary = project.clarificationSummary;
     let localizedContractTerms = projectContractTerms;
@@ -1486,6 +1491,7 @@ export class TendersService {
       projectScopeSummary,
       projectClarificationSummary,
       projectContractTerms: localizedContractTerms,
+      contractorLegalDefaults,
       canStartClarification: Boolean(
         tenderCollectingClarifications && !myBid,
       ),
@@ -2520,5 +2526,73 @@ export class TendersService {
       return {};
     }
     return normalizeContractTerms(raw as BidContractTerms) ?? {};
+  }
+
+  /**
+   * Reuses the contractor's own legal details from their most recent proposals.
+   *
+   * These three fields are required before a commercial proposal can be
+   * submitted, and nothing else in the system holds them: the contractor profile
+   * has no address or representative, and the tender terms are authored by the
+   * client. Without this the contractor retypes the same values on every bid.
+   *
+   * The current project is excluded so an in-progress edit never seeds itself.
+   * The registration number falls back to the profile tax ID, which for a Thai
+   * juristic person is the same 13-digit number.
+   */
+  private async resolveContractorLegalDefaults(
+    profile: { id: string; taxId: string | null },
+    currentProjectId: string,
+  ): Promise<{
+    contractorAddress?: string;
+    contractorRegistrationNo?: string;
+    contractorRepresentative?: string;
+  }> {
+    const recentBids = await this.prisma.bid.findMany({
+      where: {
+        contractorId: profile.id,
+        tender: { projectId: { not: currentProjectId } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 20,
+      select: { termsJson: true },
+    });
+
+    let contractorAddress: string | undefined;
+    let contractorRegistrationNo: string | undefined;
+    let contractorRepresentative: string | undefined;
+
+    for (const bid of recentBids) {
+      const terms = (bid.termsJson as BidTermsV1 | null)?.contractTerms;
+      if (!terms) {
+        continue;
+      }
+      if (!contractorAddress && terms.contractorAddress?.trim()) {
+        contractorAddress = terms.contractorAddress.trim();
+      }
+      if (!contractorRegistrationNo && terms.contractorRegistrationNo?.trim()) {
+        contractorRegistrationNo = terms.contractorRegistrationNo.trim();
+      }
+      if (
+        !contractorRepresentative &&
+        terms.contractorRepresentative?.trim()
+      ) {
+        contractorRepresentative = terms.contractorRepresentative.trim();
+      }
+      if (
+        contractorAddress &&
+        contractorRegistrationNo &&
+        contractorRepresentative
+      ) {
+        break;
+      }
+    }
+
+    return {
+      contractorAddress,
+      contractorRegistrationNo:
+        contractorRegistrationNo || profile.taxId?.trim() || undefined,
+      contractorRepresentative,
+    };
   }
 }

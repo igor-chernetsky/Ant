@@ -1994,6 +1994,10 @@ export const ruExtended = {
     signedNoHideHint: "Подписанные проекты остаются видимыми на платформе до завершения.",
     waitingContractorHint: "Вы запросили завершение. Ожидается подтверждение подрядчика.",
     confirmContractorRequestHint: "Подрядчик запросил завершение. Подтвердите, когда работы выполнены.",
+    readyBannerTitle: "Проект готов к завершению",
+    readyBannerText:
+      "{name} сообщает: работы отмечены как выполненные. Проверьте результат и подтвердите завершение, чтобы закрыть проект.",
+    readyBannerContractorFallback: "Подрядчик",
     showAgain: "Снова показать проект",
     restoring: "Восстановление…",
     hideProject: "Скрыть проект",

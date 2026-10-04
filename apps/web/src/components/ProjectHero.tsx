@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { ProjectLocationMap } from '@/components/ProjectLocationMap';
 import { ProjectStageRail } from '@/components/ProjectStageRail';
@@ -29,6 +29,11 @@ interface ProjectHeroProps {
   onCardUpdated?: (project: Project) => void;
   /** When set, renders the project stage progress inside the hero. */
   stageStatus?: string | null;
+  /**
+   * Primary action rendered next to the title — used for the client's
+   * "confirm completion" button while the contractor's request is pending.
+   */
+  completionAction?: ReactNode;
 }
 
 const DESIGN_HINT_TYPES = new Set([
@@ -133,6 +138,7 @@ export function ProjectHero({
   canEditCard = false,
   onCardUpdated,
   stageStatus = null,
+  completionAction = null,
   /** When false, only the main title/description column is rendered. */
   includeSidebar = true,
 }: ProjectHeroProps & { includeSidebar?: boolean }) {
@@ -366,6 +372,7 @@ export function ProjectHero({
             <>
               <div className="project-hero-title-row">
                 <h1 id="project-hero-title">{project.title}</h1>
+                {completionAction}
                 {canEditCard && (
                   <button
                     type="button"

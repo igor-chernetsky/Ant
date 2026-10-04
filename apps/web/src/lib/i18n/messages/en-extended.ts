@@ -1988,6 +1988,10 @@ export const enExtended = {
     signedNoHideHint: "Signed projects stay visible on the platform until they are completed.",
     waitingContractorHint: "You requested completion. Waiting for the contractor to confirm.",
     confirmContractorRequestHint: "The contractor requested completion. Confirm when work is finished.",
+    readyBannerTitle: "Project is ready for completion",
+    readyBannerText:
+      "{name} reports the work as finished. Review the result and confirm completion to close the project.",
+    readyBannerContractorFallback: "The contractor",
     showAgain: "Show project again",
     restoring: "Restoring…",
     hideProject: "Hide project",

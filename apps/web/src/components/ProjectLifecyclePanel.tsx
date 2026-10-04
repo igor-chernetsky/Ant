@@ -1,12 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { CompleteProjectReviewModal } from '@/components/CompleteProjectReviewModal';
+import { useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
-import {
-  fetchProjectCompletionContext,
-  type ProjectCompletionContext,
-} from '@/lib/project-reviews';
+import type { ProjectCompletionContext } from '@/lib/project-reviews';
 import {
   fetchProject,
   hideProject,
@@ -18,48 +14,33 @@ import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
 interface ProjectLifecyclePanelProps {
   project: Project;
   onUpdated: (project: Project) => void;
+  /**
+   * Completion state loaded by the project page. The page owns this fetch so the
+   * hero header, the top banner and this card can never disagree about whether
+   * the client may confirm completion — or which modal is open.
+   */
+  completion: ProjectCompletionContext | null;
+  completionLoading?: boolean;
+  /** Opens the shared completion review modal in request mode. */
+  onRequestCompletion: () => void;
+  /** Opens the shared completion review modal in confirm mode. */
+  onConfirmCompletion: () => void;
 }
 
 export function ProjectLifecyclePanel({
   project,
   onUpdated,
+  completion,
+  completionLoading = false,
+  onRequestCompletion,
+  onConfirmCompletion,
 }: ProjectLifecyclePanelProps) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [completeOpen, setCompleteOpen] = useState(false);
-  const [completeMode, setCompleteMode] = useState<'request' | 'confirm'>(
-    'request',
-  );
-  const [completion, setCompletion] = useState<ProjectCompletionContext | null>(
-    null,
-  );
-  const [completionLoading, setCompletionLoading] = useState(false);
-
-  const loadCompletion = useCallback(async () => {
-    if (project.status !== 'active' && project.status !== 'completed') {
-      setCompletion(null);
-      return;
-    }
-    setCompletionLoading(true);
-    try {
-      const context = await fetchProjectCompletionContext(project.id);
-      setCompletion(context);
-    } catch {
-      setCompletion(null);
-    } finally {
-      setCompletionLoading(false);
-    }
-  }, [project.id, project.status]);
-
-  useEffect(() => {
-    void loadCompletion();
-  }, [loadCompletion]);
 
   const refreshProject = async () => {
-    const updated = await fetchProject(project.id);
-    onUpdated(updated);
-    await loadCompletion();
+    onUpdated(await fetchProject(project.id));
   };
 
   const runAction = async (action: () => Promise<void>) => {
@@ -89,106 +70,87 @@ export function ProjectLifecyclePanel({
     completion?.completionRequestedBy === 'contractor' && !isCompleted;
 
   return (
-    <>
-      <section className="card project-lifecycle-card">
-        <h2 className="section-title">{t('lifecycle.title')}</h2>
-        {completionLoading ? (
-          <p className="muted">{t('common.loading')}</p>
-        ) : isHidden ? (
-          <p className="muted">{t('lifecycle.hiddenHint')}</p>
-        ) : isCompleted ? (
-          <p className="muted">{t('lifecycle.completedHint')}</p>
-        ) : waitingForContractor ? (
-          <p className="muted">{t('lifecycle.waitingContractorHint')}</p>
-        ) : waitingForClient ? (
-          <p className="muted">{t('lifecycle.confirmContractorRequestHint')}</p>
-        ) : canRequestCompletion ? (
-          <p className="muted">{t('lifecycle.canCompleteHint')}</p>
-        ) : canHide ? (
-          <p className="muted">{t('lifecycle.hideHint')}</p>
-        ) : (
-          <p className="muted">{t('lifecycle.signedNoHideHint')}</p>
-        )}
+    <section className="card project-lifecycle-card">
+      <h2 className="section-title">{t('lifecycle.title')}</h2>
+      {completionLoading ? (
+        <p className="muted">{t('common.loading')}</p>
+      ) : isHidden ? (
+        <p className="muted">{t('lifecycle.hiddenHint')}</p>
+      ) : isCompleted ? (
+        <p className="muted">{t('lifecycle.completedHint')}</p>
+      ) : waitingForContractor ? (
+        <p className="muted">{t('lifecycle.waitingContractorHint')}</p>
+      ) : waitingForClient ? (
+        <p className="muted">{t('lifecycle.confirmContractorRequestHint')}</p>
+      ) : canRequestCompletion ? (
+        <p className="muted">{t('lifecycle.canCompleteHint')}</p>
+      ) : canHide ? (
+        <p className="muted">{t('lifecycle.hideHint')}</p>
+      ) : (
+        <p className="muted">{t('lifecycle.signedNoHideHint')}</p>
+      )}
 
-        <div className="project-lifecycle-actions">
-          {isHidden ? (
+      <div className="project-lifecycle-actions">
+        {isHidden ? (
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => void runAction(async () => {
+              const updated = await unhideProject(project.id);
+              trackEvent(AnalyticsEvents.unhideProject, {
+                project_id: project.id,
+                status: updated.status,
+              });
+              onUpdated(updated);
+            })}
+          >
+            {busy ? t('lifecycle.restoring') : t('lifecycle.showAgain')}
+          </button>
+        ) : (
+          canHide && (
             <button
               type="button"
               className="secondary"
               disabled={busy}
               onClick={() => void runAction(async () => {
-                const updated = await unhideProject(project.id);
-                trackEvent(AnalyticsEvents.unhideProject, {
+                const updated = await hideProject(project.id);
+                trackEvent(AnalyticsEvents.hideProject, {
                   project_id: project.id,
                   status: updated.status,
                 });
                 onUpdated(updated);
               })}
             >
-              {busy ? t('lifecycle.restoring') : t('lifecycle.showAgain')}
+              {busy ? t('lifecycle.hiding') : t('lifecycle.hideProject')}
             </button>
-          ) : (
-            canHide && (
-              <button
-                type="button"
-                className="secondary"
-                disabled={busy}
-                onClick={() => void runAction(async () => {
-                  const updated = await hideProject(project.id);
-                  trackEvent(AnalyticsEvents.hideProject, {
-                    project_id: project.id,
-                    status: updated.status,
-                  });
-                  onUpdated(updated);
-                })}
-              >
-                {busy ? t('lifecycle.hiding') : t('lifecycle.hideProject')}
-              </button>
-            )
-          )}
+          )
+        )}
 
-          {canRequestCompletion && !isCompleted && (
-            <button
-              type="button"
-              className="primary"
-              disabled={busy}
-              onClick={() => {
-                setCompleteMode('request');
-                setCompleteOpen(true);
-              }}
-            >
-              {t('lifecycle.requestCompletion')}
-            </button>
-          )}
+        {canRequestCompletion && !isCompleted && (
+          <button
+            type="button"
+            className="primary"
+            disabled={busy}
+            onClick={onRequestCompletion}
+          >
+            {t('lifecycle.requestCompletion')}
+          </button>
+        )}
 
-          {canConfirmCompletion && !isCompleted && (
-            <button
-              type="button"
-              className="primary"
-              disabled={busy}
-              onClick={() => {
-                setCompleteMode('confirm');
-                setCompleteOpen(true);
-              }}
-            >
-              {t('lifecycle.confirmCompletion')}
-            </button>
-          )}
-        </div>
+        {canConfirmCompletion && !isCompleted && (
+          <button
+            type="button"
+            className="primary"
+            disabled={busy}
+            onClick={onConfirmCompletion}
+          >
+            {t('lifecycle.confirmCompletion')}
+          </button>
+        )}
+      </div>
 
-        {error && <p className="form-error">{error}</p>}
-      </section>
-
-      <CompleteProjectReviewModal
-        projectId={project.id}
-        mode={completeMode}
-        isOpen={completeOpen}
-        onClose={() => setCompleteOpen(false)}
-        onCompleted={(updated) => {
-          onUpdated(updated);
-          void loadCompletion();
-        }}
-      />
-    </>
+      {error && <p className="form-error">{error}</p>}
+    </section>
   );
 }

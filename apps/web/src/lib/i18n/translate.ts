@@ -30,18 +30,30 @@ function interpolate(
   });
 }
 
+/**
+ * Resolves a message key.
+ *
+ * A key that is present but holds an empty string is a deliberate value, not a
+ * missing translation: `contractTerms.specialConditionsOptions.noneValue` is `""`
+ * on purpose, because "No special conditions" must write an empty contract
+ * clause. Testing truthiness made that indistinguishable from a missing key and
+ * rendered the key itself — which then landed in the contract terms field.
+ *
+ * Only a genuinely absent key falls back to the default locale, and then to the
+ * key text, so real gaps in the message files stay visible.
+ */
 export function translate(
   locale: Locale,
   key: string,
   params?: Record<string, string | number>,
 ): string {
   const localized = lookup(locale, key);
-  if (localized) {
+  if (localized !== undefined) {
     return interpolate(localized, params);
   }
 
   const fallback = lookup(DEFAULT_LOCALE, key);
-  if (fallback) {
+  if (fallback !== undefined) {
     return interpolate(fallback, params);
   }
 

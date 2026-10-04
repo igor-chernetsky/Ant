@@ -57,6 +57,16 @@ interface BidProposalFormProps {
   defaultCostBreakdown?: DefaultCostBreakdownItem[];
   projectScopeSummary?: string | null;
   projectContractTerms?: BidContractTerms;
+  /**
+   * Contractor legal details reused from previous proposals; seeded below the
+   * bid's own saved terms so an edit always wins over the remembered values.
+   */
+  contractorLegalDefaults?: Pick<
+    BidContractTerms,
+    | 'contractorAddress'
+    | 'contractorRegistrationNo'
+    | 'contractorRepresentative'
+  >;
   /** Who fills commercial proposal fields — `none` hides contract terms. */
   contractTermsAudience?: ContractTermsAudience | 'none';
   /** `counter-offer` shows schedule and payment terms only (client counter-KP). */
@@ -254,6 +264,7 @@ export function BidProposalForm({
   defaultCostBreakdown = [],
   projectScopeSummary = null,
   projectContractTerms,
+  contractorLegalDefaults,
   contractTermsAudience = 'contractor',
   contractTermsVariant = 'full',
   contractTermsPlacement = 'default',
@@ -280,6 +291,10 @@ export function BidProposalForm({
   const projectTermsSeed = {
     scopeSummary: terms?.scopeSummary ?? projectScopeSummary ?? undefined,
     contractTerms: {
+      // Remembered contractor legal details come first: the tender terms and the
+      // bid's own saved values both override them, so editing never loses what
+      // the contractor typed here.
+      ...contractorLegalDefaults,
       ...projectContractTerms,
       ...terms?.contractTerms,
     },

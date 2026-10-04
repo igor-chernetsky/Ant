@@ -679,6 +679,7 @@ export function ContractorProjectPanel({
               defaultCostBreakdown={participation.defaultCostBreakdown ?? []}
               projectScopeSummary={participation.projectScopeSummary}
               projectContractTerms={participation.projectContractTerms}
+              contractorLegalDefaults={participation.contractorLegalDefaults}
               isDesign={projectType === 'design'}
               onSubmit={handleSubmitBid}
               onWithdraw={

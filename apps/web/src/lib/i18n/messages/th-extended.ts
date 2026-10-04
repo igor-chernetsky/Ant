@@ -1986,6 +1986,10 @@ export const thExtended = {
     signedNoHideHint: "โครงการที่ลงนามแล้วจะยังคงแสดงบนแพลตฟอร์มจนกว่าจะเสร็จสิ้น",
     waitingContractorHint: "คุณขอปิดโครงการแล้ว กำลังรอผู้รับเหมายืนยัน",
     confirmContractorRequestHint: "ผู้รับเหมาขอปิดโครงการ ยืนยันเมื่องานเสร็จแล้ว",
+    readyBannerTitle: "โครงการพร้อมที่จะปิดงาน",
+    readyBannerText:
+      "{name} แจ้งว่างานเสร็จแล้ว ตรวจสอบผลงานและยืนยันการปิดโครงการเพื่อปิดงาน",
+    readyBannerContractorFallback: "ผู้รับเหมา",
     showAgain: "แสดงโครงการอีกครั้ง",
     restoring: "กำลังกู้คืน…",
     hideProject: "ซ่อนโครงการ",

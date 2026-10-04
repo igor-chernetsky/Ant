@@ -263,6 +263,17 @@ export interface ContractorProjectParticipation {
   projectScopeSummary: string | null;
   projectClarificationSummary?: string | null;
   projectContractTerms: BidContractTerms;
+  /**
+   * Legal details for the contractor's side of the commercial proposal, reused
+   * from their previous proposals (plus the profile tax ID for the registration
+   * number), so the form does not ask for them from scratch on every bid.
+   */
+  contractorLegalDefaults?: Pick<
+    BidContractTerms,
+    | 'contractorAddress'
+    | 'contractorRegistrationNo'
+    | 'contractorRepresentative'
+  >;
   canStartClarification: boolean;
   canApply: boolean;
   canEnroll: boolean;
