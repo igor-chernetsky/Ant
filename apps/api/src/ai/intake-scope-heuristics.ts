@@ -118,6 +118,43 @@ export function isLandscapingOrCivilAmenityOnly(
   return isLandscapingOrCivilAmenityNarrative(projectSourceNarrative(context));
 }
 
+/**
+ * Single-element work: repairing or replacing one building element — roof,
+ * windows, tiles, paint, flooring — rather than a room, a floor or a building.
+ *
+ * Nothing about the building's systems is being decided in these jobs, so
+ * utility connections, electrical depth, sanitary points and special systems are
+ * noise. Keyed on the scope wording rather than the trade name, so a new element
+ * type is covered without adding a rule.
+ *
+ * Cyrillic alternatives are bounded by explicit non-letter groups instead of
+ * `\b`, which only recognises ASCII word characters. Bare `пол` is deliberately
+ * absent: it is a substring of `полная замена` and would misfire.
+ */
+const SINGLE_ELEMENT_WORK_PATTERN =
+  /(\b(roof|roofing|gutter|downpipe|window|windows|glazing|door|doors|tile|tiles|tiling|floor|flooring|parquet|laminate|paint|painting|repaint|facade|plaster|render|waterproofing|insulation|ceiling|cladding)\b)|(?:^|[^а-яё])(кровл|крыш|окн|двер|плитк|покрас|фасад|штукатур|потолк|ламинат|паркет|утепл|гидроизоляц)(?:[^а-яё]|$)|(หลังคา|หน้าต่าง|ประตู|กระเบื้อง|พื้น|ทาสี|ฝ้า|ฉนวน)/i;
+
+/** The whole building is in scope, so element-level reasoning does not apply. */
+const WHOLE_BUILDING_PATTERN =
+  /(\b(whole|entire)\s+(house|home|building|property)\b)|(\ball\s+rooms\b)|(весь\s+(дом|коттедж))|(вся\s+квартира)|(ทั้งหลัง|ทั้งบ้าน|ทุกห้อง)/i;
+
+export function isSingleElementScope(
+  context: ProjectIntakeContext,
+): boolean {
+  if (isBuildingShellPrimary(context)) {
+    return false;
+  }
+
+  const narrative = projectSourceNarrative(context);
+  if (!SINGLE_ELEMENT_WORK_PATTERN.test(narrative)) {
+    return false;
+  }
+  if (BUILDING_CONSTRUCTION_INTENT_PATTERN.test(narrative)) {
+    return false;
+  }
+  return !WHOLE_BUILDING_PATTERN.test(narrative);
+}
+
 /** True when the user explicitly confirmed a pool via special-systems. */
 export function userSelectedPoolInAnswers(
   context: ProjectIntakeContext,
@@ -265,6 +302,9 @@ export function shouldAskSpecialSystemsQuestion(
   if (isLandscapingOrCivilAmenityOnly(context)) {
     return false;
   }
+  if (isSingleElementScope(context)) {
+    return false;
+  }
   if (
     !['new_build', 'extension', 'commercial_fitout'].includes(
       context.projectType,
@@ -301,6 +341,11 @@ export function shouldAskUtilityConnectionQuestions(
   if (isLandscapingOrCivilAmenityOnly(context)) {
     return false;
   }
+  // Replacing a roof, windows or tiles does not decide how the building is
+  // supplied, even though the project type is `repair`.
+  if (isSingleElementScope(context)) {
+    return false;
+  }
   return (
     isBuildingShellPrimary(context) ||
     isPoolFocusedProject(context) ||
@@ -323,6 +368,9 @@ export function shouldAskElectricalScopeQuestions(
   }
   if (isLandscapingOrCivilAmenityOnly(context)) {
     return PATH_LIGHTING_PATTERN.test(projectSourceNarrative(context));
+  }
+  if (isSingleElementScope(context)) {
+    return false;
   }
   return (
     isBuildingShellPrimary(context) ||
@@ -361,10 +409,27 @@ export function shouldAskPoolLightingQuestions(
   );
 }
 
+/**
+ * Scope touches plumbing / wet areas (bathroom, kitchen, sanitary ware).
+ *
+ * Sanitary wet points are irrelevant to a roof, paint or flooring repair, but
+ * they are relevant to a bathroom or kitchen renovation — which the project type
+ * alone does not tell us.
+ *
+ * The non-Latin alternatives are matched without `\b`: the boundary assertion
+ * only recognises ASCII word characters, so it never fires next to Cyrillic or
+ * Thai text.
+ */
+const WET_AREA_PATTERN =
+  /(\b(bathroom|bath\s*room|toilet|wc|kitchen|plumbing|pipework|sanitary|shower|vanity|wet\s*(points?|areas?))\b)|(санузел|ванн|сантехник|кухн|трубопровод|สุขภัณฑ์|ห้องน้ำ|ห้องครัว|ประปา|ท่อน้ำ)/i;
+
 export function shouldAskSanitaryPointsQuestions(
   context: ProjectIntakeContext,
 ): boolean {
-  if (!isBuildingShellPrimary(context)) {
+  if (
+    !isBuildingShellPrimary(context) &&
+    !WET_AREA_PATTERN.test(intakeNarrative(context))
+  ) {
     return false;
   }
   if (

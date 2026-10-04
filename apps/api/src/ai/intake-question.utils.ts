@@ -4,6 +4,11 @@ import {
   isLandscapingOrCivilAmenityOnly,
   POOL_INTAKE_QUESTION_IDS,
   projectMentionsPool,
+  shouldAskElectricalScopeQuestions,
+  shouldAskFoundationType,
+  shouldAskSanitaryPointsQuestions,
+  shouldAskSpecialSystemsQuestion,
+  shouldAskUtilityConnectionQuestions,
 } from './intake-scope-heuristics';
 
 /** Detect AI-generated "Other" options — UI adds a single custom Other control. */
@@ -61,6 +66,50 @@ const BUILDING_SHELL_PROMPT_PATTERN =
   /\b(storey|storeys|floors?|этаж|ชั้น|sanitary|wet\s*points?|сантех|foundation\s*type|фундамент|elevator|lift|лифт|basement|подвал|smart\s*home|умн.*дом)\b/i;
 
 /**
+ * Relevance rules the fallback queue already applies via `shouldAsk*`
+ * (`intake-scope-heuristics`), applied here to model-authored questions too.
+ *
+ * The prompt asks the model to prefer these ids but cannot force it to respect
+ * the scope rules — that is how a roof repair ended up asking "How many sanitary
+ * wet points are needed for this project?". Matching the prompt as well catches
+ * the same question when the model invents its own id.
+ */
+const SCOPE_RELEVANCE_RULES: ReadonlyArray<{
+  ids: readonly string[];
+  prompt: RegExp;
+  isRelevant: (context: ProjectIntakeContext) => boolean;
+}> = [
+  {
+    ids: ['sanitary-points'],
+    prompt: /(\b(sanitary|wet\s*points?)\b)|(сантехник|санузел|สุขภัณฑ์|จุดเปียก)/i,
+    isRelevant: shouldAskSanitaryPointsQuestions,
+  },
+  {
+    ids: ['foundation-type', 'foundation'],
+    prompt: /(\bfoundation\b)|(фундамент|ฐานราก)/i,
+    isRelevant: shouldAskFoundationType,
+  },
+  {
+    ids: ['utility-connections'],
+    prompt:
+      /(\b(utility|utilities|water\s*supply|power\s*supply|sewer|mains)\b)|(коммуникац|подключени.*(вод|электр)|น้ำประปา|ไฟฟ้า)/i,
+    isRelevant: shouldAskUtilityConnectionQuestions,
+  },
+  {
+    ids: ['electrical-scope'],
+    prompt:
+      /(\b(electrical|wiring|rewiring|lighting|switchboard|distribution\s*board)\b)|(электрик|электропроводк|проводк|освещен| электрощит|ไฟ|เดินสาย)/i,
+    isRelevant: shouldAskElectricalScopeQuestions,
+  },
+  {
+    ids: ['special-systems'],
+    prompt:
+      /(\b(elevator|lift|basement|smart\s*home|home\s*automation)\b)|(лифт|подвал|умн.*дом)/i,
+    isRelevant: shouldAskSpecialSystemsQuestion,
+  },
+];
+
+/**
  * Drop or trim questions that do not match project scope
  * (pool FAQs without a pool; building-shell FAQs on landscaping/civil amenity jobs).
  */
@@ -95,6 +144,14 @@ export function filterIntakeQuestionForScope(
       return null;
     }
     if (BUILDING_SHELL_PROMPT_PATTERN.test(question.prompt)) {
+      return null;
+    }
+  }
+
+  for (const rule of SCOPE_RELEVANCE_RULES) {
+    const matches =
+      rule.ids.includes(question.id) || rule.prompt.test(question.prompt);
+    if (matches && !rule.isRelevant(context)) {
       return null;
     }
   }

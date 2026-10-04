@@ -70,11 +70,20 @@ export class IntakeService {
       result = this.fallback.runInitialIntake(context);
     }
 
-    if (result.intake.currentQuestion) {
+    const providerQuestion = result.intake.currentQuestion;
+    if (providerQuestion) {
       result.intake.currentQuestion = filterIntakeQuestionForScope(
         context,
-        sanitizeIntakeQuestion(result.intake.currentQuestion),
+        sanitizeIntakeQuestion(providerQuestion),
       );
+      if (!result.intake.currentQuestion) {
+        // The model asked something the scope rules reject — the wrong trade, or
+        // a system that is not part of this job. Keep the evidence: without this
+        // the question just disappears and the next one arrives as a surprise.
+        this.logger.warn(
+          `Dropping out-of-scope intake question "${providerQuestion.id}": ${providerQuestion.prompt}`,
+        );
+      }
     }
 
     // A brand-new project must always be asked something. An empty intake is
