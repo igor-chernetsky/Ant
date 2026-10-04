@@ -87,11 +87,12 @@ export function getIntakeProgress(intake: {
   currentQuestion: IntakeQuestion | null;
 }): {
   percent: number;
-  label: string;
   answered: number;
   step: number;
   estimatedTotal: number;
   isComplete: boolean;
+  /** True while the user is answering: lets callers build a localized label. */
+  onQuestion: boolean;
 } {
   const answered = intake.answers.length;
   const onQuestion =
@@ -101,11 +102,11 @@ export function getIntakeProgress(intake: {
     const total = Math.max(answered, 1);
     return {
       percent: 100,
-      label: 'All questions answered',
       answered,
       step: total,
       estimatedTotal: total,
       isComplete: true,
+      onQuestion: false,
     };
   }
 
@@ -124,13 +125,11 @@ export function getIntakeProgress(intake: {
 
   return {
     percent,
-    label: onQuestion
-      ? `Question ${step} of ~${estimatedTotal}`
-      : `${answered} answered`,
     answered,
     step,
     estimatedTotal,
     isComplete: false,
+    onQuestion,
   };
 }
 

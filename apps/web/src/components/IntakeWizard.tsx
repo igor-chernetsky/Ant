@@ -249,10 +249,21 @@ function IntakeProgressBar({
 }) {
   const { t } = useTranslation();
 
+  // Built here so the label follows the interface language, like every other
+  // string on the page, instead of being produced by the progress helper.
+  const label = progress.isComplete
+    ? t('intake.progressAllAnswered')
+    : progress.onQuestion
+      ? t('intake.progressQuestion', {
+          current: progress.step,
+          total: progress.estimatedTotal,
+        })
+      : t('intake.progressAnsweredCount', { answered: progress.answered });
+
   return (
     <div className="intake-progress-block" aria-live="polite">
       <div className="intake-progress-header">
-        <span className="intake-progress-label">{progress.label}</span>
+        <span className="intake-progress-label">{label}</span>
         <span className="intake-progress-percent muted">{progress.percent}%</span>
       </div>
       <div
@@ -261,7 +272,7 @@ function IntakeProgressBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={progress.percent}
-        aria-label={progress.label}
+        aria-label={label}
       >
         <div
           className={`intake-progress-fill${progress.isComplete ? ' intake-progress-fill-complete' : ''}`}

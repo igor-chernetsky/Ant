@@ -6,7 +6,7 @@ import {
   NextQuestionResult,
   ProjectIntakeContext,
 } from './intake.types';
-import { sanitizeIntakeQuestion } from './intake-question.utils';
+import { sanitizeIntakeQuestion, filterIntakeQuestionForScope } from './intake-question.utils';
 import { hasDocumentIntakeContext } from '../intake/intake-document-context';
 import { suggestTagSlugsFromText } from '../projects/project-brief';
 import {
@@ -90,9 +90,35 @@ export class IntakeFallbackService {
     };
   }
 
-  /** First fallback question respecting property type and scope heuristics. */
-  getFirstFallbackQuestion(context: ProjectIntakeContext): IntakeQuestion | null {
-    return this.firstFallbackQuestion(context);
+  /**
+   * First fallback question that survives the scope filter.
+   *
+   * The raw queue can start with a building-shell question on a landscaping job,
+   * which the filter then drops — leaving the intake with nothing to ask. Use
+   * this whenever the question is going to be shown to the user.
+   */
+  getFirstAllowedQuestion(context: ProjectIntakeContext): IntakeQuestion | null {
+    if (!context.propertyType) {
+      const propertyType = filterIntakeQuestionForScope(
+        context,
+        sanitizeIntakeQuestion(getFallbackPropertyTypeQuestion(context.locale)),
+      );
+      if (propertyType) {
+        return propertyType;
+      }
+    }
+
+    for (const question of this.fallbackQuestionQueue(context)) {
+      const allowed = filterIntakeQuestionForScope(
+        context,
+        sanitizeIntakeQuestion(question),
+      );
+      if (allowed) {
+        return allowed;
+      }
+    }
+
+    return null;
   }
 
   finalizeIntake(context: ProjectIntakeContext): FinalIntakeResult {

@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   forwardRef,
 } from '@nestjs/common';
@@ -38,6 +39,8 @@ import { ProjectLocalizationService } from '../localization/project-localization
 
 @Injectable()
 export class IntakeService {
+  private readonly logger = new Logger(IntakeService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly openAi: OpenAiIntakeService,
@@ -72,21 +75,31 @@ export class IntakeService {
         context,
         sanitizeIntakeQuestion(result.intake.currentQuestion),
       );
-      if (!result.intake.currentQuestion) {
-        const fallbackNext = this.fallback.getFirstFallbackQuestion(context);
-        result.intake.currentQuestion = filterIntakeQuestionForScope(
-          context,
-          fallbackNext ? sanitizeIntakeQuestion(fallbackNext) : null,
-        );
-        result.intake.status = result.intake.currentQuestion
-          ? 'awaiting_answers'
-          : 'ready_to_submit';
-        if (result.intake.currentQuestion) {
-          result.intake.askedQuestionIds = [result.intake.currentQuestion.id];
-        } else {
-          result.intake.askedQuestionIds = [];
-        }
-      }
+    }
+
+    // A brand-new project must always be asked something. An empty intake is
+    // indistinguishable in the UI from "the scope is already clear", and the
+    // provider returns no question in two cases that both used to pass silently:
+    // the model decided nothing was needed, or `normalizeQuestion` rejected what
+    // it sent. The fallback queue always has questions, so use it as the net.
+    if (!result.intake.currentQuestion) {
+      const rescue = this.fallback.getFirstAllowedQuestion(context);
+      result.intake.currentQuestion = rescue
+        ? filterIntakeQuestionForScope(context, sanitizeIntakeQuestion(rescue))
+        : null;
+    }
+
+    result.intake.status = result.intake.currentQuestion
+      ? 'awaiting_answers'
+      : 'ready_to_submit';
+    result.intake.askedQuestionIds = result.intake.currentQuestion
+      ? [result.intake.currentQuestion.id]
+      : [];
+
+    if (result.intake.status === 'ready_to_submit' && result.intake.answers.length === 0) {
+      this.logger.warn(
+        `Initial intake for project ${projectId} has nothing to ask (provider: ${result.intake.provider ?? 'unknown'}) — the project goes straight to processing.`,
+      );
     }
 
     const tagSlugs = await this.reconcileProjectAiTags({

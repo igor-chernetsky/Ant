@@ -181,7 +181,10 @@ Rules:
 - improvedDescription: clear professional ${lang}, 2-5 sentences, do not invent facts not implied by input or uploadedDocuments. Keep ${lang} throughout — do not translate into English or another language
 - tagSlugs: subset of allowed tags only
 - confidence: 0-1
-- nextQuestion: first follow-up question to clarify scope, or null if nothing needed
+- nextQuestion: the FIRST follow-up question that clarifies scope. On this initial
+  call always ask one — the user has not answered anything yet. Return null only
+  when the description AND uploadedDocuments together already pin down the area,
+  the materials and the timeline. Never ask the user to upload plans or photos.
 - Ask at most ONE question in nextQuestion; prompt and options in ${lang}
 - Prefer practical construction questions matched to scope (for landscaping/paths: dimensions, base prep, materials; for pools: depth, pump room; for buildings: area, storeys, materials)
 ${TAG_NO_HALLUCINATION_RULES}
@@ -203,6 +206,13 @@ ${this.documentContextRules()}`;
     }
 
     const nextQuestion = this.normalizeQuestion(result.nextQuestion);
+    if (result.nextQuestion && !nextQuestion) {
+      // Silently treating an unusable question as "nothing to ask" ends the whole
+      // interview, so leave a trace of what the model actually sent.
+      this.logger.warn(
+        `Discarding unusable intake question: ${JSON.stringify(result.nextQuestion).slice(0, 300)}`,
+      );
+    }
     const status = nextQuestion ? 'awaiting_answers' : 'ready_to_submit';
 
     return {
@@ -266,8 +276,15 @@ ${this.documentContextRules()}`;
       return null;
     }
 
+    const nextQuestion = this.normalizeQuestion(result.nextQuestion);
+    if (result.nextQuestion && !nextQuestion) {
+      this.logger.warn(
+        `Discarding unusable follow-up question: ${JSON.stringify(result.nextQuestion).slice(0, 300)}`,
+      );
+    }
+
     return {
-      nextQuestion: this.normalizeQuestion(result.nextQuestion),
+      nextQuestion,
       improvedDescription: result.improvedDescription?.trim(),
     };
   }
