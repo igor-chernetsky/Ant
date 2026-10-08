@@ -601,7 +601,7 @@ export function ProgressClaimsPanel({
               </dl>
               {!overview.advancePaymentConfirmed && (
                 <p className="muted progress-advance-payment-hint">
-                  {t('progressSection.advanceNotConfirmedHint')}
+                  {t('progressSection.advanceSlipsNotSentHint')}
                 </p>
               )}
               {renderPaymentSlips(overview.advancePaymentSlips, {

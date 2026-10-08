@@ -1711,8 +1711,8 @@ export const ruExtended = {
     advanceOutstanding: "Остаток аванса",
     advanceRepaymentRate: "Ставка возврата",
     advanceRepaymentRateValue: "{percent}% за сертификат",
-    advanceNotConfirmedHint:
-      "Возврат аванса начнётся после того, как вы отправите платёжки по авансу подрядчику.",
+    advanceSlipsNotSentHint:
+      "Аванс удерживается из каждого сертификата. Приложите платёжки по авансу и отправьте их подрядчику как подтверждение оплаты.",
     dueThisPeriod: "Сертифицировано за период",
     payableThisPeriod: "К оплате за период",
     attachPaymentSlip: "Добавить платёжку",

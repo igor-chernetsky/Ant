@@ -1704,8 +1704,8 @@ export const thExtended = {
     advanceOutstanding: "เงินล่วงหน้าคงเหลือ",
     advanceRepaymentRate: "อัตราการหักคืน",
     advanceRepaymentRateValue: "{percent}% ต่อใบรับรอง",
-    advanceNotConfirmedHint:
-      "การหักคืนเงินล่วงหน้าจะเริ่มเมื่อคุณส่งสลิปเงินล่วงหน้าให้ผู้รับเหมาแล้ว",
+    advanceSlipsNotSentHint:
+      "เงินล่วงหน้าจะถูกหักจากใบรับรองทุกงวด แนบสลิปเงินล่วงหน้าและส่งให้ผู้รับเหมาเพื่อเป็นหลักฐานการชำระเงิน",
     dueThisPeriod: "รับรองรวมช่วงนี้",
     payableThisPeriod: "ยอดชำระช่วงนี้",
     attachPaymentSlip: "เพิ่มสลิปการชำระ",

@@ -1706,8 +1706,8 @@ export const enExtended = {
     advanceOutstanding: "Advance outstanding",
     advanceRepaymentRate: "Repayment rate",
     advanceRepaymentRateValue: "{percent}% per certificate",
-    advanceNotConfirmedHint:
-      "The advance repayment starts once you send the advance payment slips to the contractor.",
+    advanceSlipsNotSentHint:
+      "The advance is deducted from every payment certificate. Add the advance payment slips and send them to the contractor as proof of payment.",
     dueThisPeriod: "Certified this period",
     payableThisPeriod: "Payable this period",
     attachPaymentSlip: "Add payment slip",

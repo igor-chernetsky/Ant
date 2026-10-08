@@ -20,6 +20,7 @@ import {
   computeAdvanceRecoveryPeriod,
   computeProgressClaim,
   computeRetentionPeriod,
+  resolveAdvanceRecoveryPercent,
   roundMoney,
 } from './progress-claim.util';
 import type {
@@ -80,35 +81,6 @@ interface ClaimDeductionContext {
   retentionHeldToDate: number;
   advanceRecoveryPercent: number;
   advanceOutstanding: number;
-}
-
-/**
- * Amortisation rate used to repay the advance from each payment certificate.
- *
- * Recovery only starts once the client has actually sent the advance payment
- * slips. An explicit contract rate wins; otherwise the rate is derived so the
- * advance is repaid in full by Practical Completion — the advance itself is a
- * share of the VAT-inclusive contract sum, while the certificate base excludes
- * VAT, so reusing the advance percentage would leave a shortfall.
- */
-function resolveAdvanceRecoveryPercent(input: {
-  terms: BidTermsV1;
-  advanceAmount: number;
-  contractBaseTotal: number;
-  advanceConfirmed: boolean;
-}): number {
-  if (!input.advanceConfirmed || input.advanceAmount <= 0) {
-    return 0;
-  }
-  const explicit =
-    input.terms.contractTerms?.advancePaymentAmortisationPercent ?? 0;
-  if (explicit > 0) {
-    return Math.min(100, explicit);
-  }
-  if (input.contractBaseTotal <= 0) {
-    return 0;
-  }
-  return Math.min(100, (input.advanceAmount / input.contractBaseTotal) * 100);
 }
 
 @Injectable()
@@ -1020,7 +992,9 @@ export class ProgressService {
 
     const advance = resolveAdvancePayment(bid, terms, contractGrandTotal);
 
-    // Recovery starts only once the client has sent the advance payment slips.
+    // Slip tracking is evidence for the contractor, not a precondition for the
+    // deduction: an advance stated in the contract is recovered from every
+    // certificate whether or not the client recorded the payment here.
     const submittedAdvanceSlips = await this.prisma.paymentSlipAttachment.count({
       where: {
         projectId,
@@ -1045,7 +1019,6 @@ export class ProgressService {
         contractTotals.totals.grandCumulative -
           contractTotals.totals.vatCumulative,
       ),
-      advanceConfirmed: submittedAdvanceSlips > 0,
     });
 
     return {

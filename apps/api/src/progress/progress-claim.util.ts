@@ -1,4 +1,5 @@
 import { computeBidCostAdjustments } from '../tendering/bid-cost-adjustments.util';
+import type { BidTermsV1 } from '../tendering/tendering.types';
 
 export interface ProgressBaselineLine {
   trade: string;
@@ -68,6 +69,40 @@ export function computeAdvanceRecoveryPeriod(input: {
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(100, Math.max(0, value));
+}
+
+/**
+ * Amortisation rate used to repay the advance payment from each certificate.
+ *
+ * The contract governs. An advance in the contract is money the client pays up
+ * front, and clause 6.1 repays it through deductions from every Payment
+ * Certificate — so the rate applies as soon as the contract states an advance.
+ * Recording the advance payment slips is evidence tracking for the contractor;
+ * it does not gate the deduction, otherwise a client who pays by bank transfer
+ * without uploading the slip would never have the advance recovered.
+ *
+ * An explicit contract rate wins. Otherwise the rate is derived so the advance
+ * is repaid in full by Practical Completion: the advance itself is a share of
+ * the VAT-inclusive contract sum, while the certificate base excludes VAT, so
+ * reusing the advance percentage would leave a shortfall.
+ */
+export function resolveAdvanceRecoveryPercent(input: {
+  terms: BidTermsV1;
+  advanceAmount: number;
+  contractBaseTotal: number;
+}): number {
+  if (input.advanceAmount <= 0) {
+    return 0;
+  }
+  const explicit =
+    input.terms.contractTerms?.advancePaymentAmortisationPercent ?? 0;
+  if (explicit > 0) {
+    return Math.min(100, explicit);
+  }
+  if (input.contractBaseTotal <= 0) {
+    return 0;
+  }
+  return Math.min(100, (input.advanceAmount / input.contractBaseTotal) * 100);
 }
 
 export function roundMoney(value: number): number {
