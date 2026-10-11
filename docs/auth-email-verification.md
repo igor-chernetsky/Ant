@@ -16,6 +16,31 @@ Until the email is verified, login returns: *Verify your email before signing in
 
 Auto-repair on login **does not** bypass email verification.
 
+### Login failure detection
+
+Keycloak refuses the password grant for an unverified account with
+`invalid_grant` / **"Account is not fully set up"** — not with "Invalid user
+credentials". `isAccountNotFullySetUpError` (`apps/web/src/lib/auth-tokens.ts`)
+therefore also triggers the Admin API diagnosis, and only then does
+`authErrorPayload` (`apps/web/src/lib/auth-login-error.ts`) return
+`code: 'email_not_verified'`. Any other account state (disabled user,
+incomplete profile, temporary password) stays a generic "Invalid username or
+password" so the form cannot enumerate accounts.
+
+### Resend the verification email
+
+The login modal shows **Resend verification email** when sign-in fails with
+`code: 'email_not_verified'`. It calls `POST /api/auth/resend-verification`,
+which sends through the same path as signup (app SMTP when
+`EMAIL_VERIFICATION_SECRET` is set, otherwise Keycloak's `send-verify-email`).
+
+| Aspect | Behaviour |
+|--------|-----------|
+| Response | Identical for a registered, unknown and already verified address (`apps/web/src/lib/auth-keycloak-admin.ts` → `resendVerificationEmail`) |
+| Throttle | One email per minute, at most five per hour, keyed by address + client IP (`apps/web/src/lib/auth-resend-limit.ts`) |
+| Too soon | `429` with `code: 'verification_resend_too_soon'` and `retryAfterSec`; the modal says the next email can be sent a little later and shows a live `m:ss` countdown on the button |
+| Unavailable | `503` when the Keycloak admin connection is missing — that verdict does not depend on the address |
+
 ---
 
 ## 1. Configure Keycloak SMTP
@@ -98,7 +123,8 @@ Users are created with `emailVerified: true` and signed in immediately (old beha
 | Symptom | Fix |
 |---------|-----|
 | Signup: *verification email could not be sent* | Configure Keycloak SMTP **or** Vercel SMTP vars for app-sent verification; test connection |
-| Login: *Verify your email* | User must click the link in the email |
+| Login: *Verify your email* | User must click the link in the email, or press **Resend verification email** in the modal |
+| Resend: *next verification email can be sent a little later* | Working as intended — 60 s cooldown, five per hour per address + IP |
 | Forgot password: *temporarily unavailable* | Keycloak realm Email SMTP often unset. App fallback needs the same Vercel vars as verification: `EMAIL_VERIFICATION_SECRET` + `SMTP_*`. Check Vercel function logs for `[auth-keycloak] password reset`. |
 | Email not received | Check spam; Resend dashboard logs; domain must be Verified; From must match domain |
 | Link opens wrong site / `buildthai.com` in email | Fix **Vercel** `NEXT_PUBLIC_APP_URL` to `https://www.builthai.com` (not `buildthai.com`) and redeploy. On EC2 set `WEB_APP_URL` the same way. Code auto-corrects the typo at runtime, but update env anyway. |

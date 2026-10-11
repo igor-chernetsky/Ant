@@ -138,6 +138,20 @@ export function isWrongPasswordError(result: {
   );
 }
 
+/**
+ * Keycloak's answer when an account still has pending required actions — an
+ * unverified email (`VERIFY_EMAIL`) or an incomplete profile. It arrives as
+ * `invalid_grant` / "Account is not fully set up", NOT as "Invalid user
+ * credentials", so callers that only recognise a wrong password would report a
+ * generic failure and never surface the verification state.
+ */
+export function isAccountNotFullySetUpError(result: {
+  error: string;
+  description?: string;
+}): boolean {
+  return (result.description ?? '').toLowerCase().includes('not fully set up');
+}
+
 export async function refreshKeycloakTokens(
   refreshToken: string,
 ): Promise<TokenExchangeResult> {

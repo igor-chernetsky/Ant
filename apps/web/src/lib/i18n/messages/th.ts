@@ -214,6 +214,14 @@ export const th: Messages = {
     rememberedPassword: 'จำรหัสผ่านได้แล้ว?',
     verifyEmailDefault:
       'สร้างบัญชีแล้ว ตรวจสอบอีเมลและยืนยันที่อยู่อีเมลก่อนเข้าสู่ระบบ',
+    resendVerificationHint: 'ไม่ได้รับอีเมล? เราส่งลิงก์ใหม่ให้ได้',
+    resendVerification: 'ส่งอีเมลยืนยันอีกครั้ง',
+    resendingVerification: 'กำลังส่ง…',
+    resendVerificationCooldown: 'ส่งอีกครั้งใน {time}',
+    resendVerificationSent:
+      'หากมีบัญชีที่ใช้อีเมล {email} ลิงก์ยืนยันใหม่กำลังส่งไป ตรวจสอบกล่องจดหมายและสแปม',
+    resendVerificationTooSoon:
+      'อีเมลยืนยันฉบับถัดไปสามารถส่งได้อีกสักครู่',
     roleClient: 'ลูกค้า',
     roleContractor: 'ผู้รับเหมา',
     roleDesigner: 'นักออกแบบ',

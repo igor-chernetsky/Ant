@@ -5,8 +5,10 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
+  AuthRequestError,
   loginWithPassword,
   requestPasswordReset,
+  requestVerificationResend,
   signupWithPassword,
 } from '@/lib/session';
 import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
@@ -41,6 +43,15 @@ type AuthField = 'username' | 'email' | 'password' | 'displayName';
 type FieldErrors = Partial<Record<AuthField, string>>;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Cooldown label as m:ss — no plural forms to translate. */
+function formatWait(seconds: number): string {
+  const safe = Math.max(0, Math.ceil(seconds));
+  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, '0')}`;
+}
+
+/** The server enforces one email per minute; mirror it so the button is honest. */
+const RESEND_COOLDOWN_MS = 60 * 1000;
 
 function mapServerErrorToFields(message: string): AuthField[] {
   const m = message.toLowerCase();
@@ -181,6 +192,15 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  /** True once sign-in was refused because the account email is unconfirmed. */
+  const [verifyEmailPending, setVerifyEmailPending] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const [resendSent, setResendSent] = useState<string | null>(null);
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(
+    null,
+  );
+  const [clock, setClock] = useState(() => Date.now());
 
   const usernameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -219,6 +239,35 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     }
   }, [error]);
 
+  // Tick the resend cooldown and clear it once it elapses.
+  useEffect(() => {
+    if (resendAvailableAt == null) {
+      return;
+    }
+    const tick = () => {
+      setClock(Date.now());
+      if (resendAvailableAt <= Date.now()) {
+        setResendAvailableAt(null);
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [resendAvailableAt]);
+
+  // The modal stays mounted while closed, so drop the pending-verification state
+  // instead of showing a stale resend button on the next open.
+  useEffect(() => {
+    if (isOpen) {
+      return;
+    }
+    setVerifyEmailPending(false);
+    setResendBusy(false);
+    setResendError(null);
+    setResendSent(null);
+    setResendAvailableAt(null);
+  }, [isOpen]);
+
   if (!isOpen) {
     return null;
   }
@@ -236,8 +285,43 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     setAcceptedPrivacy(false);
     setAcceptedClientAgreement(false);
     setAcceptedContractorAgreement(false);
+    setVerifyEmailPending(false);
+    setResendError(null);
+    setResendSent(null);
     if (next === 'forgot' && !email && username) {
       setEmail(username);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const target = username.trim();
+    if (!target || resendBusy) {
+      return;
+    }
+
+    setResendBusy(true);
+    setResendError(null);
+    setResendSent(null);
+    try {
+      await requestVerificationResend(target);
+      trackEvent(AnalyticsEvents.resendVerification, {});
+      setResendSent(t('auth.resendVerificationSent', { email: target }));
+      setResendAvailableAt(Date.now() + RESEND_COOLDOWN_MS);
+    } catch (err: unknown) {
+      if (err instanceof AuthRequestError && err.retryAfterSec) {
+        setResendAvailableAt(Date.now() + err.retryAfterSec * 1000);
+      }
+      const throttled =
+        err instanceof AuthRequestError &&
+        (err.code === 'verification_resend_too_soon' ||
+          err.code === 'verification_resend_rate_limited');
+      setResendError(
+        throttled || !(err instanceof Error)
+          ? t('auth.resendVerificationTooSoon')
+          : err.message,
+      );
+    } finally {
+      setResendBusy(false);
     }
   };
 
@@ -270,6 +354,9 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     setError(null);
     setSuccessNotice(null);
     setFieldErrors({});
+    setVerifyEmailPending(false);
+    setResendError(null);
+    setResendSent(null);
 
     const needsClientAgreement = roles.includes('client');
     const needsContractorAgreement =
@@ -356,6 +443,16 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
               ? t('auth.forgotPasswordFailed')
               : t('auth.signUpFailed');
 
+      // Unconfirmed email is the one login failure the user can fix on the spot,
+      // so offer to send the confirmation link again.
+      if (
+        mode === 'signin' &&
+        err instanceof AuthRequestError &&
+        err.code === 'email_not_verified'
+      ) {
+        setVerifyEmailPending(true);
+      }
+
       const fields = mapServerErrorToFields(message);
       if (fields.length > 0) {
         const mapped: FieldErrors = {};
@@ -379,6 +476,11 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     acceptedPrivacy &&
     (!needsClientAgreement || acceptedClientAgreement) &&
     (!needsContractorAgreement || acceptedContractorAgreement);
+
+  const resendWaitSec =
+    resendAvailableAt == null
+      ? 0
+      : Math.max(0, Math.ceil((resendAvailableAt - clock) / 1000));
 
   const title =
     mode === 'signin'
@@ -454,6 +556,10 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                 onChange={(event) => {
                   setUsername(event.target.value);
                   clearFieldError('username');
+                  // A different address means a different pending verification.
+                  setVerifyEmailPending(false);
+                  setResendError(null);
+                  setResendSent(null);
                 }}
                 placeholder={t('auth.emailPlaceholder')}
                 aria-invalid={fieldErrors.username ? true : undefined}
@@ -717,6 +823,38 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           )}
           {successNotice && (
             <p className="auth-success-notice">{successNotice}</p>
+          )}
+
+          {mode === 'signin' && verifyEmailPending && (
+            <div className="auth-verify-resend">
+              <p className="muted auth-verify-resend-hint">
+                {t('auth.resendVerificationHint')}
+              </p>
+              <button
+                type="button"
+                className="secondary auth-verify-resend-button"
+                disabled={submitting || resendBusy || resendWaitSec > 0}
+                onClick={() => void handleResendVerification()}
+              >
+                {resendBusy
+                  ? t('auth.resendingVerification')
+                  : resendWaitSec > 0
+                    ? t('auth.resendVerificationCooldown', {
+                        time: formatWait(resendWaitSec),
+                      })
+                    : t('auth.resendVerification')}
+              </button>
+              {resendError && (
+                <p className="form-error" role="alert">
+                  {resendError}
+                </p>
+              )}
+              {resendSent && (
+                <p className="auth-success-notice" role="status">
+                  {resendSent}
+                </p>
+              )}
+            </div>
           )}
 
           <button

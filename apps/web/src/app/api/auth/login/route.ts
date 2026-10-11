@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server';
+import { authErrorPayload } from '@/lib/auth-login-error';
 import {
   diagnoseKeycloakLoginFailure,
   resolveKeycloakLoginIdentifiers,
 } from '@/lib/auth-keycloak-admin';
 import {
   exchangePasswordCredentials,
+  isAccountNotFullySetUpError,
   isWrongPasswordError,
   persistAndApplyAuthCookies,
   type TokenExchangeResult,
 } from '@/lib/auth-tokens';
 import { createMemoryRateLimiter } from '@/lib/rate-limit';
+import { clientIp } from '@/lib/request-ip';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,54 +25,6 @@ const loginRateLimiter = createMemoryRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 12,
 });
-
-function clientIp(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    return forwarded.split(',')[0]?.trim() || 'unknown';
-  }
-  return request.headers.get('x-real-ip')?.trim() || 'unknown';
-}
-
-function authErrorPayload(
-  result: { error: string; description?: string },
-  diagnosis?: { code: string; detail: string } | null,
-): { message: string; code: string } {
-  // Avoid account-enumeration: only surface email verification and infra errors.
-  if (diagnosis?.code === 'email_not_verified') {
-    return {
-      message:
-        'Verify your email before signing in. Check your inbox for the confirmation link.',
-      code: 'email_not_verified',
-    };
-  }
-
-  if (isWrongPasswordError(result) || diagnosis) {
-    return {
-      message: 'Invalid username or password',
-      code: 'invalid_credentials',
-    };
-  }
-
-  if (result.error === 'bff_not_configured') {
-    return {
-      message: 'Authentication service is not configured',
-      code: result.error,
-    };
-  }
-
-  if (result.error === 'unauthorized_client' || result.error === 'invalid_client') {
-    return {
-      message: 'Authentication service misconfigured',
-      code: result.error,
-    };
-  }
-
-  return {
-    message: 'Invalid username or password',
-    code: 'invalid_credentials',
-  };
-}
 
 async function attemptLogin(
   login: string,
@@ -157,7 +112,12 @@ export async function POST(request: Request) {
   const result = await attemptLogin(username, password);
 
   if (!result.ok) {
-    if (!isWrongPasswordError(result)) {
+    // An unverified email reaches us as "Account is not fully set up", not as a
+    // wrong password, so both failures need the admin diagnosis.
+    const accountStateFailure =
+      isWrongPasswordError(result) || isAccountNotFullySetUpError(result);
+
+    if (!accountStateFailure) {
       console.error(
         '[auth/login] Keycloak token exchange failed:',
         result.error,
@@ -172,7 +132,7 @@ export async function POST(request: Request) {
     // via the Keycloak Admin API and allowed account takeover for accounts
     // without a permanent password. Recovery must go through the verified
     // forgot-password / verify-email flows.
-    const diagnosis = isWrongPasswordError(result)
+    const diagnosis = accountStateFailure
       ? await diagnoseKeycloakLoginFailure(username)
       : null;
     const payload = authErrorPayload(result, diagnosis);

@@ -45,6 +45,7 @@ export function trackPageView(path: string, measurementId: string): void {
 export const AnalyticsEvents = {
   signUp: 'sign_up',
   login: 'login',
+  resendVerification: 'resend_verification_email',
   createProject: 'create_project',
   verificationRequest: 'verification_request_submitted',
   startClarification: 'start_clarification',

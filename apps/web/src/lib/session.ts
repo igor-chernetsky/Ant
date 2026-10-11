@@ -10,6 +10,38 @@ export interface MeResponse {
   preferredLocale?: string;
 }
 
+/**
+ * Failure returned by a BFF auth route. The BFF answers with a machine-readable
+ * `code` alongside the human message; the login modal needs it to tell "email
+ * not verified" apart from a wrong password, and the cooldown needs
+ * `retryAfterSec` from a 429.
+ */
+export class AuthRequestError extends Error {
+  readonly code?: string;
+  readonly retryAfterSec?: number;
+
+  constructor(
+    message: string,
+    options: { code?: string; retryAfterSec?: number } = {},
+  ) {
+    super(message);
+    this.name = 'AuthRequestError';
+    this.code = options.code;
+    this.retryAfterSec = options.retryAfterSec;
+  }
+}
+
+function readRetryAfterSec(
+  response: Response,
+  body: { retryAfterSec?: unknown } | null,
+): number | undefined {
+  if (typeof body?.retryAfterSec === 'number' && body.retryAfterSec > 0) {
+    return Math.ceil(body.retryAfterSec);
+  }
+  const header = Number(response.headers.get('Retry-After') ?? '');
+  return Number.isFinite(header) && header > 0 ? Math.ceil(header) : undefined;
+}
+
 /** Only users with the client realm role may create projects. */
 export function canCreateProject(me: MeResponse | null): boolean {
   return Boolean(me?.roles?.includes('client'));
@@ -182,9 +214,44 @@ export async function loginWithPassword(
       message?: string;
       detail?: string;
       code?: string;
+      retryAfterSec?: number;
     } | null;
     const hint = body?.detail ? ` (${body.detail})` : '';
-    throw new Error((body?.message ?? 'Sign in failed') + hint);
+    throw new AuthRequestError((body?.message ?? 'Sign in failed') + hint, {
+      code: body?.code,
+      retryAfterSec: readRetryAfterSec(response, body),
+    });
+  }
+}
+
+/**
+ * Ask the BFF to send another signup verification email.
+ *
+ * The BFF answers the same way for a registered address, an unknown one and an
+ * already verified one, so the caller must not treat success as proof that the
+ * account exists. A 429 carries the remaining cooldown in `retryAfterSec`.
+ */
+export async function requestVerificationResend(email: string): Promise<void> {
+  const response = await fetch('/api/auth/resend-verification', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+      code?: string;
+      retryAfterSec?: number;
+    } | null;
+    throw new AuthRequestError(
+      body?.message ?? 'Could not send the verification email',
+      {
+        code: body?.code,
+        retryAfterSec: readRetryAfterSec(response, body),
+      },
+    );
   }
 }
 

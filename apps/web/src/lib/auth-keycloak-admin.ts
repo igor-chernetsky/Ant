@@ -1036,6 +1036,78 @@ export async function diagnoseKeycloakLoginFailure(
   return null;
 }
 
+/**
+ * Send another signup verification email for an account that has not confirmed
+ * its address yet.
+ *
+ * Every account state — unknown address, disabled account, already verified,
+ * send failure — answers `ok: true`, so the endpoint cannot be used to probe
+ * which emails are registered (same policy as forgot-password). Only a broken
+ * Keycloak admin connection is reported, and that verdict does not depend on the
+ * address being looked up.
+ */
+export async function resendVerificationEmail(
+  email: string,
+): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+  if (isEmailVerificationSkipped()) {
+    return { ok: true };
+  }
+
+  let adminToken: string | null = null;
+  try {
+    adminToken = await fetchAdminAccessToken();
+  } catch {
+    adminToken = null;
+  }
+  if (!adminToken) {
+    return {
+      ok: false,
+      status: 503,
+      message:
+        'Verification email is temporarily unavailable. Please try again later.',
+    };
+  }
+
+  const user = await findKeycloakUserByLogin(adminToken, email);
+  if (!user?.id || user.enabled === false) {
+    return { ok: true };
+  }
+
+  const awaitingVerification =
+    user.emailVerified !== true ||
+    (user.requiredActions ?? []).includes('VERIFY_EMAIL');
+  if (!awaitingVerification) {
+    return { ok: true };
+  }
+
+  if (isAppEmailVerificationConfigured()) {
+    const sent = await sendAppVerificationEmail({
+      userId: user.id,
+      email: user.email?.trim() || email.trim().toLowerCase(),
+    });
+    if (!sent.ok) {
+      console.error(
+        '[auth-keycloak] resend verification email failed:',
+        sent.message,
+      );
+    }
+    return { ok: true };
+  }
+
+  const sent = await sendKeycloakVerificationEmail(
+    adminToken,
+    user.id,
+    `${getAppRedirectUri()}/email-verified`,
+  );
+  if (!sent) {
+    console.error(
+      '[auth-keycloak] resend verification email failed for user',
+      user.id,
+    );
+  }
+  return { ok: true };
+}
+
 /** Clear required actions; optionally re-set password (signup repair). */
 function parseUserIdFromLocation(location: string | null): string | null {
   if (!location) return null;

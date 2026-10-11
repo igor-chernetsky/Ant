@@ -213,6 +213,14 @@ export const en = {
     rememberedPassword: 'Remembered your password?',
     verifyEmailDefault:
       'Account created. Check your email and verify your address before signing in.',
+    resendVerificationHint: 'Didn’t get the email? We can send a new link.',
+    resendVerification: 'Resend verification email',
+    resendingVerification: 'Sending…',
+    resendVerificationCooldown: 'Resend in {time}',
+    resendVerificationSent:
+      'If an account exists for {email}, a new confirmation link is on its way. Check your inbox and spam folder.',
+    resendVerificationTooSoon:
+      'The next verification email can be sent a little later.',
     roleClient: 'Client',
     roleContractor: 'Contractor',
     roleDesigner: 'Designer',

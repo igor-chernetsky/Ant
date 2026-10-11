@@ -218,6 +218,15 @@ export const ru: Messages = {
     rememberedPassword: 'Вспомнили пароль?',
     verifyEmailDefault:
       'Аккаунт создан. Проверьте почту и подтвердите адрес перед входом.',
+    resendVerificationHint:
+      'Письмо не пришло? Можно отправить новую ссылку.',
+    resendVerification: 'Отправить письмо ещё раз',
+    resendingVerification: 'Отправляем…',
+    resendVerificationCooldown: 'Повторить через {time}',
+    resendVerificationSent:
+      'Если аккаунт с адресом {email} существует, новая ссылка для подтверждения уже в пути. Проверьте почту и папку «Спам».',
+    resendVerificationTooSoon:
+      'Следующее письмо верификации можно отправить чуть позже.',
     roleClient: 'Заказчик',
     roleContractor: 'Подрядчик',
     roleDesigner: 'Дизайнер',
