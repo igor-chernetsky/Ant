@@ -187,7 +187,9 @@ export function LoginModal({
   notice = null,
 }: LoginModalProps) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<AuthMode>('signin');
+  // Seeded from the prop so the first paint is already the requested mode — an
+  // effect would briefly show the sign-in form before switching.
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -736,7 +738,9 @@ export function LoginModal({
             </>
           )}
 
-          {mode !== 'forgot' && (
+          {/* Password belongs to the credential forms only: the confirmation
+              panel has nothing to type. */}
+          {(mode === 'signin' || mode === 'signup') && (
             <label>
               {t('common.password')}
               <div className="password-field">
