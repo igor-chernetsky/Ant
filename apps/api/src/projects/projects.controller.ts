@@ -23,6 +23,8 @@ import {
 } from './projects.types';
 import { ProjectsService } from './projects.service';
 import { ProjectReviewsService } from './project-reviews.service';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('v1/projects')
 @UseGuards(JwtAuthGuard)
@@ -44,6 +46,8 @@ export class ProjectsController {
   }
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles('client')
   async create(
     @Req() req: Request & { user: JwtPayload },
     @Body() body: CreateProjectDto,

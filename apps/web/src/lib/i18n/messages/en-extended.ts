@@ -164,6 +164,8 @@ export const enExtended = {
     createButton: "Create project",
     sessionExpired: "Your session expired. Please sign in again.",
     createFailed: "Failed to create project",
+    draftRestored:
+      "Your project details are saved in this browser. Check them and create the project.",
     newBuildDesignHint:
       "New construction usually needs design drawings and permits first. Consider choosing Design & Permits so you can tender for a designer, then continue to construction.",
     switchToDesignTrack: "Switch to Design & Permits",

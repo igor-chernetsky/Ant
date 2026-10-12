@@ -48,6 +48,20 @@ Realm roles (in JWT `realm_access.roles`):
 
 NestJS guards check roles after JWT validation. Business permissions (e.g. own project only) are enforced in application services.
 
+### Creating a project
+
+The create-project form is open to everyone, including guests. The role is
+checked when the form is **published**, not when it is opened:
+
+| Viewer | What happens on "Create project" |
+|--------|----------------------------------|
+| Guest | The draft is kept in the browser (`lib/pending-project-draft.ts`) and the registration dialog opens. Closing it without registering deletes the draft. After the account exists — including once the email is confirmed — the form reopens prefilled. |
+| Signed in without `client` | `BecomeRoleModal` offers the client role (accepting the Client Agreement). On success the project is created right away. |
+| Signed in with `client` | The project is created immediately. |
+
+`POST /v1/projects` enforces `@Roles('client')` (`projects.controller.ts`), so
+the dialog cannot be bypassed with a direct API call.
+
 ---
 
 ## 4. Local User Sync

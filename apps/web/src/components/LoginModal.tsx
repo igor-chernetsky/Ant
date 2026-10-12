@@ -17,6 +17,15 @@ interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => Promise<void> | void;
+  /** Mode to open in, e.g. `signup` when registration is required to continue. */
+  initialMode?: AuthMode;
+  /** Optional line above the form explaining why the dialog appeared. */
+  notice?: string | null;
+  /**
+   * Fired when signup succeeded but the account must confirm its email before
+   * it can sign in — the caller must keep whatever it was waiting to publish.
+   */
+  onSignupPending?: () => void;
 }
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
@@ -175,7 +184,14 @@ function EyeIcon({ crossed }: { crossed?: boolean }) {
   );
 }
 
-export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
+export function LoginModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialMode = 'signin',
+  notice = null,
+  onSignupPending,
+}: LoginModalProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<AuthMode>('signin');
   const [email, setEmail] = useState('');
@@ -267,6 +283,18 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     setResendSent(null);
     setResendAvailableAt(null);
   }, [isOpen]);
+
+  // Honour the mode the caller asked for — a pending project opens registration,
+  // not sign-in.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    setMode(initialMode);
+    setError(null);
+    setSuccessNotice(null);
+    setFieldErrors({});
+  }, [isOpen, initialMode]);
 
   if (!isOpen) {
     return null;
@@ -425,6 +453,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         setEmail('');
         setMode('signin');
         if (result.verifyEmail) {
+          onSignupPending?.();
           setSuccessNotice(
             result.message ?? t('auth.verifyEmailDefault'),
           );
@@ -538,6 +567,8 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
         </div>
 
         <p className="muted modal-subtitle">{subtitle}</p>
+
+        {notice && <p className="auth-notice">{notice}</p>}
 
         <form onSubmit={handleSubmit} className="modal-form" noValidate>
           {mode === 'signin' ? (

@@ -164,6 +164,8 @@ export const ruExtended = {
     createButton: "Создать проект",
     sessionExpired: "Сессия истекла. Войдите снова.",
     createFailed: "Не удалось создать проект",
+    draftRestored:
+      "Данные проекта сохранены в этом браузере. Проверьте их и создайте проект.",
     newBuildDesignHint:
       "Для нового строительства обычно сначала нужны проект и разрешения. Выберите Design & Permits, чтобы найти проектировщика, а к строительству перейти позже.",
     switchToDesignTrack: "Перейти к Design & Permits",

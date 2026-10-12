@@ -19,7 +19,6 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { SocialLinks } from '@/components/SocialLinks';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
-  canCreateProject,
   headerUserLabel,
   type MeResponse,
 } from '@/lib/session';
@@ -28,7 +27,10 @@ interface SiteHeaderProps {
   me: MeResponse | null;
   onSignIn: () => void;
   onSignOut: () => void;
-  /** Opens create-project flow; defaults to `/?create=1`. */
+  /**
+   * Opens the create-project flow; defaults to `/?create=1`. Available to
+   * everyone — signing up or adding the client role happens on publish.
+   */
   onCreateProject?: () => void;
 }
 
@@ -220,7 +222,6 @@ export function SiteHeader({
   const isDesigner = Boolean(
     me?.isDesigner || me?.roles?.includes('designer'),
   );
-  const showCreateProject = canCreateProject(me);
 
   const primaryNav: NavItem[] = [
     { kind: 'link', href: '/', label: t('header.projects') },
@@ -457,17 +458,15 @@ export function SiteHeader({
                 </button>
               </div>
 
-              {showCreateProject && (
-                <div className="header-mobile-drawer-actions">
-                  <button
-                    type="button"
-                    className="primary header-mobile-create-project"
-                    onClick={handleCreateProject}
-                  >
-                    {t('header.createProject')}
-                  </button>
-                </div>
-              )}
+              <div className="header-mobile-drawer-actions">
+                <button
+                  type="button"
+                  className="primary header-mobile-create-project"
+                  onClick={handleCreateProject}
+                >
+                  {t('header.createProject')}
+                </button>
+              </div>
 
               {me ? (
                 <div className="header-mobile-drawer-notifications">

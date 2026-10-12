@@ -23,9 +23,17 @@ import {
   type ContractorApplicationItem,
 } from '@/lib/tendering';
 import {
+  createProject,
   fetchProjects,
+  type CreateProjectInput,
   type Project,
 } from '@/lib/projects';
+import {
+  clearPendingProjectDraft,
+  readPendingProjectDraft,
+  savePendingProjectDraft,
+} from '@/lib/pending-project-draft';
+import { BecomeRoleModal } from '@/components/BecomeRoleModal';
 import {
   fetchPublicProjects,
   fetchPublicTags,
@@ -94,7 +102,17 @@ export function HomePageClient({
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [pendingCreate, setPendingCreate] = useState(false);
+  /** Project the visitor filled in before signing up / adding the client role. */
+  const [pendingDraft, setPendingDraft] = useState<CreateProjectInput | null>(
+    null,
+  );
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [loginMode, setLoginMode] = useState<'signin' | 'signup'>('signin');
+  /** True when the dialog was opened to register for a pending project. */
+  const [loginForDraft, setLoginForDraft] = useState(false);
+  const signupPendingRef = useRef(false);
+  const loginSucceededRef = useRef(false);
+  const roleGrantedRef = useRef(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
   const [adSlides, setAdSlides] = useState<PublicHomeAdSlide[]>([]);
@@ -290,13 +308,6 @@ export function HomePageClient({
   }, [sessionReady, me]);
 
   useEffect(() => {
-    if (pendingCreate && me) {
-      setPendingCreate(false);
-      setCreateOpen(true);
-    }
-  }, [pendingCreate, me]);
-
-  useEffect(() => {
     if (!sessionReady || createQueryHandled.current) return;
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -305,22 +316,32 @@ export function HomePageClient({
     createQueryHandled.current = true;
     router.replace('/', { scroll: false });
 
-    if (me && !canCreateProject(me)) return;
-    if (me) {
-      setCreateOpen(true);
-    } else {
-      setPendingCreate(true);
-      setLoginOpen(true);
-    }
-  }, [sessionReady, me, router]);
+    // Project creation is open to everyone; a guest fills the form and is asked
+    // to register when publishing it.
+    openCreateModal();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionReady, router]);
 
   useEffect(() => {
     if (!me) {
       setCreateOpen(false);
       setLoginOpen(false);
-      setPendingCreate(false);
     }
   }, [me]);
+
+  /**
+   * A visitor who filled the form before registering gets it back once the
+   * account can actually publish — including after clicking the verification
+   * link, where the draft has been waiting in this browser.
+   */
+  useEffect(() => {
+    if (!sessionReady || !me || !canCreateProject(me)) return;
+    if (createOpen || roleModalOpen) return;
+    const draft = pendingDraft ?? readPendingProjectDraft();
+    if (!draft) return;
+    setPendingDraft(draft);
+    setCreateOpen(true);
+  }, [sessionReady, me, pendingDraft, createOpen, roleModalOpen]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -425,13 +446,101 @@ export function HomePageClient({
       .catch(() => setAdSlides([]));
   }, []);
 
+  const openCreateModal = () => {
+    setPendingDraft(readPendingProjectDraft());
+    setCreateOpen(true);
+  };
+
   const handleAddProject = () => {
-    if (me && !canCreateProject(me)) return;
-    if (me) {
+    openCreateModal();
+  };
+
+  /** Closing the form without publishing drops the draft for good. */
+  const handleCreateClose = () => {
+    setCreateOpen(false);
+    clearPendingProjectDraft();
+    setPendingDraft(null);
+  };
+
+  /** Publishing needs an account: save the draft and open registration. */
+  const handleRequireAccount = (input: CreateProjectInput) => {
+    savePendingProjectDraft(input);
+    setPendingDraft(input);
+    setCreateOpen(false);
+    loginSucceededRef.current = false;
+    signupPendingRef.current = false;
+    setLoginForDraft(true);
+    setLoginMode('signup');
+    setLoginOpen(true);
+  };
+
+  /** Plain sign-in from the header — unrelated to any draft. */
+  const handleSignIn = () => {
+    loginSucceededRef.current = false;
+    signupPendingRef.current = false;
+    setLoginForDraft(false);
+    setLoginMode('signin');
+    setLoginOpen(true);
+  };
+
+  const handleLoginClose = () => {
+    setLoginOpen(false);
+    const accountCreated =
+      loginSucceededRef.current || signupPendingRef.current;
+    loginSucceededRef.current = false;
+    signupPendingRef.current = false;
+
+    if (accountCreated || !loginForDraft) {
+      // Either the account exists (possibly still awaiting email confirmation) or
+      // this dialog had nothing to do with a project — keep the draft.
+      setLoginForDraft(false);
+      return;
+    }
+    // Dismissed without registering — the project is discarded, as if deleted.
+    setLoginForDraft(false);
+    clearPendingProjectDraft();
+    setPendingDraft(null);
+    setCreateOpen(false);
+  };
+
+  const handleLoginSuccess = async () => {
+    loginSucceededRef.current = true;
+    await refreshSession();
+  };
+
+  /** Publishing as a client needs the client role: offer to add it. */
+  const handleRequireClientRole = (input: CreateProjectInput) => {
+    setPendingDraft(input);
+    setCreateOpen(false);
+    roleGrantedRef.current = false;
+    setRoleModalOpen(true);
+  };
+
+  const handleRoleGranted = async () => {
+    roleGrantedRef.current = true;
+    await refreshSession();
+
+    const draft = pendingDraft ?? readPendingProjectDraft();
+    if (!draft) return;
+
+    try {
+      const project = await createProject(draft);
+      clearPendingProjectDraft();
+      setPendingDraft(null);
+      router.push(`/projects/${project.id}`);
+    } catch {
+      // Fall back to the filled form so nothing the user typed is lost; the
+      // error shows again when they retry.
+      setRoleModalOpen(false);
       setCreateOpen(true);
-    } else {
-      setPendingCreate(true);
-      setLoginOpen(true);
+    }
+  };
+
+  const handleRoleModalClose = () => {
+    setRoleModalOpen(false);
+    if (!roleGrantedRef.current) {
+      // Role declined — hand the draft back to the form.
+      setCreateOpen(true);
     }
   };
 
@@ -439,11 +548,11 @@ export function HomePageClient({
     void signOut();
   };
 
-  const handleLoginSuccess = async () => {
-    await refreshSession();
-  };
-
-  const canAddProject = canCreateProject(me);
+  /**
+   * Creating a project is open to everyone. Only the client workspace filters
+   * (owned / hidden projects) stay gated by the client realm role.
+   */
+  const isClient = canCreateProject(me);
 
   const contractorParticipationByProjectId = useMemo(() => {
     const map = new Map<string, ContractorApplicationItem>();
@@ -538,7 +647,7 @@ export function HomePageClient({
     const observer = new ResizeObserver(measure);
     observer.observe(grid);
     return () => observer.disconnect();
-  }, [loading, sortedProjects.length, adSlides.length, canAddProject]);
+  }, [loading, sortedProjects.length, adSlides.length]);
 
   const activeFilterCount = countHomeActiveFilters(filters, searchQuery);
   const displayCount =
@@ -554,7 +663,7 @@ export function HomePageClient({
     >
       <SiteHeader
         me={me}
-        onSignIn={() => setLoginOpen(true)}
+        onSignIn={handleSignIn}
         onSignOut={handleLogout}
         onCreateProject={handleAddProject}
       />
@@ -618,9 +727,9 @@ export function HomePageClient({
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               resultCount={!loading && !error ? displayCount : undefined}
-              showHiddenFilter={canAddProject}
+              showHiddenFilter={isClient}
               showCompletedFilter={Boolean(me)}
-              showClientWorkspaceFilters={canAddProject}
+              showClientWorkspaceFilters={isClient}
               showOnlyAvailableToggle={isSupplySideUser(me)}
               contractorTagSlugs={
                 isSupplySideUser(me) ? contractorTagSlugs : undefined
@@ -646,28 +755,20 @@ export function HomePageClient({
 
             {!loading && !error && sortedProjects.length === 0 && (
               <section className="card empty-state">
-                {canAddProject && (
-                  <HelpTip
-                    tipId={HELP_TIP_IDS.homeEmpty}
-                    title={t('help.tipHomeEmptyTitle')}
-                    body={t('help.tipHomeEmptyBody')}
-                    learnMoreHref="/help#client-first-project"
-                  />
-                )}
-                <p className="muted">
-                  {canAddProject
-                    ? t('home.emptyNoMatchCanAdd')
-                    : t('home.emptyNoMatch')}
-                </p>
-                {canAddProject && (
-                  <button
-                    type="button"
-                    className="primary"
-                    onClick={handleAddProject}
-                  >
-                    {t('home.addProject')}
-                  </button>
-                )}
+                <HelpTip
+                  tipId={HELP_TIP_IDS.homeEmpty}
+                  title={t('help.tipHomeEmptyTitle')}
+                  body={t('help.tipHomeEmptyBody')}
+                  learnMoreHref="/help#client-first-project"
+                />
+                <p className="muted">{t('home.emptyNoMatchCanAdd')}</p>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={handleAddProject}
+                >
+                  {t('home.addProject')}
+                </button>
               </section>
             )}
 
@@ -680,36 +781,29 @@ export function HomePageClient({
                 >
                   {(() => {
                     const tiles = [
-                      ...(canAddProject
-                        ? [
-                            <button
-                              key="add-project"
-                              type="button"
-                              className="project-tile project-tile-add"
-                              onClick={handleAddProject}
-                            >
-                              <div className="project-tile-add-inner">
-                                <span
-                                  className="project-tile-add-icon-wrap"
-                                  aria-hidden
-                                >
-                                  <span className="project-tile-add-icon">+</span>
-                                </span>
-                                <div className="project-tile-add-copy">
-                                  <h3 className="project-tile-title">
-                                    {t('home.addProject')}
-                                  </h3>
-                                  <p className="project-tile-add-lead">
-                                    {t('home.addProjectDescription')}
-                                  </p>
-                                </div>
-                                <span className="project-tile-add-action">
-                                  {t('home.addProjectAction')}
-                                </span>
-                              </div>
-                            </button>,
-                          ]
-                        : []),
+                      <button
+                        key="add-project"
+                        type="button"
+                        className="project-tile project-tile-add"
+                        onClick={handleAddProject}
+                      >
+                        <div className="project-tile-add-inner">
+                          <span className="project-tile-add-icon-wrap" aria-hidden>
+                            <span className="project-tile-add-icon">+</span>
+                          </span>
+                          <div className="project-tile-add-copy">
+                            <h3 className="project-tile-title">
+                              {t('home.addProject')}
+                            </h3>
+                            <p className="project-tile-add-lead">
+                              {t('home.addProjectDescription')}
+                            </p>
+                          </div>
+                          <span className="project-tile-add-action">
+                            {t('home.addProjectAction')}
+                          </span>
+                        </div>
+                      </button>,
                       ...sortedProjects.map((project) => (
                         <ProjectTile
                           key={project.id}
@@ -764,21 +858,37 @@ export function HomePageClient({
 
       <LoginModal
         isOpen={loginOpen}
-        onClose={() => {
-          setLoginOpen(false);
-          setPendingCreate(false);
-        }}
+        onClose={handleLoginClose}
         onSuccess={handleLoginSuccess}
+        initialMode={loginMode}
+        notice={loginForDraft ? t('auth.publishProjectNotice') : null}
+        onSignupPending={() => {
+          signupPendingRef.current = true;
+        }}
       />
 
       <CreateProjectModal
         isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreated={(id) => router.push(`/projects/${id}`)}
+        onClose={handleCreateClose}
+        onCreated={(id) => {
+          clearPendingProjectDraft();
+          setPendingDraft(null);
+          router.push(`/projects/${id}`);
+        }}
+        initialDraft={pendingDraft}
+        onRequireAccount={handleRequireAccount}
+        onRequireClientRole={handleRequireClientRole}
         onSessionExpired={() => {
           setCreateOpen(false);
           setLoginOpen(true);
         }}
+      />
+
+      <BecomeRoleModal
+        role="client"
+        isOpen={roleModalOpen}
+        onClose={handleRoleModalClose}
+        onSuccess={handleRoleGranted}
       />
     </PageShell>
   );

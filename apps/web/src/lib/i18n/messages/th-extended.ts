@@ -164,6 +164,8 @@ export const thExtended = {
     createButton: "สร้างโครงการ",
     sessionExpired: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง",
     createFailed: "สร้างโครงการไม่สำเร็จ",
+    draftRestored:
+      "รายละเอียดโครงการถูกบันทึกไว้ในเบราว์เซอร์นี้ ตรวจสอบแล้วสร้างโครงการได้เลย",
     newBuildDesignHint:
       "งานก่อสร้างใหม่มักต้องมีแบบและใบอนุญาตก่อน ลองเลือก Design & Permits เพื่อประมูลหาผู้ออกแบบ แล้วค่อยไปก่อสร้างต่อ",
     switchToDesignTrack: "เปลี่ยนเป็น Design & Permits",

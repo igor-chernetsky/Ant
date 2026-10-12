@@ -221,6 +221,8 @@ export const en = {
       'If an account exists for {email}, a new confirmation link is on its way. Check your inbox and spam folder.',
     resendVerificationTooSoon:
       'The next verification email can be sent a little later.',
+    publishProjectNotice:
+      'To publish your project, create an account. Everything you filled in is saved.',
     roleClient: 'Client',
     roleContractor: 'Contractor',
     roleDesigner: 'Designer',

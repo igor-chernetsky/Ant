@@ -5471,6 +5471,24 @@ pre {
   margin-top: 0;
 }
 
+/* Explains why the auth dialog opened (e.g. a project is waiting to publish). */
+.auth-notice {
+  margin: 0 0 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 40%, transparent);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+/* "Your details are saved" line in the restored create-project form. */
+.create-project-draft-note {
+  margin: -0.5rem 0 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .auth-submit {
   width: 100%;
   margin-top: 0.25rem;
