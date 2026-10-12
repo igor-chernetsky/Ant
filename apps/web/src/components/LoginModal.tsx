@@ -586,10 +586,14 @@ export function LoginModal({
           <p className="muted modal-subtitle">{subtitle}</p>
         )}
 
-        {notice && <p className="auth-notice">{notice}</p>}
+        {notice && mode !== 'verify' && (
+          <p className="auth-notice">{notice}</p>
+        )}
 
         <form onSubmit={handleSubmit} className="modal-form" noValidate>
-          {mode === 'signin' ? (
+          {/* Confirmation pending: only the panel below, no form fields — the
+              account cannot sign in yet and empty inputs only confuse. */}
+          {mode === 'verify' ? null : mode === 'signin' ? (
             <label>
               {t('common.email')}
               <input
@@ -863,12 +867,12 @@ export function LoginModal({
             </div>
           )}
 
-          {error && (
+          {mode !== 'verify' && error && (
             <p className="form-error" ref={errorRef}>
               {error}
             </p>
           )}
-          {successNotice && (
+          {mode !== 'verify' && successNotice && (
             <p className="auth-success-notice">{successNotice}</p>
           )}
 
@@ -1003,14 +1007,16 @@ export function LoginModal({
             </>
           )}
 
-          <button
-            type="button"
-            className="secondary auth-cancel"
-            onClick={onClose}
-            disabled={submitting}
-          >
-            {t('common.cancel')}
-          </button>
+          {mode !== 'verify' && (
+            <button
+              type="button"
+              className="secondary auth-cancel"
+              onClick={onClose}
+              disabled={submitting}
+            >
+              {t('common.cancel')}
+            </button>
+          )}
         </form>
       </div>
     </div>,
