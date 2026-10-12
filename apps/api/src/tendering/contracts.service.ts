@@ -28,6 +28,7 @@ import type { SupportedLocale } from '../users/locale.types';
 import { CONTRACT_ATTACHMENT_VERIFICATION_CATEGORIES } from '../verification/verification.types';
 import { CommercialProposalService } from './commercial-proposal.service';
 import { ContractorProfilesService } from './contractor-profiles.service';
+import { requireClientId } from '../projects/project-owner.util';
 import {
   sanitizeContractBodyHtml,
   stripContractSignaturesBlock,
@@ -1041,10 +1042,12 @@ export class ContractsService {
     if (updated.status === ContractStatus.fully_signed) {
       const awardedBid = project.tender?.awardedBid ?? null;
       const contractorUserId = awardedBid?.contractor.userId ?? null;
+      // A contract cannot exist before the guest claimed the project.
+      const clientUserId = requireClientId(project);
       if (contractorUserId) {
         this.notifications.dispatch(
           this.notifications.notifyContractFullySigned({
-            clientUserId: project.clientId,
+            clientUserId,
             contractorUserId,
             projectId,
             projectTitle: project.title,
@@ -1078,7 +1081,9 @@ export class ContractsService {
       if (contractorUserId) {
         this.notifications.dispatch(
           this.notifications.notifyContractPartySigned({
-            recipientUserId: isClient ? contractorUserId : project.clientId,
+            recipientUserId: isClient
+              ? contractorUserId
+              : requireClientId(project),
             signerRole: isClient ? 'client' : 'contractor',
             projectId,
             projectTitle: project.title,

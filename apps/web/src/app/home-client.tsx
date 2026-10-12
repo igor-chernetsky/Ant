@@ -23,16 +23,12 @@ import {
   type ContractorApplicationItem,
 } from '@/lib/tendering';
 import {
+  createGuestProject,
   createProject,
   fetchProjects,
   type CreateProjectInput,
   type Project,
 } from '@/lib/projects';
-import {
-  clearPendingProjectDraft,
-  readPendingProjectDraft,
-  savePendingProjectDraft,
-} from '@/lib/pending-project-draft';
 import { BecomeRoleModal } from '@/components/BecomeRoleModal';
 import {
   fetchPublicProjects,
@@ -107,11 +103,6 @@ export function HomePageClient({
     null,
   );
   const [roleModalOpen, setRoleModalOpen] = useState(false);
-  const [loginMode, setLoginMode] = useState<'signin' | 'signup'>('signin');
-  /** True when the dialog was opened to register for a pending project. */
-  const [loginForDraft, setLoginForDraft] = useState(false);
-  const signupPendingRef = useRef(false);
-  const loginSucceededRef = useRef(false);
   const roleGrantedRef = useRef(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [footerVisible, setFooterVisible] = useState(false);
@@ -329,20 +320,6 @@ export function HomePageClient({
     }
   }, [me]);
 
-  /**
-   * A visitor who filled the form before registering gets it back once the
-   * account can actually publish — including after clicking the verification
-   * link, where the draft has been waiting in this browser.
-   */
-  useEffect(() => {
-    if (!sessionReady || !me || !canCreateProject(me)) return;
-    if (createOpen || roleModalOpen) return;
-    const draft = pendingDraft ?? readPendingProjectDraft();
-    if (!draft) return;
-    setPendingDraft(draft);
-    setCreateOpen(true);
-  }, [sessionReady, me, pendingDraft, createOpen, roleModalOpen]);
-
   useEffect(() => {
     if (!filtersOpen) return;
 
@@ -447,7 +424,7 @@ export function HomePageClient({
   }, []);
 
   const openCreateModal = () => {
-    setPendingDraft(readPendingProjectDraft());
+    setPendingDraft(null);
     setCreateOpen(true);
   };
 
@@ -455,57 +432,18 @@ export function HomePageClient({
     openCreateModal();
   };
 
-  /** Closing the form without publishing drops the draft for good. */
   const handleCreateClose = () => {
     setCreateOpen(false);
-    clearPendingProjectDraft();
-    setPendingDraft(null);
   };
 
-  /** Publishing needs an account: save the draft and open registration. */
-  const handleRequireAccount = (input: CreateProjectInput) => {
-    savePendingProjectDraft(input);
-    setPendingDraft(input);
-    setCreateOpen(false);
-    loginSucceededRef.current = false;
-    signupPendingRef.current = false;
-    setLoginForDraft(true);
-    setLoginMode('signup');
-    setLoginOpen(true);
-  };
-
-  /** Plain sign-in from the header — unrelated to any draft. */
-  const handleSignIn = () => {
-    loginSucceededRef.current = false;
-    signupPendingRef.current = false;
-    setLoginForDraft(false);
-    setLoginMode('signin');
-    setLoginOpen(true);
-  };
-
-  const handleLoginClose = () => {
-    setLoginOpen(false);
-    const accountCreated =
-      loginSucceededRef.current || signupPendingRef.current;
-    loginSucceededRef.current = false;
-    signupPendingRef.current = false;
-
-    if (accountCreated || !loginForDraft) {
-      // Either the account exists (possibly still awaiting email confirmation) or
-      // this dialog had nothing to do with a project — keep the draft.
-      setLoginForDraft(false);
-      return;
-    }
-    // Dismissed without registering — the project is discarded, as if deleted.
-    setLoginForDraft(false);
-    clearPendingProjectDraft();
-    setPendingDraft(null);
-    setCreateOpen(false);
-  };
-
-  const handleLoginSuccess = async () => {
-    loginSucceededRef.current = true;
-    await refreshSession();
+  /**
+   * No account yet: start the project anonymously and open it. The visitor can
+   * finish the intake and attach documents, and is asked to register when the
+   * project is published for bids.
+   */
+  const handleCreateGuestProject = async (input: CreateProjectInput) => {
+    const project = await createGuestProject(input);
+    router.push(`/projects/${project.id}`);
   };
 
   /** Publishing as a client needs the client role: offer to add it. */
@@ -520,12 +458,11 @@ export function HomePageClient({
     roleGrantedRef.current = true;
     await refreshSession();
 
-    const draft = pendingDraft ?? readPendingProjectDraft();
+    const draft = pendingDraft;
     if (!draft) return;
 
     try {
       const project = await createProject(draft);
-      clearPendingProjectDraft();
       setPendingDraft(null);
       router.push(`/projects/${project.id}`);
     } catch {
@@ -542,6 +479,15 @@ export function HomePageClient({
       // Role declined — hand the draft back to the form.
       setCreateOpen(true);
     }
+  };
+
+  /** Plain sign-in from the header. */
+  const handleSignIn = () => {
+    setLoginOpen(true);
+  };
+
+  const handleLoginSuccess = async () => {
+    await refreshSession();
   };
 
   const handleLogout = () => {
@@ -858,25 +804,19 @@ export function HomePageClient({
 
       <LoginModal
         isOpen={loginOpen}
-        onClose={handleLoginClose}
+        onClose={() => setLoginOpen(false)}
         onSuccess={handleLoginSuccess}
-        initialMode={loginMode}
-        notice={loginForDraft ? t('auth.publishProjectNotice') : null}
-        onSignupPending={() => {
-          signupPendingRef.current = true;
-        }}
       />
 
       <CreateProjectModal
         isOpen={createOpen}
         onClose={handleCreateClose}
         onCreated={(id) => {
-          clearPendingProjectDraft();
           setPendingDraft(null);
           router.push(`/projects/${id}`);
         }}
         initialDraft={pendingDraft}
-        onRequireAccount={handleRequireAccount}
+        onCreateGuestProject={handleCreateGuestProject}
         onRequireClientRole={handleRequireClientRole}
         onSessionExpired={() => {
           setCreateOpen(false);

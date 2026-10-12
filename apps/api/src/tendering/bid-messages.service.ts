@@ -158,27 +158,30 @@ export class BidMessagesService {
       );
     }
 
+    const recipientRole = isClient ? 'contractor' : 'client';
     const recipientUserId = isClient
       ? bid.contractor.userId
       : bid.tender.project.clientId;
-    const recipientRole = isClient ? 'contractor' : 'client';
 
-    const recipientViewing = await this.isUserViewingBidChat(
-      recipientUserId,
-      bidId,
-    );
-
-    if (!recipientViewing) {
-      this.notifications.dispatch(
-        this.notifications.notifyBidMessage({
-          recipientUserId,
-          recipientRole,
-          projectId: bid.tender.projectId,
-          projectTitle: bid.tender.project.title,
-          preview: body,
-          messageId: message.id,
-        }),
+    // A guest project has no client side to notify until it is claimed.
+    if (recipientUserId) {
+      const recipientViewing = await this.isUserViewingBidChat(
+        recipientUserId,
+        bidId,
       );
+
+      if (!recipientViewing) {
+        this.notifications.dispatch(
+          this.notifications.notifyBidMessage({
+            recipientUserId,
+            recipientRole,
+            projectId: bid.tender.projectId,
+            projectTitle: bid.tender.project.title,
+            preview: body,
+            messageId: message.id,
+          }),
+        );
+      }
     }
 
     return this.mapMessage(message);

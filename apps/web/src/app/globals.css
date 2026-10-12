@@ -5568,6 +5568,59 @@ pre {
   line-height: 1.5;
 }
 
+/* "Check your email" panel shown after signup (and for an unconfirmed sign-in). */
+.auth-verify-panel {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 1.35rem 1.15rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 35%, transparent);
+  text-align: center;
+}
+
+.auth-verify-icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, #fff);
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  color: var(--accent);
+}
+
+.auth-verify-lead {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  max-width: 26rem;
+}
+
+.auth-verify-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.auth-verify-signin {
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.auth-verify-panel .form-error,
+.auth-verify-panel .auth-success-notice {
+  margin: 0;
+  text-align: left;
+  width: 100%;
+}
+
 /* Resend-verification block shown when sign-in is refused for an unconfirmed email. */
 .auth-verify-resend {
   display: grid;

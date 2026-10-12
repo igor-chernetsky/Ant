@@ -227,6 +227,52 @@ export async function createProject(
   return response.json() as Promise<Project>;
 }
 
+/**
+ * Start a project without an account. The BFF keeps the guest token in an
+ * httpOnly cookie, so the same page can keep working anonymously until the
+ * visitor registers and claims it.
+ */
+export async function createGuestProject(
+  input: CreateProjectInput,
+): Promise<Project> {
+  const response = await fetch('/api/guest/projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(input),
+  });
+
+  const body = (await response.json().catch(() => null)) as {
+    project?: Project;
+    message?: string;
+  } | null;
+
+  if (!response.ok || !body?.project) {
+    throw new Error(body?.message ?? 'Failed to create project');
+  }
+  return body.project;
+}
+
+/**
+ * Attach the guest project this browser was filling in to the signed-in
+ * account. Must be called right after registration, before publishing.
+ */
+export async function claimGuestProject(projectId: string): Promise<Project> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/claim`,
+    { method: 'POST', credentials: 'include' },
+  );
+
+  const body = (await response.json().catch(() => null)) as {
+    message?: string;
+  } | null;
+
+  if (!response.ok) {
+    throw new Error(body?.message ?? 'Failed to attach the project');
+  }
+  return body as unknown as Project;
+}
+
 export interface UpdateProjectCardInput {
   title?: string;
   description?: string | null;

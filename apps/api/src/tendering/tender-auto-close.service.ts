@@ -55,20 +55,24 @@ export class TenderAutoCloseService {
         data: { deadlineNotifiedAt: now },
       });
 
-      this.notifications.dispatch(
-        this.notifications.notifyClientTenderDeadlineReached({
-          clientId: tender.project.clientId,
-          projectId: tender.project.id,
-          projectTitle: tender.project.title,
-          applicationCount: tender.bids.length,
-          submittedBidCount: await this.prisma.bid.count({
-            where: {
-              tenderId: tender.id,
-              status: BidStatus.submitted,
-            },
+      // A guest project has no client to notify.
+      const clientId = tender.project.clientId;
+      if (clientId) {
+        this.notifications.dispatch(
+          this.notifications.notifyClientTenderDeadlineReached({
+            clientId,
+            projectId: tender.project.id,
+            projectTitle: tender.project.title,
+            applicationCount: tender.bids.length,
+            submittedBidCount: await this.prisma.bid.count({
+              where: {
+                tenderId: tender.id,
+                status: BidStatus.submitted,
+              },
+            }),
           }),
-        }),
-      );
+        );
+      }
       count += 1;
     }
 

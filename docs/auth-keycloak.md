@@ -50,17 +50,39 @@ NestJS guards check roles after JWT validation. Business permissions (e.g. own p
 
 ### Creating a project
 
-The create-project form is open to everyone, including guests. The role is
-checked when the form is **published**, not when it is opened:
+The create-project form and the whole pre-tender workspace are open to everyone,
+including guests. The account is asked for at the **publish** step:
 
-| Viewer | What happens on "Create project" |
-|--------|----------------------------------|
-| Guest | The draft is kept in the browser (`lib/pending-project-draft.ts`) and the registration dialog opens. Closing it without registering deletes the draft. After the account exists — including once the email is confirmed — the form reopens prefilled. |
+| Viewer | What happens |
+|--------|--------------|
+| Guest | `POST /api/guest/projects` creates the project with `clientId = null`, stores the returned token in the httpOnly `ant_guest_project` cookie, and opens `/projects/:id`. The visitor answers the intake, uploads documents and sees the estimate. "Publish for bids" shows a registration dialog; registering claims the draft in place and the tender controls appear. |
 | Signed in without `client` | `BecomeRoleModal` offers the client role (accepting the Client Agreement). On success the project is created right away. |
 | Signed in with `client` | The project is created immediately. |
 
+**Guest authorization.** `POST /v1/guest/projects` issues a random token; the API
+stores only its SHA-256 (`Project.guestTokenHash`) and the 24-hour deadline
+(`guestExpiresAt`). `GuestProjectGuard` authorizes `/v1/guest/projects/:id/**`
+against the `x-ant-guest-token` header. The BFF rewrites the shared
+`/v1/projects/:id/**` routes onto that namespace when there is no session but the
+browser holds the token, so the client code needs no guest-specific paths.
+Sub-resources the guest API does not implement (tenders, contracts, amendments,
+progress, estimate refinement) return 404 — that is the boundary.
+
+**Claim.** `POST /v1/projects/:id/claim` (JWT + guest token) sets `clientId` and
+clears the token, but only for an unclaimed project. `POST /api/projects/:id/claim`
+does this on the BFF side and drops the cookie.
+
+**Cost controls.** One client IP may start 3 anonymous projects per day
+(`GuestProjectQuotaService`, in-memory), a guest project gets at most 8
+AI-authored intake questions (`GUEST_AI_QUESTION_LIMIT`) before the
+deterministic question set takes over, and the final summary/estimate stays AI
+driven once per project.
+
+**Cleanup.** `GuestProjectCleanupService` runs hourly and deletes unclaimed
+projects past `guestExpiresAt` together with their documents and S3 objects.
+
 `POST /v1/projects` enforces `@Roles('client')` (`projects.controller.ts`), so
-the dialog cannot be bypassed with a direct API call.
+the dialogs cannot be bypassed with a direct API call.
 
 ---
 

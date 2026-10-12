@@ -1251,14 +1251,18 @@ export class TendersService {
     );
 
     if (initiator === 'contractor') {
-      this.notifications.dispatch(
-        this.notifications.notifyClientContractorWithdrewAward({
-          clientUserId: tender.project.clientId,
-          projectId,
-          projectTitle: tender.project.title,
-          companyName,
-        }),
-      );
+      // A guest project has no client to notify.
+      const clientUserId = tender.project.clientId;
+      if (clientUserId) {
+        this.notifications.dispatch(
+          this.notifications.notifyClientContractorWithdrewAward({
+            clientUserId,
+            projectId,
+            projectTitle: tender.project.title,
+            companyName,
+          }),
+        );
+      }
     } else {
       this.notifications.dispatch(
         this.notifications.notifyContractorAwardReleased({
@@ -2134,15 +2138,19 @@ export class TendersService {
       include: { project: { select: { id: true, title: true, clientId: true } } },
     });
     if (tenderRow) {
-      this.notifications.dispatch(
-        this.notifications.notifyClientBidSubmitted({
-          clientId: tenderRow.project.clientId,
-          projectId: tenderRow.project.id,
-          projectTitle: tenderRow.project.title,
-          companyName: bid.contractor.companyName ?? 'Contractor',
-          amount: String(dto.amount),
-        }),
-      );
+      // A guest project has no client to notify.
+      const clientId = tenderRow.project.clientId;
+      if (clientId) {
+        this.notifications.dispatch(
+          this.notifications.notifyClientBidSubmitted({
+            clientId,
+            projectId: tenderRow.project.id,
+            projectTitle: tenderRow.project.title,
+            companyName: bid.contractor.companyName ?? 'Contractor',
+            amount: String(dto.amount),
+          }),
+        );
+      }
       this.projectLocalization.scheduleWarmBidTerms(
         tenderRow.project.id,
         `bid.${bid.id}`,
@@ -2294,15 +2302,19 @@ export class TendersService {
       updatedTerms,
     );
 
-    this.notifications.dispatch(
-      this.notifications.notifyContractTermsUpdated({
-        recipientUserId: bid.tender.project.clientId,
-        recipientRole: 'client',
-        editorRole: 'contractor',
-        projectId: bid.tender.projectId,
-        projectTitle: bid.tender.project.title,
-      }),
-    );
+    // A guest project has no client to notify.
+    const clientUserId = bid.tender.project.clientId;
+    if (clientUserId) {
+      this.notifications.dispatch(
+        this.notifications.notifyContractTermsUpdated({
+          recipientUserId: clientUserId,
+          recipientRole: 'client',
+          editorRole: 'contractor',
+          projectId: bid.tender.projectId,
+          projectTitle: bid.tender.project.title,
+        }),
+      );
+    }
 
     return this.mapBid(updated);
   }
@@ -2382,16 +2394,20 @@ export class TendersService {
     if (requiresDeclineReason && reason) {
       const companyName =
         updated.contractor.companyName?.trim() || 'A contractor';
-      this.notifications.dispatch(
-        this.notifications.notifyClientContractorDeclinedProposal({
-          clientId: project.clientId,
-          projectId: project.id,
-          projectTitle: project.title,
-          companyName,
-          reasonCode: reason,
-          reasonNote: note,
-        }),
-      );
+      // A guest project has no client to notify.
+      const clientId = project.clientId;
+      if (clientId) {
+        this.notifications.dispatch(
+          this.notifications.notifyClientContractorDeclinedProposal({
+            clientId,
+            projectId: project.id,
+            projectTitle: project.title,
+            companyName,
+            reasonCode: reason,
+            reasonNote: note,
+          }),
+        );
+      }
     }
 
     return this.mapBid(updated);

@@ -25,6 +25,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { DocxToPdfService } from '../pdf/docx-to-pdf.service';
 import { HtmlToPdfService } from '../pdf/html-to-pdf.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { requireClientId } from '../projects/project-owner.util';
 import { StorageService } from '../storage/storage.service';
 import { sanitizeContractBodyHtml, stripContractSignaturesBlock } from './contract-html.sanitize';
 import { escapeHtml } from './commercial-proposal.template';
@@ -414,7 +415,7 @@ export class ContractAddendaService {
       contractId: project.contract.id,
       projectTitle: project.title,
       projectStatus: project.status,
-      clientUserId: project.clientId,
+      clientUserId: requireClientId(project),
       contractorUserId,
       isClient,
       isSelectedContractor,
@@ -1361,8 +1362,8 @@ export class ContractAddendaService {
     return {
       clientName:
         project?.contract?.clientOrgName ??
-        project?.client.displayName ??
-        project?.client.email ??
+        project?.client?.displayName ??
+        project?.client?.email ??
         null,
       contractorName:
         project?.contract?.contractorOrgName ??

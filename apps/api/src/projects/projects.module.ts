@@ -13,10 +13,13 @@ import { NotificationsModule } from '../notifications/notifications.module';
 
 import { AdminProjectsController } from './admin-projects.controller';
 import { ProjectsController } from './projects.controller';
+import { GuestProjectsController } from './guest-projects.controller';
 import { PublicProjectsController } from './public-projects.controller';
 import { ProjectsService } from './projects.service';
 import { ProjectReviewsService } from './project-reviews.service';
 import { ProjectScopeSyncService } from './project-scope-sync.service';
+import { GuestProjectQuotaService } from './guest-project-quota.service';
+import { GuestProjectCleanupService } from './guest-project-cleanup.service';
 
 @Module({
   imports: [
@@ -31,8 +34,19 @@ import { ProjectScopeSyncService } from './project-scope-sync.service';
     forwardRef(() => IntakeModule),
     forwardRef(() => DocumentsModule),
   ],
-  controllers: [AdminProjectsController, ProjectsController, PublicProjectsController],
-  providers: [ProjectsService, ProjectReviewsService, ProjectScopeSyncService],
+  controllers: [
+    AdminProjectsController,
+    ProjectsController,
+    GuestProjectsController,
+    PublicProjectsController,
+  ],
+  providers: [
+    ProjectsService,
+    ProjectReviewsService,
+    ProjectScopeSyncService,
+    GuestProjectQuotaService,
+    GuestProjectCleanupService,
+  ],
   exports: [ProjectsService, ProjectReviewsService, ProjectScopeSyncService],
 })
 export class ProjectsModule {}

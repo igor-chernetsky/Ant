@@ -10,6 +10,10 @@ import {
 } from '@/lib/auth-tokens';
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE } from '@/lib/i18n';
 import { LOCALE_REQUEST_HEADER } from '@/lib/locale-request';
+import {
+  guestApiPathForProjectPath,
+  readGuestProjectToken,
+} from '@/lib/guest-project';
 
 async function resolveProxyLocale(
   initHeaders?: HeadersInit,
@@ -53,18 +57,26 @@ function withLocaleHeader(
 
 async function fetchBackend(
   path: string,
-  accessToken: string,
+  accessToken: string | null,
   init?: RequestInit,
   locale?: string,
+  extraHeaders?: Record<string, string>,
 ): Promise<Response> {
   const merged: Record<string, string> = {
-    Authorization: `Bearer ${accessToken}`,
     Accept: 'application/json',
   };
+  if (accessToken) {
+    merged.Authorization = `Bearer ${accessToken}`;
+  }
   if (init?.headers) {
     new Headers(init.headers).forEach((value, key) => {
       merged[key] = value;
     });
+  }
+  if (extraHeaders) {
+    for (const [key, value] of Object.entries(extraHeaders)) {
+      merged[key] = value;
+    }
   }
   const hasContentType = Object.keys(merged).some(
     (key) => key.toLowerCase() === 'content-type',
@@ -164,6 +176,58 @@ async function assertSameOriginMutation(
   return null;
 }
 
+/**
+ * Rewrite an authenticated project path for the anonymous guest who owns it.
+ *
+ * The project workspace routes are shared: the same BFF endpoints serve an
+ * owner and a guest. When there is no access token but this browser holds the
+ * guest token for the project, the request goes to the guest namespace instead
+ * of failing with 401. Sub-resources the guest API does not implement (tenders,
+ * contracts, amendments, progress) simply 404, which is the intended boundary:
+ * publishing requires a registered owner.
+ */
+async function guestProxyTarget(path: string): Promise<{
+  path: string;
+  headers: Record<string, string>;
+} | null> {
+  const guestPath = guestApiPathForProjectPath(path);
+  if (!guestPath) {
+    return null;
+  }
+
+  const match = /^\/v1\/guest\/projects\/([^/?#]+)/.exec(guestPath);
+  const projectId = match ? decodeURIComponent(match[1] ?? '') : '';
+  if (!projectId) {
+    return null;
+  }
+
+  const token = await readGuestProjectToken(projectId);
+  if (!token) {
+    return null;
+  }
+
+  return {
+    path: guestPath,
+    headers: { 'x-ant-guest-token': token },
+  };
+}
+
+/** Client IP forwarded to the API so its guest quota sees the real visitor. */
+async function clientIpHeader(): Promise<Record<string, string>> {
+  try {
+    const headerStore = await nextHeaders();
+    const forwarded =
+      headerStore.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      headerStore.get('x-real-ip')?.trim();
+    if (forwarded) {
+      return { 'x-forwarded-for': forwarded };
+    }
+  } catch {
+    // headers() only works inside a request context.
+  }
+  return {};
+}
+
 export async function proxyBackend(
   path: string,
   init?: RequestInit,
@@ -173,14 +237,34 @@ export async function proxyBackend(
     return { response: csrfBlock };
   }
 
-  const auth = await getValidAccessToken();
-  if (!auth.ok) {
-    return {
-      response: NextResponse.json({ message: 'Not authenticated' }, { status: 401 }),
-    };
-  }
-
   const locale = await resolveProxyLocale(init?.headers);
+  const auth = await getValidAccessToken();
+
+  if (!auth.ok) {
+    const guest = await guestProxyTarget(path);
+    if (!guest) {
+      return {
+        response: NextResponse.json({ message: 'Not authenticated' }, { status: 401 }),
+      };
+    }
+    try {
+      const guestResponse = await fetchBackend(
+        guest.path,
+        null,
+        init,
+        locale,
+        { ...guest.headers, ...(await clientIpHeader()) },
+      );
+      return { response: guestResponse };
+    } catch {
+      return {
+        response: NextResponse.json(
+          { message: 'Unable to reach API server' },
+          { status: 502 },
+        ),
+      };
+    }
+  }
 
   try {
     let backendResponse = await fetchBackend(
@@ -193,6 +277,17 @@ export async function proxyBackend(
     if (backendResponse.status === 401) {
       const retryAuth = await refreshAccessTokenAfterUnauthorized();
       if (!retryAuth.ok) {
+        const guest = await guestProxyTarget(path);
+        if (guest) {
+          const guestResponse = await fetchBackend(
+            guest.path,
+            null,
+            init,
+            locale,
+            { ...guest.headers, ...(await clientIpHeader()) },
+          );
+          return { response: guestResponse };
+        }
         const unauth = NextResponse.json(
           { message: 'Session expired' },
           { status: 401 },
@@ -221,6 +316,31 @@ export async function proxyBackend(
         { status: 502 },
       ),
     };
+  }
+}
+
+/**
+ * Proxy a request that only the guest namespace can serve — creating an
+ * anonymous project. Carries the client IP for the API-side quota.
+ */
+export async function proxyGuestBackendJson(
+  path: string,
+  init?: RequestInit,
+): Promise<NextResponse> {
+  const csrfBlock = await assertSameOriginMutation(init?.method);
+  if (csrfBlock) {
+    return csrfBlock;
+  }
+
+  const locale = await resolveProxyLocale(init?.headers);
+  try {
+    const response = await fetchBackend(path, null, init, locale, await clientIpHeader());
+    return await buildJsonProxyResponse(response);
+  } catch {
+    return NextResponse.json(
+      { message: 'Unable to reach API server' },
+      { status: 502 },
+    );
   }
 }
 

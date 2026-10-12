@@ -27,6 +27,7 @@ import {
   type ReviewRatingCategory,
 } from './project-review.constants';
 import { assertCompletedUploadLimits } from '../documents/documents.types';
+import { requireClientId } from './project-owner.util';
 import {
   CompleteProjectDto,
   ConfirmProjectCompletionDto,
@@ -402,7 +403,7 @@ export class ProjectReviewsService {
 
     const awarded = await this.requireAwardedBid(projectId);
     const draft = this.buildDraftReview(clientId, projectId, dto);
-    await this.validateDraftAttachments(project.clientId, projectId, draft);
+    await this.validateDraftAttachments(clientId, projectId, draft);
 
     await this.prisma.project.update({
       where: { id: projectId },
@@ -445,13 +446,16 @@ export class ProjectReviewsService {
       },
     });
 
-    void this.notifications.dispatch(
-      this.notifications.notifyClientProjectCompletionRequested({
-        clientUserId: ctx.project.clientId,
-        projectId,
-        projectTitle: ctx.project.title,
-      }),
-    );
+    const clientUserId = ctx.project.clientId;
+    if (clientUserId) {
+      void this.notifications.dispatch(
+        this.notifications.notifyClientProjectCompletionRequested({
+          clientUserId,
+          projectId,
+          projectTitle: ctx.project.title,
+        }),
+      );
+    }
     void this.notifications.dispatch(
       this.notifications.notifyAdminProjectCompletionRequested({
         projectId,
@@ -479,7 +483,7 @@ export class ProjectReviewsService {
     const awarded = await this.requireAwardedBid(projectId);
     const draft = dto ? this.buildOptionalDraftReview(clientId, projectId, dto) : null;
     if (draft) {
-      await this.validateDraftAttachments(project.clientId, projectId, draft);
+      await this.validateDraftAttachments(clientId, projectId, draft);
     }
     await this.finalizeProjectCompletion(projectId, draft, awarded, 'client');
   }
@@ -877,6 +881,8 @@ export class ProjectReviewsService {
     const project = await this.prisma.project.findUniqueOrThrow({
       where: { id: projectId },
     });
+    // Completion happens long after the guest claimed the project.
+    const clientId = requireClientId(project);
 
     if (draft) {
       const attachmentIds = [...new Set(draft.attachmentIds)];
@@ -886,7 +892,7 @@ export class ProjectReviewsService {
               where: {
                 id: { in: attachmentIds },
                 projectId,
-                clientId: project.clientId,
+                clientId,
                 status: DocumentStatus.uploaded,
                 reviewId: null,
               },
@@ -903,7 +909,7 @@ export class ProjectReviewsService {
         const review = await tx.contractorProjectReview.create({
           data: {
             projectId,
-            clientId: project.clientId,
+            clientId,
             contractorId: awarded.contractorId,
             bidId: awarded.id,
             comment: draft.comment,
@@ -953,7 +959,7 @@ export class ProjectReviewsService {
     } else if (confirmedBy === 'contractor') {
       void this.notifications.dispatch(
         this.notifications.notifyClientProjectCompletionConfirmed({
-          clientUserId: project.clientId,
+          clientUserId: clientId,
           projectId,
           projectTitle: project.title,
         }),

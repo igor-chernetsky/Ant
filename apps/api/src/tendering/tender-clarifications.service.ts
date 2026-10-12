@@ -337,15 +337,19 @@ export class TenderClarificationsService {
 
     await this.mergeQuestionsIntoTender(bid.tenderId, bid.id, questions);
 
-    this.notifications.dispatch(
-      this.notifications.notifyClientClarificationQuestions({
-        clientId: project.clientId,
-        projectId: project.id,
-        projectTitle: project.title,
-        companyName: bid.contractor.companyName?.trim() || 'Contractor',
-        questionCount: questions.length,
-      }),
-    );
+    // A guest project has no client to notify.
+    const clientId = project.clientId;
+    if (clientId) {
+      this.notifications.dispatch(
+        this.notifications.notifyClientClarificationQuestions({
+          clientId,
+          projectId: project.id,
+          projectTitle: project.title,
+          companyName: bid.contractor.companyName?.trim() || 'Contractor',
+          questionCount: questions.length,
+        }),
+      );
+    }
 
     return {
       questions,

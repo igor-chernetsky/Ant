@@ -66,6 +66,7 @@ import {
   fetchProjectCompletionContext,
   type ProjectCompletionContext,
 } from '@/lib/project-reviews';
+import { claimGuestProject } from '@/lib/projects';
 import { useSession } from '@/components/SessionProvider';
 import { isContractorUser, isDesignerUser, isAdminUser } from '@/lib/session';
 import {
@@ -126,7 +127,14 @@ export function ProjectDetailPageClient({
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [loginMode, setLoginMode] = useState<'signin' | 'signup'>('signin');
+  const [loginNotice, setLoginNotice] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  /**
+   * This browser holds the guest token for the project: the visitor is its
+   * anonymous owner until they register and claim it.
+   */
+  const [isGuestOwner, setIsGuestOwner] = useState(false);
   const [adminInviteOpen, setAdminInviteOpen] = useState(false);
   const [pageReady, setPageReady] = useState(Boolean(initialProject));
   const [completion, setCompletion] =
@@ -179,6 +187,7 @@ export function ProjectDetailPageClient({
       setProject(null);
       setDocuments([]);
       setIsOwner(false);
+      setIsGuestOwner(false);
       setPageReady(false);
     }
 
@@ -208,12 +217,35 @@ export function ProjectDetailPageClient({
       }
     };
 
+    /**
+     * The anonymous owner: the BFF turns our guest cookie into API access, so
+     * `fetchProject` works without a session. Without the cookie this fails and
+     * the visitor falls through to the public view.
+     */
+    const loadGuestOwnerView = async (): Promise<boolean> => {
+      if (profile) {
+        return false;
+      }
+      try {
+        const data = await fetchProject(projectId);
+        setProject(data);
+        setIsOwner(false);
+        setIsGuestOwner(true);
+        await loadDocuments(true);
+        setPageReady(true);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
     try {
       if (profile) {
         try {
           const data = await fetchProject(projectId);
           setProject(data);
           setIsOwner(true);
+          setIsGuestOwner(false);
           await loadDocuments(true);
           setPageReady(true);
           return;
@@ -228,6 +260,10 @@ export function ProjectDetailPageClient({
         }
       }
 
+      if (await loadGuestOwnerView()) {
+        return;
+      }
+
       // Admins open any publicly discoverable / ACL-allowed project via public API.
       if (profile && isAdminUser(profile)) {
         try {
@@ -238,6 +274,7 @@ export function ProjectDetailPageClient({
           }
           setProject(data);
           setIsOwner(false);
+          setIsGuestOwner(false);
           await loadDocuments(true);
           setPageReady(true);
           return;
@@ -262,6 +299,7 @@ export function ProjectDetailPageClient({
         }
         setProject(data);
         setIsOwner(false);
+        setIsGuestOwner(false);
         await loadDocuments(Boolean(profile));
         setPageReady(true);
       } catch (publicErr: unknown) {
@@ -346,11 +384,52 @@ export function ProjectDetailPageClient({
     projectStatus !== 'completed' &&
     completion?.canConfirmCompletion === true;
 
+  /**
+   * The visitor registered (or signed in) while holding a guest project: attach
+   * it to the account. That is what makes publishing possible, so reload the
+   * view afterwards to reveal the tender controls.
+   */
+  useEffect(() => {
+    if (!sessionReady || !me || !isGuestOwner || !projectId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        await claimGuestProject(projectId);
+        if (cancelled) return;
+        setIsGuestOwner(false);
+        setIsOwner(true);
+        await loadProjectView();
+      } catch {
+        // Nothing to claim — the draft expired, or it was claimed elsewhere.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionReady, me, isGuestOwner, projectId, loadProjectView]);
+
   const handleLogout = async () => {
     await signOut();
     setProject(null);
     setDocuments([]);
     setAuthState('guest');
+  };
+
+  /** Plain sign-in: the account may already own this project. */
+  const openSignIn = () => {
+    setLoginMode('signin');
+    setLoginNotice(null);
+    setLoginOpen(true);
+  };
+
+  /**
+   * The guest reached the publish step. Registering claims the draft in place,
+   * so the same page continues with the tender controls afterwards.
+   */
+  const openSignUpToPublish = () => {
+    setLoginMode('signup');
+    setLoginNotice(t('guestProject.publishNotice'));
+    setLoginOpen(true);
   };
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -396,7 +475,8 @@ export function ProjectDetailPageClient({
     setError(null);
     try {
       const useAuthenticatedDownload =
-        (isOwner || authState === 'authenticated') && !inviteToken?.trim();
+        (canManageWorkspace || authState === 'authenticated') &&
+        !inviteToken?.trim();
       const { downloadUrl } = useAuthenticatedDownload
         ? await getDocumentDownloadUrl(projectId, doc.id)
         : await getPublicDocumentDownloadUrl(projectId, doc.id, {
@@ -458,19 +538,31 @@ export function ProjectDetailPageClient({
     }
   }
   const estimate = project?.estimate ?? null;
-  const intakeActive = isOwner && project ? isIntakeActive(project) : false;
-  const showDelete = isOwner && project ? canDeleteProject(project) : false;
+  /** Owner work a guest may do too: intake, documents, card, estimate view. */
+  const canManageWorkspace = isOwner || isGuestOwner;
+  const intakeActive =
+    canManageWorkspace && project ? isIntakeActive(project) : false;
+  const showDelete =
+    canManageWorkspace && project ? canDeleteProject(project) : false;
   const showLifecycle =
     isOwner && project ? canManageProjectLifecycle(project) : false;
   const showDocDelete =
-    isOwner && project ? canDeleteDocument(project) : false;
+    canManageWorkspace && project ? canDeleteDocument(project) : false;
   const brief = project?.brief ?? null;
   const showTender =
     isOwner && project
       ? isTenderEligibleProjectStatus(project.status)
       : false;
+  /**
+   * Publishing for bids needs a real owner, so a guest who reached a publishable
+   * status is asked to register instead — the project is claimed in place.
+   */
+  const showGuestPublishWall =
+    isGuestOwner && project
+      ? isTenderEligibleProjectStatus(project.status)
+      : false;
   const showEstimateTenderDuo = Boolean(
-    (isOwner && estimate) || showTender,
+    (canManageWorkspace && estimate) || showTender,
   );
   const showAdminInvite =
     Boolean(me && isAdminUser(me) && project) &&
@@ -552,7 +644,7 @@ export function ProjectDetailPageClient({
     <PageShell className="page-shell--project">
       <SiteHeader
         me={me}
-        onSignIn={() => setLoginOpen(true)}
+        onSignIn={openSignIn}
         onSignOut={handleLogout}
       />
 
@@ -587,10 +679,10 @@ export function ProjectDetailPageClient({
                     ? t('projectDetail.tagsRefreshHint')
                     : null
                 }
-                canEditCard={isOwner}
+                canEditCard={canManageWorkspace}
                 onCardUpdated={setProject}
                 includeSidebar={false}
-                stageStatus={isOwner ? project.status : null}
+                stageStatus={canManageWorkspace ? project.status : null}
                 completionAction={
                   canConfirmCompletion ? (
                     <button
@@ -611,7 +703,7 @@ export function ProjectDetailPageClient({
                     <button
                       type="button"
                       className="primary"
-                      onClick={() => setLoginOpen(true)}
+                      onClick={openSignIn}
                     >
                       {t('header.signIn')}
                     </button>
@@ -624,14 +716,14 @@ export function ProjectDetailPageClient({
                   <div className="doc-section-intro">
                     <h2 className="section-title">{t('documents.title')}</h2>
                     <p className="muted doc-hint">
-                      {isOwner
+                      {canManageWorkspace
                         ? t('documents.ownerHint', {
                             maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
                           })
                         : t('documents.publicHint')}
                     </p>
                   </div>
-                  {isOwner && (
+                  {canManageWorkspace && (
                     <div className="doc-upload-row">
                       <label>
                         {t('documents.category')}
@@ -681,7 +773,9 @@ export function ProjectDetailPageClient({
                           key={doc.id}
                           projectId={projectId}
                           document={doc}
-                          publicView={authState !== 'authenticated'}
+                          publicView={
+                            authState !== 'authenticated' && !isGuestOwner
+                          }
                           scopePackages={packagesByDocumentId.get(doc.id) ?? []}
                           insight={insightByDocumentId.get(doc.id)}
                           showDelete={showDocDelete}
@@ -769,7 +863,7 @@ export function ProjectDetailPageClient({
 
               {showEstimateTenderDuo && (
                 <div className="project-detail-duo">
-                  {isOwner && estimate && (
+                  {canManageWorkspace && estimate && (
                     <section className="card estimate-card">
                       <div className="estimate-header">
                         <div className="estimate-header-main">
@@ -806,6 +900,7 @@ export function ProjectDetailPageClient({
                             {t('estimateSection.lowConfidenceHint')}
                           </p>
                           {(estimate.improvementQuestions?.length ?? 0) > 0 &&
+                            isOwner &&
                             (project.status === 'ready_for_estimate' ||
                               project.status === 'estimated') && (
                               <button
@@ -829,24 +924,30 @@ export function ProjectDetailPageClient({
                             )}
                         </aside>
                       )}
-                      <EstimateRefinementPanel
-                        project={project}
-                        estimate={estimate}
-                        onEstimateUpdated={(updated: BallparkEstimate) =>
-                          setProject((prev) =>
-                            prev ? { ...prev, estimate: updated } : prev,
-                          )
-                        }
-                      />
-                      <EstimateLinesEditor
-                        projectId={projectId}
-                        estimate={estimate}
-                        onEstimateUpdated={(updated: BallparkEstimate) =>
-                          setProject((prev) =>
-                            prev ? { ...prev, estimate: updated } : prev,
-                          )
-                        }
-                      />
+                      {/* Refining the estimate spends AI budget, so a guest sees
+                          the ballpark but refines it after registering. */}
+                      {isOwner && (
+                        <>
+                          <EstimateRefinementPanel
+                            project={project}
+                            estimate={estimate}
+                            onEstimateUpdated={(updated: BallparkEstimate) =>
+                              setProject((prev) =>
+                                prev ? { ...prev, estimate: updated } : prev,
+                              )
+                            }
+                          />
+                          <EstimateLinesEditor
+                            projectId={projectId}
+                            estimate={estimate}
+                            onEstimateUpdated={(updated: BallparkEstimate) =>
+                              setProject((prev) =>
+                                prev ? { ...prev, estimate: updated } : prev,
+                              )
+                            }
+                          />
+                        </>
+                      )}
                       <p className="muted estimate-disclaimer">
                         {estimate.disclaimer}
                       </p>
@@ -859,6 +960,22 @@ export function ProjectDetailPageClient({
                       project={project}
                       onUpdated={setProject}
                     />
+                  )}
+
+                  {showGuestPublishWall && (
+                    <section className="card guest-publish-wall">
+                      <h2 className="section-title">
+                        {t('guestProject.publishTitle')}
+                      </h2>
+                      <p className="muted">{t('guestProject.publishLead')}</p>
+                      <button
+                        type="button"
+                        className="primary"
+                        onClick={openSignUpToPublish}
+                      >
+                        {t('guestProject.publishCta')}
+                      </button>
+                    </section>
                   )}
                 </div>
               )}
@@ -960,7 +1077,7 @@ export function ProjectDetailPageClient({
               <button
                 type="button"
                 className="primary"
-                onClick={() => setLoginOpen(true)}
+                onClick={openSignIn}
               >
                 {t('header.signIn')}
               </button>
@@ -981,9 +1098,13 @@ export function ProjectDetailPageClient({
       <LoginModal
         isOpen={loginOpen}
         onClose={() => setLoginOpen(false)}
+        initialMode={loginMode}
+        notice={loginNotice}
         onSuccess={() => {
           void (async () => {
             await refreshSession();
+            // A guest project is claimed by the effect above once the session
+            // exists; this reload covers the plain sign-in case.
             await loadProjectView();
           })();
         }}

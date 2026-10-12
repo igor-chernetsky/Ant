@@ -21,14 +21,9 @@ interface LoginModalProps {
   initialMode?: AuthMode;
   /** Optional line above the form explaining why the dialog appeared. */
   notice?: string | null;
-  /**
-   * Fired when signup succeeded but the account must confirm its email before
-   * it can sign in — the caller must keep whatever it was waiting to publish.
-   */
-  onSignupPending?: () => void;
 }
 
-type AuthMode = 'signin' | 'signup' | 'forgot';
+type AuthMode = 'signin' | 'signup' | 'forgot' | 'verify';
 
 const ROLE_KEYS = {
   client: 'auth.roleClient',
@@ -190,7 +185,6 @@ export function LoginModal({
   onSuccess,
   initialMode = 'signin',
   notice = null,
-  onSignupPending,
 }: LoginModalProps) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<AuthMode>('signin');
@@ -208,8 +202,14 @@ export function LoginModal({
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  /** True once sign-in was refused because the account email is unconfirmed. */
-  const [verifyEmailPending, setVerifyEmailPending] = useState(false);
+  /**
+   * Address waiting for its confirmation link, and why we are asking: a fresh
+   * signup, or a sign-in that Keycloak refused because the email is unconfirmed.
+   */
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [verificationReason, setVerificationReason] = useState<
+    'signup' | 'signin'
+  >('signup');
   const [resendBusy, setResendBusy] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
   const [resendSent, setResendSent] = useState<string | null>(null);
@@ -277,7 +277,7 @@ export function LoginModal({
     if (isOpen) {
       return;
     }
-    setVerifyEmailPending(false);
+    setVerificationEmail('');
     setResendBusy(false);
     setResendError(null);
     setResendSent(null);
@@ -313,16 +313,20 @@ export function LoginModal({
     setAcceptedPrivacy(false);
     setAcceptedClientAgreement(false);
     setAcceptedContractorAgreement(false);
-    setVerifyEmailPending(false);
     setResendError(null);
     setResendSent(null);
     if (next === 'forgot' && !email && username) {
       setEmail(username);
     }
+    // Coming back from the confirmation panel: keep the address, so the visitor
+    // only types the password.
+    if (next === 'signin' && !username && verificationEmail) {
+      setUsername(verificationEmail);
+    }
   };
 
   const handleResendVerification = async () => {
-    const target = username.trim();
+    const target = (verificationEmail || username).trim();
     if (!target || resendBusy) {
       return;
     }
@@ -382,7 +386,6 @@ export function LoginModal({
     setError(null);
     setSuccessNotice(null);
     setFieldErrors({});
-    setVerifyEmailPending(false);
     setResendError(null);
     setResendSent(null);
 
@@ -451,12 +454,16 @@ export function LoginModal({
         setAcceptedContractorAgreement(false);
         setUsername(email);
         setEmail('');
-        setMode('signin');
         if (result.verifyEmail) {
-          onSignupPending?.();
-          setSuccessNotice(
-            result.message ?? t('auth.verifyEmailDefault'),
-          );
+          // Do not bounce to the sign-in form: the account cannot sign in until
+          // the link is clicked, so show what to do next and let them resend it.
+          setVerificationEmail(email.trim().toLowerCase());
+          setVerificationReason('signup');
+          setResendBusy(false);
+          setResendError(null);
+          setResendSent(null);
+          setResendAvailableAt(null);
+          setMode('verify');
         } else {
           await onSuccess();
           onClose();
@@ -472,14 +479,21 @@ export function LoginModal({
               ? t('auth.forgotPasswordFailed')
               : t('auth.signUpFailed');
 
-      // Unconfirmed email is the one login failure the user can fix on the spot,
-      // so offer to send the confirmation link again.
+      // Unconfirmed email is the one login failure the user can fix on the spot:
+      // show the confirmation panel with a way to resend the link.
       if (
         mode === 'signin' &&
         err instanceof AuthRequestError &&
         err.code === 'email_not_verified'
       ) {
-        setVerifyEmailPending(true);
+        setVerificationEmail(username.trim().toLowerCase());
+        setVerificationReason('signin');
+        setResendBusy(false);
+        setResendError(null);
+        setResendSent(null);
+        setResendAvailableAt(null);
+        setMode('verify');
+        return;
       }
 
       const fields = mapServerErrorToFields(message);
@@ -516,7 +530,9 @@ export function LoginModal({
       ? t('auth.welcomeBack')
       : mode === 'forgot'
         ? t('auth.forgotPasswordTitle')
-        : t('auth.createAccount');
+        : mode === 'verify'
+          ? t('auth.verifyEmailTitle')
+          : t('auth.createAccount');
 
   const subtitle =
     mode === 'signin'
@@ -566,7 +582,9 @@ export function LoginModal({
           </button>
         </div>
 
-        <p className="muted modal-subtitle">{subtitle}</p>
+        {mode !== 'verify' && (
+          <p className="muted modal-subtitle">{subtitle}</p>
+        )}
 
         {notice && <p className="auth-notice">{notice}</p>}
 
@@ -587,8 +605,6 @@ export function LoginModal({
                 onChange={(event) => {
                   setUsername(event.target.value);
                   clearFieldError('username');
-                  // A different address means a different pending verification.
-                  setVerifyEmailPending(false);
                   setResendError(null);
                   setResendSent(null);
                 }}
@@ -856,15 +872,39 @@ export function LoginModal({
             <p className="auth-success-notice">{successNotice}</p>
           )}
 
-          {mode === 'signin' && verifyEmailPending && (
-            <div className="auth-verify-resend">
-              <p className="muted auth-verify-resend-hint">
-                {t('auth.resendVerificationHint')}
+          {mode === 'verify' && (
+            <div className="auth-verify-panel">
+              <span className="auth-verify-icon" aria-hidden>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="26"
+                  height="26"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="5" width="18" height="14" rx="2.5" />
+                  <path d="m4 7.5 8 5.5 8-5.5" />
+                </svg>
+              </span>
+
+              <p className="auth-verify-lead">
+                {t(
+                  verificationReason === 'signup'
+                    ? 'auth.verifyEmailLead'
+                    : 'auth.verifyEmailSigninLead',
+                  {
+                    email: verificationEmail || t('common.email'),
+                  },
+                )}
               </p>
+
               <button
                 type="button"
                 className="secondary auth-verify-resend-button"
-                disabled={submitting || resendBusy || resendWaitSec > 0}
+                disabled={resendBusy || resendWaitSec > 0}
                 onClick={() => void handleResendVerification()}
               >
                 {resendBusy
@@ -875,6 +915,10 @@ export function LoginModal({
                       })
                     : t('auth.resendVerification')}
               </button>
+              <p className="muted auth-verify-hint">
+                {t('auth.resendVerificationHint')}
+              </p>
+
               {resendError && (
                 <p className="form-error" role="alert">
                   {resendError}
@@ -885,66 +929,79 @@ export function LoginModal({
                   {resendSent}
                 </p>
               )}
+
+              <button
+                type="button"
+                className="text-link auth-verify-signin"
+                disabled={submitting}
+                onClick={() => switchMode('signin')}
+              >
+                {t('auth.verifyEmailGoToSignIn')}
+              </button>
             </div>
           )}
 
-          <button
-            type="submit"
-            className="primary auth-submit"
-            disabled={submitting || (mode === 'signup' && !canSubmitSignup)}
-          >
-            {submitting
-              ? mode === 'signin'
-                ? t('auth.signingIn')
-                : mode === 'forgot'
-                  ? t('auth.sendingResetLink')
-                  : t('auth.creatingAccount')
-              : mode === 'signin'
-                ? t('header.signIn')
-                : mode === 'forgot'
-                  ? t('auth.sendResetLink')
-                  : t('auth.createAccountButton')}
-          </button>
+          {mode !== 'verify' && (
+            <>
+              <button
+                type="submit"
+                className="primary auth-submit"
+                disabled={submitting || (mode === 'signup' && !canSubmitSignup)}
+              >
+                {submitting
+                  ? mode === 'signin'
+                    ? t('auth.signingIn')
+                    : mode === 'forgot'
+                      ? t('auth.sendingResetLink')
+                      : t('auth.creatingAccount')
+                  : mode === 'signin'
+                    ? t('header.signIn')
+                    : mode === 'forgot'
+                      ? t('auth.sendResetLink')
+                      : t('auth.createAccountButton')}
+              </button>
 
-          <p className="auth-mode-footer muted">
-            {mode === 'signin' ? (
-              <>
-                {t('auth.newToAnt')}{' '}
-                <button
-                  type="button"
-                  className="text-link"
-                  onClick={() => switchMode('signup')}
-                  disabled={submitting}
-                >
-                  {t('auth.createAnAccount')}
-                </button>
-              </>
-            ) : mode === 'forgot' ? (
-              <>
-                {t('auth.rememberedPassword')}{' '}
-                <button
-                  type="button"
-                  className="text-link"
-                  onClick={() => switchMode('signin')}
-                  disabled={submitting}
-                >
-                  {t('header.signIn')}
-                </button>
-              </>
-            ) : (
-              <>
-                {t('auth.alreadyHaveAccount')}{' '}
-                <button
-                  type="button"
-                  className="text-link"
-                  onClick={() => switchMode('signin')}
-                  disabled={submitting}
-                >
-                  {t('header.signIn')}
-                </button>
-              </>
-            )}
-          </p>
+              <p className="auth-mode-footer muted">
+                {mode === 'signin' ? (
+                  <>
+                    {t('auth.newToAnt')}{' '}
+                    <button
+                      type="button"
+                      className="text-link"
+                      onClick={() => switchMode('signup')}
+                      disabled={submitting}
+                    >
+                      {t('auth.createAnAccount')}
+                    </button>
+                  </>
+                ) : mode === 'forgot' ? (
+                  <>
+                    {t('auth.rememberedPassword')}{' '}
+                    <button
+                      type="button"
+                      className="text-link"
+                      onClick={() => switchMode('signin')}
+                      disabled={submitting}
+                    >
+                      {t('header.signIn')}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {t('auth.alreadyHaveAccount')}{' '}
+                    <button
+                      type="button"
+                      className="text-link"
+                      onClick={() => switchMode('signin')}
+                      disabled={submitting}
+                    >
+                      {t('header.signIn')}
+                    </button>
+                  </>
+                )}
+              </p>
+            </>
+          )}
 
           <button
             type="button"

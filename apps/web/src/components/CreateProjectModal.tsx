@@ -11,7 +11,6 @@ import {
   fetchLocationCatalog,
   type LocationCatalog,
 } from '@/lib/locations';
-import { savePendingProjectDraft } from '@/lib/pending-project-draft';
 import { canCreateProject, ensureSessionFresh } from '@/lib/session';
 import { useSession } from '@/components/SessionProvider';
 import {
@@ -38,16 +37,16 @@ interface CreateProjectModalProps {
   onCreated: (projectId: string) => void;
   onSessionExpired?: () => void;
   /**
-   * Draft to prefill the form with — a project the visitor filled in before
-   * signing up, restored after registration. Keep the object stable across
-   * renders: it is snapshotted when the modal opens.
+   * Draft to prefill the form with — a project the visitor already started.
+   * Keep the object stable across renders: it is snapshotted when the modal opens.
    */
   initialDraft?: CreateProjectInput | null;
   /**
-   * Called instead of creating when the visitor is not signed in. The caller
-   * opens the registration dialog and keeps the draft until it is published.
+   * Called instead of creating when the visitor is not signed in: the caller
+   * starts the project anonymously and navigates to it. Registering happens
+   * later, when the project is published for bids.
    */
-  onRequireAccount?: (input: CreateProjectInput) => void;
+  onCreateGuestProject?: (input: CreateProjectInput) => Promise<void> | void;
   /**
    * Called instead of creating when the signed-in user has no client role, so
    * the caller can offer to add it.
@@ -63,7 +62,7 @@ export function CreateProjectModal({
   onCreated,
   onSessionExpired,
   initialDraft = null,
-  onRequireAccount,
+  onCreateGuestProject,
   onRequireClientRole,
 }: CreateProjectModalProps) {
   const { t } = useTranslation();
@@ -170,13 +169,22 @@ export function CreateProjectModal({
       clarificationMode,
     };
 
-    // Anyone may fill the form. Publishing it needs an account, and publishing
-    // it as a client needs the client role — the caller opens the matching
-    // dialog and comes back with the draft. Without a caller for that, fall
-    // through so the API answers with a real error instead of doing nothing.
-    if (!me && onRequireAccount) {
-      savePendingProjectDraft(input);
-      onRequireAccount(input);
+    // Anyone may fill the form. Without an account the project is created
+    // anonymously and stays in this browser until the visitor registers, which
+    // publishing for bids requires. Without the client role, the caller offers
+    // to add it first.
+    if (!me && onCreateGuestProject) {
+      setCreating(true);
+      try {
+        await onCreateGuestProject(input);
+        onClose();
+      } catch (err: unknown) {
+        setError(
+          err instanceof Error ? err.message : t('createProject.createFailed'),
+        );
+      } finally {
+        setCreating(false);
+      }
       return;
     }
 

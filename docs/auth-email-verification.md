@@ -9,10 +9,17 @@ New accounts must verify their email via Keycloak before they can sign in.
 1. User submits **Create account** in the login modal.
 2. BFF creates a Keycloak user with `VERIFY_EMAIL` required action.
 3. Keycloak sends a verification email (SMTP must be configured).
-4. User clicks the link in the email.
-5. User returns to the app and signs in with email + password.
+4. The modal switches to the **Check your email** panel — it does *not* bounce to
+   the sign-in form, because the account cannot sign in yet. The panel shows the
+   address, a **Resend verification email** button (60 s cooldown, five per hour)
+   and an "Already confirmed? Sign in" link that returns to the form with the
+   address prefilled.
+5. User clicks the link in the email.
+6. User signs in with email + password.
 
 Until the email is verified, login returns: *Verify your email before signing in.*
+The modal answers that with the same **Check your email** panel, so the visitor
+can resend the link without hunting for it.
 
 Auto-repair on login **does not** bypass email verification.
 

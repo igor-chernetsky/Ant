@@ -1,8 +1,10 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -55,6 +57,20 @@ export class ProjectsController {
     const user = await this.resolveClient(req);
     const locale = resolveLocaleFromRequest(req, user.preferredLocale);
     return this.projectsService.createForClient(user.id, body, locale);
+  }
+
+  @Post(':id/claim')
+  async claim(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('id') id: string,
+    @Headers('x-ant-guest-token') guestToken?: string,
+  ) {
+    if (!guestToken?.trim()) {
+      throw new BadRequestException('Missing guest project token');
+    }
+    const user = await this.resolveClient(req);
+    const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    return this.projectsService.claimGuestProject(id, user.id, guestToken);
   }
 
   @Get(':id')

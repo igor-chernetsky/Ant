@@ -221,6 +221,12 @@ export const en = {
       'If an account exists for {email}, a new confirmation link is on its way. Check your inbox and spam folder.',
     resendVerificationTooSoon:
       'The next verification email can be sent a little later.',
+    verifyEmailTitle: 'Check your email',
+    verifyEmailLead:
+      'We sent a confirmation link to {email}. Open it to activate your account, then sign in.',
+    verifyEmailSigninLead:
+      'That email is not confirmed yet. The confirmation link is waiting in {email} — open it, then sign in.',
+    verifyEmailGoToSignIn: 'Already confirmed? Sign in',
     publishProjectNotice:
       'To publish your project, create an account. Everything you filled in is saved.',
     roleClient: 'Client',

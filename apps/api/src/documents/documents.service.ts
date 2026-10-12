@@ -23,6 +23,12 @@ import {
   ProjectBriefV1,
 } from '../projects/project-brief';
 import { ProjectsService } from '../projects/projects.service';
+import {
+  assertViewerOwnsProject,
+  userViewer,
+  viewerUserId,
+  type ProjectViewer,
+} from '../projects/project-viewer';
 import { PrismaService } from '../prisma/prisma.service';
 import { ImageThumbnailService } from '../storage/image-thumbnail.service';
 import { StorageService } from '../storage/storage.service';
@@ -87,15 +93,21 @@ export class DocumentsService {
   }
 
   private async assertProjectOwner(projectId: string, userId: string) {
+    return this.assertProjectOwnerViewer(projectId, userViewer(userId));
+  }
+
+  /** Owner check that also accepts the anonymous guest holding the project. */
+  private async assertProjectOwnerViewer(
+    projectId: string,
+    viewer: ProjectViewer,
+  ) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) {
       throw new NotFoundException('Project not found');
     }
-    if (project.clientId !== userId) {
-      throw new ForbiddenException('Access denied');
-    }
+    assertViewerOwnsProject(project, viewer);
     return project;
   }
 
@@ -237,6 +249,26 @@ export class DocumentsService {
     return docs.map((doc) => this.toResponse(doc));
   }
 
+  /** Document list for the owner, including the anonymous guest owner. */
+  async listForViewer(
+    viewer: ProjectViewer,
+    projectId: string,
+  ): Promise<DocumentResponse[]> {
+    await this.assertProjectOwnerViewer(projectId, viewer);
+
+    const docs = await this.prisma.document.findMany({
+      where: {
+        projectId,
+        defectId: null,
+        category: { not: DocumentCategory.payment_slip },
+        status: { not: DocumentStatus.deleted },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return docs.map((doc) => this.toResponse(doc));
+  }
+
   async listForPublicProject(
     projectId: string,
     userId: string | null = null,
@@ -267,15 +299,33 @@ export class DocumentsService {
     userId: string,
     dto: PresignUploadDto,
   ): Promise<PresignUploadResponse> {
+    return this.presignUploadForViewer(userViewer(userId), projectId, dto);
+  }
+
+  /**
+   * Presign an upload for the project owner. A guest upload has no uploader user
+   * yet — `uploaderId` stays null until the project is claimed.
+   */
+  async presignUploadForViewer(
+    viewer: ProjectViewer,
+    projectId: string,
+    dto: PresignUploadDto,
+  ): Promise<PresignUploadResponse> {
     this.validateUploadInput(dto);
 
     let defectId: string | undefined;
     let defectEventId: string | undefined;
 
     if (dto.defectEventId?.trim()) {
+      const uploaderUserId = viewerUserId(viewer);
+      if (!uploaderUserId) {
+        throw new ForbiddenException(
+          'Defect attachments require a registered account',
+        );
+      }
       const linked = await this.assertCanAttachToDefectEvent(
         projectId,
-        userId,
+        uploaderUserId,
         dto.defectEventId.trim(),
       );
       defectId = linked.defectId;
@@ -285,7 +335,7 @@ export class DocumentsService {
         'defectEventId is required when uploading defect attachments',
       );
     } else {
-      await this.assertProjectOwner(projectId, userId);
+      await this.assertProjectOwnerViewer(projectId, viewer);
     }
 
     const documentId = randomUUID();
@@ -304,7 +354,7 @@ export class DocumentsService {
       data: {
         id: documentId,
         projectId,
-        uploaderId: userId,
+        uploaderId: viewerUserId(viewer),
         originalName: fileName,
         contentType,
         sizeBytes: dto.sizeBytes,
@@ -335,6 +385,18 @@ export class DocumentsService {
     documentId: string,
     userId: string,
   ): Promise<DocumentResponse> {
+    return this.completeUploadForViewer(
+      userViewer(userId),
+      projectId,
+      documentId,
+    );
+  }
+
+  async completeUploadForViewer(
+    viewer: ProjectViewer,
+    projectId: string,
+    documentId: string,
+  ): Promise<DocumentResponse> {
     const doc = await this.prisma.document.findFirst({
       where: { id: documentId, projectId },
     });
@@ -344,13 +406,19 @@ export class DocumentsService {
     }
 
     if (doc.defectEventId) {
+      const uploaderUserId = viewerUserId(viewer);
+      if (!uploaderUserId) {
+        throw new ForbiddenException(
+          'Defect attachments require a registered account',
+        );
+      }
       await this.assertCanAttachToDefectEvent(
         projectId,
-        userId,
+        uploaderUserId,
         doc.defectEventId,
       );
     } else {
-      await this.assertProjectOwner(projectId, userId);
+      await this.assertProjectOwnerViewer(projectId, viewer);
     }
 
     if (doc.status === DocumentStatus.uploaded) {
@@ -479,6 +547,30 @@ export class DocumentsService {
     return this.buildDownloadResponse(doc, variant);
   }
 
+  /** Download for the owner, including the anonymous guest owner. */
+  async getDownloadUrlForViewer(
+    viewer: ProjectViewer,
+    projectId: string,
+    documentId: string,
+    variant: DocumentDownloadVariant = 'original',
+  ): Promise<DownloadUrlResponse> {
+    await this.assertProjectOwnerViewer(projectId, viewer);
+
+    const doc = await this.prisma.document.findFirst({
+      where: {
+        id: documentId,
+        projectId,
+        status: DocumentStatus.uploaded,
+      },
+    });
+
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+
+    return this.buildDownloadResponse(doc, variant);
+  }
+
   async getPublicDownloadUrl(
     projectId: string,
     documentId: string,
@@ -529,7 +621,15 @@ export class DocumentsService {
     documentId: string,
     userId: string,
   ): Promise<void> {
-    const project = await this.assertProjectOwner(projectId, userId);
+    return this.deleteDocumentForViewer(userViewer(userId), projectId, documentId);
+  }
+
+  async deleteDocumentForViewer(
+    viewer: ProjectViewer,
+    projectId: string,
+    documentId: string,
+  ): Promise<void> {
+    const project = await this.assertProjectOwnerViewer(projectId, viewer);
 
     if (!DELETABLE_DOCUMENT_PROJECT_STATUSES.includes(project.status)) {
       throw new BadRequestException(

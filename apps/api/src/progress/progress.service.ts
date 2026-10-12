@@ -413,16 +413,20 @@ export class ProgressService {
       include: claimInclude,
     });
 
-    void this.notifications.dispatch(
-      this.notifications.notifyClientProgressClaimSubmitted({
-        clientUserId: ctx.project.clientId,
-        projectId,
-        projectTitle: ctx.project.title,
-        companyName: ctx.companyName,
-        amount: dec(updated.payablePeriod),
-        sequenceNumber: updated.sequenceNumber,
-      }),
-    );
+    // A guest project has no client to notify.
+    const clientUserId = ctx.project.clientId;
+    if (clientUserId) {
+      void this.notifications.dispatch(
+        this.notifications.notifyClientProgressClaimSubmitted({
+          clientUserId,
+          projectId,
+          projectTitle: ctx.project.title,
+          companyName: ctx.companyName,
+          amount: dec(updated.payablePeriod),
+          sequenceNumber: updated.sequenceNumber,
+        }),
+      );
+    }
 
     return this.toClaimDto(updated, ctx.role);
   }

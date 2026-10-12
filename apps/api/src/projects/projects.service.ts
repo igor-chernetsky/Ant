@@ -90,6 +90,18 @@ import {
 
 import { ProjectReviewsService } from './project-reviews.service';
 import type { DiscoverLocationFilter } from './discover.types';
+import {
+  assertViewerOwnsProject,
+  guestViewer,
+  userViewer,
+  type ProjectViewer,
+} from './project-viewer';
+import {
+  createGuestProjectToken,
+  guestProjectExpiry,
+  guestTokenHashesMatch,
+  hashGuestProjectToken,
+} from './guest-project.util';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { normalizeSourceLocale } from '../localization/locale.utils';
 import type { SupportedLocale } from '../users/locale.types';
@@ -1300,14 +1312,63 @@ export class ProjectsService {
   }
 
   async createForClient(
-
     clientId: string,
-
     dto: CreateProjectDto,
-
     sourceLocale: SupportedLocale = 'en',
-
   ): Promise<ProjectResponse> {
+    const project = await this.createProjectRecord({
+      clientId,
+      guestTokenHash: null,
+      guestExpiresAt: null,
+      dto,
+      sourceLocale,
+    });
+
+    await this.intakeService.runInitialIntakeForProject(project.id);
+
+    return this.getForClient(clientId, project.id);
+  }
+
+  /**
+   * Create the project an anonymous visitor filled in, plus the bearer token
+   * that authorizes them until they register and claim it. Only the token hash
+   * is stored, so the raw value is returned exactly once.
+   */
+  async createForGuest(
+    dto: CreateProjectDto,
+    sourceLocale: SupportedLocale = 'en',
+    options?: { allowAi?: boolean },
+  ): Promise<{ project: ProjectResponse; guestToken: string }> {
+    const guestToken = createGuestProjectToken();
+    const project = await this.createProjectRecord({
+      clientId: null,
+      guestTokenHash: hashGuestProjectToken(guestToken),
+      guestExpiresAt: guestProjectExpiry(),
+      dto,
+      sourceLocale,
+    });
+
+    await this.intakeService.runInitialIntakeForProject(project.id, {
+      allowAi: options?.allowAi,
+    });
+
+    const response = await this.getForViewer(
+      guestViewer(project.id),
+      project.id,
+      sourceLocale,
+    );
+
+    return { project: response, guestToken };
+  }
+
+  private async createProjectRecord(params: {
+    clientId: string | null;
+    guestTokenHash: string | null;
+    guestExpiresAt: Date | null;
+    dto: CreateProjectDto;
+    sourceLocale: SupportedLocale;
+  }): Promise<Project> {
+    const { clientId, dto, sourceLocale } = params;
 
     const title = dto.title.trim();
 
@@ -1354,6 +1415,10 @@ export class ProjectsService {
       data: {
 
         clientId,
+
+        guestTokenHash: params.guestTokenHash,
+
+        guestExpiresAt: params.guestExpiresAt,
 
         title,
 
@@ -1402,20 +1467,20 @@ export class ProjectsService {
 
     });
 
-
-
-    await this.intakeService.runInitialIntakeForProject(project.id);
-
-
-
-    return this.getForClient(clientId, project.id);
-
+    return project;
   }
-
-
 
   async getForClient(
     clientId: string,
+    projectId: string,
+    viewerLocale?: SupportedLocale,
+  ): Promise<ProjectResponse> {
+    return this.getForViewer(userViewer(clientId), projectId, viewerLocale);
+  }
+
+  /** Owner view of a project for either a registered user or its guest. */
+  async getForViewer(
+    viewer: ProjectViewer,
     projectId: string,
     viewerLocale?: SupportedLocale,
   ): Promise<ProjectResponse> {
@@ -1428,9 +1493,7 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.clientId !== clientId) {
-      throw new ForbiddenException('Access denied');
-    }
+    assertViewerOwnsProject(project, viewer);
 
 
 
@@ -1473,6 +1536,20 @@ export class ProjectsService {
     dto: UpdateProjectDto,
     viewerLocale?: SupportedLocale,
   ): Promise<ProjectResponse> {
+    return this.updateCardForViewer(
+      userViewer(clientId),
+      projectId,
+      dto,
+      viewerLocale,
+    );
+  }
+
+  async updateCardForViewer(
+    viewer: ProjectViewer,
+    projectId: string,
+    dto: UpdateProjectDto,
+    viewerLocale?: SupportedLocale,
+  ): Promise<ProjectResponse> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: this.includeTags(),
@@ -1481,9 +1558,7 @@ export class ProjectsService {
     if (!project) {
       throw new NotFoundException('Project not found');
     }
-    if (project.clientId !== clientId) {
-      throw new ForbiddenException('Access denied');
-    }
+    assertViewerOwnsProject(project, viewer);
 
     if (
       dto.title === undefined &&
@@ -1605,10 +1680,17 @@ export class ProjectsService {
 
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
-    return this.getForClient(clientId, projectId, viewerLocale);
+    return this.getForViewer(viewer, projectId, viewerLocale);
   }
 
   async deleteForClient(clientId: string, projectId: string): Promise<void> {
+    return this.deleteForViewer(userViewer(clientId), projectId);
+  }
+
+  async deleteForViewer(
+    viewer: ProjectViewer,
+    projectId: string,
+  ): Promise<void> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: { documents: true },
@@ -1618,9 +1700,7 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    if (project.clientId !== clientId) {
-      throw new ForbiddenException('Access denied');
-    }
+    assertViewerOwnsProject(project, viewer);
 
     if (!DELETABLE_STATUSES.includes(project.status)) {
       throw new BadRequestException(
@@ -1629,6 +1709,75 @@ export class ProjectsService {
     }
 
     await this.deleteProjectWithDocuments(project.id, project.documents);
+  }
+
+  /**
+   * Attach a guest project to the account that just registered.
+   *
+   * The caller must present the guest token, and only an unclaimed project can
+   * be claimed — a second claim (or a stolen cookie after the owner registered)
+   * finds `clientId` set and is refused.
+   */
+  async claimGuestProject(
+    projectId: string,
+    clientId: string,
+    guestToken: string,
+  ): Promise<ProjectResponse> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, clientId: true, guestTokenHash: true },
+    });
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    if (project.clientId) {
+      throw new BadRequestException('Project already has an owner');
+    }
+    if (
+      !project.guestTokenHash ||
+      !guestTokenHashesMatch(project.guestTokenHash, hashGuestProjectToken(guestToken))
+    ) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        clientId,
+        guestTokenHash: null,
+        guestExpiresAt: null,
+      },
+    });
+
+    return this.getForClient(clientId, projectId);
+  }
+
+  /** Unclaimed guest projects whose 24 hours ran out, oldest first. */
+  async listExpiredGuestProjects(limit = 100): Promise<string[]> {
+    const rows = await this.prisma.project.findMany({
+      where: {
+        clientId: null,
+        guestExpiresAt: { not: null, lte: new Date() },
+      },
+      select: { id: true },
+      orderBy: { guestExpiresAt: 'asc' },
+      take: limit,
+    });
+    return rows.map((row) => row.id);
+  }
+
+  /** Delete one abandoned guest project together with its S3 objects. */
+  async deleteExpiredGuestProject(projectId: string): Promise<boolean> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: { documents: true },
+    });
+    if (!project || project.clientId) {
+      return false;
+    }
+
+    await this.deleteProjectWithDocuments(project.id, project.documents);
+    return true;
   }
 
   async deleteForAdmin(projectId: string): Promise<void> {
@@ -1703,7 +1852,11 @@ export class ProjectsService {
     const sortBy = query.sortBy ?? 'createdAt';
     const sortDir = query.sortDir === 'asc' ? 'asc' : 'desc';
 
-    const where: Prisma.ProjectWhereInput = {};
+    const where: Prisma.ProjectWhereInput = {
+      // Unclaimed guest projects are anonymous 24-hour drafts: they never show up
+      // in the admin table, which always expects an owner to display.
+      clientId: { not: null },
+    };
 
     if (query.q) {
       where.title = { contains: query.q, mode: 'insensitive' };
@@ -1972,7 +2125,7 @@ export class ProjectsService {
         id: string;
         displayName: string | null;
         email: string | null;
-      };
+      } | null;
       tender: {
         status: string;
         awardedBid: {
@@ -2012,11 +2165,15 @@ export class ProjectsService {
       readinessScore: project.readinessScore,
       coverImageUrl,
       estimate,
-      client: {
-        id: project.client.id,
-        displayName: project.client.displayName,
-        email: project.client.email,
-      },
+      client: project.client
+        ? {
+            id: project.client.id,
+            displayName: project.client.displayName,
+            email: project.client.email,
+          }
+        : // Unclaimed guest projects are filtered out of this list; an owner is
+          // always present here, and the fallback only keeps the types honest.
+          { id: '', displayName: null, email: null },
       locationRegionSlug: project.locationRegionSlug,
       locationAreaSlug: project.locationAreaSlug,
       locationNote: project.locationNote,

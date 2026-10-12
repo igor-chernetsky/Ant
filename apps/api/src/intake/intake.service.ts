@@ -11,6 +11,13 @@ import { Prisma, ProjectStatus, TagSource } from '@prisma/client';
 import { sanitizeIntakeQuestion, filterIntakeQuestionForScope } from '../ai/intake-question.utils';
 import { IntakeFallbackService } from '../ai/intake-fallback.service';
 import {
+  assertViewerOwnsProject,
+  isGuestViewer,
+  userViewer,
+  type ProjectViewer,
+} from '../projects/project-viewer';
+import { GUEST_AI_QUESTION_LIMIT } from '../projects/guest-project.util';
+import {
   INTAKE_OTHER_OPTION_ID,
   InitialIntakeResult,
   IntakeQuestion,
@@ -51,7 +58,16 @@ export class IntakeService {
     private readonly projectLocalization: ProjectLocalizationService,
   ) {}
 
-  async runInitialIntakeForProject(projectId: string): Promise<void> {
+  /**
+   * First questions for a new project.
+   *
+   * `allowAi: false` keeps a guest project on the deterministic question set
+   * once its AI allowance is used up (see `GUEST_AI_QUESTION_LIMIT`).
+   */
+  async runInitialIntakeForProject(
+    projectId: string,
+    options?: { allowAi?: boolean },
+  ): Promise<void> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -63,7 +79,7 @@ export class IntakeService {
     );
     let result: InitialIntakeResult | null = null;
 
-    if (this.openAi.isConfigured()) {
+    if (this.openAi.isConfigured() && options?.allowAi !== false) {
       result = await this.openAi.runInitialIntake(context);
     }
     if (!result) {
@@ -157,7 +173,21 @@ export class IntakeService {
     dto: SubmitAnswerDto,
     viewerLocale?: import('../users/locale.types').SupportedLocale,
   ): Promise<ProjectResponse> {
-    const project = await this.loadOwnedProject(clientId, projectId);
+    return this.submitAnswerForViewer(
+      userViewer(clientId),
+      projectId,
+      dto,
+      viewerLocale,
+    );
+  }
+
+  async submitAnswerForViewer(
+    viewer: ProjectViewer,
+    projectId: string,
+    dto: SubmitAnswerDto,
+    viewerLocale?: import('../users/locale.types').SupportedLocale,
+  ): Promise<ProjectResponse> {
+    const project = await this.loadOwnedProject(viewer, projectId);
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
     const intake = brief.ai?.intake;
 
@@ -210,7 +240,7 @@ export class IntakeService {
     let nextQuestion: IntakeQuestion | null = null;
     let improvedDescription = brief.ai?.improvedDescription;
 
-    if (this.openAi.isConfigured()) {
+    if (this.openAi.isConfigured() && this.allowAiForViewer(viewer, intake.askedQuestionIds)) {
       const next = await this.openAi.getNextQuestion(context, {
         questionId: current.id,
         value: parsed.value,
@@ -277,7 +307,7 @@ export class IntakeService {
 
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
-    return this.projectsService.getForClient(clientId, projectId, viewerLocale);
+    return this.projectsService.getForViewer(viewer, projectId, viewerLocale);
   }
 
   async submitForProcessing(
@@ -285,7 +315,19 @@ export class IntakeService {
     projectId: string,
     viewerLocale?: import('../users/locale.types').SupportedLocale,
   ): Promise<ProjectResponse> {
-    const project = await this.loadOwnedProject(clientId, projectId);
+    return this.submitForProcessingForViewer(
+      userViewer(clientId),
+      projectId,
+      viewerLocale,
+    );
+  }
+
+  async submitForProcessingForViewer(
+    viewer: ProjectViewer,
+    projectId: string,
+    viewerLocale?: import('../users/locale.types').SupportedLocale,
+  ): Promise<ProjectResponse> {
+    const project = await this.loadOwnedProject(viewer, projectId);
     const brief = (project.briefJson ?? {}) as unknown as ProjectBriefV1;
     const intake = brief.ai?.intake;
 
@@ -294,7 +336,7 @@ export class IntakeService {
     }
 
     if (intake.status === 'completed') {
-      return this.projectsService.getForClient(clientId, projectId, viewerLocale);
+      return this.projectsService.getForViewer(viewer, projectId, viewerLocale);
     }
 
     if (intake.status === 'awaiting_answers' && intake.currentQuestion) {
@@ -306,6 +348,8 @@ export class IntakeService {
       brief.ai?.improvedDescription ?? project.description ?? undefined;
     context.answers = intake.answers;
 
+    // The final summary is the one AI call a guest always gets: it drives the
+    // ballpark estimate, and the per-IP project cap bounds the cost.
     let final = this.openAi.isConfigured()
       ? await this.openAi.finalizeIntake(context)
       : null;
@@ -369,20 +413,32 @@ export class IntakeService {
 
     this.projectLocalization.scheduleWarmProjectTranslations(projectId);
 
-    return this.projectsService.getForClient(clientId, projectId, viewerLocale);
+    return this.projectsService.getForViewer(viewer, projectId, viewerLocale);
   }
 
-  private async loadOwnedProject(clientId: string, projectId: string) {
+  private async loadOwnedProject(viewer: ProjectViewer, projectId: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) {
       throw new NotFoundException('Project not found');
     }
-    if (project.clientId !== clientId) {
-      throw new ForbiddenException('Access denied');
-    }
+    assertViewerOwnsProject(project, viewer);
     return project;
+  }
+
+  /**
+   * Guests may spend a bounded number of AI questions per project; after that
+   * the deterministic fallback set keeps the intake moving at no token cost.
+   */
+  private allowAiForViewer(
+    viewer: ProjectViewer,
+    askedQuestionIds: string[],
+  ): boolean {
+    if (!isGuestViewer(viewer)) {
+      return true;
+    }
+    return askedQuestionIds.length < GUEST_AI_QUESTION_LIMIT;
   }
 
   private acceptNextQuestion(

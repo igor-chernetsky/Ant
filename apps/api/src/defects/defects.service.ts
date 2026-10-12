@@ -162,14 +162,18 @@ export class DefectsService {
       include: this.defectInclude(),
     });
 
-    void this.notifications.dispatch(
-      this.notifications.notifyClientDefectAccepted({
-        clientUserId: ctx.project.clientId,
-        projectId,
-        projectTitle: ctx.project.title,
-        defectNumber: updated.sequenceNumber,
-      }),
-    );
+    // A guest project has no client to notify.
+    const clientUserId = ctx.project.clientId;
+    if (clientUserId) {
+      void this.notifications.dispatch(
+        this.notifications.notifyClientDefectAccepted({
+          clientUserId,
+          projectId,
+          projectTitle: ctx.project.title,
+          defectNumber: updated.sequenceNumber,
+        }),
+      );
+    }
 
     return this.toDefectDto(updated);
   }
@@ -209,15 +213,18 @@ export class DefectsService {
       include: this.defectInclude(),
     });
 
-    void this.notifications.dispatch(
-      this.notifications.notifyClientDefectDeclined({
-        clientUserId: ctx.project.clientId,
-        projectId,
-        projectTitle: ctx.project.title,
-        defectNumber: updated.sequenceNumber,
-        reason,
-      }),
-    );
+    const clientUserId = ctx.project.clientId;
+    if (clientUserId) {
+      void this.notifications.dispatch(
+        this.notifications.notifyClientDefectDeclined({
+          clientUserId,
+          projectId,
+          projectTitle: ctx.project.title,
+          defectNumber: updated.sequenceNumber,
+          reason,
+        }),
+      );
+    }
 
     return this.toDefectDto(updated);
   }
@@ -304,14 +311,17 @@ export class DefectsService {
       include: this.defectInclude(),
     });
 
-    void this.notifications.dispatch(
-      this.notifications.notifyClientDefectCompleted({
-        clientUserId: ctx.project.clientId,
-        projectId,
-        projectTitle: ctx.project.title,
-        defectNumber: updated.sequenceNumber,
-      }),
-    );
+    const clientUserId = ctx.project.clientId;
+    if (clientUserId) {
+      void this.notifications.dispatch(
+        this.notifications.notifyClientDefectCompleted({
+          clientUserId,
+          projectId,
+          projectTitle: ctx.project.title,
+          defectNumber: updated.sequenceNumber,
+        }),
+      );
+    }
 
     return this.toDefectDto(updated);
   }

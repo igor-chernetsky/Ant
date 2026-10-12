@@ -170,6 +170,14 @@ export const enExtended = {
       "New construction usually needs design drawings and permits first. Consider choosing Design & Permits so you can tender for a designer, then continue to construction.",
     switchToDesignTrack: "Switch to Design & Permits",
   },
+  guestProject: {
+    publishTitle: "Project is ready — publish it for bids",
+    publishLead:
+      "Contractors can only see a project with an owner, so publishing needs an account. Register and this project becomes yours, with everything you filled in kept.",
+    publishCta: "Register and publish",
+    publishNotice:
+      "Create an account to publish this project. Everything you filled in is saved.",
+  },
   projectHero: {
     projectsBreadcrumb: "Projects",
     noDescription: "Add a short description so contractors can quickly understand the scope.",

@@ -522,7 +522,8 @@ ${footer}
     const candidates = await this.prisma.contractorProfile.findMany({
       where: {
         regionCode: project.regionCode,
-        userId: { not: project.clientId },
+        // A guest project has no owner to exclude yet.
+        ...(project.clientId ? { userId: { not: project.clientId } } : {}),
         kind: project.projectType === 'design' ? 'designer' : 'contractor',
         OR: [
           { projectTypes: { isEmpty: true } },

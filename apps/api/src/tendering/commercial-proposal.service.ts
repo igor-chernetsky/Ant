@@ -665,12 +665,12 @@ export class CommercialProposalService {
       employerName:
         localized.contractTerms.employerName?.trim() ||
         contract?.clientOrgName ||
-        project.client.displayName ||
-        bid.tender.project.client.email ||
+        project.client?.displayName ||
+        project.client?.email ||
         copy.employerFallback,
-      employerEmail: project.client.email,
+      employerEmail: project.client?.email ?? null,
       employerDisplayName:
-        contract?.clientSignatoryName || project.client.displayName,
+        contract?.clientSignatoryName || project.client?.displayName || null,
       contractorCompanyName:
         contract?.contractorOrgName ??
         bid.contractor.companyName ??

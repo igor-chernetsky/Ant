@@ -382,8 +382,20 @@ model Tag {
 
 model Project {
   id             String        @id @default(uuid())
-  clientId       String        @map("client_id")
-  client         User          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  /**
+   * Owner. Null while the project belongs to an anonymous guest who is still
+   * filling it in; `guestTokenHash` authorizes that guest until they register
+   * and claim the project (or `guestExpiresAt` passes and the cleanup removes it).
+   */
+  clientId       String?       @map("client_id")
+  client         User?         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  /**
+   * SHA-256 of the bearer token handed to the guest who created this project.
+   * Cleared on claim, so a stolen cookie cannot reopen a finished project.
+   */
+  guestTokenHash String?       @unique @map("guest_token_hash")
+  /** When an unclaimed guest project is deleted together with its files. */
+  guestExpiresAt DateTime?     @map("guest_expires_at")
   title          String
   description    String?
   projectType    ProjectType   @default(other) @map("project_type")
@@ -443,6 +455,7 @@ model Project {
 
   @@index([clientId])
   @@index([clientId, isHidden])
+  @@index([guestExpiresAt])
   @@index([projectType])
   @@index([locationRegionSlug])
   @@index([linkKind])
@@ -483,8 +496,9 @@ model Document {
   id                  String           @id @default(uuid())
   projectId           String           @map("project_id")
   project             Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  uploaderId          String           @map("uploader_id")
-  uploader            User             @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  /** Null for uploads made by an anonymous guest before the project is claimed. */
+  uploaderId          String?          @map("uploader_id")
+  uploader            User?            @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
   originalName        String           @map("original_name")
   contentType         String           @map("content_type")
   sizeBytes           Int?             @map("size_bytes")
