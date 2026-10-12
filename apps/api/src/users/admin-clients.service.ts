@@ -26,7 +26,14 @@ export class AdminClientsService {
     const offset = Math.max(Number(query.offset) || 0, 0);
 
     const where: Prisma.UserWhereInput = {
-      projects: { some: {} },
+      // Every registered client, not just the ones who already started a project.
+      // `keycloakRoles` is synced from the JWT on each authenticated request; the
+      // project branch keeps rows whose roles were never synced (legacy owners)
+      // visible. A client who registered but never signed in has no row at all.
+      OR: [
+        { keycloakRoles: { has: 'client' } },
+        { projects: { some: {} } },
+      ],
     };
 
     if (!query.includeDeleted) {
@@ -89,6 +96,7 @@ export class AdminClientsService {
         email: true,
         displayName: true,
         preferredLocale: true,
+        keycloakRoles: true,
         createdAt: true,
         updatedAt: true,
         deletedAt: true,
@@ -121,7 +129,9 @@ export class AdminClientsService {
       },
     });
 
-    if (!user || user.projects.length === 0) {
+    // The admin client view is about clients only: a contractor or designer id
+    // must not open here, even though the row exists.
+    if (!user || !user.keycloakRoles.includes('client')) {
       throw new NotFoundException('Client not found');
     }
 
