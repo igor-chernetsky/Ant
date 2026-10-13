@@ -122,10 +122,27 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 export const config = {
+  /**
+   * HTML navigations only.
+   *
+   * Middleware runs per match and each run costs Active CPU on Vercel; on this
+   * project it was the largest single CPU line item, larger than all functions
+   * together, while the work it does is only needed for HTML pages:
+   *
+   * - `/api/**` carries its own locale header — the middleware just calls
+   *   `next()` there, so those invocations were pure overhead on every one of
+   *   the ~210 BFF routes;
+   * - `/_next/**` is immutable build output and `/monitoring` is the Sentry
+   *   tunnel;
+   * - static files in `public/` (images, the 11.7 MB intro video and its range
+   *   requests, fonts, robots/sitemap) do not need the canonical-host hop — the
+   *   same reason `og.png` and `favicon.ico` were already exempt.
+   *
+   * MUST stay a literal array: Next reads matchers statically at build time and
+   * silently falls back to `/:path*` (all paths) when it cannot — verified via
+   * `.next/server/middleware-manifest.json`.
+   */
   matcher: [
-    // Redirect HTML routes only: skip Next.js assets, the Sentry tunnel and
-    // static files, so an OG image or favicon on a non-canonical host still
-    // resolves without a hop.
-    '/((?!_next/static|_next/image|monitoring|og.png|favicon.ico|robots.txt|sitemap.xml).*)',
+    '/((?!api|_next/static|_next/image|monitoring|.*\\.(?:png|jpe?g|webp|avif|gif|svg|ico|mp4|webm|mp3|txt|xml|json|webmanifest|woff2?|ttf|otf|css|js|map|pdf)$).*)',
   ],
 };
