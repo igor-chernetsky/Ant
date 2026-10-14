@@ -4,6 +4,7 @@ import {
   exchangePasswordCredentials,
   persistAndApplyAuthCookies,
 } from '@/lib/auth-tokens';
+import { tagGuestProjectsWithEmail } from '@/lib/guest-project';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,12 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  // A guest draft in this browser gets tied to the address being registered, so
+  // it can be found again after confirmation — even from another device. Tagged
+  // before creating the account: the tag is harmless if signup fails, and losing
+  // it after a successful signup would lose the project.
+  await tagGuestProjectsWithEmail(email);
 
   const created = await createKeycloakUser({
     email,

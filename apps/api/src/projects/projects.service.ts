@@ -98,9 +98,11 @@ import {
 } from './project-viewer';
 import {
   createGuestProjectToken,
+  guestProjectClaimExpiry,
   guestProjectExpiry,
   guestTokenHashesMatch,
   hashGuestProjectToken,
+  normalizeGuestClaimEmail,
 } from './guest-project.util';
 import { ProjectLocalizationService } from '../localization/project-localization.service';
 import { normalizeSourceLocale } from '../localization/locale.utils';
@@ -1745,11 +1747,72 @@ export class ProjectsService {
       data: {
         clientId,
         guestTokenHash: null,
+        guestClaimEmail: null,
         guestExpiresAt: null,
       },
     });
 
     return this.getForClient(clientId, projectId);
+  }
+
+  /**
+   * Remember the address a guest is registering with.
+   *
+   * Called by the BFF from the browser that holds the guest token, right before
+   * signup (and on sign-in), so the project can later be attached to that
+   * account even if the cookie is gone — a confirmation link opened on another
+   * device used to lose the draft. Tagging also extends the lifetime, because
+   * confirming an email can take days.
+   */
+  async tagGuestProjectClaimEmail(
+    projectId: string,
+    email: string,
+  ): Promise<{ ok: true; tagged: boolean }> {
+    const claimEmail = normalizeGuestClaimEmail(email);
+    if (!claimEmail) {
+      throw new BadRequestException('A valid email address is required');
+    }
+
+    const result = await this.prisma.project.updateMany({
+      where: { id: projectId, clientId: null },
+      data: {
+        guestClaimEmail: claimEmail,
+        guestExpiresAt: guestProjectClaimExpiry(),
+      },
+    });
+
+    return { ok: true, tagged: result.count > 0 };
+  }
+
+  /**
+   * Attach every unclaimed guest project tagged with this address to the account
+   * that just signed in.
+   *
+   * Reachable only with a session, and with email verification on a session
+   * implies a confirmed mailbox — so the tagged projects are handed to the person
+   * who proved they own that address. `updateMany` keeps it race-safe: a project
+   * claimed by the cookie path first is simply no longer `clientId: null`.
+   */
+  async claimGuestProjectsByEmail(
+    clientId: string,
+    email: string | null | undefined,
+  ): Promise<number> {
+    const claimEmail = normalizeGuestClaimEmail(email);
+    if (!claimEmail) {
+      return 0;
+    }
+
+    const result = await this.prisma.project.updateMany({
+      where: { clientId: null, guestClaimEmail: claimEmail },
+      data: {
+        clientId,
+        guestTokenHash: null,
+        guestClaimEmail: null,
+        guestExpiresAt: null,
+      },
+    });
+
+    return result.count;
   }
 
   /** Unclaimed guest projects whose 24 hours ran out, oldest first. */

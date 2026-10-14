@@ -92,6 +92,22 @@ export class GuestProjectsController {
     );
   }
 
+  /**
+   * Tie the draft to the address the visitor is registering with, so a lost
+   * cookie or a confirmation link opened on another device no longer loses it.
+   */
+  @Post(':projectId/claim-email')
+  @UseGuards(GuestProjectGuard)
+  async tagClaimEmail(
+    @Param('projectId') projectId: string,
+    @Body() body: { email?: string },
+  ) {
+    return this.projectsService.tagGuestProjectClaimEmail(
+      projectId,
+      body?.email ?? '',
+    );
+  }
+
   @Delete(':projectId')
   @UseGuards(GuestProjectGuard)
   async remove(@Param('projectId') projectId: string) {

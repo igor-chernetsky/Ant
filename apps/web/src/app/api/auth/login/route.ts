@@ -13,6 +13,7 @@ import {
 } from '@/lib/auth-tokens';
 import { createMemoryRateLimiter } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/request-ip';
+import { tagGuestProjectsWithEmail } from '@/lib/guest-project';
 
 export const dynamic = 'force-dynamic';
 
@@ -144,6 +145,10 @@ export async function POST(request: Request) {
       '[auth/login] No refresh_token from Keycloak — add offline_access to platform-bff client scopes',
     );
   }
+
+  // Signing in adopts any draft this browser started as a guest: the API hands
+  // tagged projects to the account on the next project list / project view.
+  await tagGuestProjectsWithEmail(username);
 
   const response = NextResponse.json({ ok: true });
   await persistAndApplyAuthCookies(result.tokens, response);

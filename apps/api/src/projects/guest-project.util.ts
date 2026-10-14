@@ -7,6 +7,13 @@ import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 export const GUEST_PROJECT_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
+ * Once the visitor registered, the draft gets a week to be claimed: clicking a
+ * confirmation link can take days, and the project must not be deleted while the
+ * account that owns it is still being confirmed.
+ */
+export const GUEST_PROJECT_CLAIM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
  * How many AI-authored intake questions a guest project may ask before the
  * deterministic fallback question set takes over. Keeps an anonymous visitor
  * from turning the OpenAI budget into a free chatbot.
@@ -34,6 +41,26 @@ export function guestTokenHashesMatch(a: string, b: string): boolean {
 
 export function guestProjectExpiry(now: Date = new Date()): Date {
   return new Date(now.getTime() + GUEST_PROJECT_TTL_MS);
+}
+
+/** Deadline for a draft whose owner has registered but not claimed it yet. */
+export function guestProjectClaimExpiry(now: Date = new Date()): Date {
+  return new Date(now.getTime() + GUEST_PROJECT_CLAIM_TTL_MS);
+}
+
+/**
+ * Canonical form of the address a guest registered with: lower-cased and
+ * trimmed, matching how Keycloak and the local `users` row store it. Returns
+ * null for anything that is not an address.
+ */
+export function normalizeGuestClaimEmail(
+  email: string | null | undefined,
+): string | null {
+  const normalized = email?.trim().toLowerCase() ?? '';
+  if (!normalized || normalized.length > 320) {
+    return null;
+  }
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : null;
 }
 
 export function isGuestProjectExpired(

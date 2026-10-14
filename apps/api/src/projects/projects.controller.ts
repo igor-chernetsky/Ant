@@ -41,9 +41,33 @@ export class ProjectsController {
     return this.usersService.findOrCreateFromJwt(req.user);
   }
 
+  /**
+   * Hand the account any guest draft tagged with its address.
+   *
+   * Runs where continuity matters and nowhere else: the project list (so the
+   * draft shows up under "my projects" after registering, on any device) and a
+   * single project view (so opening the URL right after signup works even when
+   * the guest cookie is gone). One indexed lookup, usually zero rows.
+   */
+  private async claimTaggedGuestProjects(user: {
+    id: string;
+    email: string | null;
+  }): Promise<void> {
+    try {
+      await this.projectsService.claimGuestProjectsByEmail(user.id, user.email);
+    } catch (err: unknown) {
+      // Never block the actual request on this bookkeeping.
+      console.warn(
+        '[projects] guest claim by email failed:',
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  }
+
   @Get()
   async list(@Req() req: Request & { user: JwtPayload }) {
     const user = await this.resolveClient(req);
+    await this.claimTaggedGuestProjects(user);
     return this.projectsService.listForClient(user.id);
   }
 
@@ -79,6 +103,7 @@ export class ProjectsController {
     @Param('id') id: string,
   ) {
     const user = await this.resolveClient(req);
+    await this.claimTaggedGuestProjects(user);
     const locale = resolveLocaleFromRequest(req, user.preferredLocale);
     return this.projectsService.getForClient(user.id, id, locale);
   }

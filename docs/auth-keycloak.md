@@ -68,9 +68,29 @@ browser holds the token, so the client code needs no guest-specific paths.
 Sub-resources the guest API does not implement (tenders, contracts, amendments,
 progress, estimate refinement) return 404 — that is the boundary.
 
-**Claim.** `POST /v1/projects/:id/claim` (JWT + guest token) sets `clientId` and
-clears the token, but only for an unclaimed project. `POST /api/projects/:id/claim`
-does this on the BFF side and drops the cookie.
+**Claim.** Two paths, both idempotent:
+
+1. *Cookie.* `POST /v1/projects/:id/claim` (JWT + guest token) sets `clientId` and
+   clears the guest credentials, but only for an unclaimed project.
+   `POST /api/projects/:id/claim` does this on the BFF side and drops the cookie.
+2. *Email.* The cookie alone lost the draft: confirming the address on a phone,
+   or clearing cookies, left the visitor with no way back and the 24-hour cleanup
+   eventually deleted the project. So `/api/auth/signup` and `/api/auth/login`
+   call `POST /v1/guest/projects/:id/claim-email` for every draft in the browser
+   and store the registering address in `Project.guestClaimEmail`. The next
+   authenticated visit — `GET /v1/projects` (list) or `GET /v1/projects/:id` —
+   hands those projects to the account
+   (`ProjectsService.claimGuestProjectsByEmail`, one indexed `updateMany`), so the
+   draft shows up under "my projects" on any device. Tagging also moves
+   `guestExpiresAt` out to 7 days (`GUEST_PROJECT_CLAIM_TTL_MS`), because
+   confirming an email can take days.
+
+   Trust: only a browser holding the guest token can set the address, and claiming
+   requires a session for an account with exactly that address. With email
+   verification enabled a session implies a confirmed mailbox, so the project can
+   only be picked up by whoever proved they own it. If the realm ever runs without
+   verification (or `SKIP_EMAIL_VERIFICATION=true`), the claim is only as strong as
+   signup itself — anyone could register the address they typed at signup.
 
 **Cost controls.** One client IP may start 3 anonymous projects per day
 (`GuestProjectQuotaService`, in-memory), a guest project gets at most 8
@@ -80,6 +100,8 @@ driven once per project.
 
 **Cleanup.** `GuestProjectCleanupService` runs hourly and deletes unclaimed
 projects past `guestExpiresAt` together with their documents and S3 objects.
+Projects tagged with an email get the longer deadline; claimed ones have no
+deadline at all.
 
 `POST /v1/projects` enforces `@Roles('client')` (`projects.controller.ts`), so
 the dialogs cannot be bypassed with a direct API call.

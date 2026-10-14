@@ -394,6 +394,13 @@ model Project {
    * Cleared on claim, so a stolen cookie cannot reopen a finished project.
    */
   guestTokenHash String?       @unique @map("guest_token_hash")
+  /**
+   * Address the guest registered with. The BFF records it when the visitor
+   * submits signup (or signs in) from the browser holding the guest token, so
+   * the project can be attached to that account from any device — including
+   * when the confirmation link is opened somewhere else. Cleared on claim.
+   */
+  guestClaimEmail String?      @map("guest_claim_email")
   /** When an unclaimed guest project is deleted together with its files. */
   guestExpiresAt DateTime?     @map("guest_expires_at")
   title          String
@@ -456,6 +463,7 @@ model Project {
   @@index([clientId])
   @@index([clientId, isHidden])
   @@index([guestExpiresAt])
+  @@index([guestClaimEmail])
   @@index([projectType])
   @@index([locationRegionSlug])
   @@index([linkKind])

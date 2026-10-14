@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { getBackendApiUrl } from '@/lib/auth-server';
 
 export const GUEST_PROJECT_COOKIE = 'ant_guest_project';
 /** Mirrors the API's 24-hour lifetime for an unclaimed guest project. */
@@ -68,6 +69,57 @@ export async function readGuestProjectToken(
 ): Promise<string | null> {
   const tokens = await readTokens();
   return tokens[projectId] ?? null;
+}
+
+/** Every guest project this browser still holds a token for. */
+export async function readGuestProjectTokens(): Promise<GuestProjectTokens> {
+  return readTokens();
+}
+
+/**
+ * Tie the drafts in this browser to the address the visitor registers with.
+ *
+ * Without this the project only exists behind the guest cookie: registering —
+ * especially confirming the email on another device — left the visitor with no
+ * way back to it, and the 24-hour cleanup eventually deleted it. The API stores
+ * the address and hands the project to that account at the next authenticated
+ * visit. Best effort: a failure must never block signup.
+ */
+export async function tagGuestProjectsWithEmail(email: string): Promise<void> {
+  const normalized = email.trim().toLowerCase();
+  // Sign-in also accepts a Keycloak username; only an address can be matched to
+  // an account later.
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    return;
+  }
+
+  const tokens = await readTokens();
+  const entries = Object.entries(tokens);
+  if (entries.length === 0) {
+    return;
+  }
+
+  const base = getBackendApiUrl();
+  await Promise.all(
+    entries.map(async ([projectId, token]) => {
+      try {
+        await fetch(
+          `${base}/v1/guest/projects/${encodeURIComponent(projectId)}/claim-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-ant-guest-token': token,
+            },
+            body: JSON.stringify({ email: normalized }),
+            cache: 'no-store',
+          },
+        );
+      } catch {
+        // The draft stays reachable through the cookie instead.
+      }
+    }),
+  );
 }
 
 /**
