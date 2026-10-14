@@ -136,7 +136,7 @@ For MEP / utilities (building new build, renovation, pool — NOT landscaping/pa
 For new_build / extension / commercial_fitout of buildings (not amenity-only pool or landscaping jobs):
 - Ask about storey count when not already clear — use id "storey-count"
 - For new_build / extension only: ask foundation type when not already clear — use id "foundation-type" (options: slab, strip, piles, already_exists, undecided). Do not assume foundations are out of scope.
-- Ask approximate sanitary wet-point count when unknown — prefer question id "sanitary-points"
+- Ask approximate sanitary wet-point count ONLY when wet areas are in scope, meaning the scope itself names a bathroom, kitchen, sanitary ware or plumbing work, or the whole dwelling is being built/renovated. NEVER ask it for a repair or replacement of a single element or fixture (roof, windows, paint, flooring, one toilet, one tap), for a carport/shed/workshop, or for an outdoor amenity — even when projectType is new_build, extension or commercial_fitout. When in doubt, skip this question; a missing wet-point count is cheaper than a pointless one.
 - Ask special systems (elevator/lift, basement, smart home) when not already clear — use id "special-systems" (multi-select)
 - Include the "pool" option in special-systems ONLY when a pool is already mentioned in title, description, or uploadedDocuments — otherwise omit it entirely
 - Do not assume elevators or commercial-scale MEP unless explicitly confirmed

@@ -21,10 +21,13 @@ import {
   buildEstimateScopeRules,
   buildEstimateUserContext,
   collectEstimateNarrative,
+  describeScopeVolume,
   filterEstimateLines,
   filterImprovementQuestionsAgainstAnswers,
   finalizeEstimateLines,
+  isServiceOrRepairScope,
   mergePreviousEstimateLines,
+  repairBandForTrade,
   resolveEstimateAreaSqm,
 } from './estimate-scope.utils';
 import {
@@ -34,7 +37,11 @@ import {
   formatEstimateLineShareAnomaliesForPrompt,
   type EstimateLineShareAnomaly,
 } from './estimate-line-anomalies';
-import { isLandscapingOrCivilAmenityNarrative } from '../ai/intake-scope-heuristics';
+import {
+  isLandscapingOrCivilAmenityNarrative,
+  WET_POINTS_QUESTION_PATTERN,
+  wetPointsInScope,
+} from '../ai/intake-scope-heuristics';
 
 const DISCLAIMER =
   'Ballpark estimate only — not a binding quote. Final pricing requires site visit and detailed scope review.';
@@ -97,11 +104,31 @@ export class BallparkEstimateService {
     const landscapingOrCivilAmenityOnly = isLandscapingOrCivilAmenityNarrative(
       [input.title, input.description ?? ''].join(' '),
     );
+    // The same scope facts the post-processing enforces, so the model is told
+    // about the size of the job instead of only being corrected afterwards.
+    const estimateNarrative = collectEstimateNarrative({
+      title: input.title,
+      description: input.description,
+      tagSlugs: input.tagSlugs,
+      brief: input.brief,
+      clarificationQa: input.clarificationQa,
+      clarificationSummary: input.clarificationSummary,
+      scopeSummary: input.scopeSummary,
+      estimateRefinementQa: input.estimateRefinementQa,
+    });
     const scopeRules = buildEstimateScopeRules(
       input.projectType,
       input.propertyType,
       previousLines.length > 0,
-      { landscapingOrCivilAmenityOnly },
+      {
+        landscapingOrCivilAmenityOnly,
+        serviceRepair: isServiceOrRepairScope(
+          estimateNarrative,
+          input.projectType,
+        ),
+        minorScope: describeScopeVolume(estimateNarrative, input.projectType)
+          .minor,
+      },
     );
     const anomalyDirectives = formatEstimateLineShareAnomaliesForPrompt(
       input.anomalyFeedback ?? [],
@@ -280,26 +307,40 @@ ${scopeRules}`;
     }
 
     const lines: EstimateLine[] = [];
+    const serviceRepair = isServiceOrRepairScope(narrative, input.projectType);
     for (const trade of trades) {
       const catalog = TH_REGIONAL_CATALOG.find((c) => c.trade === trade);
       if (!catalog) continue;
 
       const previous = input.previousLines?.find((line) => line.trade === trade);
       const pkg = input.brief.packages?.find((p) => p.trade === trade);
+      // A repair is not new work: keep its own scale and price it from the
+      // repair band instead of the installation band.
+      const repairBand = serviceRepair ? repairBandForTrade(trade) : null;
       const quantity =
         pkg?.quantity ??
         previous?.quantity ??
-        (catalog.unit === 'sqm' ? areaSqm : catalog.unit === 'lump' ? 1 : 1);
+        (!serviceRepair && catalog.unit === 'sqm' ? areaSqm : 1);
       const unit = pkg?.unit ?? previous?.unit ?? catalog.unit;
-      const unitPriceMin = Math.max(
-        catalog.priceMinThb,
-        previous?.unitPriceMin ?? 0,
-      );
-      const unitPriceMax = Math.max(
-        catalog.priceMaxThb,
-        previous?.unitPriceMax ?? 0,
-        unitPriceMin,
-      );
+      const unitPriceMin = repairBand
+        ? Math.min(
+            repairBand.priceMaxThb,
+            Math.max(repairBand.priceMinThb, previous?.unitPriceMin ?? 0),
+          )
+        : Math.max(catalog.priceMinThb, previous?.unitPriceMin ?? 0);
+      const unitPriceMax = repairBand
+        ? Math.max(
+            unitPriceMin,
+            Math.min(
+              repairBand.priceMaxThb,
+              Math.max(previous?.unitPriceMax ?? 0, unitPriceMin),
+            ),
+          )
+        : Math.max(
+            catalog.priceMaxThb,
+            previous?.unitPriceMax ?? 0,
+            unitPriceMin,
+          );
       const lineMin = Math.round(unitPriceMin * quantity);
       const lineMax = Math.round(unitPriceMax * quantity);
 
@@ -350,6 +391,7 @@ ${scopeRules}`;
       tagSlugs: input.tagSlugs,
       brief: input.brief,
       projectType: input.projectType,
+      propertyType: input.propertyType,
       allowTinyShare: input.allowTinyLineShare,
     }).map(normalizeLineAmounts);
 
@@ -433,6 +475,7 @@ ${scopeRules}`;
       tagSlugs: input.tagSlugs,
       brief: input.brief,
       projectType: input.projectType,
+      propertyType: input.propertyType,
       allowTinyShare: input.allowTinyLineShare,
     }).map(normalizeLineAmounts);
 
@@ -443,6 +486,13 @@ ${scopeRules}`;
     const landscapingOrCivilAmenityOnly = isLandscapingOrCivilAmenityNarrative(
       [input.title, input.description ?? ''].join(' '),
     );
+    /**
+     * Improvement questions are free text from the model and never went through
+     * the intake queue, so they were the other place a wet-point count could be
+     * asked on a project that has nothing to do with wet areas. Same rule here,
+     * against the full narrative (which includes intake answers).
+     */
+    const wetPointsRelevant = wetPointsInScope(narrative, input.projectType);
     const rawImprovementQuestions = Array.isArray(raw.improvementQuestions)
       ? raw.improvementQuestions
           .filter((q): q is string => typeof q === 'string')
@@ -452,6 +502,9 @@ ${scopeRules}`;
             (q) =>
               !landscapingOrCivilAmenityOnly ||
               !BUILDING_SHELL_IMPROVEMENT_QUESTION_PATTERN.test(q),
+          )
+          .filter(
+            (q) => wetPointsRelevant || !WET_POINTS_QUESTION_PATTERN.test(q),
           )
       : [];
     const improvementQuestions = filterImprovementQuestionsAgainstAnswers(

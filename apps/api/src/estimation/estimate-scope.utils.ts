@@ -105,6 +105,266 @@ function scaleEstimateLineByFactor(
 /** Shell trades that must be priced on GFA, never as qty=1 catalog lumps. */
 const SQM_SHELL_TRADES = new Set(['structural', 'roofing', 'flooring']);
 
+/**
+ * Service / maintenance wording: an intervention on something that already
+ * exists (fix a leaking toilet, service an air conditioner, patch plaster),
+ * as opposed to installing or replacing it.
+ *
+ * The catalog prices equipment and building elements at *installation* scale —
+ * a residential AC band is 18,000–45,000 THB per unit, which is the price of a
+ * new unit, not of a repair visit. Without this distinction a cheap job was
+ * repriced through the installation bands (or scaled to the whole building) and
+ * an AC repair came back at 80,000–230,000 THB.
+ */
+const SERVICE_OR_REPAIR_VERB_PATTERN =
+  /\b(fix|fixing|repairs?|repairing|service|servicing|maintain|maintenance|clean|cleaning|unblock|unclog|patch|patching|troubleshoot|leak|leaks|leaking|not\s+(cool|cooling|working|draining|heating)|broken|faulty|adjust|adjustment|re-?gas|refill|top\s*-?up|почин\w*|ремонт\w*|обслужив\w*|чистк\w*|прочист\w*|протечк\w*|течёт|течет|не\s+работает|ซ่อม|ล้าง|บำรุง|ตรวจเช็ค)\b/i;
+
+/** Replacing or installing — installation pricing applies, not repair pricing. */
+const INSTALL_OR_REPLACE_PATTERN =
+  /\b(replace|replacement|replacing|install|installation|installing|new|renew|rebuild|renovat\w*|remodel\w*|refit|refurbish\w*|overhaul|замен\w*|установ\w*|реконструкц\w*|модернизац\w*|нов(ый|ая|ое|ые|ую)|เปลี่ยน|ติดตั้ง|สร้างใหม่|ปรับปรุงใหม่)\b/i;
+
+/**
+ * Real facilities, as opposed to the loose `industrial` / `промышленн` wording
+ * that an AI scope summary can attach to a house. Only these justify pricing an
+ * air-conditioning mention as industrial supply/exhaust ventilation.
+ */
+const EXPLICIT_INDUSTRIAL_FACILITY_PATTERN =
+  /\b(warehouse|factory|production\s*(hall|floor|line|area|building)|склад\w*|завод\w*|производственн\w*\s*(цех|помещен|здан|корпус)|woodwork\w*|деревообработ\w*|furniture\s*product\w*)\b/i;
+
+/** The thing being repaired, with an explicit count in front of it. */
+const SCOPE_UNIT_COUNT_PATTERN =
+  /\b(\d{1,3})\s*(?:x\s*)?(units?|acs?|a\/c|air\s*con(?:ditioners?)?|fans?|windows?|doors?|toilets?|taps?|sinks?|basins?|sockets?|lights?|points?|cameras?|pumps?|motors?|блок\w*|кондиц\w*|окн\w*|двер\w*|точк\w*|светильник\w*|насос\w*|เครื่อง|จุด)/i;
+
+/** The whole building is in scope, so element-level pricing does not apply. */
+const WHOLE_BUILDING_PATTERN =
+  /(\b(whole|entire)\s+(house|home|building|property)\b)|(\ball\s+rooms\b)|(весь\s+(дом|коттедж))|(вся\s+квартира)|(всё\s+здание)|(ทั้งหลัง|ทั้งบ้าน|ทุกห้อง)/i;
+
+/**
+ * A repair costs a fraction of replacing the item. Derived from the installation
+ * band rather than invented, so every trade gets a repair band consistently.
+ */
+export const REPAIR_BAND_MIN_SHARE = 0.08;
+export const REPAIR_BAND_MAX_SHARE = 0.3;
+
+/**
+ * A small job whose size the client never stated is treated as a patch of this
+ * size — never as the whole floor area, and never as a single square metre
+ * either (which would price a roof leak at the cost of one tile).
+ */
+export const UNSTATED_SMALL_SCOPE_AREA_SQM = 20;
+
+export interface EstimateScopeVolume {
+  /** "whole house", "all rooms" — element-level reasoning does not apply. */
+  whole: boolean;
+  /** Area stated by the client, if any. */
+  areaSqm: number | null;
+  /** Units/fixtures the client counted, if any. */
+  count: number | null;
+  /** One item or a small job, with no area and no whole-building wording. */
+  minor: boolean;
+}
+
+/**
+ * How much work the client actually described, for pricing proportionally.
+ *
+ * `minor` is what decides whether building-wide scope may be assumed at all:
+ * with no stated area and at most a handful of units, there is nothing that
+ * justifies pricing a building. New construction, extensions, fit-outs and any
+ * install/replace wording are building-scale work by definition, so they never
+ * count as minor — a house without a floor area is a house, not a small job.
+ */
+export function describeScopeVolume(
+  narrative: string,
+  projectType?: string,
+): EstimateScopeVolume {
+  const whole = WHOLE_BUILDING_PATTERN.test(narrative);
+  const areaSqm = parseExplicitSqm(narrative) ?? parseAreaFromDimensions(narrative);
+  const countMatch = narrative.match(SCOPE_UNIT_COUNT_PATTERN);
+  const parsedCount = countMatch ? Number(countMatch[1]) : null;
+  const count =
+    parsedCount != null && Number.isFinite(parsedCount) && parsedCount > 0
+      ? parsedCount
+      : null;
+  const buildingScale =
+    projectType === 'new_build' ||
+    projectType === 'extension' ||
+    projectType === 'commercial_fitout' ||
+    INSTALL_OR_REPLACE_PATTERN.test(narrative);
+
+  return {
+    whole,
+    areaSqm,
+    count,
+    minor:
+      !whole &&
+      !buildingScale &&
+      areaSqm == null &&
+      (count == null || count <= 3),
+  };
+}
+
+/**
+ * True when the scope is an intervention on existing equipment or elements.
+ *
+ * Everything in the catalog is priced for new work, so this is the flag that
+ * keeps a repair visit out of installation bands and off the building area.
+ */
+export function isServiceOrRepairScope(
+  narrative: string,
+  projectType?: string,
+): boolean {
+  const scope = describeScopeVolume(narrative, projectType);
+  if (scope.whole) {
+    return false;
+  }
+  if (INSTALL_OR_REPLACE_PATTERN.test(narrative)) {
+    return false;
+  }
+  if (SERVICE_OR_REPAIR_VERB_PATTERN.test(narrative)) {
+    return true;
+  }
+  return projectType === 'repair';
+}
+
+/** Repair-scale band for a trade: a fraction of its installation band. */
+export function repairBandForTrade(
+  trade: string,
+): { unit: string; priceMinThb: number; priceMaxThb: number } | null {
+  const catalog = TH_REGIONAL_CATALOG.find((item) => item.trade === trade);
+  if (!catalog) {
+    return null;
+  }
+  const priceMinThb = Math.max(
+    1,
+    Math.round(catalog.priceMinThb * REPAIR_BAND_MIN_SHARE),
+  );
+  const priceMaxThb = Math.max(
+    priceMinThb,
+    Math.round(catalog.priceMaxThb * REPAIR_BAND_MAX_SHARE),
+  );
+  return { unit: catalog.unit, priceMinThb, priceMaxThb };
+}
+
+/**
+ * Price a service/repair scope at repair scale.
+ *
+ * Caps both sides: unit prices stay inside the trade's repair band (the model's
+ * lower value is kept — this only stops inflation), and quantity is the number
+ * of units the client described (one when they described none), never the
+ * building area.
+ */
+export function capServiceRepairLines(input: {
+  lines: EstimateLine[];
+  narrative: string;
+  projectType?: string;
+}): EstimateLine[] {
+  if (!isServiceOrRepairScope(input.narrative, input.projectType)) {
+    return input.lines;
+  }
+
+  const scope = describeScopeVolume(input.narrative, input.projectType);
+
+  return input.lines.map((line) => {
+    const band = repairBandForTrade(line.trade);
+    if (!band) {
+      return line;
+    }
+
+    let quantity = line.quantity;
+    if (band.unit === 'sqm') {
+      // Square metres per visit mean nothing for servicing equipment, and an
+      // unstated area is a patch rather than a floor plate.
+      quantity = scope.areaSqm ?? UNSTATED_SMALL_SCOPE_AREA_SQM;
+    } else {
+      quantity = Math.min(quantity > 0 ? quantity : 1, scope.count ?? 1);
+    }
+
+    const unitPriceMin = Math.min(
+      line.unitPriceMin > 0 ? line.unitPriceMin : band.priceMinThb,
+      band.priceMinThb,
+    );
+    const unitPriceMax = Math.max(
+      unitPriceMin,
+      Math.min(
+        line.unitPriceMax > 0 ? line.unitPriceMax : band.priceMaxThb,
+        band.priceMaxThb,
+      ),
+    );
+
+    return {
+      ...line,
+      quantity,
+      unitPriceMin,
+      unitPriceMax,
+      lineMin: Math.round(unitPriceMin * quantity),
+      lineMax: Math.round(unitPriceMax * quantity),
+    };
+  });
+}
+
+/**
+ * Absolute anchor for a small job: the estimate may not exceed what replacing
+ * the items in scope would cost.
+ *
+ * Band shares and GFA rules only compare lines with each other, so a small job
+ * priced across several inflated lines stayed expensive. This is the one check
+ * that looks at the size of the work instead of the shape of the estimate.
+ */
+export function capMinorScopeTotal(input: {
+  lines: EstimateLine[];
+  narrative: string;
+  projectType?: string;
+}): EstimateLine[] {
+  const scope = describeScopeVolume(input.narrative, input.projectType);
+  if (!scope.minor || input.lines.length === 0) {
+    return input.lines;
+  }
+
+  const serviceRepair = isServiceOrRepairScope(
+    input.narrative,
+    input.projectType,
+  );
+  const multiplier = scope.count ?? 1;
+
+  let namedCeiling = 0;
+  let hasCatchAll = false;
+  for (const line of input.lines) {
+    const catalog = TH_REGIONAL_CATALOG.find((item) => item.trade === line.trade);
+    if (!catalog || line.trade === 'other') {
+      hasCatchAll = true;
+      continue;
+    }
+    const band = serviceRepair
+      ? repairBandForTrade(line.trade) ?? catalog
+      : catalog;
+    namedCeiling +=
+      catalog.unit === 'sqm'
+        ? band.priceMaxThb * (scope.areaSqm ?? UNSTATED_SMALL_SCOPE_AREA_SQM)
+        : band.priceMaxThb * multiplier;
+  }
+
+  let ceiling = namedCeiling;
+  if (hasCatchAll) {
+    // A catch-all line is only as trustworthy as the named trades beside it.
+    const otherFloor =
+      TH_REGIONAL_CATALOG.find((item) => item.trade === 'other')?.priceMinThb ??
+      40000;
+    ceiling = namedCeiling > 0 ? namedCeiling : otherFloor;
+  }
+  if (!(ceiling > 0)) {
+    return input.lines;
+  }
+
+  const mids = input.lines.map((line) => estimateLineMid(line));
+  const totalMid = mids.reduce((sum, value) => sum + value, 0);
+  if (!(totalMid > ceiling)) {
+    return input.lines;
+  }
+
+  const factor = ceiling / totalMid;
+  return input.lines.map((line) => scaleEstimateLineByFactor(line, factor));
+}
+
 const APPROX_AREA_BUCKET_SQM: Record<string, number> = {
   'under-30': 25,
   '30-80': 55,
@@ -191,10 +451,18 @@ export function buildEstimateScopeRules(
   projectType: string,
   propertyType: string | null,
   hasPreviousEstimate: boolean,
-  options?: { landscapingOrCivilAmenityOnly?: boolean },
+  options?: {
+    landscapingOrCivilAmenityOnly?: boolean;
+    /** Service/repair of existing items — priced at repair scale, not install. */
+    serviceRepair?: boolean;
+    /** One item or a small job: no building-wide scope at all. */
+    minorScope?: boolean;
+  },
 ): string {
   const allowed = catalogTradeSlugs().join(', ');
   const landscapingOnly = options?.landscapingOrCivilAmenityOnly === true;
+  const serviceRepair = options?.serviceRepair === true;
+  const minorScope = options?.minorScope === true;
   const lines = [
     `trade on each line MUST be one of: ${allowed}. Do not invent new trade slugs.`,
     'Only include scope that is explicitly stated or clearly implied by project data and intake answers.',
@@ -221,6 +489,21 @@ export function buildEstimateScopeRules(
     lines.push(
       'Prefer civil/landscaping trades (and finishing only when paving/tile finishes are confirmed). Include site preparation when the ground is unprepared.',
       'Do not add electrical/plumbing lines unless lighting or utilities are explicitly in scope.',
+    );
+  }
+
+  if (serviceRepair) {
+    lines.push(
+      'The scope is SERVICE / REPAIR / MAINTENANCE of existing items. Price the described intervention — labour, parts and consumables for that visit — NOT new installation and NOT replacement of the whole system.',
+      'For service/repair scope: quantity is the number of units, points or fixtures actually being serviced (default 1). NEVER use building GFA, floor area or storey count as quantity, and never add shell or MEP network lines that are not part of the intervention.',
+      'A repair must not cost more than replacing the item: keep every line at repair scale (a residential air-conditioner repair is thousands, not tens of thousands of THB; a faulty tap or toilet is a small part-and-labour job).',
+      'Catalog bands are installation prices — do NOT copy them into a repair estimate.',
+    );
+  }
+
+  if (minorScope) {
+    lines.push(
+      'The described scope is a single item or a small job. Return 1–3 lines covering exactly that intervention: no building-wide structural, electrical, plumbing, finishing or design scope, and no whole-area quantities.',
     );
   }
 
@@ -757,8 +1040,21 @@ export function normalizeIndustrialHvacLines(input: {
   lines: EstimateLine[];
   narrative: string;
   areaSqm: number;
+  /** Repair visit: never reprice it as an industrial ventilation system. */
+  serviceRepair?: boolean;
+  /** Residential job: only an explicit facility mention justifies industrial HVAC. */
+  residential?: boolean;
 }): EstimateLine[] {
+  if (input.serviceRepair) {
+    return input.lines;
+  }
   if (!wantsIndustrialVentilation(input.narrative)) {
+    return input.lines;
+  }
+  if (
+    input.residential &&
+    !EXPLICIT_INDUSTRIAL_FACILITY_PATTERN.test(input.narrative)
+  ) {
     return input.lines;
   }
 
@@ -831,7 +1127,16 @@ export function normalizeIndustrialHvacLines(input: {
 export function normalizeUnderpricedSqmShellLines(input: {
   lines: EstimateLine[];
   areaSqm: number;
+  /**
+   * A small job: a 5 sqm patch must not be rescaled to the whole building, which
+   * is what turned a repair into a full-area shell line.
+   */
+  skipGfaRescale?: boolean;
 }): EstimateLine[] {
+  if (input.skipGfaRescale) {
+    return input.lines;
+  }
+
   const areaSqm = Math.max(20, input.areaSqm);
 
   return input.lines.map((line) => {
@@ -915,6 +1220,11 @@ export function dedupeAndCapElectricalLines(input: {
   narrative: string;
   areaSqm: number;
   projectType?: string;
+  /**
+   * Building-wide electrical scope. A small job keeps its own quantity instead of
+   * being charged over the whole floor area.
+   */
+  forceAreaQuantity?: boolean;
 }): EstimateLine[] {
   const electrical = input.lines.filter((line) => line.trade === 'electrical');
   const others = input.lines.filter((line) => line.trade !== 'electrical');
@@ -922,6 +1232,7 @@ export function dedupeAndCapElectricalLines(input: {
     return input.lines;
   }
 
+  const forceAreaQuantity = input.forceAreaQuantity !== false;
   const areaSqm = Math.max(20, input.areaSqm);
   const catalog = TH_REGIONAL_CATALOG.find((item) => item.trade === 'electrical');
   const catalogMax = catalog?.priceMaxThb ?? 6500;
@@ -945,12 +1256,17 @@ export function dedupeAndCapElectricalLines(input: {
         .filter((text) => text.length > 0),
     ),
   ];
-  const quantity = Math.max(
-    areaSqm,
-    ...electrical.map((line) =>
-      line.unit === 'sqm' && line.quantity > 0 ? line.quantity : areaSqm,
-    ),
-  );
+  const quantity = forceAreaQuantity
+    ? Math.max(
+        areaSqm,
+        ...electrical.map((line) =>
+          line.unit === 'sqm' && line.quantity > 0 ? line.quantity : areaSqm,
+        ),
+      )
+    : Math.max(
+        1,
+        ...electrical.map((line) => (line.quantity > 0 ? line.quantity : 1)),
+      );
 
   const modelMin = Math.min(...electrical.map((line) => line.unitPriceMin));
   const modelMax = Math.max(...electrical.map((line) => line.unitPriceMax));
@@ -978,8 +1294,11 @@ export function dedupeAndCapElectricalLines(input: {
 
   let lineMin = Math.round(unitPriceMin * quantity);
   let lineMax = Math.round(unitPriceMax * quantity);
-  const capMax = Math.round(bandMax * areaSqm);
-  const capMin = Math.round(bandMin * areaSqm);
+  // Band caps follow the priced quantity: on a small job that is the job itself,
+  // not the floor area, otherwise the area band floors the line back up.
+  const capScale = forceAreaQuantity ? areaSqm : quantity;
+  const capMax = Math.round(bandMax * capScale);
+  const capMin = Math.round(bandMin * capScale);
 
   if (lineMax > capMax) {
     lineMax = capMax;
@@ -1065,9 +1384,20 @@ export function finalizeEstimateLines(input: {
   tagSlugs: string[];
   brief: ProjectBriefV1;
   projectType?: string;
+  propertyType?: string | null;
   allowTinyShare?: boolean;
 }): EstimateLine[] {
   const areaSqm = resolveEstimateAreaSqm(input.brief, input.narrative);
+  /**
+   * How big the described job is. Everything below either applies building-wide
+   * pricing (new build, fit-out) or stays at the scale of the intervention — an
+   * AC repair must not come back priced as works for the whole house.
+   */
+  const scope = describeScopeVolume(input.narrative, input.projectType);
+  const serviceRepair = isServiceOrRepairScope(
+    input.narrative,
+    input.projectType,
+  );
   const ensured = ensureRequestedExtraLines({
     lines: input.lines,
     narrative: input.narrative,
@@ -1077,10 +1407,15 @@ export function finalizeEstimateLines(input: {
     lines: ensured,
     narrative: input.narrative,
     areaSqm,
+    serviceRepair,
+    residential: input.propertyType === 'residential',
   });
   const shellNormalized = normalizeUnderpricedSqmShellLines({
     lines: hvacNormalized,
     areaSqm,
+    // A repair is priced for the intervention; only confirmed building work may
+    // be rescaled to the floor area.
+    skipGfaRescale: serviceRepair,
   });
   const signals = detectPremiumScopeSignals(input.narrative);
   const premiumAdjusted = applyPremiumScopePriceAdjustments(
@@ -1095,8 +1430,19 @@ export function finalizeEstimateLines(input: {
     narrative: input.narrative,
     areaSqm,
     projectType: input.projectType,
+    forceAreaQuantity: !scope.minor,
   });
-  return dismissTinyEstimateLines(electricalCapped, {
+  const repairCapped = capServiceRepairLines({
+    lines: electricalCapped,
+    narrative: input.narrative,
+    projectType: input.projectType,
+  });
+  const anchored = capMinorScopeTotal({
+    lines: repairCapped,
+    narrative: input.narrative,
+    projectType: input.projectType,
+  });
+  return dismissTinyEstimateLines(anchored, {
     allowTinyShare: input.allowTinyShare,
   });
 }

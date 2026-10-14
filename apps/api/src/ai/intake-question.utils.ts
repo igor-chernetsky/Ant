@@ -81,7 +81,10 @@ const SCOPE_RELEVANCE_RULES: ReadonlyArray<{
 }> = [
   {
     ids: ['sanitary-points'],
-    prompt: /(\b(sanitary|wet\s*points?)\b)|(сантехник|санузел|สุขภัณฑ์|จุดเปียก)/i,
+    // Matches the paraphrase too ("how many bathrooms and sinks?"), not only the
+    // fallback wording — the gate below then decides whether the scope needs it.
+    prompt:
+      /(\b(sanitary|wet\s*points?|wet\s*areas?)\b)|((how\s+many|number\s+of|count\s+of)\s+(bathrooms?|bath\s*rooms?|toilets?|wc|showers?|sinks?|washrooms?))|(сантехник|санузел|สุขภัณฑ์|จุดเปียก|ห้องน้ำ|อ่างล้างหน้า)/i,
     isRelevant: shouldAskSanitaryPointsQuestions,
   },
   {

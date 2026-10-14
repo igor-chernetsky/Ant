@@ -410,34 +410,109 @@ export function shouldAskPoolLightingQuestions(
 }
 
 /**
- * Scope touches plumbing / wet areas (bathroom, kitchen, sanitary ware).
- *
- * Sanitary wet points are irrelevant to a roof, paint or flooring repair, but
- * they are relevant to a bathroom or kitchen renovation — which the project type
- * alone does not tell us.
+ * Rooms and trades whose wet points the estimate needs to know about.
  *
  * The non-Latin alternatives are matched without `\b`: the boundary assertion
  * only recognises ASCII word characters, so it never fires next to Cyrillic or
  * Thai text.
  */
-const WET_AREA_PATTERN =
-  /(\b(bathroom|bath\s*room|toilet|wc|kitchen|plumbing|pipework|sanitary|shower|vanity|wet\s*(points?|areas?))\b)|(санузел|ванн|сантехник|кухн|трубопровод|สุขภัณฑ์|ห้องน้ำ|ห้องครัว|ประปา|ท่อน้ำ)/i;
+const WET_ROOM_PATTERN =
+  /(\b(bathroom|bath\s*room|washroom|powder\s*room|kitchen|plumbing|pipework|sanitary|wet\s*(points?|areas?))\b)|(санузел|ванн|сантехник|кухн|трубопровод|สุขภัณฑ์|ห้องน้ำ|ห้องครัว|ประปา|ท่อน้ำ)/i;
+
+/**
+ * Individual fixtures. Repairing one of them decides nothing about the
+ * building's systems, so a bare mention must not pull the question in.
+ */
+const WET_FIXTURE_PATTERN =
+  /(\b(toilet|wc|sink|basin|tap|faucet|bathtub|vanity|water\s*heater|boiler)\b)|(унитаз|раковин|смесител|бойлер|อ่างล้างหน้า|โถส้วม)/i;
+
+/** Room-level wet work: renovating/remodelling a bathroom or kitchen. */
+const WET_ROOM_WORK_PATTERN =
+  /((renovat|remodel|refit|refurbish|rebuild|upgrade|overhaul|renew)\w*\b[^.]{0,40}(bathroom|bath\s*room|kitchen|washroom))|((bathroom|bath\s*room|kitchen)\s*(renovation|remodel|refit|refurbishment|upgrade|works))|((new|second|extra|additional)\s+(bathroom|bath\s*room|kitchen))|(ремонт\w*\s*(ванн|санузл|кухн)|(ванн|санузл|кухн)\w*\s*под\s*ключ)|(ปรับปรุง\s*(ห้องน้ำ|ห้องครัว)|ต่อเติม\s*(ห้องน้ำ|ห้องครัว))/i;
+
+/** The client already stated the count — asking again is noise. */
+const WET_POINTS_STATED_COUNT_PATTERN =
+  /\b(\d{1,3}\s*(points?|точек|сантех|toilets?|bathrooms?|sinks?|basins?|showers?|wc))\b/i;
+
+/**
+ * A question (or a model-authored paraphrase) that asks for wet-point counts.
+ * Used to gate free-text questions that never went through the intake queue,
+ * such as the estimate's improvement questions.
+ */
+export const WET_POINTS_QUESTION_PATTERN =
+  /(\b(sanitary|wet\s*points?|wet\s*areas?|wet\s*rooms?)\b)|((how\s+many|number\s+of|count\s+of)\s+(bathrooms?|bath\s*rooms?|toilets?|wc|showers?|sinks?|washrooms?))|((bathrooms?|toilets?|showers?|sinks?)\s*(count|quantity))|(сантехник|санузел|санузел|สุขภัณฑ์|จุดเปียก|ห้องน้ำ|ห้องส้วม|อ่างล้างหน้า|กี่จุด)/i;
+
+/**
+ * Does the scope need a wet-point count at all?
+ *
+ * Sanitary wet points are irrelevant to a single repaired element — a roof, a
+ * window, a painted wall, one leaking toilet — however the sentence happens to
+ * mention a room. They are relevant when a bathroom or kitchen is being worked
+ * on, when the whole dwelling is in scope, or when a new dwelling is built.
+ *
+ * Takes plain text rather than the intake context, so the estimate stage can
+ * apply exactly the same rule to its own narrative and questions.
+ */
+export function wetPointsInScope(
+  narrative: string,
+  projectType?: string,
+): boolean {
+  const text = narrative.trim();
+  if (!text) {
+    return false;
+  }
+
+  if (WHOLE_BUILDING_PATTERN.test(text)) {
+    return true;
+  }
+  if (WET_ROOM_WORK_PATTERN.test(text)) {
+    return true;
+  }
+  if (isLandscapingOrCivilAmenityNarrative(text)) {
+    return false;
+  }
+
+  const mentionsWet =
+    WET_ROOM_PATTERN.test(text) || WET_FIXTURE_PATTERN.test(text);
+
+  // A new dwelling always has wet points, even when the description only talks
+  // about bedrooms and plot size.
+  if (projectType === 'new_build' && BUILDING_PRIMARY_PATTERN.test(text)) {
+    return true;
+  }
+  // Extensions and fit-outs are building works, but only wet work justifies the
+  // question there.
+  if (
+    projectType === 'new_build' ||
+    projectType === 'extension' ||
+    projectType === 'commercial_fitout'
+  ) {
+    return mentionsWet;
+  }
+
+  // Small jobs: one element or one fixture means nothing about the systems is
+  // being decided, however the sentence mentions a room.
+  if (SINGLE_ELEMENT_WORK_PATTERN.test(text) || WET_FIXTURE_PATTERN.test(text)) {
+    return false;
+  }
+  return mentionsWet;
+}
 
 export function shouldAskSanitaryPointsQuestions(
   context: ProjectIntakeContext,
 ): boolean {
   if (
-    !isBuildingShellPrimary(context) &&
-    !WET_AREA_PATTERN.test(intakeNarrative(context))
-  ) {
-    return false;
-  }
-  if (
     context.answers.some((a) => a.questionId === 'sanitary-points' && !a.skipped)
   ) {
     return false;
   }
-  return !/\b(\d+\s*(points?|точек|сантех)|sanitary\s*points?)\b/i.test(
-    intakeNarrative(context),
-  );
+
+  // The client's own words only: an AI-written improvedDescription used to be
+  // able to invent a bathroom and pull the question in.
+  const source = projectSourceNarrative(context);
+  if (WET_POINTS_STATED_COUNT_PATTERN.test(source)) {
+    return false;
+  }
+
+  return wetPointsInScope(source, context.projectType);
 }
