@@ -105,3 +105,60 @@ plan text), not `improvedDescription` or prior answers, so an AI rewrite that
 invents a bathroom cannot pull the question in. If the client already stated a
 count ("2 bathrooms"), the question is skipped.
 
+## Scope gating of the area question
+
+"What is the approximate area involved?" was the **first** entry in the fallback
+queue and was asked unconditionally (only skipped when an uploaded document
+already stated an area), which is why an air-conditioner repair got it as its
+second question. It is now gated by `shouldAskApproxAreaQuestion`:
+
+| Scope | Area question |
+|-------|---------------|
+| Area already in the description or plan ("35 sqm", "20 x 40 m") | no |
+| Building works: `new_build`, `extension`, `commercial_fitout` (not amenity-only) | yes |
+| Pool in scope (pool size is what the pool questions and the estimate need) | yes |
+| Area-priced trades: roofing, tiling, flooring, painting, plastering, ceilings, insulation, paving/paths/driveways, landscaping, demolition | yes |
+| Repair or service of equipment or a fixture: air conditioner, pump, water heater, toilet, tap, socket, door lock, one door | **no** — the unit count matters, not square metres |
+| Anything else of type `repair` | no |
+| Anything else of another type (e.g. a bathroom renovation without a stated size) | yes |
+
+The queue (`fallbackQuestionQueue`) and the model (`SCOPE_RELEVANCE_RULES`, prompt
+rule in `buildingSystemsIntakeRules`) both use the predicate, so a paraphrase such
+as "what is the approximate area of the property in sqm?" is dropped too. The
+prompt tells the model to ask for the element's width/depth/length instead when
+the size of a specific element matters.
+
+### Device scope also silences the utility and electrical questions
+
+A job about one piece of equipment or fixture — an air-conditioner repair, a
+replaced pump, a new toilet — does not decide how the building is supplied or how
+deep its electrical package goes, yet the fallback queue asked
+`utility-connections` and `electrical-scope` for it, because both gates keyed on
+the project type (`repair`) and on "single element" (roof/windows/paint), not on
+"device".
+
+`isSingleDeviceScope` (`intake-scope-heuristics.ts`) matches equipment (air
+conditioner, pump, compressor, motor, water heater, boiler, fan) and hard fixtures
+(toilet, tap, socket, breaker, light fixture, door lock) — deliberately **not**
+shower/sink/basin/vanity, which appear in a bathroom renovation where those
+questions are needed. When it matches, and the project is not building-scale
+(`new_build`/`extension`/`commercial_fitout`), not area-priced work (tiling,
+painting, flooring…) and not a pool, both gates return `false`. An installation
+of one unit counts too: it plugs into what exists.
+
+Before → after on the same predicates:
+
+| Scope | utility-connections | electrical-scope |
+|-------|---------------------|------------------|
+| AC repair | yes → no | yes → no |
+| Leaking toilet | yes → no | yes → no |
+| Kitchen tap replacement | yes → no | yes → no |
+| New house | yes → yes | yes → yes |
+| Bathroom renovation (with shower/vanity) | yes → yes | yes → yes |
+| Repainting the house | yes → yes | yes → yes |
+
+The fallback queue for an air-conditioner repair is now `timeline`,
+`materials-notes` — the two questions that actually move the estimate.
+
+
+

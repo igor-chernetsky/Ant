@@ -115,6 +115,10 @@ Question object schema:
 
   private buildingSystemsIntakeRules(): string {
     return `Ask only questions relevant to the primary scope. Prefer project-specific gaps over generic building FAQs.
+Area question — STRICT RULE:
+- Ask the approximate AREA only when the area prices the work: building works, roofing, flooring, tiling, painting, plastering, ceilings, insulation, paving/landscaping, or pool size
+- NEVER ask the area for a repair or service of equipment or a single fixture (air conditioner, pump, water heater, toilet, tap, socket, one door): there the number of units matters, the floor area does not
+- When the size of a specific element matters (which it often does for a repair), ask for that element's width/depth/length instead of the building area
 Landscaping / civil amenity only (path, paving, driveway, fence, yard/garden works) — STRICT RULE:
 - If title/description is clearly a path, paving, landscaping, fence, or similar outdoor amenity WITHOUT building shell construction, NEVER ask storey-count, sanitary-points, foundation-type, special-systems (elevator/basement/smart home), or indoor plumbing/MEP building FAQs
 - Do NOT infer a house/villa build from projectType alone (new_build can mean civil works)
@@ -130,9 +134,10 @@ For pool projects only (pool explicitly in title, description, or uploadedDocume
 - Ask water treatment (chlorine / salt / chlorine-free UV-ozone) when unknown — prefer question id "pool-water-treatment"
 - Ask pool / underwater lighting level when unknown — prefer question id "pool-lighting"
 - Also clarify dimensions, overflow type, finishes, and filtration gaps if missing
-For MEP / utilities (building new build, renovation, pool — NOT landscaping/path-only jobs):
+For MEP / utilities (building new build, renovation, pool — NOT landscaping/path-only jobs, NOT a repair or installation of a single piece of equipment or fixture):
 - Ask which external utility connections are needed — prefer question id "utility-connections" (multi)
 - Ask electrical package depth (wiring / board / fixtures / specialty lighting) — prefer question id "electrical-scope" (multi)
+- A service visit or an installation of one device (air conditioner, pump, water heater, toilet, tap, socket) plugs into what exists: do not ask either of those questions for it
 For new_build / extension / commercial_fitout of buildings (not amenity-only pool or landscaping jobs):
 - Ask about storey count when not already clear — use id "storey-count"
 - For new_build / extension only: ask foundation type when not already clear — use id "foundation-type" (options: slab, strip, piles, already_exists, undecided). Do not assume foundations are out of scope.

@@ -15,6 +15,7 @@ import {
   projectMentionsPool,
   shouldAskElectricalScopeQuestions,
   shouldAskFoundationType,
+  shouldAskApproxAreaQuestion,
   shouldAskPoolLightingQuestions,
   shouldAskPoolScopeQuestions,
   shouldAskPoolWaterTreatmentQuestions,
@@ -186,7 +187,10 @@ export class IntakeFallbackService {
     );
 
     const queue: IntakeQuestion[] = [];
-    if (!hasDocArea) {
+    // Only when the area actually prices the work: a repair or service of
+    // equipment is priced per unit, so "what is the approximate area" is noise
+    // there and used to be the first question in the fallback queue.
+    if (!hasDocArea && shouldAskApproxAreaQuestion(context)) {
       queue.push(getFallbackApproxAreaQuestion(locale));
     }
 

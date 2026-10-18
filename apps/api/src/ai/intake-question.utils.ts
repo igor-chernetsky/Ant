@@ -4,6 +4,7 @@ import {
   isLandscapingOrCivilAmenityOnly,
   POOL_INTAKE_QUESTION_IDS,
   projectMentionsPool,
+  shouldAskApproxAreaQuestion,
   shouldAskElectricalScopeQuestions,
   shouldAskFoundationType,
   shouldAskSanitaryPointsQuestions,
@@ -79,6 +80,14 @@ const SCOPE_RELEVANCE_RULES: ReadonlyArray<{
   prompt: RegExp;
   isRelevant: (context: ProjectIntakeContext) => boolean;
 }> = [
+  {
+    // Measured-area wording only: "how many rooms does this unit cool?" is a
+    // different question and must survive.
+    ids: ['approx-area'],
+    prompt:
+      /((approximate|approx\.?|total|floor|built[-\s]?up)\s+area)|(area\s+(involved|of\s+the\s+(project|property|building)))|(\d+\s*(sqm|m2|square\s*met\w*))|(площад\w*)|(кв\.?\s*м)|(ขนาดพื้นที่|ตารางเมตร)/i,
+    isRelevant: shouldAskApproxAreaQuestion,
+  },
   {
     ids: ['sanitary-points'],
     // Matches the paraphrase too ("how many bathrooms and sinks?"), not only the

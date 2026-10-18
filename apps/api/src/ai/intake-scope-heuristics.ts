@@ -138,6 +138,87 @@ const SINGLE_ELEMENT_WORK_PATTERN =
 const WHOLE_BUILDING_PATTERN =
   /(\b(whole|entire)\s+(house|home|building|property)\b)|(\ball\s+rooms\b)|(весь\s+(дом|коттедж))|(вся\s+квартира)|(ทั้งหลัง|ทั้งบ้าน|ทุกห้อง)/i;
 
+/** The area is already known from the description or an uploaded plan. */
+const AREA_STATED_PATTERN =
+  /(\d+(?:[.,]\d+)?\s*(sqm|sq\.?\s*m|m2|m²|square\s*met(er|re)s?|кв\.?\s*м|м2|метров))|(\d+\s*[x×х]\s*\d+\s*(?:m|м|met(er|re)s?)?\b)|(ตารางเมตร|ตร\.?\s*ม)/i;
+
+/**
+ * A single device or fixture: equipment (air conditioner, pump, boiler) or a
+ * hard fixture (toilet, tap, socket, lock).
+ *
+ * Deliberately excludes room-scale words such as shower, sink, basin and vanity:
+ * those appear in a bathroom renovation, where the building's utilities and
+ * electrical package are exactly what still has to be asked about.
+ */
+const DEVICE_SCOPE_PATTERN =
+  /(\b(air\s*con\w*|a\/c|hvac|split\s*unit|pump|compressor|motor|water\s*heater|boiler|fan|fridge|refrigerator|washing\s*machine|dishwasher|gate\s*motor|garage\s*door|toilet|wc|tap|faucet|socket|breaker|light\s*fixture|door\s*lock)\b)|(кондиц\w*|насос\w*|бойлер\w*|водонагрев\w*|вентилятор\w*|компрессор\w*|унитаз\w*|смесител\w*|розетк\w*|светильник\w*|замок\w*|рольворота|เครื่องปรับอากาศ|ปั๊ม|พัดลม|คอมเพรสเซอร์|สุขภัณฑ์|ปลั๊ก|สวิตช์)/i;
+
+/** Work that is priced by area, so the area answer actually changes the price. */
+const AREA_PRICED_WORK_PATTERN =
+  /(\b(roof|roofing|tile|tiles|tiling|floor|flooring|parquet|laminate|paint|painting|repaint|plaster|render|ceiling|ceilings|insulation|waterproofing|facade|cladding|paving|paver\w*|path|walkway|driveway|sidewalk|footpath|patio|decking|landscap\w*|garden\s*(work|works|design|paving|path|landscap\w*)|yard\s*(work|works|paving|landscap\w*)|demolition|screed)\b)|(?:^|[^а-яё])(кровл|крыш|плитк|пол(?!н)|паркет|ламинат|покрас|штукатур|потолк|утепл|гидроизоляц|мощен|дорожк|благоустрой|ландшафт|фасад|демонтаж)(?:[^а-яё]|$)|(หลังคา|กระเบื้อง|พื้น|ทาสี|ฝ้า|ฉนวน|ปูพื้น|ทางเดิน)/i;
+
+/**
+ * A job about one piece of equipment or fixture does not decide how the building
+ * is supplied or how deep its electrical package goes, so the utility-connection
+ * and electrical-scope questions are noise there — including an installation of
+ * a single unit, which plugs into what already exists.
+ *
+ * Building works, area-priced work and pools keep those questions.
+ */
+export function isSingleDeviceScope(context: ProjectIntakeContext): boolean {
+  const source = projectSourceNarrative(context);
+  if (!DEVICE_SCOPE_PATTERN.test(source)) {
+    return false;
+  }
+  if (isBuildingShellPrimary(context)) {
+    return false;
+  }
+  if (AREA_PRICED_WORK_PATTERN.test(source)) {
+    return false;
+  }
+  return !projectMentionsPool(context);
+}
+
+/**
+ * Does the ballpark need the floor area at all?
+ *
+ * A repair or service of equipment (an air conditioner, a pump, one toilet) is
+ * priced by how many units there are, not by square metres, so asking the area
+ * there is noise. Building works, pool works and area-priced trades — roofing,
+ * tiling, flooring, painting, paving — genuinely need it.
+ */
+export function shouldAskApproxAreaQuestion(
+  context: ProjectIntakeContext,
+): boolean {
+  const source = projectSourceNarrative(context);
+  if (AREA_STATED_PATTERN.test(source)) {
+    return false;
+  }
+
+  const areaPriced = AREA_PRICED_WORK_PATTERN.test(source);
+  const poolInScope = projectMentionsPool(context);
+
+  // Equipment and fixtures are priced per unit. A pool is the exception: its
+  // size is exactly what the pool questions and the estimate need.
+  if (DEVICE_SCOPE_PATTERN.test(source) && !areaPriced && !poolInScope) {
+    return false;
+  }
+
+  if (isBuildingShellPrimary(context)) {
+    return true;
+  }
+  if (poolInScope) {
+    return true;
+  }
+  if (areaPriced) {
+    return true;
+  }
+
+  // Everything left is priced per item or per intervention: one cabinet, one
+  // door, a service call. The area changes nothing.
+  return context.projectType !== 'repair';
+}
+
 export function isSingleElementScope(
   context: ProjectIntakeContext,
 ): boolean {
@@ -346,6 +427,10 @@ export function shouldAskUtilityConnectionQuestions(
   if (isSingleElementScope(context)) {
     return false;
   }
+  // Neither does servicing or fitting one device: it plugs into what exists.
+  if (isSingleDeviceScope(context)) {
+    return false;
+  }
   return (
     isBuildingShellPrimary(context) ||
     isPoolFocusedProject(context) ||
@@ -370,6 +455,9 @@ export function shouldAskElectricalScopeQuestions(
     return PATH_LIGHTING_PATTERN.test(projectSourceNarrative(context));
   }
   if (isSingleElementScope(context)) {
+    return false;
+  }
+  if (isSingleDeviceScope(context)) {
     return false;
   }
   return (
