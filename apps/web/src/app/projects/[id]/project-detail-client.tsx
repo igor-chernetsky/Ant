@@ -12,6 +12,9 @@ import {
   ESTIMATE_REFINE_SECTION_ID,
 } from '@/components/EstimateRefinementPanel';
 import { EstimateLinesEditor } from '@/components/EstimateLinesEditor';
+import { EstimateQuestionsPreview } from '@/components/EstimateQuestionsPreview';
+import { GuestDraftLeaveDialog } from '@/components/GuestDraftLeaveDialog';
+import { resolveGuardedNavigation } from '@/lib/guest-leave-guard';
 import { EstimateConfidenceRing } from '@/components/EstimateConfidenceRing';
 import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
@@ -144,6 +147,9 @@ export function ProjectDetailPageClient({
   const [completeMode, setCompleteMode] = useState<'request' | 'confirm'>(
     'request',
   );
+  /** Path the guest clicked while holding an unclaimed project. */
+  const [leavePrompt, setLeavePrompt] = useState<string | null>(null);
+  const [leavingDraft, setLeavingDraft] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadDocuments = useCallback(
@@ -430,6 +436,75 @@ export function ProjectDetailPageClient({
     setLoginMode('signup');
     setLoginNotice(t('guestProject.publishNotice'));
     setLoginOpen(true);
+  };
+
+  /**
+   * Leaving the page abandons an unclaimed guest project: it exists only behind
+   * the guest cookie, and the 24-hour cleanup deletes it. Catch in-app link clicks
+   * so the visitor can register instead, and delete the draft only when nothing
+   * has been calculated yet and they explicitly confirm.
+   */
+  useEffect(() => {
+    if (!isGuestOwner || !project || !projectId) return;
+
+    const onClick = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+      const anchor = (event.target as Element | null)?.closest?.('a[href]');
+      if (!anchor || !(anchor instanceof HTMLAnchorElement)) return;
+
+      const next = resolveGuardedNavigation(
+        {
+          href: anchor.getAttribute('href'),
+          target: anchor.getAttribute('target'),
+          download: anchor.hasAttribute('download'),
+        },
+        window.location.href,
+      );
+      if (!next) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      setLeavePrompt(next);
+    };
+
+    document.addEventListener('click', onClick, true);
+    return () => {
+      document.removeEventListener('click', onClick, true);
+      setLeavePrompt(null);
+    };
+  }, [isGuestOwner, project, projectId]);
+
+  const handleGuestLeave = async () => {
+    const target = leavePrompt;
+    if (!target || leavingDraft) return;
+
+    setLeavingDraft(true);
+    try {
+      if (!estimate) {
+        // Nothing has been calculated yet: remove the draft, as confirmed.
+        await deleteProject(projectId).catch(() => {
+          // Already gone or expired — leaving must still work.
+        });
+      }
+    } finally {
+      setLeavingDraft(false);
+      setLeavePrompt(null);
+      router.push(target);
+    }
+  };
+
+  const handleGuestLeaveRegister = () => {
+    setLeavePrompt(null);
+    openSignUpToPublish();
   };
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -925,28 +1000,33 @@ export function ProjectDetailPageClient({
                         </aside>
                       )}
                       {/* Refining the estimate spends AI budget, so a guest sees
-                          the ballpark but refines it after registering. */}
+                          the ballpark and its breakdown but refines and edits it
+                          after registering. */}
                       {isOwner && (
-                        <>
-                          <EstimateRefinementPanel
-                            project={project}
-                            estimate={estimate}
-                            onEstimateUpdated={(updated: BallparkEstimate) =>
-                              setProject((prev) =>
-                                prev ? { ...prev, estimate: updated } : prev,
-                              )
-                            }
-                          />
-                          <EstimateLinesEditor
-                            projectId={projectId}
-                            estimate={estimate}
-                            onEstimateUpdated={(updated: BallparkEstimate) =>
-                              setProject((prev) =>
-                                prev ? { ...prev, estimate: updated } : prev,
-                              )
-                            }
-                          />
-                        </>
+                        <EstimateRefinementPanel
+                          project={project}
+                          estimate={estimate}
+                          onEstimateUpdated={(updated: BallparkEstimate) =>
+                            setProject((prev) =>
+                              prev ? { ...prev, estimate: updated } : prev,
+                            )
+                          }
+                        />
+                      )}
+                      <EstimateLinesEditor
+                        projectId={projectId}
+                        estimate={estimate}
+                        readOnly={!isOwner}
+                        onEstimateUpdated={(updated: BallparkEstimate) =>
+                          setProject((prev) =>
+                            prev ? { ...prev, estimate: updated } : prev,
+                          )
+                        }
+                      />
+                      {!isOwner && (
+                        <EstimateQuestionsPreview
+                          questions={estimate.improvementQuestions ?? []}
+                        />
                       )}
                       <p className="muted estimate-disclaimer">
                         {estimate.disclaimer}
@@ -1134,6 +1214,14 @@ export function ProjectDetailPageClient({
           }}
         />
       )}
+      <GuestDraftLeaveDialog
+        isOpen={leavePrompt != null}
+        hasEstimate={estimate != null}
+        busy={leavingDraft}
+        onRegister={handleGuestLeaveRegister}
+        onLeave={() => void handleGuestLeave()}
+        onStay={() => setLeavePrompt(null)}
+      />
       {confirmDialog}
     </PageShell>
   );

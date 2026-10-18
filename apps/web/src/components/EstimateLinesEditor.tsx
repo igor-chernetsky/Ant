@@ -16,6 +16,15 @@ interface EstimateLinesEditorProps {
   projectId: string;
   estimate: BallparkEstimate;
   onEstimateUpdated: (estimate: BallparkEstimate) => void;
+  /**
+   * Show the breakdown without any editing affordance.
+   *
+   * The line list is what the ballpark is for, but it lives in this component,
+   * which used to be mounted only for the owner — a guest saw the price range and
+   * nothing else. A guest now gets the same list read-only: removing a line or
+   * adding one stays an owner action.
+   */
+  readOnly?: boolean;
 }
 
 type AddedLineRef = { trade: string; description: string };
@@ -67,6 +76,7 @@ export function EstimateLinesEditor({
   projectId,
   estimate,
   onEstimateUpdated,
+  readOnly = false,
 }: EstimateLinesEditorProps) {
   const { t } = useTranslation();
   const { formatTagLabel } = useAppFormatters();
@@ -78,7 +88,7 @@ export function EstimateLinesEditor({
   const [lineMinInput, setLineMinInput] = useState('');
   const [lineMaxInput, setLineMaxInput] = useState('');
 
-  const editable = estimate.editable ?? false;
+  const editable = (estimate.editable ?? false) && !readOnly;
   const excluded = estimate.adjustments?.excludedLines ?? [];
   const added = estimate.adjustments?.addedLines ?? [];
 

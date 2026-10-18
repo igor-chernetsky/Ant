@@ -177,6 +177,15 @@ export const thExtended = {
     publishCta: "สมัครและเผยแพร่",
     publishNotice:
       "สร้างบัญชีเพื่อเผยแพร่โครงการนี้ ข้อมูลที่กรอกไว้ถูกบันทึกแล้ว",
+    leaveTitle: "ออกจากโครงการโดยไม่สมัครสมาชิก?",
+    leaveMessageDraft:
+      "โครงการนี้ผูกกับเบราว์เซอร์นี้เท่านั้นและยังไม่ได้บันทึกไว้กับบัญชี หากออกตอนนี้ ฉบับร่างจะถูกลบ",
+    leaveMessageWithEstimate:
+      "ประมาณการพร้อมแล้ว ฉบับร่างจะถูกเก็บไว้ 24 ชั่วโมง — แต่ถ้าไม่มีบัญชี คุณจะหากลับมาไม่ได้",
+    leaveStay: "อยู่ในหน้าโครงการ",
+    leaveConfirmDelete: "ออกและลบ",
+    leaveConfirmKeep: "ออกอยู่ดี",
+    leaveRegister: "สมัครสมาชิก",
   },
   projectHero: {
     projectsBreadcrumb: "โครงการ",
@@ -1400,6 +1409,9 @@ export const thExtended = {
     lowConfidenceTitle: "ประมาณการคร่าวมาก",
     lowConfidenceHint:
       "ความมั่นใจต่ำกว่า 60% ตัวเลขนี้เป็นเพียงแนวทางคร่าวๆ — สร้างการประมูลเพื่อดูราคาจริงจากผู้รับเหมา",
+    questionsPreviewTitle: "คำถามที่จะช่วยให้ประมาณการแม่นยำขึ้น",
+    questionsPreviewHint:
+      "ตอบได้หลังสมัครสมาชิก — ระบบจะคำนวณประมาณการใหม่จากคำตอบของคุณ",
     removeLineAria: "ลบรายการนี้ออกจากประมาณการ",
     addLineTitle: "เพิ่มงานที่ขาด",
     addLineHint:

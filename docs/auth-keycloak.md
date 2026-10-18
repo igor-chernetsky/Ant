@@ -103,6 +103,32 @@ projects past `guestExpiresAt` together with their documents and S3 objects.
 Projects tagged with an email get the longer deadline; claimed ones have no
 deadline at all.
 
+**Leaving the page.** A guest draft exists only behind the `ant_guest_project`
+cookie, so clicking an in-app link away from the project is a decision worth
+confirming. `GuestDraftLeaveDialog` (mounted by the project page while
+`isGuestOwner`) intercepts link clicks through `resolveGuardedNavigation`
+(`apps/web/src/lib/guest-leave-guard.ts` — modifier clicks, new-tab targets,
+downloads, `#`/`mailto:`/`tel:` links, other origins and links to the current
+path are left alone) and offers three actions:
+
+| Action | Result |
+|--------|--------|
+| Register | Opens the signup dialog; the draft is claimed in place |
+| Leave and delete | Deletes the draft (`DELETE /api/projects/:id`, which also drops the cookie entry) and navigates to the clicked page — only when no estimate exists yet |
+| Stay | Closes the dialog, stays on the project |
+
+With an estimate already calculated the draft is **not** deleted: the AI work is
+kept for the rest of its 24 hours and the destructive button reads "Leave anyway".
+
+**First visit after registering.** `User.workspaceIntroAt` (null until set) makes
+the client's first visit open their newest project instead of the home page: the
+home page fetches the project list (which also claims the guest draft by email),
+and when `me.workspaceIntroAt == null` and the list is not empty it calls
+`POST /api/me/workspace-intro` and replaces the route with
+`/projects/:id` (newest first — the list is ordered by `updatedAt`). Marking is
+idempotent (`updateMany` where the column is null), so it happens once per
+account, on any device.
+
 `POST /v1/projects` enforces `@Roles('client')` (`projects.controller.ts`), so
 the dialogs cannot be bypassed with a direct API call.
 

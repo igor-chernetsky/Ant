@@ -177,6 +177,15 @@ export const enExtended = {
     publishCta: "Register and publish",
     publishNotice:
       "Create an account to publish this project. Everything you filled in is saved.",
+    leaveTitle: "Leave this project without registering?",
+    leaveMessageDraft:
+      "The project belongs to this browser only and has not been saved to an account yet. If you leave now, the draft will be deleted.",
+    leaveMessageWithEstimate:
+      "The estimate is ready, so the draft is kept for 24 hours — but without a registered account you will not be able to find it afterwards.",
+    leaveStay: "Stay on the project",
+    leaveConfirmDelete: "Leave and delete",
+    leaveConfirmKeep: "Leave anyway",
+    leaveRegister: "Register",
   },
   projectHero: {
     projectsBreadcrumb: "Projects",
@@ -1402,6 +1411,9 @@ export const enExtended = {
     lowConfidenceTitle: "Very approximate estimate",
     lowConfidenceHint:
       "Confidence is under 60%. Treat this ballpark as a rough guide only — create a tender to get real prices from contractors.",
+    questionsPreviewTitle: "Questions that would sharpen this estimate",
+    questionsPreviewHint:
+      "Answer them after you register — the ballpark is recalculated from your answers.",
     removeLineAria: "Remove this line from the ballpark",
     addLineTitle: "Add missing work",
     addLineHint:

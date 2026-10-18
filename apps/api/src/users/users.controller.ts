@@ -41,6 +41,18 @@ export class UsersController {
     return this.usersService.buildMeResponse(user, req.user);
   }
 
+  /**
+   * The client has been taken to their newest project after registering. Called
+   * by the web app right before it navigates, so the redirect happens once per
+   * account rather than on every visit.
+   */
+  @Post('me/workspace-intro')
+  @UseGuards(JwtAuthGuard)
+  async markWorkspaceIntro(@Req() req: Request & { user: JwtPayload }) {
+    const user = await this.usersService.findOrCreateFromJwt(req.user);
+    return this.usersService.markWorkspaceIntroSeen(user.id);
+  }
+
   @Get('me/notification-preferences')
   @UseGuards(JwtAuthGuard)
   async notificationPreferences(@Req() req: Request & { user: JwtPayload }) {

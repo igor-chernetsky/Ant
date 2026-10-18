@@ -205,6 +205,8 @@ export class UsersService {
     isContractor: boolean;
     isDesigner: boolean;
     preferredLocale: SupportedLocale;
+    /** Null until the client was taken straight to their newest project once. */
+    workspaceIntroAt: string | null;
   }> {
     const roles = payload.realm_access?.roles ?? [];
     const profile = await this.prisma.contractorProfile.findUnique({
@@ -230,7 +232,24 @@ export class UsersService {
       isContractor,
       isDesigner,
       preferredLocale,
+      workspaceIntroAt: user.workspaceIntroAt
+        ? user.workspaceIntroAt.toISOString()
+        : null,
     };
+  }
+
+  /**
+   * Record that the client has been taken to their newest project once.
+   *
+   * `updateMany` + `workspaceIntroAt: null` makes it idempotent: a second call (or
+   * two tabs racing) simply matches no rows, so the redirect cannot repeat.
+   */
+  async markWorkspaceIntroSeen(userId: string): Promise<{ marked: boolean }> {
+    const result = await this.prisma.user.updateMany({
+      where: { id: userId, workspaceIntroAt: null },
+      data: { workspaceIntroAt: new Date() },
+    });
+    return { marked: result.count > 0 };
   }
 
   async updatePreferredLocale(

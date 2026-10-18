@@ -59,8 +59,21 @@ post-processing corrects it.
 | Office fit-out 300 sqm | 1,110,000–3,300,000 | unchanged |
 | Warehouse ventilation (real facility) | 1,850,000–4,350,000 | unchanged |
 
-## When an estimate still looks wrong
+## Who sees what
 
+The line breakdown is rendered by `EstimateLinesEditor`, which used to be mounted
+only for the owner — a guest saw the price range and nothing else, although the
+API returns `lines` for guest projects too. The page now mounts it for everyone
+in the workspace (`canManageWorkspace`) and passes `readOnly={!isOwner}`: the list
+of works is visible, while removing a line, adding one and the AI refinement
+questions stay owner-only (refinement spends AI budget, and both actions are
+owner actions server-side as well).
+
+The improvement questions themselves are free, so a guest sees them through
+`EstimateQuestionsPreview`: a read-only list with the note that answering happens
+after registration. Only the recalculation (`POST …/estimate/refine`) is
+owner-only.
+## When an estimate still looks wrong
 Read the stored lines (`Estimate.linesJson`): `trade`, `quantity`, `unit`,
 `unitPriceMin/Max`. The signatures are:
 

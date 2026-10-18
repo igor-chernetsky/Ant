@@ -175,6 +175,12 @@ model User {
   /// contracts and reviews stay intact. Deleted users cannot authenticate.
   deletedAt        DateTime? @map("deleted_at")
   deletedByUserId  String?   @map("deleted_by_user_id")
+  /**
+   * Set the first time the client is taken straight to their newest project after
+   * registering (the draft they started as a guest). Null means the redirect has
+   * not happened yet, so it runs once per account, on any device.
+   */
+  workspaceIntroAt DateTime? @map("workspace_intro_at")
   projects    Project[]
   documents   Document[]
   contractorProfile ContractorProfile? @relation("ContractorProfileUser")

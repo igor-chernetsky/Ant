@@ -8,6 +8,12 @@ export interface MeResponse {
   isContractor?: boolean;
   isDesigner?: boolean;
   preferredLocale?: string;
+  /**
+   * Null until the client has been taken straight to their newest project once
+   * after registering. The home page uses it to open the guest draft they just
+   * claimed, and then marks it seen.
+   */
+  workspaceIntroAt?: string | null;
 }
 
 /**
@@ -196,6 +202,24 @@ export async function fetchSessionProfile(): Promise<MeResponse | null> {
     throw new Error(text || `Session check failed (${response.status})`);
   }
   return response.json() as Promise<MeResponse>;
+}
+
+/**
+ * Mark the "you were taken to your project" intro as done.
+ *
+ * Idempotent server-side; a failure is not fatal — the worst case is that the
+ * redirect happens again on the next visit.
+ */
+export async function markWorkspaceIntroSeen(): Promise<void> {
+  const response = await fetch('/api/me/workspace-intro', {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to mark the workspace intro (${response.status})`,
+    );
+  }
 }
 
 export async function loginWithPassword(

@@ -7302,6 +7302,23 @@ pre {
   margin: 0.5rem 0 0.75rem;
 }
 
+.estimate-questions-preview-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.estimate-questions-preview-hint {
+  margin: 0.35rem 0 0;
+}
+
+.estimate-questions-preview-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
 .estimate-refine-form {
   display: grid;
   gap: 0.75rem;
