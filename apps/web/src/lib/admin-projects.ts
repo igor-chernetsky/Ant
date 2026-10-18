@@ -27,6 +27,10 @@ export interface AdminProjectListItem {
   readinessScore: number;
   coverImageUrl: string | null;
   estimate: AdminProjectEstimate | null;
+  /** True for an unclaimed guest draft: no owner, no client cabinet. */
+  isGuest: boolean;
+  /** When an unclaimed draft is deleted together with its files. */
+  guestExpiresAt: string | null;
   client: {
     id: string;
     displayName: string | null;
@@ -59,6 +63,8 @@ export interface AdminProjectListParams {
   status?: string;
   projectType?: string;
   hidden?: 'true' | 'false' | '';
+  /** Show only unclaimed guest drafts instead of owned projects. */
+  guestOnly?: 'true' | '';
   clientQ?: string;
   createdFrom?: string;
   createdTo?: string;
@@ -95,6 +101,9 @@ export async function fetchAdminProjects(
   if (params.projectType) qs.set('projectType', params.projectType);
   if (params.hidden === 'true' || params.hidden === 'false') {
     qs.set('hidden', params.hidden);
+  }
+  if (params.guestOnly === 'true') {
+    qs.set('guestOnly', 'true');
   }
   if (params.clientQ) qs.set('clientQ', params.clientQ);
   if (params.createdFrom) qs.set('createdFrom', params.createdFrom);

@@ -1916,9 +1916,11 @@ export class ProjectsService {
     const sortDir = query.sortDir === 'asc' ? 'asc' : 'desc';
 
     const where: Prisma.ProjectWhereInput = {
-      // Unclaimed guest projects are anonymous 24-hour drafts: they never show up
-      // in the admin table, which always expects an owner to display.
-      clientId: { not: null },
+      // The admin table shows owned projects: an unclaimed guest draft is an
+      // anonymous 24-hour project with no client to display. The guest filter
+      // flips this around, and a draft claimed after registration has an owner, so
+      // it drops out of the guest view on its own.
+      clientId: query.guestOnly === true ? null : { not: null },
     };
 
     if (query.q) {
@@ -2184,6 +2186,7 @@ export class ProjectsService {
       district: string | null;
       createdAt: Date;
       updatedAt: Date;
+      guestExpiresAt: Date | null;
       client: {
         id: string;
         displayName: string | null;
@@ -2228,14 +2231,18 @@ export class ProjectsService {
       readinessScore: project.readinessScore,
       coverImageUrl,
       estimate,
+      isGuest: project.client == null,
+      guestExpiresAt: project.guestExpiresAt
+        ? project.guestExpiresAt.toISOString()
+        : null,
       client: project.client
         ? {
             id: project.client.id,
             displayName: project.client.displayName,
             email: project.client.email,
           }
-        : // Unclaimed guest projects are filtered out of this list; an owner is
-          // always present here, and the fallback only keeps the types honest.
+        : // Guest drafts have no owner; the filter above is the only way they
+          // appear here, and the table shows a "guest draft" badge instead.
           { id: '', displayName: null, email: null },
       locationRegionSlug: project.locationRegionSlug,
       locationAreaSlug: project.locationAreaSlug,

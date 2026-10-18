@@ -191,6 +191,12 @@ export interface AdminProjectListQuery {
   projectType?: ProjectType | string;
   /** true | false | omit for all */
   hidden?: boolean;
+  /**
+   * Show only unclaimed guest drafts (`clientId = null`) instead of only owned
+   * projects. A draft that was claimed after registration has an owner, so it
+   * stops matching — exactly what the admin filter is for.
+   */
+  guestOnly?: boolean;
   clientQ?: string;
   createdFrom?: string;
   createdTo?: string;
@@ -220,6 +226,10 @@ export interface AdminProjectListItem {
   readinessScore: number;
   coverImageUrl: string | null;
   estimate: PublicProjectEstimateSummary | null;
+  /** True for an unclaimed guest draft: no owner, no client cabinet. */
+  isGuest: boolean;
+  /** When an unclaimed draft is deleted together with its files. */
+  guestExpiresAt: string | null;
   client: {
     id: string;
     displayName: string | null;

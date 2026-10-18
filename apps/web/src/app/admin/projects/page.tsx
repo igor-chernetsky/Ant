@@ -65,6 +65,8 @@ type AppliedFilters = {
   status: string;
   projectType: string;
   hidden: TriFilter;
+  /** Show only unclaimed guest drafts instead of owned projects. */
+  guestOnly: TriFilter;
   clientQ: string;
   createdFrom: string;
   createdTo: string;
@@ -218,6 +220,7 @@ export default function AdminProjectsTablePage() {
   const [status, setStatus] = useState('');
   const [projectType, setProjectType] = useState('');
   const [hidden, setHidden] = useState<TriFilter>('');
+  const [guestOnly, setGuestOnly] = useState<TriFilter>('');
   const [clientQ, setClientQ] = useState('');
   const [createdFrom, setCreatedFrom] = useState('');
   const [createdTo, setCreatedTo] = useState('');
@@ -235,6 +238,7 @@ export default function AdminProjectsTablePage() {
     status: '',
     projectType: '',
     hidden: '',
+    guestOnly: '',
     clientQ: '',
     createdFrom: '',
     createdTo: '',
@@ -261,6 +265,7 @@ export default function AdminProjectsTablePage() {
         status: filters.status || undefined,
         projectType: filters.projectType || undefined,
         hidden: filters.hidden,
+        guestOnly: filters.guestOnly === 'true' ? 'true' : undefined,
         clientQ: filters.clientQ || undefined,
         createdFrom: filters.createdFrom || undefined,
         createdTo: filters.createdTo || undefined,
@@ -387,6 +392,7 @@ export default function AdminProjectsTablePage() {
       status,
       projectType,
       hidden,
+      guestOnly,
       clientQ: clientQ.trim(),
       createdFrom,
       createdTo,
@@ -624,6 +630,16 @@ export default function AdminProjectsTablePage() {
               </select>
             </label>
             <label className="admin-projects-field">
+              <span>{t('admin.projectsTableFilterGuest')}</span>
+              <select
+                value={guestOnly}
+                onChange={(e) => setGuestOnly(e.target.value as TriFilter)}
+              >
+                <option value="">{t('admin.projectsTableGuestAll')}</option>
+                <option value="true">{t('admin.projectsTableGuestOnly')}</option>
+              </select>
+            </label>
+            <label className="admin-projects-field">
               <span>{t('admin.projectsTableFilterRegion')}</span>
               <select
                 value={locationRegionSlug}
@@ -847,29 +863,46 @@ export default function AdminProjectsTablePage() {
                         </td>
                         <td>
                           <div className="admin-projects-client-cell">
-                            <span>
-                              {item.client.displayName?.trim() ||
-                                t('common.dash')}
-                            </span>
-                            {item.client.email ? (
-                              <a
-                                href={`mailto:${item.client.email}`}
-                                className="admin-projects-client-email"
-                              >
-                                {item.client.email}
-                              </a>
+                            {item.isGuest ? (
+                              <>
+                                <span className="tag-pill">
+                                  {t('admin.projectsTableGuestBadge')}
+                                </span>
+                                <span className="muted">
+                                  {item.guestExpiresAt
+                                    ? t('admin.projectsTableGuestExpires', {
+                                        date: formatDateTime(item.guestExpiresAt),
+                                      })
+                                    : t('common.dash')}
+                                </span>
+                              </>
                             ) : (
-                              <span className="muted">{t('common.dash')}</span>
+                              <>
+                                <span>
+                                  {item.client.displayName?.trim() ||
+                                    t('common.dash')}
+                                </span>
+                                {item.client.email ? (
+                                  <a
+                                    href={`mailto:${item.client.email}`}
+                                    className="admin-projects-client-email"
+                                  >
+                                    {item.client.email}
+                                  </a>
+                                ) : (
+                                  <span className="muted">{t('common.dash')}</span>
+                                )}
+                                <Link
+                                  href={`/admin/clients?id=${encodeURIComponent(item.client.id)}`}
+                                  className="admin-projects-client-cabinet muted"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
+                                >
+                                  {t('admin.projectsTableClientCabinet')}
+                                </Link>
+                              </>
                             )}
-                            <Link
-                              href={`/admin/clients?id=${encodeURIComponent(item.client.id)}`}
-                              className="admin-projects-client-cabinet muted"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
-                            >
-                              {t('admin.projectsTableClientCabinet')}
-                            </Link>
                           </div>
                         </td>
                         <td>
@@ -945,19 +978,36 @@ export default function AdminProjectsTablePage() {
                             <div className="admin-projects-detail">
                               <div>
                                 <h4>{t('admin.projectsTableDetailClient')}</h4>
-                                <p>
-                                  {item.client.displayName?.trim() ||
-                                    t('common.dash')}
-                                </p>
-                                <p className="muted">
-                                  {item.client.email ? (
-                                    <a href={`mailto:${item.client.email}`}>
-                                      {item.client.email}
-                                    </a>
-                                  ) : (
-                                    t('common.dash')
-                                  )}
-                                </p>
+                                {item.isGuest ? (
+                                  <>
+                                    <p>{t('admin.projectsTableGuestBadge')}</p>
+                                    <p className="muted">
+                                      {item.guestExpiresAt
+                                        ? t('admin.projectsTableGuestExpires', {
+                                            date: formatDateTime(
+                                              item.guestExpiresAt,
+                                            ),
+                                          })
+                                        : t('common.dash')}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p>
+                                      {item.client.displayName?.trim() ||
+                                        t('common.dash')}
+                                    </p>
+                                    <p className="muted">
+                                      {item.client.email ? (
+                                        <a href={`mailto:${item.client.email}`}>
+                                          {item.client.email}
+                                        </a>
+                                      ) : (
+                                        t('common.dash')
+                                      )}
+                                    </p>
+                                  </>
+                                )}
                               </div>
                               <div>
                                 <h4>{t('admin.projectsTableDetailLocation')}</h4>
