@@ -1,10 +1,16 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { JsonLd } from '@/components/JsonLd';
 import { ProjectDetailPageClient } from './project-detail-client';
 import { LockedProjectView } from './locked-project-view';
 import { fetchPublicProjectServer } from '@/lib/public-projects-server';
 import { isLockedPublicProject, type PublicProjectDetail } from '@/lib/public-projects';
+import { readGuestProjectToken } from '@/lib/guest-project';
+import {
+  resolveProjectPageDecision,
+  type ProjectPageLoadState,
+} from '@/lib/project-page-state';
 import { breadcrumbJsonLd } from '@/lib/seo-jsonld';
 import {
   breadcrumbTrail,
@@ -28,9 +34,14 @@ type ProjectPageProps = {
  *
  * The viewer's own access token is forwarded when present, so owners,
  * participants and admins get their ACL applied during server rendering. An
- * expired token yields `null` and the client refetches after refreshing.
+ * expired token yields an `error` state and the client refetches after refreshing.
  *
- * Anonymous requests to a discoverable project now receive the API's locked
+ * A 404 from the public endpoint is ambiguous — the project may be deleted, or it
+ * may simply not be public yet (a guest draft) — so the caller decides with
+ * `resolveProjectPageDecision` once it knows whether the request holds a session,
+ * a guest token or an invite.
+ *
+ * Anonymous requests to a discoverable project receive the API's locked
  * projection instead of a 404, which keeps project URLs indexable.
  */
 const loadPublicProject = cache(
@@ -38,19 +49,35 @@ const loadPublicProject = cache(
     id: string,
     inviteToken: string | null,
     locale: Locale,
-  ): Promise<PublicProjectDetail | null> => {
+  ): Promise<
+    | { state: 'ok'; project: PublicProjectDetail }
+    | { state: 'missing' }
+    | { state: 'error' }
+  > => {
     try {
       const { accessToken } = await readAuthCookies();
-      return await fetchPublicProjectServer(id, {
+      const project = await fetchPublicProjectServer(id, {
         inviteToken,
         locale,
         accessToken,
       });
+      return project ? { state: 'ok', project } : { state: 'missing' };
     } catch {
-      return null;
+      return { state: 'error' };
     }
   },
 );
+
+/** Cookies that could unlock a non-public project for this caller. */
+async function requestHasProjectCredentials(
+  projectId: string,
+): Promise<boolean> {
+  const [auth, guestToken] = await Promise.all([
+    readAuthCookies().catch(() => ({ accessToken: null, refreshToken: null })),
+    readGuestProjectToken(projectId).catch(() => null),
+  ]);
+  return Boolean(auth.accessToken || auth.refreshToken || guestToken);
+}
 
 function projectDescription(
   project: PublicProjectDetail,
@@ -78,9 +105,14 @@ export async function generateMetadata({
     return noIndexMetadata();
   }
 
-  const project = await loadPublicProject(id, null, locale);
+  const loaded = await loadPublicProject(id, null, locale);
 
-  if (!project || (!isLockedPublicProject(project) && project.isHidden)) {
+  if (loaded.state !== 'ok') {
+    return noIndexMetadata();
+  }
+
+  const project = loaded.project;
+  if (!isLockedPublicProject(project) && project.isHidden) {
     return noIndexMetadata();
   }
 
@@ -101,7 +133,24 @@ export default async function ProjectDetailPage({
   const locale = await resolveServerLocale();
 
   const inviteToken = invite?.trim() || null;
-  const project = await loadPublicProject(id, inviteToken, locale);
+  const loaded = await loadPublicProject(id, inviteToken, locale);
+
+  const hasCredentials =
+    loaded.state === 'missing' && !inviteToken
+      ? await requestHasProjectCredentials(id)
+      : false;
+
+  const decision = resolveProjectPageDecision({
+    state: loaded.state as ProjectPageLoadState,
+    hasCredentials,
+    hasInviteToken: Boolean(inviteToken),
+  });
+
+  if (decision === 'not-found') {
+    notFound();
+  }
+
+  const project = loaded.state === 'ok' ? loaded.project : null;
   const indexable = Boolean(
     project &&
       !inviteToken &&

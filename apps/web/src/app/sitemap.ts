@@ -4,6 +4,10 @@ import {
   fetchPublicProjectServer,
   fetchPublicProjectsServer,
 } from '@/lib/public-projects-server';
+import {
+  shouldListProjectInSitemap,
+  sitemapProjectPriority,
+} from '@/lib/sitemap-crawl-policy';
 import { SITEMAP_PATHS } from '@/lib/seo';
 
 /** Regenerate hourly so new projects and API changes reach crawlers. */
@@ -76,7 +80,10 @@ async function collectProjectEntries(
     }
 
     for (const project of page.items) {
-      if (project.isHidden || seen.has(project.id)) continue;
+      if (seen.has(project.id)) continue;
+      // Archived, hidden and text-less projects are exactly what Search Console
+      // files under "Discovered — currently not indexed"; do not promise them.
+      if (!shouldListProjectInSitemap(project)) continue;
 
       if (lockedViewsAvailable === null) {
         lockedViewsAvailable = await anonymousProjectDetailIsReachable(
@@ -94,7 +101,7 @@ async function collectProjectEntries(
           ? new Date(project.updatedAt)
           : lastModified,
         changeFrequency: 'weekly' as const,
-        priority: 0.6,
+        priority: sitemapProjectPriority(project),
       });
     }
 

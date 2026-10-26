@@ -1,0 +1,7 @@
+Reason,Source,Validation,Pages
+Not found (404),Website,Not Started,2
+Duplicate without user-selected canonical,Website,Not Started,2
+Alternate page with proper canonical tag,Website,Not Started,2
+Blocked by robots.txt,Website,Not Started,1
+Discovered - currently not indexed,Google systems,Not Started,60
+Page with redirect,Website,Started,3
