@@ -517,6 +517,7 @@ export class ProjectLocalizationService implements OnModuleInit {
 
     const response: ProjectResponse = {
       id: project.id,
+      clientId: project.clientId ?? null,
       title: project.title,
       description: project.description,
       projectType: project.projectType,

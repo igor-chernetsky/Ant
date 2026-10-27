@@ -72,6 +72,7 @@ import {
 import { claimGuestProject } from '@/lib/projects';
 import { useSession } from '@/components/SessionProvider';
 import { isContractorUser, isDesignerUser, isAdminUser } from '@/lib/session';
+import { resolveProjectOwnership } from '@/lib/project-ownership';
 import {
   fetchPublicProject,
   fetchContractorParticipantProject,
@@ -271,10 +272,14 @@ export function ProjectDetailPageClient({
           const data = await fetchProject(projectId);
           setProject(data);
           // The API answers the owner's payload to admins as well, so ownership
-          // has to be decided from the project, not from "the call succeeded".
-          const isOwnedByMe = data.client?.id === profile.id;
-          setIsOwner(isOwnedByMe);
-          setIsAdminViewer(!isOwnedByMe && isAdminUser(profile));
+          // comes from the payload (`clientId`), never from "the call succeeded".
+          const ownership = resolveProjectOwnership({
+            projectClientId: data.clientId,
+            viewerId: profile.id,
+            viewerIsAdmin: isAdminUser(profile),
+          });
+          setIsOwner(ownership.isOwner);
+          setIsAdminViewer(ownership.isAdminViewer);
           setIsGuestOwner(false);
           await loadDocuments(true);
           setPageReady(true);

@@ -190,6 +190,13 @@ export class ProjectsService {
 
       id: project.id,
 
+      /**
+       * Owner id. Null for an unclaimed guest draft; present on the owner's and
+       * the admin's payload, which is how the web tells "my project" from "a
+       * project I am allowed to read".
+       */
+      clientId: project.clientId ?? null,
+
       title: project.title,
 
       description: project.description,

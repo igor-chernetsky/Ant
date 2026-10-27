@@ -108,6 +108,12 @@ export type ClarificationMode = 'open_chat' | 'structured_qa';
 
 export interface Project {
   id: string;
+  /**
+   * Owner id from the API; null for an unclaimed guest draft. This is how the
+   * page decides "my project" (owner workspace) versus "a project I may read"
+   * (admin viewer).
+   */
+  clientId?: string | null;
   title: string;
   description: string | null;
   projectType: ProjectType;

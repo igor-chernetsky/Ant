@@ -41,6 +41,8 @@ export interface UpdateProjectDto {
 
 export interface ProjectResponse {
   id: string;
+  /** Owner id; null for an unclaimed guest draft. */
+  clientId: string | null;
   title: string;
   description: string | null;
   projectType: ProjectType;
