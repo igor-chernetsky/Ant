@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -431,7 +432,31 @@ export class EstimatesService {
     );
   }
 
+  /**
+   * One generation per project at a time.
+   *
+   * A recalculation spends up to 30 s inside the model call; a double click (or a
+   * retry while the first request is still running) used to start a second one and
+   * pile up on a small instance. The second caller now gets a clear 409 instead.
+   */
+  private readonly generatingProjects = new Set<string>();
+
   async generateAndStore(projectId: string): Promise<EstimateResponse> {
+    if (this.generatingProjects.has(projectId)) {
+      throw new ConflictException(
+        'An estimate for this project is already being generated',
+      );
+    }
+
+    this.generatingProjects.add(projectId);
+    try {
+      return await this.generateAndStoreNow(projectId);
+    } finally {
+      this.generatingProjects.delete(projectId);
+    }
+  }
+
+  private async generateAndStoreNow(projectId: string): Promise<EstimateResponse> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
       include: {

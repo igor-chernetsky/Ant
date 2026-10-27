@@ -41,6 +41,24 @@ estimated at **80,000–230,000 THB**.
 | Device prices are banded | Solar / EV charger / water heater / generator lines are renamed to their own catalog trade and their price clamped to the documented band (solar: 22,000–38,000 THB/kWp, ×1.15 tolerance) | `normalizeDeviceTradeLines` |
 | Solar priced per m² is converted | A solar line priced per square metre of roof is converted to kWp at 0.2 kWp/m² (`SOLAR_KWP_PER_SQM`) and repriced from the band — the production case was 40 m² × 10,866–18,768 = 434,622–750,711 THB | `normalizeDeviceTradeLines` |
 | Support works around a device are small works | Mounting, sealing and reinforcement next to an installed system are capped at the trade's repair band, unless the same project asks for real building work (build / replace the roof / renovate) | `capDeviceSupportLines` |
+
+### Termination guarantees
+
+The estimate pipeline must always finish: it runs inside the API's single thread, so
+a spin there freezes every request, not just the one being served. `capDominantEstimateLines`
+(the 70 % line-share cap) used to scale a line by a factor that rounding could not
+express — a line a hair above the cap came back identical and the `while` loop ran
+forever. Production hit it while recalculating a rooftop PV estimate whose solar line
+sat at 70.0003 % of the total. Now:
+
+- a pass that changes nothing ends the loop (the overshoot is below one baht);
+- the scale factor is clamped to 0.99 so a real correction always lands;
+- a hard pass cap (`lines × 4 + 8`) bounds the loop regardless.
+
+The same defensive pass cap was added to `dismissTinyEstimateLines`. Generation is
+also single-flight per project (`ConflictException`, 409) so a double click cannot
+start two model calls, and `GET /health/live` answers without touching the database
+so a wedged process reports `unhealthy` instead of silently accepting connections.
 | Premium uplifts stay proportional | `salt` / `UV` / `ozone` / mains-connection signals multiply the line (×1.15–1.7) but no longer add an absolute 40,000–120,000 THB minimum, which made a small job jump regardless of size | `applyPremiumScopePriceAdjustments` |
 | Repair bands skip area trades | The 8–30 % repair fraction applies to unit/point/lump trades only. Painting, tiling, flooring, plastering, ceilings and roofing are labour + material per square metre already — discounting them under-priced the work | `capServiceRepairLines` |
 | Industrial ventilation is gated | A residential narrative can no longer be repriced as industrial supply/exhaust ventilation (that turned an AC repair into 1,200–3,200 THB/sqm over the whole area); service/repair scope never is | `normalizeIndustrialHvacLines` |

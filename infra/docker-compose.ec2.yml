@@ -195,6 +195,20 @@ services:
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
     networks:
       - internal
+    # Liveness probe: /health/live answers from the event loop without touching the
+    # database, so a wedged process is reported unhealthy instead of frozen-silent.
+    # Pair it with an autoheal sidecar (or any external monitor hitting the same
+    # URL) if you want Docker to restart an unhealthy container automatically.
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/health/live').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   caddy:
     image: caddy:2-alpine

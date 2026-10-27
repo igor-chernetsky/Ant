@@ -67,10 +67,15 @@ export function dismissTinyEstimateLines(
     return lines;
   }
 
-  let current = lines.map((line) => ({ ...line }));
+  const current = lines.map((line) => ({ ...line }));
   let changed = true;
+  // Each pass removes at least one line, so this never binds — it exists so a
+  // future change cannot turn the loop into a spin either.
+  let passes = 0;
+  const maxPasses = lines.length + 1;
 
-  while (changed && current.length > 1) {
+  while (changed && current.length > 1 && passes < maxPasses) {
+    passes += 1;
     changed = false;
     const totalMid = current.reduce((sum, line) => sum + lineMid(line), 0);
     if (!(totalMid > 0)) {
@@ -83,7 +88,7 @@ export function dismissTinyEstimateLines(
     if (keep.length === 0 || keep.length === current.length) {
       break;
     }
-    current = keep;
+    current.splice(0, current.length, ...keep);
     changed = true;
   }
 
@@ -92,17 +97,23 @@ export function dismissTinyEstimateLines(
 
 /**
  * Scales down any line that exceeds the max share for the current line count.
+ *
+ * Rounding can make the required correction smaller than one baht: a line a hair
+ * above the cap comes back unchanged after scaling. This loop used to keep going
+ * in that case — a synchronous spin on a single-threaded node, which froze the
+ * whole API process (production incident: the estimate recalculation stopped
+ * answering for every user). A pass that changes nothing now ends the loop, and a
+ * hard pass cap bounds the rest.
  */
 export function capDominantEstimateLines(lines: EstimateLine[]): EstimateLine[] {
   if (lines.length < 3) {
     return lines;
   }
 
-  let current = lines.map((line) => ({ ...line }));
-  let changed = true;
+  const current = lines.map((line) => ({ ...line }));
+  const maxPasses = lines.length * 4 + 8;
 
-  while (changed) {
-    changed = false;
+  for (let pass = 0; pass < maxPasses; pass += 1) {
     const mids = current.map(lineMid);
     const totalMid = mids.reduce((sum, value) => sum + value, 0);
     if (!(totalMid > 0)) {
@@ -114,6 +125,8 @@ export function capDominantEstimateLines(lines: EstimateLine[]): EstimateLine[] 
       break;
     }
 
+    let changed = false;
+
     for (let i = 0; i < current.length; i += 1) {
       const share = mids[i] / totalMid;
       if (share <= maxShare) {
@@ -121,9 +134,32 @@ export function capDominantEstimateLines(lines: EstimateLine[]): EstimateLine[] 
       }
       const otherMid = totalMid - mids[i];
       const targetMid = (maxShare * otherMid) / (1 - maxShare);
-      const factor = targetMid / mids[i];
-      current[i] = scaleLineByFactor(current[i], factor);
+      /**
+       * A line sitting a hair above the cap makes `targetMid` almost equal to its
+       * own mid, so the factor comes out as 0.99999… (or, on a float edge, above 1).
+       * Clamping keeps the correction real; the no-progress check below still ends
+       * the loop when rounding cannot express it.
+       */
+      const factor = Math.min(0.99, targetMid / mids[i]);
+      const scaled = scaleLineByFactor(current[i], factor);
+
+      // Nothing moved: the overshoot is smaller than the rounding step, so stop
+      // instead of spinning (this is what froze the API in production).
+      if (
+        scaled.lineMin === current[i].lineMin &&
+        scaled.lineMax === current[i].lineMax &&
+        scaled.unitPriceMin === current[i].unitPriceMin &&
+        scaled.unitPriceMax === current[i].unitPriceMax
+      ) {
+        return current;
+      }
+
+      current[i] = scaled;
       changed = true;
+      break;
+    }
+
+    if (!changed) {
       break;
     }
   }
