@@ -8,12 +8,6 @@ export interface MeResponse {
   isContractor?: boolean;
   isDesigner?: boolean;
   preferredLocale?: string;
-  /**
-   * Null until the client has been taken straight to their newest project once
-   * after registering. The home page uses it to open the guest draft they just
-   * claimed, and then marks it seen.
-   */
-  workspaceIntroAt?: string | null;
 }
 
 /**
@@ -204,24 +198,6 @@ export async function fetchSessionProfile(): Promise<MeResponse | null> {
   return response.json() as Promise<MeResponse>;
 }
 
-/**
- * Mark the "you were taken to your project" intro as done.
- *
- * Idempotent server-side; a failure is not fatal — the worst case is that the
- * redirect happens again on the next visit.
- */
-export async function markWorkspaceIntroSeen(): Promise<void> {
-  const response = await fetch('/api/me/workspace-intro', {
-    method: 'POST',
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Failed to mark the workspace intro (${response.status})`,
-    );
-  }
-}
-
 export async function loginWithPassword(
   username: string,
   password: string,
@@ -245,6 +221,20 @@ export async function loginWithPassword(
       code: body?.code,
       retryAfterSec: readRetryAfterSec(response, body),
     });
+  }
+
+  /**
+   * The BFF resolves the first-visit redirect while signing in (it has just
+   * claimed the guest draft and marked the intro), so the client only follows it.
+   * A full navigation keeps the freshly set auth cookies and the session provider
+   * in sync.
+   */
+  const body = (await response.json().catch(() => null)) as {
+    redirectTo?: string;
+  } | null;
+  const redirectTo = body?.redirectTo;
+  if (redirectTo && /^\/projects\/[^/]+$/.test(redirectTo) && typeof window !== 'undefined') {
+    window.location.assign(redirectTo);
   }
 }
 

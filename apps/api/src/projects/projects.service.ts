@@ -1320,11 +1320,72 @@ export class ProjectsService {
     };
   }
 
+  /**
+   * Recent creates, keyed by caller + content signature.
+   *
+   * A double click (or a retried request) used to create two projects from the
+   * same form: two cards with identical input and their own estimates. A repeat
+   * within the window returns the project that already exists instead. Scoped by
+   * account or by connection, so two different visitors never share a project.
+   * Relies on the API running as one instance (single `api` container).
+   */
+  private readonly recentCreates = new Map<
+    string,
+    { projectId: string; at: number }
+  >();
+
+  private static readonly RECENT_CREATE_WINDOW_MS = 5 * 60 * 1000;
+
+  private createSignature(dto: CreateProjectDto): string {
+    const normalize = (value: string | null | undefined): string =>
+      (value ?? '').trim().toLowerCase().replaceAll(/\s+/g, ' ');
+    return [
+      normalize(dto.title),
+      normalize(dto.description),
+      dto.projectType ?? '',
+      dto.propertyType ?? '',
+      dto.regionCode ?? '',
+      dto.locationRegionSlug ?? '',
+      dto.locationAreaSlug ?? '',
+      dto.district ?? '',
+    ].join('|');
+  }
+
+  /** Project created from the same input by the same caller moments ago. */
+  private recentCreateFor(scope: string, dto: CreateProjectDto): string | null {
+    const now = Date.now();
+    for (const [key, entry] of this.recentCreates) {
+      if (now - entry.at > ProjectsService.RECENT_CREATE_WINDOW_MS) {
+        this.recentCreates.delete(key);
+      }
+    }
+    const entry = this.recentCreates.get(`${scope}:${this.createSignature(dto)}`);
+    return entry ? entry.projectId : null;
+  }
+
+  private rememberCreate(
+    scope: string,
+    dto: CreateProjectDto,
+    projectId: string,
+  ): void {
+    this.recentCreates.set(`${scope}:${this.createSignature(dto)}`, {
+      projectId,
+      at: Date.now(),
+    });
+  }
+
   async createForClient(
     clientId: string,
     dto: CreateProjectDto,
     sourceLocale: SupportedLocale = 'en',
   ): Promise<ProjectResponse> {
+    const duplicateId = this.recentCreateFor(`client:${clientId}`, dto);
+    if (duplicateId) {
+      // Double click / retry: the project already exists, so do not create a
+      // second card with the same input.
+      return this.getForClient(clientId, duplicateId);
+    }
+
     const project = await this.createProjectRecord({
       clientId,
       guestTokenHash: null,
@@ -1332,6 +1393,8 @@ export class ProjectsService {
       dto,
       sourceLocale,
     });
+
+    this.rememberCreate(`client:${clientId}`, dto, project.id);
 
     await this.intakeService.runInitialIntakeForProject(project.id);
 
@@ -1346,8 +1409,32 @@ export class ProjectsService {
   async createForGuest(
     dto: CreateProjectDto,
     sourceLocale: SupportedLocale = 'en',
-    options?: { allowAi?: boolean },
+    options?: { allowAi?: boolean; connectionKey?: string },
   ): Promise<{ project: ProjectResponse; guestToken: string }> {
+    const scope = `guest:${options?.connectionKey ?? 'unknown'}`;
+    const duplicateId = this.recentCreateFor(scope, dto);
+    if (duplicateId) {
+      // A retry of the same form (or a double click): reuse the draft and hand out
+      // a fresh token, so this browser can open it even if the first response was
+      // lost. Without this the same input produced two cards with two estimates.
+      const guestToken = createGuestProjectToken();
+      const rotated = await this.prisma.project.updateMany({
+        where: { id: duplicateId, clientId: null },
+        data: {
+          guestTokenHash: hashGuestProjectToken(guestToken),
+          guestExpiresAt: guestProjectExpiry(),
+        },
+      });
+      if (rotated.count > 0) {
+        const project = await this.getForViewer(
+          guestViewer(duplicateId),
+          duplicateId,
+          sourceLocale,
+        );
+        return { project, guestToken };
+      }
+    }
+
     const guestToken = createGuestProjectToken();
     const project = await this.createProjectRecord({
       clientId: null,
@@ -1356,6 +1443,8 @@ export class ProjectsService {
       dto,
       sourceLocale,
     });
+
+    this.rememberCreate(scope, dto, project.id);
 
     await this.intakeService.runInitialIntakeForProject(project.id, {
       allowAi: options?.allowAi,
@@ -1792,7 +1881,42 @@ export class ProjectsService {
       },
     });
 
+    await this.promoteClaimedDrafts([projectId]);
+
     return this.getForClient(clientId, projectId);
+  }
+
+  /**
+   * A claimed guest draft is not a draft any more: it is a project of an account.
+   *
+   * The status only moves forward from `draft`. A project that already has an
+   * estimate becomes `estimated`; otherwise it is `intake` — the client still has
+   * intake questions to answer, but nothing is "just an anonymous draft" now.
+   */
+  private async promoteClaimedDrafts(projectIds: string[]): Promise<void> {
+    if (projectIds.length === 0) {
+      return;
+    }
+
+    await this.prisma.project.updateMany({
+      where: { id: { in: projectIds }, status: ProjectStatus.draft },
+      data: { status: ProjectStatus.intake },
+    });
+
+    const withEstimate = await this.prisma.estimate.findMany({
+      where: { projectId: { in: projectIds } },
+      select: { projectId: true },
+      distinct: ['projectId'],
+    });
+    const estimatedIds = [...new Set(withEstimate.map((row) => row.projectId))];
+    if (estimatedIds.length === 0) {
+      return;
+    }
+
+    await this.prisma.project.updateMany({
+      where: { id: { in: estimatedIds }, status: ProjectStatus.intake },
+      data: { status: ProjectStatus.estimated },
+    });
   }
 
   /**
@@ -1842,6 +1966,12 @@ export class ProjectsService {
       return 0;
     }
 
+    // The ids are needed after the claim, to promote the drafts off `draft`.
+    const tagged = await this.prisma.project.findMany({
+      where: { clientId: null, guestClaimEmail: claimEmail },
+      select: { id: true },
+    });
+
     const result = await this.prisma.project.updateMany({
       where: { clientId: null, guestClaimEmail: claimEmail },
       data: {
@@ -1851,6 +1981,8 @@ export class ProjectsService {
         guestExpiresAt: null,
       },
     });
+
+    await this.promoteClaimedDrafts(tagged.map((row) => row.id));
 
     return result.count;
   }

@@ -85,25 +85,27 @@ export async function readGuestProjectTokens(): Promise<GuestProjectTokens> {
  * the address and hands the project to that account at the next authenticated
  * visit. Best effort: a failure must never block signup.
  */
-export async function tagGuestProjectsWithEmail(email: string): Promise<void> {
+export async function tagGuestProjectsWithEmail(
+  email: string,
+): Promise<string[]> {
   const normalized = email.trim().toLowerCase();
   // Sign-in also accepts a Keycloak username; only an address can be matched to
   // an account later.
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
-    return;
+    return [];
   }
 
   const tokens = await readTokens();
   const entries = Object.entries(tokens);
   if (entries.length === 0) {
-    return;
+    return [];
   }
 
   const base = getBackendApiUrl();
-  await Promise.all(
-    entries.map(async ([projectId, token]) => {
+  const tagged = await Promise.all(
+    entries.map(async ([projectId, token]): Promise<string | null> => {
       try {
-        await fetch(
+        const response = await fetch(
           `${base}/v1/guest/projects/${encodeURIComponent(projectId)}/claim-email`,
           {
             method: 'POST',
@@ -115,11 +117,66 @@ export async function tagGuestProjectsWithEmail(email: string): Promise<void> {
             cache: 'no-store',
           },
         );
+        if (!response.ok) {
+          return null;
+        }
+        const body = (await response.json().catch(() => null)) as {
+          tagged?: boolean;
+        } | null;
+        // `tagged: false` means the project already has an owner: its token is
+        // just as stale as a freshly tagged one.
+        if (body?.tagged === true || body?.tagged === false) {
+          return projectId;
+        }
+        return null;
       } catch {
         // The draft stays reachable through the cookie instead.
+        return null;
       }
     }),
   );
+
+  return tagged.filter((id): id is string => id != null);
+}
+
+/**
+ * Forget the guest tokens of projects that are now reachable through the account.
+ *
+ * Called right after sign-in with the tagged ids: the project is now claimed by
+ * e-mail, so keeping a local draft reference only leaves a stale cookie behind
+ * (it used to survive the claim for up to 24 hours).
+ */
+export async function clearGuestProjectTokens(
+  projectIds: string[],
+): Promise<void> {
+  if (projectIds.length === 0) {
+    return;
+  }
+
+  const tokens = await readTokens();
+  let changed = false;
+  for (const projectId of projectIds) {
+    if (projectId in tokens) {
+      delete tokens[projectId];
+      changed = true;
+    }
+  }
+  if (!changed) {
+    return;
+  }
+
+  const jar = await cookies();
+  if (Object.keys(tokens).length === 0) {
+    jar.delete(GUEST_PROJECT_COOKIE);
+    return;
+  }
+  jar.set(GUEST_PROJECT_COOKIE, encode(tokens), {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: GUEST_PROJECT_TTL_SEC,
+  });
 }
 
 /**

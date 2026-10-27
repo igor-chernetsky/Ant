@@ -59,7 +59,7 @@ export class GuestProjectsController {
     const { project, guestToken } = await this.projectsService.createForGuest(
       body,
       locale,
-      { allowAi: true },
+      { allowAi: true, connectionKey: ip },
     );
 
     return { project, guestToken };

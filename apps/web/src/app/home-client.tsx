@@ -13,7 +13,6 @@ import { useTranslation } from '@/components/LocaleProvider';
 import {
   canCreateProject,
   isSupplySideUser,
-  markWorkspaceIntroSeen,
 } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
 import {
@@ -102,8 +101,6 @@ export function HomePageClient({
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  /** Guards the once-per-account redirect to the claimed guest draft. */
-  const workspaceIntroHandled = useRef(false);
   /** Project the visitor filled in before signing up / adding the client role. */
   const [pendingDraft, setPendingDraft] = useState<CreateProjectInput | null>(
     null,
@@ -280,28 +277,8 @@ export function HomePageClient({
         const tasks: Promise<void>[] = [];
         if (canCreateProject(me)) {
           tasks.push(
-            fetchProjects().then(async (mine) => {
+            fetchProjects().then((mine) => {
               setOwnedProjectIds(new Set(mine.map((project: Project) => project.id)));
-
-              /**
-               * First visit after registering: the guest draft was just claimed by
-               * email (the list call above does the claim), so open the newest
-               * project straight away instead of leaving the client on the home
-               * page wondering where it went. Runs once per account.
-               */
-              if (
-                me.workspaceIntroAt == null &&
-                mine.length > 0 &&
-                !workspaceIntroHandled.current
-              ) {
-                workspaceIntroHandled.current = true;
-                try {
-                  await markWorkspaceIntroSeen();
-                } catch {
-                  // Not fatal: the redirect simply repeats on the next visit.
-                }
-                router.replace(`/projects/${encodeURIComponent(mine[0].id)}`);
-              }
             }),
           );
         } else {

@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ProjectLocationFields } from '@/components/ProjectLocationFields';
 import { useTranslation } from '@/components/LocaleProvider';
@@ -88,6 +88,8 @@ export function CreateProjectModal({
   const [restoredDraft, setRestoredDraft] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  /** Blocks a second submit before `creating` is on screen (double click). */
+  const submitLocked = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -151,7 +153,15 @@ export function CreateProjectModal({
     event.preventDefault();
     setError(null);
 
+    // A second click can land before React re-renders the disabled button, which
+    // used to create the same project twice (two cards, two estimates).
+    if (submitLocked.current) {
+      return;
+    }
+    submitLocked.current = true;
+
     if (!propertyType) {
+      submitLocked.current = false;
       setError(t('createProject.propertyTypeRequired'));
       return;
     }
@@ -184,11 +194,13 @@ export function CreateProjectModal({
         );
       } finally {
         setCreating(false);
+        submitLocked.current = false;
       }
       return;
     }
 
     if (me && !canCreateProject(me) && onRequireClientRole) {
+      submitLocked.current = false;
       onRequireClientRole(input);
       return;
     }
@@ -223,6 +235,7 @@ export function CreateProjectModal({
       );
     } finally {
       setCreating(false);
+      submitLocked.current = false;
     }
   };
 

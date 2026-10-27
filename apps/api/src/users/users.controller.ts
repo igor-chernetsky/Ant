@@ -42,9 +42,10 @@ export class UsersController {
   }
 
   /**
-   * The client has been taken to their newest project after registering. Called
-   * by the web app right before it navigates, so the redirect happens once per
-   * account rather than on every visit.
+   * The client has been taken to their newest project after registering.
+   *
+   * Called by the BFF login route inside the same request that signs the user in,
+   * so the redirect happens once per account and never repeats on later visits.
    */
   @Post('me/workspace-intro')
   @UseGuards(JwtAuthGuard)

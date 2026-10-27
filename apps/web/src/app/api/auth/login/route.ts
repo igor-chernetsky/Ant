@@ -13,7 +13,11 @@ import {
 } from '@/lib/auth-tokens';
 import { createMemoryRateLimiter } from '@/lib/rate-limit';
 import { clientIp } from '@/lib/request-ip';
-import { tagGuestProjectsWithEmail } from '@/lib/guest-project';
+import {
+  clearGuestProjectTokens,
+  tagGuestProjectsWithEmail,
+} from '@/lib/guest-project';
+import { resolveWorkspaceIntroRedirect } from '@/lib/workspace-intro';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,10 +151,25 @@ export async function POST(request: Request) {
   }
 
   // Signing in adopts any draft this browser started as a guest: the API hands
-  // tagged projects to the account on the next project list / project view.
-  await tagGuestProjectsWithEmail(username);
+  // tagged projects to the account on the next project list / project view. The
+  // local guest tokens are dropped as soon as the address is recorded, so a stale
+  // draft reference cannot outlive the claim.
+  const taggedProjects = await tagGuestProjectsWithEmail(username);
+  if (taggedProjects.length > 0) {
+    await clearGuestProjectTokens(taggedProjects);
+  }
 
-  const response = NextResponse.json({ ok: true });
+  // First sign-in of a client: open the project they just claimed. Resolved here,
+  // in the same request, so the marker is written before the browser navigates and
+  // the home page stays reachable on every later visit.
+  const accessToken = result.tokens.access_token;
+  const redirectTo = accessToken
+    ? await resolveWorkspaceIntroRedirect(accessToken)
+    : null;
+
+  const response = NextResponse.json(
+    redirectTo ? { ok: true, redirectTo } : { ok: true },
+  );
   await persistAndApplyAuthCookies(result.tokens, response);
   return response;
 }

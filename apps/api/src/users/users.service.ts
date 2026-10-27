@@ -242,7 +242,9 @@ export class UsersService {
    * Record that the client has been taken to their newest project once.
    *
    * `updateMany` + `workspaceIntroAt: null` makes it idempotent: a second call (or
-   * two tabs racing) simply matches no rows, so the redirect cannot repeat.
+   * two tabs racing) simply matches no rows, so the redirect cannot repeat. The
+   * BFF login route asks this before answering, which is what keeps the intro a
+   * one-time event instead of a redirect on every visit.
    */
   async markWorkspaceIntroSeen(userId: string): Promise<{ marked: boolean }> {
     const result = await this.prisma.user.updateMany({

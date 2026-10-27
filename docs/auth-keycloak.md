@@ -131,14 +131,31 @@ path are left alone) and offers three actions:
 With an estimate already calculated the draft is **not** deleted: the AI work is
 kept for the rest of its 24 hours and the destructive button reads "Leave anyway".
 
-**First visit after registering.** `User.workspaceIntroAt` (null until set) makes
-the client's first visit open their newest project instead of the home page: the
-home page fetches the project list (which also claims the guest draft by email),
-and when `me.workspaceIntroAt == null` and the list is not empty it calls
-`POST /api/me/workspace-intro` and replaces the route with
-`/projects/:id` (newest first — the list is ordered by `updatedAt`). Marking is
-idempotent (`updateMany` where the column is null), so it happens once per
-account, on any device.
+**After signing in, a client is taken to their newest project once.** The redirect
+is resolved inside the login request (`apps/web/src/lib/workspace-intro.ts`): the
+BFF reads `GET /v1/me`, and when `workspaceIntroAt` is null and the account has the
+`client` role it calls `GET /v1/projects` (which also claims the drafts tagged with
+the address), marks `POST /v1/me/workspace-intro`, and answers `{ redirectTo }`. The
+browser then does a full navigation there. Because the marker is written before the
+answer, the home page is reachable on every later visit — the earlier client-side
+version marked it *after* navigating and re-triggered the redirect on each visit.
+
+Two details keep the claimed draft from coming back as a *second* card:
+
+- `claimGuestProjectsByEmail` / `claimGuestProject` promote the claimed row off
+  `draft` — `intake` when the intake is unfinished, `estimated` when an estimate
+  already exists — so an adopted draft never reads as "черновик" again;
+- a repeated create from the same account (or the same connection, for guests) with
+  identical input within five minutes returns the project that already exists
+  instead of making another one — a double click used to produce two cards with the
+  same input and two different estimates. The guest retry also gets a freshly
+  rotated token, so the draft stays reachable even if the first response was lost;
+- the browser drops its local guest tokens for claimed projects right after sign-in
+  (`clearGuestProjectTokens`) and whenever a signed-in caller opens the project
+  (`GET /api/projects/:id` clears that entry);
+- `POST /api/guest/projects` creates the project **in the account** when a session
+  is present (the API enforces `@Roles('client')`), so a signed-in visitor can no
+  longer produce an anonymous draft that gets claimed as a duplicate later.
 
 `POST /v1/projects` enforces `@Roles('client')` (`projects.controller.ts`), so
 the dialogs cannot be bypassed with a direct API call.
