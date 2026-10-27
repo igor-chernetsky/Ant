@@ -1397,6 +1397,8 @@ export const ruExtended = {
     constraints: "Ограничения",
     notes: "Примечания",
     stillNeeded: "Ещё нужно для оценки",
+    intakeAnswers: "Ответы на вопросы",
+    answerSkipped: "пропущено",
     yes: "Да",
     no: "Нет",
     sqm: "кв. м",

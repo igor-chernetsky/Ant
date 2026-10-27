@@ -130,6 +130,15 @@ export interface Project {
   scopeSummary: string | null;
   tags: ProjectTag[];
   estimate: BallparkEstimate | null;
+  /**
+   * Owner row from the API (present on the owner's and the admin's payload, so
+   * the page can tell "my project" from "a project I am allowed to read").
+   */
+  client?: {
+    id: string;
+    displayName: string | null;
+    email: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
   guestInviteAccess?: {

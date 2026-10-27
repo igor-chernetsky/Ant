@@ -1392,6 +1392,8 @@ export const enExtended = {
     constraints: "Constraints",
     notes: "Notes",
     stillNeeded: "Still needed for estimate",
+    intakeAnswers: "Intake answers",
+    answerSkipped: "skipped",
     yes: "Yes",
     no: "No",
     sqm: "sqm",

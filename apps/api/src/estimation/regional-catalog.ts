@@ -4,6 +4,12 @@ export interface RegionalCatalogItem {
   unit: string;
   priceMinThb: number;
   priceMaxThb: number;
+  /**
+   * Where the band comes from. The catalog is the only price source the estimate
+   * has, so a band must be explainable rather than invented: write the market
+   * basis and the review date here.
+   */
+  source?: string;
 }
 
 /** MVP regional reference prices (THB) — not a quote, for AI + fallback only. */
@@ -168,6 +174,43 @@ export const TH_REGIONAL_CATALOG: RegionalCatalogItem[] = [
     priceMaxThb: 1400,
   },
   {
+    trade: 'solar',
+    label:
+      'Rooftop solar PV system, installed (panels, inverter, mounting, electrical tie-in)',
+    unit: 'kwp',
+    priceMinThb: 22000,
+    priceMaxThb: 38000,
+    source:
+      'Thai residential rooftop PV market range per kWp, Q3 2026 (panels + inverter + mounting + tie-in); per-unit price for a device, never priced over the floor area. Review against current installer quotes before relying on it.',
+  },
+  {
+    trade: 'ev-charger',
+    label: 'EV wall charger, installed (7–11 kW)',
+    unit: 'unit',
+    priceMinThb: 22000,
+    priceMaxThb: 65000,
+    source:
+      'Thai market range for an installed AC wallbox including cabling and breaker, Q3 2026.',
+  },
+  {
+    trade: 'water-heater',
+    label: 'Electric water heater, installed',
+    unit: 'unit',
+    priceMinThb: 6000,
+    priceMaxThb: 18000,
+    source:
+      'Thai retail + installation range for a residential electric water heater, Q3 2026.',
+  },
+  {
+    trade: 'generator',
+    label: 'Standby generator, installed (domestic)',
+    unit: 'unit',
+    priceMinThb: 25000,
+    priceMaxThb: 120000,
+    source:
+      'Thai market range for a small standby genset with installation, Q3 2026.',
+  },
+  {
     trade: 'other',
     label:
       'Other explicitly requested systems (priced lump — do not fold into finishing)',
@@ -195,6 +238,7 @@ Notes:
 - piling / earthwork / low-voltage / built-in-furniture / plastering / ceilings: use dedicated lines when those trades are in scope.
 - other: use for explicitly requested systems that are not a catalog trade. Keep a separate priced line — do not remap to finishing.
 - hvac: residential split AC = per unit (18–45k). Supply/exhaust / industrial / warehouse ventilation MUST be priced per sqm (about 1,200–3,200 THB/sqm), never as a single 30–45k unit.
+- solar / ev-charger / water-heater / generator: these are installed devices — price per kWp or per unit from the band. Never convert them into "electrical works over the floor area": a 5 kWp system is 5 × band, not 50 sqm × electrical rate.
 - electrical: prefer ONE consolidated electrical line per project for base wiring/board/lighting. Do not stack duplicate electrical lines. For warehouses / light industrial without heavy process equipment, use ~550–1,600 THB/sqm (lighting, sockets, small boards) — NOT the residential fit-out band (2,200–6,500).
 - structural / roofing: quantity = GFA sqm (resolvedAreaSqm). Never quantity=1 with catalog unit rates as the line total. Building height answers adjust complexity/unit rate only.
 - Prefer multiple MEP lines when scope is detailed (e.g. wiring+board, specialty lighting, utility connection, filtration/treatment) rather than one shallow aggregate.`;

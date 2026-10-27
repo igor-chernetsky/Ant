@@ -138,6 +138,11 @@ export function ProjectDetailPageClient({
    * anonymous owner until they register and claim it.
    */
   const [isGuestOwner, setIsGuestOwner] = useState(false);
+  /**
+   * Platform admin watching somebody else's project: full read access to the
+   * workspace (answers, estimate), but not the client's own actions.
+   */
+  const [isAdminViewer, setIsAdminViewer] = useState(false);
   const [adminInviteOpen, setAdminInviteOpen] = useState(false);
   const [pageReady, setPageReady] = useState(Boolean(initialProject));
   const [completion, setCompletion] =
@@ -158,12 +163,25 @@ export function ProjectDetailPageClient({
       // Invite guests (even if signed in) need the public+invite ACL.
       const useAuthenticatedList =
         authenticated && !inviteToken?.trim();
-      const list = useAuthenticatedList
-        ? await fetchProjectDocuments(projectId)
-        : await fetchPublicProjectDocuments(projectId, {
+      try {
+        const list = useAuthenticatedList
+          ? await fetchProjectDocuments(projectId)
+          : await fetchPublicProjectDocuments(projectId, {
+              inviteToken,
+            });
+        setDocuments(list.filter((d) => d.status === 'uploaded'));
+      } catch {
+        // Owner list denied (an admin watching the project, an expired token):
+        // fall back to the public documents instead of failing the whole page.
+        try {
+          const list = await fetchPublicProjectDocuments(projectId, {
             inviteToken,
           });
-      setDocuments(list.filter((d) => d.status === 'uploaded'));
+          setDocuments(list.filter((d) => d.status === 'uploaded'));
+        } catch {
+          setDocuments([]);
+        }
+      }
     },
     [projectId, inviteToken],
   );
@@ -194,6 +212,7 @@ export function ProjectDetailPageClient({
       setDocuments([]);
       setIsOwner(false);
       setIsGuestOwner(false);
+      setIsAdminViewer(false);
       setPageReady(false);
     }
 
@@ -237,6 +256,7 @@ export function ProjectDetailPageClient({
         setProject(data);
         setIsOwner(false);
         setIsGuestOwner(true);
+        setIsAdminViewer(false);
         await loadDocuments(true);
         setPageReady(true);
         return true;
@@ -250,7 +270,11 @@ export function ProjectDetailPageClient({
         try {
           const data = await fetchProject(projectId);
           setProject(data);
-          setIsOwner(true);
+          // The API answers the owner's payload to admins as well, so ownership
+          // has to be decided from the project, not from "the call succeeded".
+          const isOwnedByMe = data.client?.id === profile.id;
+          setIsOwner(isOwnedByMe);
+          setIsAdminViewer(!isOwnedByMe && isAdminUser(profile));
           setIsGuestOwner(false);
           await loadDocuments(true);
           setPageReady(true);
@@ -270,7 +294,8 @@ export function ProjectDetailPageClient({
         return;
       }
 
-      // Admins open any publicly discoverable / ACL-allowed project via public API.
+      // Fallback for an admin the owner path did not serve (e.g. a project the
+      // ACL exposes publicly): read it through the public endpoint.
       if (profile && isAdminUser(profile)) {
         try {
           const data = await fetchPublicProject(projectId, { inviteToken });
@@ -280,6 +305,7 @@ export function ProjectDetailPageClient({
           }
           setProject(data);
           setIsOwner(false);
+          setIsAdminViewer(true);
           setIsGuestOwner(false);
           await loadDocuments(true);
           setPageReady(true);
@@ -613,16 +639,24 @@ export function ProjectDetailPageClient({
     }
   }
   const estimate = project?.estimate ?? null;
-  /** Owner work a guest may do too: intake, documents, card, estimate view. */
-  const canManageWorkspace = isOwner || isGuestOwner;
+  /**
+   * Workspace visibility: the owner, the guest who created the draft, and an
+   * admin watching the project (read access to answers and the estimate).
+   */
+  const canManageWorkspace = isOwner || isGuestOwner || isAdminViewer;
+  /**
+   * Actions that only the client may perform: an admin viewer sees the same
+   * information but not buttons whose server endpoint would refuse them.
+   */
+  const canActAsOwner = isOwner || isGuestOwner;
   const intakeActive =
-    canManageWorkspace && project ? isIntakeActive(project) : false;
+    canActAsOwner && project ? isIntakeActive(project) : false;
   const showDelete =
-    canManageWorkspace && project ? canDeleteProject(project) : false;
+    canActAsOwner && project ? canDeleteProject(project) : false;
   const showLifecycle =
     isOwner && project ? canManageProjectLifecycle(project) : false;
   const showDocDelete =
-    canManageWorkspace && project ? canDeleteDocument(project) : false;
+    canActAsOwner && project ? canDeleteDocument(project) : false;
   const brief = project?.brief ?? null;
   const showTender =
     isOwner && project
@@ -754,7 +788,7 @@ export function ProjectDetailPageClient({
                     ? t('projectDetail.tagsRefreshHint')
                     : null
                 }
-                canEditCard={canManageWorkspace}
+                canEditCard={canActAsOwner}
                 onCardUpdated={setProject}
                 includeSidebar={false}
                 stageStatus={canManageWorkspace ? project.status : null}
@@ -791,14 +825,14 @@ export function ProjectDetailPageClient({
                   <div className="doc-section-intro">
                     <h2 className="section-title">{t('documents.title')}</h2>
                     <p className="muted doc-hint">
-                      {canManageWorkspace
+                      {canActAsOwner
                         ? t('documents.ownerHint', {
                             maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
                           })
                         : t('documents.publicHint')}
                     </p>
                   </div>
-                  {canManageWorkspace && (
+                  {canActAsOwner && (
                     <div className="doc-upload-row">
                       <label>
                         {t('documents.category')}
@@ -849,7 +883,8 @@ export function ProjectDetailPageClient({
                           projectId={projectId}
                           document={doc}
                           publicView={
-                            authState !== 'authenticated' && !isGuestOwner
+                            (authState !== 'authenticated' && !isGuestOwner) ||
+                            isAdminViewer
                           }
                           scopePackages={packagesByDocumentId.get(doc.id) ?? []}
                           insight={insightByDocumentId.get(doc.id)}

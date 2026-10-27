@@ -35,6 +35,7 @@ export class EstimatesController {
       user.id,
       projectId,
       locale,
+      { isAdmin: user.keycloakRoles.includes('admin') },
     );
     return estimate ?? { estimate: null };
   }

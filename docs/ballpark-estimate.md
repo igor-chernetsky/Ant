@@ -36,6 +36,11 @@ estimated at **80,000–230,000 THB**.
 | Minor-scope anchor | A job with no stated area and at most a few units may not exceed what *replacing* the items in scope would cost. One absolute check, independent of line shares | `capMinorScopeTotal` |
 | No GFA rescale on repairs | The "qty=1 lump → whole floor area" rescue is skipped when the scope is a repair | `normalizeUnderpricedSqmShellLines({ skipGfaRescale })` |
 | Small jobs keep their own electrical quantity | Electrical lines are no longer forced to the building area on a small job | `dedupeAndCapElectricalLines({ forceAreaQuantity })` |
+| Electrical priced by area only for the package | Area pricing applies to a new build, an extension/fit-out, a whole-building job or re-wiring/board wording. A single circuit, socket or appliance supply is priced by its own quantity | `shouldPriceElectricalByArea` |
+| Device lines are not electrical works | An `electrical` line that describes a device (solar, inverter, EV charger, water heater, generator, pump, socket, light fixture) is excluded from the electrical merge, so it is never re-expressed as "floor area × rate" | `isElectricalDeviceLine` |
+| Device prices are banded | Solar / EV charger / water heater / generator lines are renamed to their own catalog trade and their price clamped to the documented band (solar: 22,000–38,000 THB/kWp, ×1.15 tolerance) | `normalizeDeviceTradeLines` |
+| Premium uplifts stay proportional | `salt` / `UV` / `ozone` / mains-connection signals multiply the line (×1.15–1.7) but no longer add an absolute 40,000–120,000 THB minimum, which made a small job jump regardless of size | `applyPremiumScopePriceAdjustments` |
+| Repair bands skip area trades | The 8–30 % repair fraction applies to unit/point/lump trades only. Painting, tiling, flooring, plastering, ceilings and roofing are labour + material per square metre already — discounting them under-priced the work | `capServiceRepairLines` |
 | Industrial ventilation is gated | A residential narrative can no longer be repriced as industrial supply/exhaust ventilation (that turned an AC repair into 1,200–3,200 THB/sqm over the whole area); service/repair scope never is | `normalizeIndustrialHvacLines` |
 | Building work never counts as "minor" | `new_build` / `extension` / `commercial_fitout` and any install/replace/renovate wording are building-scale by definition, even without a stated area | `describeScopeVolume` |
 
@@ -58,6 +63,29 @@ post-processing corrects it.
 | Bathroom renovation, 12 sqm | 34,800–117,600 | unchanged |
 | Office fit-out 300 sqm | 1,110,000–3,300,000 | unchanged |
 | Warehouse ventilation (real facility) | 1,850,000–4,350,000 | unchanged |
+| Solar 5 kW system (reported inflation) | 284,375–406,250 | 22,000–43,700 |
+| Replace one socket | 110,000–325,000 | 800–2,500 |
+| Install two smoke detectors | 110,000–200,000 | 4,400–8,000 |
+| Water heater + mains connection | 230,975 (mid) | 7,000–17,150 |
+| Small bathroom + salt filter | 45,750–72,600 | 3,750–12,600 |
+| Repaint one room, 12 sqm | 120–1,260 (under-priced) | 1,440–4,200 |
+
+## Catalog provenance
+
+`regional-catalog.ts` is the only price source the estimate has, so every band
+carries a `source` note (market basis + review date). The devices that used to be
+folded into `electrical` now have their own trades:
+
+| Trade | Unit | Band (THB) |
+|-------|------|-----------|
+| `solar` | kWp | 22,000–38,000 |
+| `ev-charger` | unit | 22,000–65,000 |
+| `water-heater` | unit | 6,000–18,000 |
+| `generator` | unit | 25,000–120,000 |
+
+The bands are market ranges for Thailand recorded in Q3 2026 and still need a
+periodic review against installer quotes; the `source` text is where that review
+date lives.
 
 ## Who sees what
 

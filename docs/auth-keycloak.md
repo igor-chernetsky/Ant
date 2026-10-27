@@ -98,6 +98,17 @@ AI-authored intake questions (`GUEST_AI_QUESTION_LIMIT`) before the
 deterministic question set takes over, and the final summary/estimate stays AI
 driven once per project.
 
+**Admin read access.** An admin reads any project through the owner's payload:
+`GET /v1/projects/:id` routes to `ProjectsService.getForAdmin` when the local user
+row holds the `admin` role (`keycloakRoles`), and `GET /v1/projects/:id/estimate`
+skips the ownership check for the same role. The public projection was the wrong
+view for support: it strips `brief.ai.intake` and carries no estimate, so an admin
+opened a project and saw neither the answers nor the price. The project page marks
+such a viewer `isAdminViewer`: the workspace (intake answers, brief, estimate
+lines) is visible, while client-only actions — editing the card, uploading or
+deleting documents, deleting the project, refining the estimate — stay hidden,
+because their endpoints remain owner-only.
+
 **Cleanup.** `GuestProjectCleanupService` runs hourly and deletes unclaimed
 projects past `guestExpiresAt` together with their documents and S3 objects.
 Projects tagged with an email get the longer deadline; claimed ones have no

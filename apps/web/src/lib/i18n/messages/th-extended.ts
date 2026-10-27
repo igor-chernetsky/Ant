@@ -1390,6 +1390,8 @@ export const thExtended = {
     constraints: "ข้อจำกัด",
     notes: "หมายเหตุ",
     stillNeeded: "ยังต้องการสำหรับประเมิน",
+    intakeAnswers: "คำตอบแบบสอบถาม",
+    answerSkipped: "ข้าม",
     yes: "ใช่",
     no: "ไม่",
     sqm: "ตร.ม.",

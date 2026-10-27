@@ -105,6 +105,12 @@ export class ProjectsController {
     const user = await this.resolveClient(req);
     await this.claimTaggedGuestProjects(user);
     const locale = resolveLocaleFromRequest(req, user.preferredLocale);
+    // Admins need the owner's payload (intake answers, estimate) to support
+    // clients, so they bypass the ownership check instead of falling back to the
+    // sanitised public projection.
+    if (user.keycloakRoles.includes('admin')) {
+      return this.projectsService.getForAdmin(id, locale);
+    }
     return this.projectsService.getForClient(user.id, id, locale);
   }
 

@@ -38,6 +38,11 @@ const CORE_SCOPE_TRADES = new Set([
   'built-in-furniture',
   'plastering',
   'ceilings',
+  // Installed devices: keep them when a regeneration forgets one.
+  'solar',
+  'ev-charger',
+  'water-heater',
+  'generator',
 ]);
 
 export const FIRE_SUPPRESSION_PATTERN =
@@ -269,12 +274,22 @@ export function capServiceRepairLines(input: {
     if (!band) {
       return line;
     }
+    // Area-based trades are labour + material per square metre already: a repair
+    // of a painted wall or a tiled floor costs roughly the same rate, not 8–30 %
+    // of a new finish. Applying the repair fraction there under-priced the work,
+    // so those trades are left to the model and to the minor-scope anchor.
+    if (band.unit === 'sqm') {
+      return line;
+    }
 
     let quantity = line.quantity;
     if (band.unit === 'sqm') {
       // Square metres per visit mean nothing for servicing equipment, and an
       // unstated area is a patch rather than a floor plate.
       quantity = scope.areaSqm ?? UNSTATED_SMALL_SCOPE_AREA_SQM;
+    } else if (DIMENSION_UNIT_SET.has(band.unit)) {
+      // kWp / running metres: the described dimension is the quantity.
+      quantity = quantity > 0 ? quantity : 1;
     } else {
       quantity = Math.min(quantity > 0 ? quantity : 1, scope.count ?? 1);
     }
@@ -546,6 +561,27 @@ export function buildEstimateScopeRules(
 const TRADE_KEYWORD_MAP: Array<{ pattern: RegExp; trade: string }> = [
   { pattern: ELEVATOR_PATTERN, trade: 'structural' },
   { pattern: /\b(pool|swimming|бассейн)\b/i, trade: 'structural' },
+  // Installed devices get their own catalog trade; they must be matched before
+  // the generic electrical entry below, otherwise a solar system becomes
+  // "electrical works".
+  {
+    pattern:
+      /(\b(solar|photovoltaic|pv\s*(system|panel|array))\b)|(солнечн\w*|фотоэлектр\w*|โซล่า|โซลาร์|พลังงานแสงอาทิตย์)/i,
+    trade: 'solar',
+  },
+  {
+    pattern:
+      /(\b(ev\s*charg\w*|wallbox|car\s*charger)\b)|(зарядк\w*\s*(авто|электромоб)|เครื่องชาร์จ)/i,
+    trade: 'ev-charger',
+  },
+  {
+    pattern: /(\b(water\s*heater|boiler)\b)|(водонагрев\w*|бойлер\w*|เครื่องทำน้ำอุ่น)/i,
+    trade: 'water-heater',
+  },
+  {
+    pattern: /(\b(generator|genset)\b)|(генератор\w*|เครื่องปั่นไฟ)/i,
+    trade: 'generator',
+  },
   {
     pattern:
       /\b(foundation|footing|pile|structural|civil|строительн|конструкц|каркас|бетон|фундамент)\b/i,
@@ -1215,6 +1251,146 @@ export function normalizeUnderpricedSqmShellLines(input: {
  * Warehouse/light-industrial without heavy process load uses a much lower
  * ฿/sqm band than residential fit-out (catalog 2,200–6,500).
  */
+/**
+ * Electrical lines that describe an installed *device* rather than building-wide
+ * electrical works.
+ *
+ * The electrical merge below rewrites its input as "whole floor area × THB/sqm",
+ * which is right for wiring, boards and lighting circuits and catastrophic for a
+ * device: a 5 kW solar system written as one unit was re-expressed as 50 sqm of
+ * electrical works (284,375–406,250 THB). Device lines keep their own quantity,
+ * unit and price, and are banded by their own catalog trade when it exists.
+ */
+const ELECTRICAL_DEVICE_PATTERN =
+  /(\b(solar|photovoltaic|pv\s*(system|array|panel)|inverter|battery|ev\s*charg|wallbox|charger|water\s*heater|boiler|generator|ups|pump|air\s*con\w*|a\/c|hvac|fan|socket|switch|light\s*fixture|luminaire|downlight|chandelier|smart\s*home|gate\s*motor|garage\s*door)\b)|(солнечн\w*|фотоэлектр\w*|инвертор\w*|аккумулятор\w*|зарядк\w*|водонагрев\w*|бойлер\w*|генератор\w*|насос\w*|кондиц\w*|вентилятор\w*|розетк\w*|светильник\w*|умн\w*\s*дом|рольворота)/i;
+
+export function isElectricalDeviceLine(line: {
+  trade: string;
+  description: string;
+}): boolean {
+  return (
+    line.trade === 'electrical' && ELECTRICAL_DEVICE_PATTERN.test(line.description)
+  );
+}
+
+/**
+ * Device trades the catalog prices per installed unit or per kWp.
+ *
+ * A line for one of these must not be re-expressed as building-area work, and its
+ * price is clamped to the documented band — that is what keeps the number
+ * sourced instead of invented.
+ */
+const DEVICE_TRADE_MATCHERS: Array<{ trade: string; pattern: RegExp }> = [
+  {
+    trade: 'solar',
+    pattern:
+      /(\b(solar|photovoltaic|pv\s*(system|panel|array)|солнечн\w*|фотоэлектр\w*|โซล่า|โซลาร์))\b|(พลังงานแสงอาทิตย์)/i,
+  },
+  {
+    trade: 'ev-charger',
+    pattern:
+      /(\b(ev\s*charg\w*|wallbox|car\s*charger)\b)|(зарядк\w*\s*(авто|электромоб)|เครื่องชาร์จ)/i,
+  },
+  {
+    trade: 'water-heater',
+    pattern:
+      /(\b(water\s*heater|boiler)\b)|(водонагрев\w*|бойлер\w*|เครื่องทำน้ำอุ่น)/i,
+  },
+  {
+    trade: 'generator',
+    pattern: /(\b(generator|genset)\b)|(генератор\w*|เครื่องปั่นไฟ)/i,
+  },
+];
+
+/** Units that measure the work itself, so the described quantity is the price driver. */
+const DIMENSION_UNIT_SET = new Set(['sqm', 'kwp', 'cum', 'm', 'm2']);
+
+/**
+ * Turn a generic `electrical` / `other` line for an installed device into its own
+ * catalog trade and clamp the price to that trade's band.
+ *
+ * This runs before the electrical merge, so a solar or water-heater line is no
+ * longer rewritten as "floor area × electrical rate", and it gives the client the
+ * right work name in the breakdown.
+ */
+export function normalizeDeviceTradeLines(lines: EstimateLine[]): EstimateLine[] {
+  return lines.map((line) => {
+    if (line.trade !== 'electrical' && line.trade !== 'other') {
+      return line;
+    }
+    const matcher = DEVICE_TRADE_MATCHERS.find((item) =>
+      item.pattern.test(line.description),
+    );
+    if (!matcher) {
+      return line;
+    }
+    const catalog = TH_REGIONAL_CATALOG.find(
+      (item) => item.trade === matcher.trade,
+    );
+    if (!catalog) {
+      return line;
+    }
+
+    const bandMin = catalog.priceMinThb;
+    const bandMax = Math.round(catalog.priceMaxThb * 1.15);
+    const quantity = line.quantity > 0 ? line.quantity : 1;
+
+    let unitPriceMin: number;
+    let unitPriceMax: number;
+    if (line.unitPriceMin > bandMax) {
+      // The model priced the whole device above the documented band: fall back to
+      // the band itself instead of collapsing to a single point.
+      unitPriceMin = bandMin;
+      unitPriceMax = bandMax;
+    } else {
+      unitPriceMax = Math.min(
+        bandMax,
+        Math.max(line.unitPriceMax, bandMin),
+      );
+      unitPriceMin = Math.min(unitPriceMax, Math.max(line.unitPriceMin, bandMin));
+    }
+
+    return {
+      ...line,
+      trade: catalog.trade,
+      unit: line.unit || catalog.unit,
+      unitPriceMin,
+      unitPriceMax,
+      lineMin: Math.round(unitPriceMin * quantity),
+      lineMax: Math.round(unitPriceMax * quantity),
+    };
+  });
+}
+
+/** Wording that means the electrical *package* of a building, not one circuit. */
+const BUILDING_ELECTRICAL_SCOPE_PATTERN =
+  /(\b(re-?wir\w*|wiring|switchboard|distribution\s*board|board\s*upgrade|whole\s*(house|home)|entire\s*(house|home)|fit[- ]?out|new\s*(build|house|villa|office)|электропроводк\w*|проводк\w*|электрощит\w*|щит\w*|весь\s*дом|вся\s*квартира|реконструкц\w*))\b|(เดินสาย|ตู้ไฟ)/i;
+
+/**
+ * Should electrical work be priced per floor area?
+ *
+ * Only when the scope really is the building's electrical package: a new build, an
+ * extension or fit-out, a whole-house job, or wording about re-wiring and boards.
+ * A single circuit, socket or appliance supply is priced by its own quantity —
+ * spreading it over 50 sqm was what turned "one socket" into 110,000–325,000 THB.
+ */
+export function shouldPriceElectricalByArea(
+  narrative: string,
+  projectType?: string,
+): boolean {
+  if (
+    projectType === 'new_build' ||
+    projectType === 'extension' ||
+    projectType === 'commercial_fitout'
+  ) {
+    return true;
+  }
+  if (describeScopeVolume(narrative, projectType).whole) {
+    return true;
+  }
+  return BUILDING_ELECTRICAL_SCOPE_PATTERN.test(narrative);
+}
+
 export function dedupeAndCapElectricalLines(input: {
   lines: EstimateLine[];
   narrative: string;
@@ -1226,9 +1402,12 @@ export function dedupeAndCapElectricalLines(input: {
    */
   forceAreaQuantity?: boolean;
 }): EstimateLine[] {
-  const electrical = input.lines.filter((line) => line.trade === 'electrical');
-  const others = input.lines.filter((line) => line.trade !== 'electrical');
+  const isPackageElectrical = (line: EstimateLine) =>
+    line.trade === 'electrical' && !isElectricalDeviceLine(line);
+  const electrical = input.lines.filter(isPackageElectrical);
+  const others = input.lines.filter((line) => !isPackageElectrical(line));
   if (electrical.length === 0) {
+    // Only devices are in scope: nothing to merge, nothing to spread over an area.
     return input.lines;
   }
 
@@ -1403,8 +1582,12 @@ export function finalizeEstimateLines(input: {
     narrative: input.narrative,
     tagSlugs: input.tagSlugs,
   });
+  // Device lines (solar, EV charger, water heater, generator) become their own
+  // catalog trade with a banded price before anything can spread them over the
+  // floor area.
+  const devicesNormalized = normalizeDeviceTradeLines(ensured);
   const hvacNormalized = normalizeIndustrialHvacLines({
-    lines: ensured,
+    lines: devicesNormalized,
     narrative: input.narrative,
     areaSqm,
     serviceRepair,
@@ -1430,7 +1613,10 @@ export function finalizeEstimateLines(input: {
     narrative: input.narrative,
     areaSqm,
     projectType: input.projectType,
-    forceAreaQuantity: !scope.minor,
+    forceAreaQuantity: shouldPriceElectricalByArea(
+      input.narrative,
+      input.projectType,
+    ),
   });
   const repairCapped = capServiceRepairLines({
     lines: electricalCapped,
@@ -1673,12 +1859,16 @@ export function applyPremiumScopePriceAdjustments(
 
   let next = lines.map((line) => ({ ...line }));
 
-  const bumpTrade = (
-    trade: string,
-    factorMin: number,
-    factorMax: number,
-    minLineBump: number,
-  ) => {
+  /**
+   * Relative premium uplift only.
+   *
+   * This used to add an absolute minimum bump (60k–120k THB) per trade, so a
+   * small job that merely mentioned "salt", "UV" or a mains connection jumped by
+   * tens of thousands regardless of its size. The multiplier keeps the premium
+   * proportional; how much a small job may cost in total is bounded separately by
+   * `capMinorScopeTotal`.
+   */
+  const bumpTrade = (trade: string, factorMin: number, factorMax: number) => {
     const indexes = next
       .map((line, index) => (line.trade === trade ? index : -1))
       .filter((index) => index >= 0);
@@ -1696,22 +1886,17 @@ export function applyPremiumScopePriceAdjustments(
         Math.round(line.unitPriceMax * factorMax),
         unitPriceMin,
       );
-      let lineMin = Math.max(
+      const lineMin = Math.max(
         line.lineMin,
         Math.round(unitPriceMin * line.quantity),
         Math.round(line.lineMin * factorMin),
       );
-      let lineMax = Math.max(
+      const lineMax = Math.max(
         line.lineMax,
         Math.round(unitPriceMax * line.quantity),
         Math.round(line.lineMax * factorMax),
         lineMin,
       );
-      if (lineMax - line.lineMax < minLineBump / indexes.length) {
-        const share = Math.round(minLineBump / indexes.length);
-        lineMin += Math.round(share * 0.7);
-        lineMax += share;
-      }
       next[index] = {
         ...line,
         unitPriceMin,
@@ -1723,18 +1908,18 @@ export function applyPremiumScopePriceAdjustments(
   };
 
   if (signals.specialtyOrUnderwaterLighting) {
-    bumpTrade('electrical', 1.35, 1.55, 60000);
+    bumpTrade('electrical', 1.35, 1.55);
   }
 
   if (signals.chlorineFreeOrAltTreatment) {
-    bumpTrade('plumbing', 1.45, 1.7, 120000);
+    bumpTrade('plumbing', 1.45, 1.7);
   } else if (signals.saltTreatment) {
-    bumpTrade('plumbing', 1.25, 1.4, 60000);
+    bumpTrade('plumbing', 1.25, 1.4);
   }
 
   if (signals.externalUtilityConnection) {
-    bumpTrade('electrical', 1.15, 1.25, 40000);
-    bumpTrade('plumbing', 1.2, 1.35, 50000);
+    bumpTrade('electrical', 1.15, 1.25);
+    bumpTrade('plumbing', 1.2, 1.35);
   }
 
   // If premium treatment exists but no plumbing line, synthesize a lump.

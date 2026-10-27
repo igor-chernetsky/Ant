@@ -144,8 +144,13 @@ export class EstimatesService {
     clientId: string,
     projectId: string,
     viewerLocale?: import('../users/locale.types').SupportedLocale,
+    options?: { isAdmin?: boolean },
   ): Promise<EstimateResponse | null> {
-    const project = await this.assertProjectOwner(projectId, clientId);
+    // Admins read any project's estimate for support; the ownership check only
+    // guards the client-facing path.
+    const project = options?.isAdmin
+      ? await this.loadProjectOrThrow(projectId)
+      : await this.assertProjectOwner(projectId, clientId);
 
     const estimate = await this.prisma.estimate.findFirst({
       where: { projectId },
@@ -657,13 +662,19 @@ export class EstimatesService {
     }
   }
 
-  private async assertProjectOwner(projectId: string, clientId: string) {
+  /** Project row for an admin read: exists, no ownership requirement. */
+  private async loadProjectOrThrow(projectId: string) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
     if (!project) {
       throw new NotFoundException('Project not found');
     }
+    return project;
+  }
+
+  private async assertProjectOwner(projectId: string, clientId: string) {
+    const project = await this.loadProjectOrThrow(projectId);
     if (project.clientId !== clientId) {
       throw new ForbiddenException('Access denied');
     }

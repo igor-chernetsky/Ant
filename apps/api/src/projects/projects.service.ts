@@ -1497,8 +1497,41 @@ export class ProjectsService {
 
     assertViewerOwnsProject(project, viewer);
 
+    return this.buildFullProjectResponse(project, viewerLocale);
+  }
 
+  /**
+   * Full project view for a platform admin: the same payload the owner sees,
+   * including intake answers and the estimate, with no ownership check.
+   *
+   * Admins support clients and inspect tenders, so a sanitised public projection
+   * (no `brief.ai.intake`, no estimate) left them without the information the
+   * workspace is built on.
+   */
+  async getForAdmin(
+    projectId: string,
+    viewerLocale?: SupportedLocale,
+  ): Promise<ProjectResponse> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: this.includeTags(),
+    });
 
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    return this.buildFullProjectResponse(project, viewerLocale);
+  }
+
+  private async buildFullProjectResponse(
+    project: Parameters<ProjectsService['toResponse']>[0] & {
+      sourceLocale?: string;
+      estimateRefinementQaJson?: unknown;
+    },
+    viewerLocale?: SupportedLocale,
+  ): Promise<ProjectResponse> {
+    const projectId = project.id;
     const estimate = await this.prisma.estimate.findFirst({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
