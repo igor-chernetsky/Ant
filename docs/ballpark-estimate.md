@@ -39,6 +39,8 @@ estimated at **80,000–230,000 THB**.
 | Electrical priced by area only for the package | Area pricing applies to a new build, an extension/fit-out, a whole-building job or re-wiring/board wording. A single circuit, socket or appliance supply is priced by its own quantity | `shouldPriceElectricalByArea` |
 | Device lines are not electrical works | An `electrical` line that describes a device (solar, inverter, EV charger, water heater, generator, pump, socket, light fixture) is excluded from the electrical merge, so it is never re-expressed as "floor area × rate" | `isElectricalDeviceLine` |
 | Device prices are banded | Solar / EV charger / water heater / generator lines are renamed to their own catalog trade and their price clamped to the documented band (solar: 22,000–38,000 THB/kWp, ×1.15 tolerance) | `normalizeDeviceTradeLines` |
+| Solar priced per m² is converted | A solar line priced per square metre of roof is converted to kWp at 0.2 kWp/m² (`SOLAR_KWP_PER_SQM`) and repriced from the band — the production case was 40 m² × 10,866–18,768 = 434,622–750,711 THB | `normalizeDeviceTradeLines` |
+| Support works around a device are small works | Mounting, sealing and reinforcement next to an installed system are capped at the trade's repair band, unless the same project asks for real building work (build / replace the roof / renovate) | `capDeviceSupportLines` |
 | Premium uplifts stay proportional | `salt` / `UV` / `ozone` / mains-connection signals multiply the line (×1.15–1.7) but no longer add an absolute 40,000–120,000 THB minimum, which made a small job jump regardless of size | `applyPremiumScopePriceAdjustments` |
 | Repair bands skip area trades | The 8–30 % repair fraction applies to unit/point/lump trades only. Painting, tiling, flooring, plastering, ceilings and roofing are labour + material per square metre already — discounting them under-priced the work | `capServiceRepairLines` |
 | Industrial ventilation is gated | A residential narrative can no longer be repriced as industrial supply/exhaust ventilation (that turned an AC repair into 1,200–3,200 THB/sqm over the whole area); service/repair scope never is | `normalizeIndustrialHvacLines` |
@@ -64,6 +66,7 @@ post-processing corrects it.
 | Office fit-out 300 sqm | 1,110,000–3,300,000 | unchanged |
 | Warehouse ventilation (real facility) | 1,850,000–4,350,000 | unchanged |
 | Solar 5 kW system (reported inflation) | 284,375–406,250 | 22,000–43,700 |
+| Rooftop PV, 40 m² (production project) | 582,622–1,110,711 | 187,840–457,600 |
 | Replace one socket | 110,000–325,000 | 800–2,500 |
 | Install two smoke detectors | 110,000–200,000 | 4,400–8,000 |
 | Water heater + mains connection | 230,975 (mid) | 7,000–17,150 |

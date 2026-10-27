@@ -1315,12 +1315,14 @@ const DIMENSION_UNIT_SET = new Set(['sqm', 'kwp', 'cum', 'm', 'm2']);
  */
 export function normalizeDeviceTradeLines(lines: EstimateLine[]): EstimateLine[] {
   return lines.map((line) => {
-    if (line.trade !== 'electrical' && line.trade !== 'other') {
-      return line;
-    }
-    const matcher = DEVICE_TRADE_MATCHERS.find((item) =>
-      item.pattern.test(line.description),
-    );
+    const matcher =
+      DEVICE_TRADE_MATCHERS.find((item) => item.trade === line.trade) ??
+      // A generic line that describes a device becomes that device's trade.
+      (line.trade === 'electrical' || line.trade === 'other'
+        ? DEVICE_TRADE_MATCHERS.find((item) =>
+            item.pattern.test(line.description),
+          )
+        : undefined);
     if (!matcher) {
       return line;
     }
@@ -1333,13 +1335,33 @@ export function normalizeDeviceTradeLines(lines: EstimateLine[]): EstimateLine[]
 
     const bandMin = catalog.priceMinThb;
     const bandMax = Math.round(catalog.priceMaxThb * 1.15);
-    const quantity = line.quantity > 0 ? line.quantity : 1;
+    let quantity = line.quantity > 0 ? line.quantity : 1;
+    let unit = line.unit || catalog.unit;
+
+    /**
+     * The model sometimes prices a solar system per square metre of roof, which is
+     * not a catalog unit: 40 m² × 10,866–18,768 THB/sqm produced 434,000–750,000
+     * THB in production. Convert the area to kWp with a documented panel ratio and
+     * take the price from the band instead of the invented per-sqm rate.
+     */
+    const pricedPerArea =
+      matcher.trade === 'solar' &&
+      catalog.unit === 'kwp' &&
+      (unit === 'sqm' || unit === 'm2' || unit === 'm²');
+    if (pricedPerArea) {
+      quantity = Math.max(
+        1,
+        Math.round(quantity * SOLAR_KWP_PER_SQM * 10) / 10,
+      );
+      unit = 'kwp';
+    }
 
     let unitPriceMin: number;
     let unitPriceMax: number;
-    if (line.unitPriceMin > bandMax) {
-      // The model priced the whole device above the documented band: fall back to
-      // the band itself instead of collapsing to a single point.
+    if (pricedPerArea || line.unitPriceMin > bandMax) {
+      // Either the unit changed (so the old unit price is meaningless) or the model
+      // priced the whole device above the documented band: use the band itself
+      // instead of collapsing to a single point.
       unitPriceMin = bandMin;
       unitPriceMax = bandMax;
     } else {
@@ -1353,7 +1375,88 @@ export function normalizeDeviceTradeLines(lines: EstimateLine[]): EstimateLine[]
     return {
       ...line,
       trade: catalog.trade,
-      unit: line.unit || catalog.unit,
+      quantity,
+      unit,
+      unitPriceMin,
+      unitPriceMax,
+      lineMin: Math.round(unitPriceMin * quantity),
+      lineMax: Math.round(unitPriceMax * quantity),
+    };
+  });
+}
+
+/** Wording that means real building work next to the device, not its support. */
+const CONSTRUCTION_AROUND_DEVICE_PATTERN =
+  /(\b(build|construct|extension|new\s+(roof|house|villa|building)|replace\s+(the\s+)?(roof|structure)|renovat\w*|reconstruct\w*|rebuild)\b)|(строительств\w*|реконструкц\w*|пристройк\w*|замен\w*\s*кровл\w*|ремонт\w*\s*(кровл|фасад)\w*)|(สร้างใหม่|ต่อเติม|เปลี่ยนหลังคา)/i;
+
+/** Trades that appear as *support* works around an installed device. */
+const DEVICE_SUPPORT_TRADES = new Set([
+  'structural',
+  'roofing',
+  'finishing',
+  'plastering',
+  'ceilings',
+  'painting',
+  'tiling',
+  'flooring',
+  'insulation',
+  'carpentry',
+  'demolition',
+  'landscaping',
+]);
+
+/**
+ * Roughly 200 W peak per m² of modern panel, so 40 m² of roof ≈ 8 kWp. Used only
+ * to convert an area-priced solar line into the catalog unit (kWp); the price
+ * itself always comes from the band.
+ */
+export const SOLAR_KWP_PER_SQM = 0.2;
+
+const DEVICE_TRADE_SET = new Set(DEVICE_TRADE_MATCHERS.map((item) => item.trade));
+
+/**
+ * Cap support works around a device installation at repair scale.
+ *
+ * A rooftop PV install added "structural support works" (40 m² × 2,500–5,500 =
+ * 100,000–220,000) and "roofing works" (48,000–140,000) at full new-build rates,
+ * which more than doubled a system's price. Mounting, reinforcement and sealing
+ * around an installation are small works — unless the client asked for real
+ * building work in the same project, in which case nothing is capped.
+ */
+export function capDeviceSupportLines(input: {
+  lines: EstimateLine[];
+  narrative: string;
+  projectType?: string;
+}): EstimateLine[] {
+  if (!input.lines.some((line) => DEVICE_TRADE_SET.has(line.trade))) {
+    return input.lines;
+  }
+  if (CONSTRUCTION_AROUND_DEVICE_PATTERN.test(input.narrative)) {
+    return input.lines;
+  }
+
+  return input.lines.map((line) => {
+    if (!DEVICE_SUPPORT_TRADES.has(line.trade)) {
+      return line;
+    }
+    const band = repairBandForTrade(line.trade);
+    if (!band) {
+      return line;
+    }
+    const quantity = line.quantity > 0 ? line.quantity : 1;
+    const unitPriceMin = Math.min(
+      line.unitPriceMin > 0 ? line.unitPriceMin : band.priceMinThb,
+      band.priceMinThb,
+    );
+    const unitPriceMax = Math.max(
+      unitPriceMin,
+      Math.min(
+        line.unitPriceMax > 0 ? line.unitPriceMax : band.priceMaxThb,
+        band.priceMaxThb,
+      ),
+    );
+    return {
+      ...line,
       unitPriceMin,
       unitPriceMax,
       lineMin: Math.round(unitPriceMin * quantity),
@@ -1608,8 +1711,15 @@ export function finalizeEstimateLines(input: {
   // One priced row per catalog trade — stops replacement/install paraphrases
   // (and similar) from double-counting the same band.
   const deduped = dedupeSameTradeLines(premiumAdjusted);
-  const electricalCapped = dedupeAndCapElectricalLines({
+  // Support works around an installed device (mounting, sealing, reinforcement)
+  // are small works, not new construction over the whole roof.
+  const supportCapped = capDeviceSupportLines({
     lines: deduped,
+    narrative: input.narrative,
+    projectType: input.projectType,
+  });
+  const electricalCapped = dedupeAndCapElectricalLines({
+    lines: supportCapped,
     narrative: input.narrative,
     areaSqm,
     projectType: input.projectType,
