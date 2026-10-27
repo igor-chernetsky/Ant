@@ -132,13 +132,23 @@ With an estimate already calculated the draft is **not** deleted: the AI work is
 kept for the rest of its 24 hours and the destructive button reads "Leave anyway".
 
 **After signing in, a client is taken to their newest project once.** The redirect
-is resolved inside the login request (`apps/web/src/lib/workspace-intro.ts`): the
-BFF reads `GET /v1/me`, and when `workspaceIntroAt` is null and the account has the
-`client` role it calls `GET /v1/projects` (which also claims the drafts tagged with
-the address), marks `POST /v1/me/workspace-intro`, and answers `{ redirectTo }`. The
-browser then does a full navigation there. Because the marker is written before the
-answer, the home page is reachable on every later visit — the earlier client-side
-version marked it *after* navigating and re-triggered the redirect on each visit.
+is resolved inside the request that signs the user in — the login route and, with
+auto sign-in, the e-mail confirmation route (`apps/web/src/lib/workspace-intro.ts`):
+either one reads `GET /v1/me`, and when `workspaceIntroAt` is null and the account
+has the `client` role it calls `GET /v1/projects` (which also claims the drafts
+tagged with the address), marks `POST /v1/me/workspace-intro`, and answers with
+`/projects/:id`. The browser then does a full navigation there. Because the marker
+is written before the answer, the home page is reachable on every later visit — the
+earlier client-side version marked it *after* navigating and re-triggered the
+redirect on each visit.
+
+Confirmation is the moment the guest draft becomes a project, so `/api/auth/verify-email`
+sends the just-signed-in user straight to it. If that redirect is not due (returning
+account, no projects, token exchange unavailable), the request falls back to the
+`/email-verified` page. As a second line of defence the home page re-fetches its
+grid once when the authenticated list reports an owned project that the grid rendered
+before the claim did not contain (`shouldRefreshAfterClaim`), so a freshly claimed
+draft never needs a manual reload.
 
 Two details keep the claimed draft from coming back as a *second* card:
 

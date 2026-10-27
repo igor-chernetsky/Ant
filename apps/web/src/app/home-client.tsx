@@ -15,6 +15,7 @@ import {
   isSupplySideUser,
 } from '@/lib/session';
 import { SiteHeader } from '@/components/SiteHeader';
+import { shouldRefreshAfterClaim } from '@/lib/home-owned-refresh';
 import {
   countHomeActiveFilters,
   HomeProjectFilters,
@@ -83,6 +84,9 @@ export function HomePageClient({
   const [totalCount, setTotalCount] = useState(initialPublicProjects?.total ?? 0);
   const [hasMore, setHasMore] = useState(initialPublicProjects?.hasMore ?? false);
   const [ownedProjectIds, setOwnedProjectIds] = useState<Set<string>>(new Set());
+  /** Latest list/filters, read from callbacks that must not re-subscribe. */
+  const projectsRef = useRef<PublicProjectCard[]>([]);
+  const filtersRef = useRef<HomeProjectFilterState>(EMPTY_HOME_FILTERS);
   const [contractorApplications, setContractorApplications] = useState<
     ContractorApplicationItem[]
   >([]);
@@ -120,6 +124,14 @@ export function HomePageClient({
   const hasMoreRef = useRef(initialPublicProjects?.hasMore ?? false);
   const projectsLenRef = useRef(initialPublicProjects?.items.length ?? 0);
   const createQueryHandled = useRef(false);
+
+  useEffect(() => {
+    projectsRef.current = projects;
+  }, [projects]);
+
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
 
   const buildListFilters = useCallback(
     (next: HomeProjectFilterState, offset: number) => ({
@@ -278,7 +290,26 @@ export function HomePageClient({
         if (canCreateProject(me)) {
           tasks.push(
             fetchProjects().then((mine) => {
-              setOwnedProjectIds(new Set(mine.map((project: Project) => project.id)));
+              const owned = new Set(
+                mine.map((project: Project) => project.id),
+              );
+              setOwnedProjectIds(owned);
+
+              /**
+               * `fetchProjects` also claims the guest drafts tagged with this
+               * address. A project claimed right now (first sign-in, or the visit
+               * after confirming the e-mail) is missing from the list rendered
+               * before the claim, so the grid showed it only after a manual
+               * reload — refresh it once here instead.
+               */
+              const loadedIds = new Set(
+                projectsRef.current.map((project) => project.id),
+              );
+              if (
+                shouldRefreshAfterClaim({ ownedIds: owned, loadedIds })
+              ) {
+                void loadProjects(filtersRef.current);
+              }
             }),
           );
         } else {
@@ -299,7 +330,7 @@ export function HomePageClient({
         setContractorApplications([]);
       }
     })();
-  }, [sessionReady, me]);
+  }, [sessionReady, me, loadProjects]);
 
   useEffect(() => {
     if (!sessionReady || createQueryHandled.current) return;

@@ -5,6 +5,7 @@ import {
 } from '@/lib/auth-keycloak-admin';
 import { applyAuthCookies } from '@/lib/auth-tokens';
 import { parseEmailVerificationToken } from '@/lib/email-verification-token';
+import { resolveWorkspaceIntroRedirect } from '@/lib/workspace-intro';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,19 @@ export async function GET(request: Request) {
     // (null), and the user falls back to the normal sign-in flow.
     const tokens = await exchangeAdminTokenForUser(parsed.userId);
     if (tokens?.access_token) {
-      const response = redirectToResult(request, { signedIn: true });
+      /**
+       * Confirming the address is the moment a guest draft becomes a project of
+       * the account: the intro call below claims the drafts tagged with this
+       * address and marks the one-time intro. Go straight to the created project
+       * instead of a home page that was rendered before the claim (that page only
+       * showed it after a manual reload).
+       */
+      const introTarget = await resolveWorkspaceIntroRedirect(
+        tokens.access_token,
+      );
+      const response = NextResponse.redirect(
+        new URL(introTarget ?? '/email-verified?verified=1&signedIn=1', request.url),
+      );
       applyAuthCookies(response, tokens);
       return response;
     }
