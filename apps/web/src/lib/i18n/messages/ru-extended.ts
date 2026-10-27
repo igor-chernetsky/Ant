@@ -1417,6 +1417,8 @@ export const ruExtended = {
     answerPlaceholder: "Ваш ответ",
     recalculate: "Пересчитать смету",
     refining: "Пересчёт…",
+    recalculatingOverlay:
+      "Пересчитываем смету — это может занять до минуты.",
     refineNeedAnswer: "Ответьте хотя бы на один вопрос для пересчёта.",
     refineFailed: "Не удалось пересчитать смету",
     answeredTitle: "Предыдущие ответы",

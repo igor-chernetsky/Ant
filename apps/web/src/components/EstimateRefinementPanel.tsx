@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { EstimateRecalcReview } from '@/components/EstimateRecalcReview';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
 import {
   isLowEstimateConfidence,
   refineProjectEstimate,
@@ -174,6 +175,13 @@ export function EstimateRefinementPanel({
           </ul>
         </details>
       )}
+
+      {/* Recalculating calls the model, so the wait is long enough to deserve a
+          blocking overlay instead of a button label alone. */}
+      <LoadingOverlay
+        isOpen={submitting}
+        label={t('estimateSection.recalculatingOverlay')}
+      />
     </div>
   );
 }

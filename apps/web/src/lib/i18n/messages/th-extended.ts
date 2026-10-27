@@ -1410,6 +1410,8 @@ export const thExtended = {
     answerPlaceholder: "คำตอบของคุณ",
     recalculate: "คำนวณประมาณการใหม่",
     refining: "กำลังคำนวณใหม่…",
+    recalculatingOverlay:
+      "กำลังคำนวณประมาณการใหม่ — อาจใช้เวลาถึงหนึ่งนาที",
     refineNeedAnswer: "ตอบอย่างน้อยหนึ่งคำถามเพื่อคำนวณใหม่",
     refineFailed: "คำนวณประมาณการใหม่ไม่สำเร็จ",
     answeredTitle: "คำตอบก่อนหน้า",

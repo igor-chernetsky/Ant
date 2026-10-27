@@ -1412,6 +1412,8 @@ export const enExtended = {
     answerPlaceholder: "Your answer",
     recalculate: "Recalculate estimate",
     refining: "Recalculating…",
+    recalculatingOverlay:
+      "Recalculating the estimate — this can take up to a minute.",
     refineNeedAnswer: "Answer at least one question to recalculate.",
     refineFailed: "Could not recalculate the estimate",
     answeredTitle: "Previous answers",
