@@ -1037,18 +1037,136 @@ function parseAreaFromDimensions(text: string): number | null {
   return area;
 }
 
-function parseExplicitSqm(text: string): number | null {
-  const match = text.match(
-    /(\d+(?:[.,]\d+)?)\s*(?:sqm|sq\.?\s*m|m2|m²|кв\.?\s*м|м\s*2)/i,
-  );
-  if (!match) {
-    return null;
-  }
-  const value = Number(match[1].replace(',', '.'));
+/**
+ * A square-metre unit as people actually write it, including Thai (the platform's
+ * main market) — `ตารางเมตร`, `ตร.ม.`, `ตรม`.
+ */
+const SQM_UNIT =
+  String.raw`(?:sqm|sq\.?\s*m\.?|m2|m²|square\s*met(?:er|re)s?|кв\.?\s*м|м\s*2|ตารางเมตร|ตารางม\.?|ตร\.?\s*ม\.?|ตรม\.?)`;
+
+/** Separators used for a stated range: "80-150", "80–150", "80 to 150", "80 ถึง 150". */
+const SQM_RANGE_SEPARATOR = String.raw`(?:\s*[-–—~]\s*|\s+to\s+|\s+ถึง\s+|\s+до\s+)`;
+
+function parseSqmNumber(raw: string): number | null {
+  const value = Number(raw.replace(',', '.'));
   if (!Number.isFinite(value) || value < 10 || value > 20000) {
     return null;
   }
   return Math.round(value);
+}
+
+function parseExplicitSqm(text: string): number | null {
+  /**
+   * A stated range ("80-150 ตารางเมตร") is priced at its midpoint: the lower bound
+   * would ignore the upper one, and the upper bound would charge the client for
+   * space they did not ask for. Before this, the Thai unit was not recognised at
+   * all and the area silently fell back to 50 m².
+   */
+  const range = text.match(
+    new RegExp(
+      String.raw`(\d+(?:[.,]\d+)?)${SQM_RANGE_SEPARATOR}(\d+(?:[.,]\d+)?)\s*${SQM_UNIT}`,
+      'i',
+    ),
+  );
+  if (range) {
+    const low = parseSqmNumber(range[1]);
+    const high = parseSqmNumber(range[2]);
+    if (low != null && high != null) {
+      return Math.round((Math.min(low, high) + Math.max(low, high)) / 2);
+    }
+    if (low != null) {
+      return low;
+    }
+    if (high != null) {
+      return high;
+    }
+  }
+
+  const single = text.match(
+    new RegExp(String.raw`(\d+(?:[.,]\d+)?)\s*${SQM_UNIT}`, 'i'),
+  );
+  if (!single) {
+    return null;
+  }
+  return parseSqmNumber(single[1]);
+}
+
+/**
+ * Floors as stated in the narrative ("1 ชั้น", "2 storeys", "3 floors").
+ * Null when it does not say, so callers can fall back to one level.
+ */
+export function parseStatedFloors(text: string): number | null {
+  const match = text.match(
+    /(\d+)[\s-]*(?:ชั้น|storeys?|stories|story|floors?|levels?|этаж\w*)/i,
+  );
+  if (!match) {
+    return null;
+  }
+  const value = Number(match[1]);
+  if (!Number.isInteger(value) || value < 1 || value > 60) {
+    return null;
+  }
+  return value;
+}
+
+/** Trades whose quantity is square metres of the building. */
+const AREA_SCOPED_TRADES = new Set([
+  'structural',
+  'roofing',
+  'finishing',
+  'flooring',
+  'tiling',
+  'ceilings',
+  'painting',
+  'plastering',
+  'insulation',
+  'demolition',
+  'electrical',
+  'hvac',
+]);
+
+/** Trades measured over the footprint, not over every floor. */
+const FOOTPRINT_TRADES = new Set(['roofing']);
+
+/**
+ * Never price more square metres than the narrative says the building has.
+ *
+ * A 80–150 m² coffee shop came back at 1,500,000–3,600,000 THB after several
+ * estimates because the model priced every trade over 150 m² while the client
+ * described "about 80–150" — a specialist quoted ~1,300,000. A stated area now
+ * bounds the per-sqm quantities: interior trades by area × floors, roof by the
+ * footprint.
+ */
+export function capAreaQuantitiesToStatedArea(input: {
+  lines: EstimateLine[];
+  narrative: string;
+}): EstimateLine[] {
+  const areaSqm = parseExplicitSqm(input.narrative);
+  if (!areaSqm) {
+    return input.lines;
+  }
+  const floors = parseStatedFloors(input.narrative) ?? 1;
+  const interiorLimit = areaSqm * floors;
+
+  let changed = false;
+  const capped = input.lines.map((line) => {
+    if (line.unit !== 'sqm' || !AREA_SCOPED_TRADES.has(line.trade)) {
+      return line;
+    }
+    const limit = FOOTPRINT_TRADES.has(line.trade) ? areaSqm : interiorLimit;
+    if (!(line.quantity > limit)) {
+      return line;
+    }
+    changed = true;
+    return {
+      ...line,
+      quantity: limit,
+      lineMin: Math.round(line.unitPriceMin * limit),
+      lineMax: Math.round(line.unitPriceMax * limit),
+    };
+  });
+
+  return changed ? capped : input.lines;
 }
 
 export function wantsIndustrialVentilation(narrative: string): boolean {
@@ -1660,6 +1778,75 @@ export function capElectricalShareForNewBuild(
 /**
  * Shared post-processing after filter/merge for OpenAI and fallback paths.
  */
+/**
+ * Detailed finish trades. When one of these is priced, the general `finishing`
+ * band must not be charged over the same square metres as well.
+ */
+const DETAILED_FINISH_TRADES = new Set([
+  'flooring',
+  'tiling',
+  'ceilings',
+  'painting',
+  'plastering',
+]);
+
+/**
+ * Keep the detailed finish lines, remove the general one.
+ *
+ * The catalog's `finishing` band (1,500–4,500 THB/sqm) is an umbrella rate: it
+ * already covers plaster, paint, floors and ceilings. Charging it *next to*
+ * `flooring`/`tiling`/`ceilings`/`painting`/`plastering` over the same area counted
+ * the same square metres twice — one of the reasons an 80–150 m² coffee shop came
+ * back at 1,500,000–3,600,000 THB.
+ *
+ * The general line keeps only the area the detailed lines do not cover: a
+ * `finishing` line over 150 sqm with 40 sqm of detailed flooring is billed for the
+ * remaining 110 sqm, and disappears when the details cover the whole area.
+ */
+export function foldGeneralFinishingLines(lines: EstimateLine[]): EstimateLine[] {
+  const detailed = lines.filter(
+    (line) =>
+      DETAILED_FINISH_TRADES.has(line.trade) &&
+      line.unit === 'sqm' &&
+      line.quantity > 0,
+  );
+  if (detailed.length === 0) {
+    return lines;
+  }
+  if (!lines.some((line) => line.trade === 'finishing')) {
+    return lines;
+  }
+
+  const coveredSqm = Math.max(...detailed.map((line) => line.quantity));
+
+  const folded: EstimateLine[] = [];
+  for (const line of lines) {
+    if (line.trade !== 'finishing') {
+      folded.push(line);
+      continue;
+    }
+
+    // A lump "interior finishing" next to detailed works is the same double count.
+    if (line.unit !== 'sqm') {
+      continue;
+    }
+
+    const remaining = line.quantity - coveredSqm;
+    if (remaining <= 0.5) {
+      continue;
+    }
+
+    folded.push({
+      ...line,
+      quantity: Math.round(remaining * 10) / 10,
+      lineMin: Math.round(line.unitPriceMin * remaining),
+      lineMax: Math.round(line.unitPriceMax * remaining),
+    });
+  }
+
+  return folded;
+}
+
 export function finalizeEstimateLines(input: {
   lines: EstimateLine[];
   narrative: string;
@@ -1703,9 +1890,15 @@ export function finalizeEstimateLines(input: {
     // be rescaled to the floor area.
     skipGfaRescale: serviceRepair,
   });
+  // A stated area bounds the per-sqm quantities (area × floors) — the model must
+  // not price 150 m² of every trade for a client who said "about 80–150".
+  const areaCapped = capAreaQuantitiesToStatedArea({
+    lines: shellNormalized,
+    narrative: input.narrative,
+  });
   const signals = detectPremiumScopeSignals(input.narrative);
   const premiumAdjusted = applyPremiumScopePriceAdjustments(
-    shellNormalized,
+    areaCapped,
     signals,
   );
   // One priced row per catalog trade — stops replacement/install paraphrases
@@ -1718,8 +1911,11 @@ export function finalizeEstimateLines(input: {
     narrative: input.narrative,
     projectType: input.projectType,
   });
+  // Detailed finishes win over the general `finishing` band: the same square
+  // metres must not be charged twice.
+  const finishesFolded = foldGeneralFinishingLines(supportCapped);
   const electricalCapped = dedupeAndCapElectricalLines({
-    lines: supportCapped,
+    lines: finishesFolded,
     narrative: input.narrative,
     areaSqm,
     projectType: input.projectType,

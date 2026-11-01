@@ -41,6 +41,8 @@ estimated at **80,000–230,000 THB**.
 | Device prices are banded | Solar / EV charger / water heater / generator lines are renamed to their own catalog trade and their price clamped to the documented band (solar: 22,000–38,000 THB/kWp, ×1.15 tolerance) | `normalizeDeviceTradeLines` |
 | Solar priced per m² is converted | A solar line priced per square metre of roof is converted to kWp at 0.2 kWp/m² (`SOLAR_KWP_PER_SQM`) and repriced from the band — the production case was 40 m² × 10,866–18,768 = 434,622–750,711 THB | `normalizeDeviceTradeLines` |
 | Support works around a device are small works | Mounting, sealing and reinforcement next to an installed system are capped at the trade's repair band, unless the same project asks for real building work (build / replace the roof / renovate) | `capDeviceSupportLines` |
+| A stated area bounds the quantities | Square metres are read from the narrative in English, Russian **and Thai** (`ตารางเมตร`, `ตร.ม.`, `ตรม`); a stated range ("80-150") is priced at its midpoint; no per-sqm quantity may exceed the stated area (interior trades) or the footprint (roof), multiplied by the stated number of floors | `parseExplicitSqm`, `parseStatedFloors`, `capAreaQuantitiesToStatedArea` |
+| Detailed finishes replace the general one | `finishing` is an umbrella rate that already covers plaster, paint, floors and ceilings, so it is not charged on top of `flooring` / `tiling` / `ceilings` / `painting` / `plastering`. The general line keeps only the area the detailed lines do not cover (largest detail, not their sum) and disappears when the details cover it; a lump `finishing` next to detailed works is dropped | `foldGeneralFinishingLines` |
 
 ### Termination guarantees
 
@@ -88,6 +90,8 @@ post-processing corrects it.
 | Replace one socket | 110,000–325,000 | 800–2,500 |
 | Install two smoke detectors | 110,000–200,000 | 4,400–8,000 |
 | Water heater + mains connection | 230,975 (mid) | 7,000–17,150 |
+| Coffee shop build, 80–150 m² (reported case) | 1,500,000–3,600,000 | 602,578–1,706,322 |
+| Bathroom renovation 6 m² (tiling + finishing) | 30,400–99,800 | 21,400–72,800 |
 | Small bathroom + salt filter | 45,750–72,600 | 3,750–12,600 |
 | Repaint one room, 12 sqm | 120–1,260 (under-priced) | 1,440–4,200 |
 
