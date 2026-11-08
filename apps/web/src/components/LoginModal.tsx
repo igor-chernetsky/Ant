@@ -19,6 +19,11 @@ interface LoginModalProps {
   onSuccess: () => Promise<void> | void;
   /** Mode to open in, e.g. `signup` when registration is required to continue. */
   initialMode?: AuthMode;
+  /**
+   * Roles pre-selected on the sign-up form, e.g. `['contractor']` when the visitor
+   * arrived from the "I am a contractor" call to action.
+   */
+  initialRoles?: string[];
   /** Optional line above the form explaining why the dialog appeared. */
   notice?: string | null;
 }
@@ -184,6 +189,7 @@ export function LoginModal({
   onClose,
   onSuccess,
   initialMode = 'signin',
+  initialRoles,
   notice = null,
 }: LoginModalProps) {
   const { t } = useTranslation();
@@ -195,7 +201,7 @@ export function LoginModal({
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [displayName, setDisplayName] = useState('');
-  const [roles, setRoles] = useState<string[]>(['client']);
+  const [roles, setRoles] = useState<string[]>(initialRoles ?? ['client']);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [acceptedClientAgreement, setAcceptedClientAgreement] = useState(false);
   const [acceptedContractorAgreement, setAcceptedContractorAgreement] =
@@ -287,16 +293,20 @@ export function LoginModal({
   }, [isOpen]);
 
   // Honour the mode the caller asked for — a pending project opens registration,
-  // not sign-in.
+  // not sign-in — and seed the role checkboxes from the call to action that
+  // brought the visitor here (e.g. "sign up as a contractor"). Compared by value:
+  // an inline array must not reset the checkboxes on every render.
+  const initialRolesKey = (initialRoles ?? ['client']).join(',');
   useEffect(() => {
     if (!isOpen) {
       return;
     }
     setMode(initialMode);
+    setRoles(initialRolesKey.split(','));
     setError(null);
     setSuccessNotice(null);
     setFieldErrors({});
-  }, [isOpen, initialMode]);
+  }, [isOpen, initialMode, initialRolesKey]);
 
   if (!isOpen) {
     return null;

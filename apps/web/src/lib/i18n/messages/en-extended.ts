@@ -52,6 +52,16 @@ export const enExtended = {
     confidence: "confidence",
   },
   homePage: {
+    heroTitle: "Know what your renovation or build will cost",
+    heroLead:
+      "An estimate in about a minute — structure, electrical, plumbing and finishes priced from a Thailand catalogue. No account needed.",
+    heroEstimateCta: "Estimate my project — free",
+    heroSubLead:
+      "Registration is only needed to publish the project for bids or to respond to one.",
+    heroContractorTitle: "I am a contractor",
+    heroContractorBrowse: "Browse open projects",
+    heroContractorSignup: "Sign up as a contractor",
+    heroContractorLead: "See what clients are building, then sign up to respond.",
     addProjectDescription: "Publish a new project to receive contractor bids.",
     addProjectAction: "Get started",
     loadingProjects: "Loading projects…",

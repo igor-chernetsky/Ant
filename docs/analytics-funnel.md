@@ -17,6 +17,27 @@ paths open the create modal; for `?create=1` the query is removed from the URL
 right after (`router.replace('/')`), which is why `landing_view` reports the
 original `landing_path`.
 
+## Guest hero (`/`)
+
+A visitor without a session gets an offer above the project grid, rendered on the
+**server** from the cookie jar (`lib/guest-request.ts`) so it is part of the first
+HTML and the grid does not shift after hydration. It is one project-tile row tall
+on desktop and a compact strip on phones; the filters sidebar stays untouched.
+
+| Element | Action | Event |
+|---------|--------|-------|
+| "Estimate my project — free" | opens the guest create modal | `cta_click` `placement=hero_estimate` |
+| "Browse open projects" (contractor) | turns on the *available* filter and scrolls to the grid | `cta_click` `placement=hero_contractor_browse` |
+| "Sign up as a contractor" | `/?role=contractor` → sign-up dialog with the role pre-selected | `cta_click` `placement=hero_contractor_signup` |
+
+The sign-up role is seeded through `LoginModal`'s `initialRoles`, so a visitor
+arriving from a contractor call to action ticks contractor (or designer) without
+choosing again. `?role=client` works the same way.
+
+The hero itself is a server component; its buttons live in `GuestHeroActions` and
+reach the modal/filters through `ant:open-create` and `ant:browse-contractor`
+events, so the home page stays a client island only where it must be.
+
 ## Events
 
 | Event | When | Params |

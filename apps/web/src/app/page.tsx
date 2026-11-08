@@ -5,6 +5,8 @@ import {
 } from '@/lib/public-projects-server';
 import { PUBLIC_PROJECTS_PAGE_SIZE } from '@/lib/public-projects';
 import { resolveServerLocale } from '@/lib/server-locale';
+import { isGuestRequest } from '@/lib/guest-request';
+import { GuestHero } from '@/components/GuestHero';
 
 /**
  * The home page also hosts the faceted project search (`/?tag=…&region=…`).
@@ -19,6 +21,9 @@ export default async function HomePage() {
   // Ask the API for the same language the page is rendered in, otherwise the
   // first paint shows English project cards under a localised shell.
   const locale = await resolveServerLocale();
+  // Decided from the cookies, so a visitor arriving from an ad finds the offer in
+  // the first HTML — no hydration jump in front of the project grid.
+  const isGuest = await isGuestRequest();
   let initialPublicProjects = null;
 
   try {
@@ -33,5 +38,10 @@ export default async function HomePage() {
     initialPublicProjects = null;
   }
 
-  return <HomePageClient initialPublicProjects={initialPublicProjects} />;
+  return (
+    <HomePageClient
+      initialPublicProjects={initialPublicProjects}
+      guestHero={isGuest ? <GuestHero locale={locale} /> : null}
+    />
+  );
 }

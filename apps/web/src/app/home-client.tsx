@@ -2,9 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { HelpTip } from '@/components/help/HelpTip';
 import { LoginModal } from '@/components/LoginModal';
+import {
+  BROWSE_CONTRACTOR_EVENT,
+  OPEN_CREATE_EVENT,
+} from '@/components/GuestHeroActions';
 import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
 import { HomeAdCard } from '@/components/HomeAdCard';
@@ -71,15 +76,23 @@ export interface HomePageClientProps {
   initialPublicProjects?: PublicProjectListPage | null;
 }
 
+export interface HomePageClientProps {
+  initialPublicProjects?: PublicProjectListPage | null;
+  /** Server-rendered offer for a visitor without a session. */
+  guestHero?: ReactNode;
+}
+
 /** Where a create-project click came from; kept stable for GA4 reports. */
 export type CtaPlacement =
   | 'header'
   | 'grid_tile'
   | 'empty_state'
-  | 'ad_deeplink';
+  | 'ad_deeplink'
+  | 'hero_estimate';
 
 export function HomePageClient({
   initialPublicProjects = null,
+  guestHero = null,
 }: HomePageClientProps) {
   const hasInitialProjects = initialPublicProjects != null;
   const skipInitialLoadRef = useRef(hasInitialProjects);
@@ -112,6 +125,13 @@ export function HomePageClient({
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [loginInitialMode, setLoginInitialMode] = useState<'signin' | 'signup'>(
+    'signin',
+  );
+  const [loginInitialRoles, setLoginInitialRoles] = useState<string[] | undefined>(
+    undefined,
+  );
+  const roleQueryHandled = useRef(false);
   const [createOpen, setCreateOpen] = useState(false);
   /** Project the visitor filled in before signing up / adding the client role. */
   const [pendingDraft, setPendingDraft] = useState<CreateProjectInput | null>(
@@ -362,6 +382,64 @@ export function HomePageClient({
     }
   }, [me]);
 
+  /**
+   * The guest hero is rendered on the server, so its buttons reach the modal and
+   * the filters through events instead of props.
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const openCreate = (event: Event) => {
+      const placement =
+        (event as CustomEvent<{ placement?: CtaPlacement }>).detail?.placement ??
+        'hero_estimate';
+      openCreateModal(placement);
+    };
+
+    const browseContractor = () => {
+      // Show what the platform has before asking anyone to register: availability
+      // first, signup only when the contractor responds to a project.
+      setFilters((prev) => ({ ...prev, onlyAvailable: true }));
+      setFiltersOpen(false);
+      window.requestAnimationFrame(() => {
+        resultsRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      });
+    };
+
+    window.addEventListener(OPEN_CREATE_EVENT, openCreate);
+    window.addEventListener(BROWSE_CONTRACTOR_EVENT, browseContractor);
+    return () => {
+      window.removeEventListener(OPEN_CREATE_EVENT, openCreate);
+      window.removeEventListener(BROWSE_CONTRACTOR_EVENT, browseContractor);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /**
+   * `?role=contractor` (from the hero's contractor link, or an ad) opens the
+   * sign-up dialog with that role already selected: one decision less at the
+   * point where the visitor finally commits.
+   */
+  useEffect(() => {
+    if (!sessionReady || roleQueryHandled.current) return;
+    if (typeof window === 'undefined') return;
+    if (me) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const role = params.get('role');
+    if (role !== 'contractor' && role !== 'designer') return;
+
+    roleQueryHandled.current = true;
+    setLoginInitialRoles([role]);
+    setLoginInitialMode('signup');
+    setLoginOpen(true);
+    router.replace('/', { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionReady, me, router]);
+
   useEffect(() => {
     if (!filtersOpen) return;
 
@@ -529,6 +607,8 @@ export function HomePageClient({
 
   /** Plain sign-in from the header. */
   const handleSignIn = () => {
+    setLoginInitialMode('signin');
+    setLoginInitialRoles(undefined);
     setLoginOpen(true);
   };
 
@@ -663,6 +743,9 @@ export function HomePageClient({
       <SupplyVerificationBanner />
 
       <main className="home-main main-content">
+        {/* Server-rendered offer for visitors without a session: one grid row tall,
+            above the toolbar, with the project grid and its sidebar right below. */}
+        {guestHero}
         <div className={`home-layout${filtersOpen ? ' home-layout--filters-open' : ''}`}>
           <div className="home-toolbar">
             <button
@@ -850,6 +933,8 @@ export function HomePageClient({
 
       <LoginModal
         isOpen={loginOpen}
+        initialMode={loginInitialMode}
+        initialRoles={loginInitialRoles}
         onClose={() => setLoginOpen(false)}
         onSuccess={handleLoginSuccess}
       />
