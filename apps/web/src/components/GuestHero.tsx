@@ -8,14 +8,18 @@ interface GuestHeroProps {
 /**
  * First screen for a visitor without a session.
  *
- * Rendered on the server (see `app/page.tsx`): the visitor who arrives from an ad
- * gets the offer in the first HTML, the project grid stays right below it, and
- * nothing shifts after hydration. Client actions are delegated to
- * `GuestHeroActions` through custom events.
+ * Rendered on the server (see `app/page.tsx`): the offer is in the first HTML, the
+ * project grid stays right below it, and nothing shifts after hydration. It sits
+ * inside the results column, so on wide screens it covers the grid only — the
+ * filters sidebar starts at the top instead of leaving an empty gap beside it.
+ *
+ * The photo sits on the right and fades to transparent towards the left, so it
+ * melts into the gradient instead of ending on a hard edge.
  */
 export function GuestHero({ locale }: GuestHeroProps) {
   return (
-    <section className="card guest-hero" aria-labelledby="guest-hero-title">
+    <section className="guest-hero" aria-labelledby="guest-hero-title">
+      <div className="guest-hero-media" aria-hidden />
       <div className="guest-hero-copy">
         <h1 id="guest-hero-title" className="guest-hero-title">
           {translate(locale, 'home.heroTitle')}

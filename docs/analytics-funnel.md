@@ -21,8 +21,16 @@ original `landing_path`.
 
 A visitor without a session gets an offer above the project grid, rendered on the
 **server** from the cookie jar (`lib/guest-request.ts`) so it is part of the first
-HTML and the grid does not shift after hydration. It is one project-tile row tall
-on desktop and a compact strip on phones; the filters sidebar stays untouched.
+HTML and the grid does not shift after hydration. It lives **inside the results
+column**, so on wide screens it covers the grid only and the filters sidebar starts
+at the top instead of leaving an empty gap beside it. One project-tile row tall on
+desktop, a compact strip on phones.
+
+The photo sits on the right and fades to transparent towards the left
+(`mask-image: linear-gradient(to left, …)`), so it melts into the gradient instead
+of ending on a hard edge. It is `public/home-hero-guest.webp` (44 KB, generated
+from `home-hero-bg.png`) and is hidden on phones, where it would cost bytes
+without being seen.
 
 | Element | Action | Event |
 |---------|--------|-------|

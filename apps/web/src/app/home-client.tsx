@@ -402,7 +402,9 @@ export function HomePageClient({
       setFilters((prev) => ({ ...prev, onlyAvailable: true }));
       setFiltersOpen(false);
       window.requestAnimationFrame(() => {
-        resultsRef.current?.scrollIntoView({
+        // Scroll to the grid, not to the results column: the guest hero sits above
+        // it and the visitor asked to see the projects.
+        (gridRef.current ?? resultsRef.current)?.scrollIntoView({
           behavior: 'smooth',
           block: 'start',
         });
@@ -743,9 +745,6 @@ export function HomePageClient({
       <SupplyVerificationBanner />
 
       <main className="home-main main-content">
-        {/* Server-rendered offer for visitors without a session: one grid row tall,
-            above the toolbar, with the project grid and its sidebar right below. */}
-        {guestHero}
         <div className={`home-layout${filtersOpen ? ' home-layout--filters-open' : ''}`}>
           <div className="home-toolbar">
             <button
@@ -813,6 +812,10 @@ export function HomePageClient({
           </aside>
 
           <div className="home-results" ref={resultsRef}>
+            {/* Server-rendered offer for visitors without a session. It lives in
+                the results column so on wide screens the sidebar starts at the
+                top instead of leaving empty space beside it. */}
+            {guestHero}
             {loading && (
               <div className="home-loading home-loading--initial" role="status">
                 <AntSpinner size="lg" label={t('home.loadingProjects')} />
