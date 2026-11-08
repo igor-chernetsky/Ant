@@ -1,3 +1,5 @@
+import { landingEventParams, loadLandingContext } from '@/lib/utm';
+
 /**
  * Google Analytics 4 helpers.
  * Set NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXX in env to enable.
@@ -31,6 +33,21 @@ export function trackEvent(
   window.gtag('event', name, params);
 }
 
+/**
+ * Fire a funnel event with the campaign that brought this session in.
+ *
+ * Ad traffic must be joinable: "which campaign produced estimate starts" cannot be
+ * answered from page views alone, so the landing context is attached to every
+ * product event of the funnel.
+ */
+export function trackLandingEvent(
+  name: string,
+  params?: Record<string, AnalyticsParam>,
+): void {
+  const context = loadLandingContext();
+  trackEvent(name, { ...landingEventParams(context), ...params });
+}
+
 /** SPA page view after App Router navigations. */
 export function trackPageView(path: string, measurementId: string): void {
   if (typeof window === 'undefined' || typeof window.gtag !== 'function') {
@@ -43,6 +60,10 @@ export function trackPageView(path: string, measurementId: string): void {
 
 /** Named product events — keep keys stable for GA4 reports. */
 export const AnalyticsEvents = {
+  landingView: 'landing_view',
+  ctaClick: 'cta_click',
+  estimateStarted: 'estimate_started',
+  estimateShown: 'estimate_shown',
   signUp: 'sign_up',
   login: 'login',
   resendVerification: 'resend_verification_email',

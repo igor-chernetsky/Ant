@@ -29,7 +29,11 @@ import {
   type ProjectType,
   type PropertyType,
 } from '@/lib/projects';
-import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
+import {
+  AnalyticsEvents,
+  trackEvent,
+  trackLandingEvent,
+} from '@/lib/analytics';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -187,6 +191,13 @@ export function CreateProjectModal({
       setCreating(true);
       try {
         await onCreateGuestProject(input);
+        // The ad funnel's first product step: a guest accepted the value offer and
+        // started a project. Tracked with the campaign from the landing context.
+        trackLandingEvent(AnalyticsEvents.estimateStarted, {
+          mode: 'guest',
+          project_type: resolvedProjectType,
+          property_type: propertyType,
+        });
         onClose();
       } catch (err: unknown) {
         setError(
@@ -221,6 +232,12 @@ export function CreateProjectModal({
         property_type: propertyType,
         clarification_mode: clarificationMode,
         location_region: locationRegionSlug,
+      });
+      trackLandingEvent(AnalyticsEvents.estimateStarted, {
+        mode: 'client',
+        project_id: project.id,
+        project_type: resolvedProjectType,
+        property_type: propertyType,
       });
       onCreated(project.id);
       onClose();

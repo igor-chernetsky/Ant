@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { GoogleAnalytics } from '@/components/GoogleAnalytics';
+import { LandingAnalytics } from '@/components/LandingAnalytics';
 import { InAppNotificationsProvider } from '@/components/InAppNotificationsProvider';
 import { JsonLd } from '@/components/JsonLd';
 import { LocaleProvider } from '@/components/LocaleProvider';
@@ -93,6 +94,7 @@ export default async function RootLayout({
           </LocaleProvider>
         </SessionProvider>
         <GoogleAnalytics />
+        <LandingAnalytics />
       </body>
     </html>
   );

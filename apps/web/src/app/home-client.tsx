@@ -9,6 +9,7 @@ import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
 import { HomeAdCard } from '@/components/HomeAdCard';
 import { useSession } from '@/components/SessionProvider';
+import { AnalyticsEvents, trackLandingEvent } from '@/lib/analytics';
 import { useTranslation } from '@/components/LocaleProvider';
 import {
   canCreateProject,
@@ -69,6 +70,13 @@ const EMPTY_HOME_FILTERS: HomeProjectFilterState = {
 export interface HomePageClientProps {
   initialPublicProjects?: PublicProjectListPage | null;
 }
+
+/** Where a create-project click came from; kept stable for GA4 reports. */
+export type CtaPlacement =
+  | 'header'
+  | 'grid_tile'
+  | 'empty_state'
+  | 'ad_deeplink';
 
 export function HomePageClient({
   initialPublicProjects = null,
@@ -342,8 +350,8 @@ export function HomePageClient({
     router.replace('/', { scroll: false });
 
     // Project creation is open to everyone; a guest fills the form and is asked
-    // to register when publishing it.
-    openCreateModal();
+    // to register when publishing it. Ad traffic arrives here (`/?create=1`).
+    openCreateModal('ad_deeplink');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionReady, router]);
 
@@ -457,13 +465,17 @@ export function HomePageClient({
       .catch(() => setAdSlides([]));
   }, []);
 
-  const openCreateModal = () => {
+  const openCreateModal = (placement: CtaPlacement) => {
+    trackLandingEvent(AnalyticsEvents.ctaClick, {
+      placement,
+      is_guest: !me,
+    });
     setPendingDraft(null);
     setCreateOpen(true);
   };
 
   const handleAddProject = () => {
-    openCreateModal();
+    openCreateModal('header');
   };
 
   const handleCreateClose = () => {
@@ -745,7 +757,7 @@ export function HomePageClient({
                 <button
                   type="button"
                   className="primary"
-                  onClick={handleAddProject}
+                  onClick={() => openCreateModal('empty_state')}
                 >
                   {t('home.addProject')}
                 </button>
@@ -765,7 +777,7 @@ export function HomePageClient({
                         key="add-project"
                         type="button"
                         className="project-tile project-tile-add"
-                        onClick={handleAddProject}
+                        onClick={() => openCreateModal('grid_tile')}
                       >
                         <div className="project-tile-add-inner">
                           <span className="project-tile-add-icon-wrap" aria-hidden>

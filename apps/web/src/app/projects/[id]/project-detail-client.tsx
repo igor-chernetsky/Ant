@@ -15,6 +15,7 @@ import { EstimateLinesEditor } from '@/components/EstimateLinesEditor';
 import { EstimateQuestionsPreview } from '@/components/EstimateQuestionsPreview';
 import { GuestDraftLeaveDialog } from '@/components/GuestDraftLeaveDialog';
 import { resolveGuardedNavigation } from '@/lib/guest-leave-guard';
+import { AnalyticsEvents, trackLandingEvent } from '@/lib/analytics';
 import { EstimateConfidenceRing } from '@/components/EstimateConfidenceRing';
 import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
@@ -644,6 +645,26 @@ export function ProjectDetailPageClient({
     }
   }
   const estimate = project?.estimate ?? null;
+
+  /**
+   * The funnel's end: the visitor actually sees a priced estimate. Fired once per
+   * estimate id with the campaign that brought the session in — this is the number
+   * the ad spend must be judged by, not the home-page CTA clicks.
+   */
+  const estimateTrackedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!estimate?.id || estimateTrackedRef.current === estimate.id) {
+      return;
+    }
+    estimateTrackedRef.current = estimate.id;
+    trackLandingEvent(AnalyticsEvents.estimateShown, {
+      project_id: projectId ?? undefined,
+      is_guest: isGuestOwner,
+      is_owner: isOwner,
+      line_count: estimate.lines?.length ?? 0,
+      confidence: estimate.confidence,
+    });
+  }, [estimate?.id, estimate?.lines?.length, estimate?.confidence, isGuestOwner, isOwner, projectId]);
   /**
    * Workspace visibility: the owner, the guest who created the draft, and an
    * admin watching the project (read access to answers and the estimate).
