@@ -52,6 +52,9 @@ export const enExtended = {
     confidence: "confidence",
   },
   homePage: {
+    heroClientTitle: "I need work done",
+    heroClientLead:
+      "Start with a free estimate; registration is only needed to publish the project for bids.",
     heroTitle: "Know what your renovation or build will cost",
     heroLead:
       "An estimate in about a minute — structure, electrical, plumbing and finishes priced from a Thailand catalogue. No account needed.",

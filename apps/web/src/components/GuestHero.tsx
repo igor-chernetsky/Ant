@@ -13,8 +13,10 @@ interface GuestHeroProps {
  * inside the results column, so on wide screens it covers the grid only — the
  * filters sidebar starts at the top instead of leaving an empty gap beside it.
  *
- * The photo sits on the right and fades to transparent towards the left, so it
- * melts into the gradient instead of ending on a hard edge.
+ * Layout: a headline and a subtitle on the full width, then the two doors of the
+ * platform side by side (client / contractor) so the panel is not a narrow column
+ * of text on a wide screen. The photo fades to transparent towards the left and
+ * stays behind the columns as a background.
  */
 export function GuestHero({ locale }: GuestHeroProps) {
   return (

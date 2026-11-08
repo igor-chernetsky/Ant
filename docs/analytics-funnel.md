@@ -27,16 +27,21 @@ at the top instead of leaving an empty gap beside it. One project-tile row tall 
 desktop, a compact strip on phones.
 
 The photo sits on the right and fades to transparent towards the left
-(`mask-image: linear-gradient(to left, …)`), so it melts into the gradient instead
-of ending on a hard edge. It is `public/home-hero-guest.webp` (44 KB, generated
-from `home-hero-bg.png`) and is hidden on phones, where it would cost bytes
-without being seen.
+(`mask-image: linear-gradient(to left, …)`); it is kept faint (50 %) because the
+two columns render on top of it. It is `public/home-hero-guest.webp` (44 KB,
+generated from `home-hero-bg.png`) and is hidden on phones, where it would cost
+bytes without being seen.
 
-| Element | Action | Event |
-|---------|--------|-------|
-| "Estimate my project — free" | opens the guest create modal | `cta_click` `placement=hero_estimate` |
-| "Browse open projects" (contractor) | turns on the *available* filter and scrolls to the grid | `cta_click` `placement=hero_contractor_browse` |
-| "Sign up as a contractor" | `/?role=contractor` → sign-up dialog with the role pre-selected | `cta_click` `placement=hero_contractor_signup` |
+Layout: headline and subtitle on the full width, then the two doors of the
+platform side by side (`repeat(2, minmax(0, 1fr))`), stacked on phones. The panel
+fills the results column, so a wide screen shows two equal offers instead of one
+narrow column of text.
+
+| Column | Element | Action | Event |
+|--------|---------|--------|-------|
+| Client | "Estimate my project — free" | opens the guest create modal | `cta_click` `placement=hero_estimate` |
+| Contractor | "Browse open projects" | turns on the *available* filter and scrolls to the grid | `cta_click` `placement=hero_contractor_browse` |
+| Contractor | "Sign up as a contractor" | `/?role=contractor` → sign-up dialog with the role pre-selected | `cta_click` `placement=hero_contractor_signup` |
 
 The sign-up role is seeded through `LoginModal`'s `initialRoles`, so a visitor
 arriving from a contractor call to action ticks contractor (or designer) without
