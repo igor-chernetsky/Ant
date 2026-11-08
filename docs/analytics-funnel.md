@@ -51,6 +51,13 @@ The hero itself is a server component; its buttons live in `GuestHeroActions` an
 reach the modal/filters through `ant:open-create` and `ant:browse-contractor`
 events, so the home page stays a client island only where it must be.
 
+Because the panel is server-rendered, switching the language calls
+`router.refresh()` (`LocaleProvider.setLocale`): the client-rendered columns follow
+the context immediately, and the refresh re-renders the server text (headline,
+subtitle, footnote, marketing pages) in the new language. Without it a visitor who
+switched to Thai saw the headline and subtitle in the previous language while the
+columns were already translated.
+
 ## Events
 
 | Event | When | Params |

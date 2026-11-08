@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useSession } from '@/components/SessionProvider';
+import { useRouter } from 'next/navigation';
 import {
   DEFAULT_LOCALE,
   isLocale,
@@ -45,6 +46,7 @@ export function LocaleProvider({
   initialLocale?: Locale;
 }) {
   const { me, ready, setMe } = useSession();
+  const router = useRouter();
   const [locale, setLocaleState] = useState<Locale>(
     initialLocale ?? resolveInitialLocale,
   );
@@ -88,6 +90,14 @@ export function LocaleProvider({
     async (next: Locale) => {
       setLocaleState(next);
       writeLocaleCookie(next);
+      /**
+       * Text rendered on the **server** does not follow the client state: the guest
+       * hero, marketing pages and every other server component were already
+       * rendered in the previous language. Without this refresh a visitor switching
+       * to Thai saw the hero headline and subtitle in the old language while the
+       * client-rendered columns already changed.
+       */
+      router.refresh();
 
       if (me) {
         try {
@@ -99,10 +109,11 @@ export function LocaleProvider({
               ? me.preferredLocale
               : DEFAULT_LOCALE,
           );
+          router.refresh();
         }
       }
     },
-    [me, setMe],
+    [me, setMe, router],
   );
 
   const t = useCallback(
