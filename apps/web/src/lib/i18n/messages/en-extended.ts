@@ -62,7 +62,6 @@ export const enExtended = {
     heroSubLead:
       "Registration is only needed to publish the project for bids or to respond to one.",
     heroContractorTitle: "I am a contractor",
-    heroContractorBrowse: "Browse open projects",
     heroContractorSignup: "Sign up as a contractor",
     heroContractorLead: "See what clients are building, then sign up to respond.",
     addProjectDescription: "Publish a new project to receive contractor bids.",

@@ -62,7 +62,6 @@ export const thExtended = {
     heroSubLead:
       "ต้องสมัครสมาชิกเฉพาะเมื่อต้องการเผยแพร่โครงการเพื่อรับข้อเสนอ หรือต้องการยื่นข้อเสนอ",
     heroContractorTitle: "ฉันเป็นผู้รับเหมา",
-    heroContractorBrowse: "ดูโครงการที่เปิดอยู่",
     heroContractorSignup: "สมัครเป็นผู้รับเหมา",
     heroContractorLead:
       "ดูว่าลูกค้ากำลังก่อสร้างอะไร แล้วสมัครเพื่อยื่นข้อเสนอ",

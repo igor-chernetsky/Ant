@@ -40,8 +40,7 @@ narrow column of text.
 | Column | Element | Action | Event |
 |--------|---------|--------|-------|
 | Client | "Estimate my project — free" | opens the guest create modal | `cta_click` `placement=hero_estimate` |
-| Contractor | "Browse open projects" | turns on the *available* filter and scrolls to the grid | `cta_click` `placement=hero_contractor_browse` |
-| Contractor | "Sign up as a contractor" | `/?role=contractor` → sign-up dialog with the role pre-selected | `cta_click` `placement=hero_contractor_signup` |
+| Contractor | "Sign up as a contractor" (button) | opens the sign-up dialog with the contractor role already selected (`ant:open-signup`) | `cta_click` `placement=hero_contractor_signup` |
 
 The sign-up role is seeded through `LoginModal`'s `initialRoles`, so a visitor
 arriving from a contractor call to action ticks contractor (or designer) without

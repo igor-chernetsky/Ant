@@ -7,8 +7,8 @@ import { CreateProjectModal } from '@/components/CreateProjectModal';
 import { HelpTip } from '@/components/help/HelpTip';
 import { LoginModal } from '@/components/LoginModal';
 import {
-  BROWSE_CONTRACTOR_EVENT,
   OPEN_CREATE_EVENT,
+  OPEN_SIGNUP_EVENT,
 } from '@/components/GuestHeroActions';
 import { PageShell } from '@/components/PageShell';
 import { ProjectTile } from '@/components/ProjectTile';
@@ -383,8 +383,8 @@ export function HomePageClient({
   }, [me]);
 
   /**
-   * The guest hero is rendered on the server, so its buttons reach the modal and
-   * the filters through events instead of props.
+   * The guest hero is rendered on the server, so its buttons reach the modals
+   * through events instead of props.
    */
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -396,26 +396,20 @@ export function HomePageClient({
       openCreateModal(placement);
     };
 
-    const browseContractor = () => {
-      // Show what the platform has before asking anyone to register: availability
-      // first, signup only when the contractor responds to a project.
-      setFilters((prev) => ({ ...prev, onlyAvailable: true }));
-      setFiltersOpen(false);
-      window.requestAnimationFrame(() => {
-        // Scroll to the grid, not to the results column: the guest hero sits above
-        // it and the visitor asked to see the projects.
-        (gridRef.current ?? resultsRef.current)?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-      });
+    /** "Sign up as a contractor": open registration with the role already ticked. */
+    const openSignup = (event: Event) => {
+      const role =
+        (event as CustomEvent<{ role?: string }>).detail?.role ?? 'contractor';
+      setLoginInitialRoles([role]);
+      setLoginInitialMode('signup');
+      setLoginOpen(true);
     };
 
     window.addEventListener(OPEN_CREATE_EVENT, openCreate);
-    window.addEventListener(BROWSE_CONTRACTOR_EVENT, browseContractor);
+    window.addEventListener(OPEN_SIGNUP_EVENT, openSignup);
     return () => {
       window.removeEventListener(OPEN_CREATE_EVENT, openCreate);
-      window.removeEventListener(BROWSE_CONTRACTOR_EVENT, browseContractor);
+      window.removeEventListener(OPEN_SIGNUP_EVENT, openSignup);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

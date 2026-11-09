@@ -62,7 +62,6 @@ export const ruExtended = {
     heroSubLead:
       "Регистрация понадобится только для публикации проекта на торги или чтобы откликнуться на него.",
     heroContractorTitle: "Я исполнитель",
-    heroContractorBrowse: "Смотреть открытые проекты",
     heroContractorSignup: "Зарегистрироваться как исполнитель",
     heroContractorLead:
       "Посмотрите, что строят заказчики, и зарегистрируйтесь, чтобы откликаться.",
