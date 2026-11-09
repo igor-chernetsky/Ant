@@ -2248,7 +2248,12 @@ export const enExtended = {
       workflowTitle: "From description to signed contract",
       workflowLead:
         "Nine steps, each on the same project record — so nothing is agreed in chat and lost later.",
-      midTitle: "Start with your project description?",
+            videoTitle: "How BuilTHAI works for clients",
+      videoBody:
+        "A short walkthrough of the platform: describing the project, answering the clarifying questions, seeing a ballpark estimate for the scope, and publishing a structured tender that contractors can price.",
+      videoNote:
+        "About 2 minutes. Watch how a description becomes a scope, an estimate and a tender.",
+midTitle: "Start with your project description?",
       callouts: {
         scope: "AI-assisted scope",
         estimate: "Ballpark estimate",

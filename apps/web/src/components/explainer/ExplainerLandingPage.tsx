@@ -22,7 +22,7 @@ import {
   type TourFaqItem,
   type TourWorkflowStep,
 } from '@/components/explainer/ProductTourSections';
-import { PLATFORM_INTRO_VIDEO_SRC } from '@/lib/platform-video';
+import { videoSrcForAudience } from '@/lib/platform-video';
 import {
   ClientAnalyzePreview,
   ClientClarifyPreview,
@@ -93,7 +93,13 @@ function TourCommunityBlock() {
   );
 }
 
-function ClientTourPage({ base }: { base: string }) {
+function ClientTourPage({
+  base,
+  videoSrc,
+}: {
+  base: string;
+  videoSrc: string;
+}) {
   const { t } = useTranslation();
   const { activeId, scrollTo } = useWorkflowScrollSpy(CLIENT_SECTION_IDS);
 
@@ -289,7 +295,13 @@ function ClientTourPage({ base }: { base: string }) {
   );
 }
 
-function ContractorTourPage({ base }: { base: string }) {
+function ContractorTourPage({
+  base,
+  videoSrc,
+}: {
+  base: string;
+  videoSrc: string;
+}) {
   const { t } = useTranslation();
   const { activeId, scrollTo } = useWorkflowScrollSpy(CONTRACTOR_SECTION_IDS);
 
@@ -373,12 +385,13 @@ function ContractorTourPage({ base }: { base: string }) {
         visual={<ContractorHeroPreview />}
       />
 
-      {/* See it working before reading about it. */}
+      {/* See it working before reading about it. Each side has its own walkthrough:
+          a contractor sees the bidding flow, a client sees the estimate flow. */}
       <ProductTourVideo
         title={t(`${base}.videoTitle`)}
         body={t(`${base}.videoBody`)}
         note={t(`${base}.videoNote`)}
-        src={PLATFORM_INTRO_VIDEO_SRC}
+        src={videoSrc}
       />
 
       {/* Benefits before mechanics. */}
@@ -460,9 +473,15 @@ export function ExplainerLandingPage({ audience }: { audience: Audience }) {
       />
       <main className="main-content product-tour-page">
         {audience === 'clients' ? (
-          <ClientTourPage base={base} />
+          <ClientTourPage
+            base={base}
+            videoSrc={videoSrcForAudience('clients')}
+          />
         ) : (
-          <ContractorTourPage base={base} />
+          <ContractorTourPage
+            base={base}
+            videoSrc={videoSrcForAudience('contractors')}
+          />
         )}
       </main>
       <LoginModal
