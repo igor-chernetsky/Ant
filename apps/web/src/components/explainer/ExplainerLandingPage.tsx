@@ -230,6 +230,15 @@ function ClientTourPage({
         }
       />
 
+      {/* See it working before reading about it. The client walkthrough lives on
+          the client page only — the contractor page has its own. */}
+      <ProductTourVideo
+        title={t(`${base}.videoTitle`)}
+        body={t(`${base}.videoBody`)}
+        note={t(`${base}.videoNote`)}
+        src={videoSrc}
+      />
+
       {/* Benefits before mechanics: the reader should know what they get
           before investing in a nine-step walkthrough. */}
       <ProductTourDifferentiators
