@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from './mail.service';
 import {
   DEFAULT_PLATFORM_ADMIN_EMAIL,
+  DEFAULT_TRIAL_ENDS_AT,
   parseTrialEndDate,
   resolveTrialActive,
   trialEndDateOnly,
@@ -214,6 +215,9 @@ export class PlatformSettingsService {
       data: {
         id: SETTINGS_ID,
         contractSignedNotifyEmails: [DEFAULT_PLATFORM_ADMIN_EMAIL],
+        // A fresh database gets the launch-period end date rather than an open-ended
+        // trial; Admin → Settings can move it later.
+        trialEndsAt: DEFAULT_TRIAL_ENDS_AT,
       },
     });
   }

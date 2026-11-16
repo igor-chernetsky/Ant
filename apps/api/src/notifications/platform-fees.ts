@@ -13,6 +13,17 @@ export const PLATFORM_FEES_TRIAL_ACTIVE = true;
 export const PLATFORM_FEES_TRIAL_DISCOUNT_PERCENT = 100;
 export const INDICATIVE_USD_THB_RATE = 36;
 
+/**
+ * End of the launch-period free trial: the last instant of 31 December 2026 (UTC).
+ *
+ * Used when the settings row is created, so a fresh database starts with a real
+ * end date instead of "runs until someone turns it off". The production row is
+ * moved to this date by the
+ * `20261116120000_platform_trial_ends_2026_12_31` migration; afterwards the date
+ * is whatever Admin → Settings holds, and that value wins.
+ */
+export const DEFAULT_TRIAL_ENDS_AT = new Date('2026-12-31T23:59:59.999Z');
+
 /** Default admin inbox from legal branding (LEGAL_CONTACT_EMAIL). Used when DB list is empty; override with PLATFORM_ADMIN_EMAIL. */
 export const DEFAULT_PLATFORM_ADMIN_EMAIL = 'hello@builthai.com';
 
