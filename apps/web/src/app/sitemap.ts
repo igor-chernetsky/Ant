@@ -9,6 +9,8 @@ import {
   sitemapProjectPriority,
 } from '@/lib/sitemap-crawl-policy';
 import { SITEMAP_PATHS } from '@/lib/seo';
+import { SUPPORTED_LOCALES } from '@/lib/i18n/locales';
+import { localeAlternates, localizePath } from '@/lib/locale-path';
 
 /** Regenerate hourly so new projects and API changes reach crawlers. */
 export const revalidate = 3600;
@@ -31,6 +33,49 @@ function sitemapChangeFrequency(
   path: (typeof SITEMAP_PATHS)[number],
 ): MetadataRoute.Sitemap[number]['changeFrequency'] {
   return path === '/' ? 'daily' : 'monthly';
+}
+
+/**
+ * Absolute `hreflang` URLs for a path, so every locale variant is discoverable
+ * from any entry.
+ */
+function absoluteAlternates(
+  base: string,
+  path: string,
+): Record<string, string> {
+  const languages = localeAlternates(path);
+  const absolute: Record<string, string> = {};
+  for (const [locale, value] of Object.entries(languages)) {
+    absolute[locale] = `${base}${value === '/' ? '' : value}`;
+  }
+  return absolute;
+}
+
+/**
+ * One sitemap entry per locale variant of a path, each annotated with all three
+ * `hreflang` URLs. English keeps the unprefixed URL, Thai and Russian get `/th`
+ * and `/ru` (see `lib/locale-path.ts`).
+ */
+function localizedEntries(
+  base: string,
+  entry: {
+    path: string;
+    lastModified: Date;
+    changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
+    priority: number;
+  },
+): MetadataRoute.Sitemap {
+  const languages = absoluteAlternates(base, entry.path);
+  return SUPPORTED_LOCALES.map((locale) => {
+    const localized = localizePath(entry.path, locale);
+    return {
+      url: `${base}${localized === '/' ? '' : localized}`,
+      lastModified: entry.lastModified,
+      changeFrequency: entry.changeFrequency,
+      priority: entry.priority,
+      alternates: { languages },
+    };
+  });
 }
 
 /**
@@ -95,14 +140,16 @@ async function collectProjectEntries(
       }
 
       seen.add(project.id);
-      entries.push({
-        url: `${base}/projects/${project.id}`,
-        lastModified: project.updatedAt
-          ? new Date(project.updatedAt)
-          : lastModified,
-        changeFrequency: 'weekly' as const,
-        priority: sitemapProjectPriority(project),
-      });
+      entries.push(
+        ...localizedEntries(base, {
+          path: `/projects/${project.id}`,
+          lastModified: project.updatedAt
+            ? new Date(project.updatedAt)
+            : lastModified,
+          changeFrequency: 'weekly',
+          priority: sitemapProjectPriority(project),
+        }),
+      );
     }
 
     if (!page.hasMore) {
@@ -117,12 +164,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = resolveAppBaseUrl();
   const lastModified = new Date();
 
-  const staticEntries: MetadataRoute.Sitemap = SITEMAP_PATHS.map((path) => ({
-    url: path === '/' ? base : `${base}${path}`,
-    lastModified,
-    changeFrequency: sitemapChangeFrequency(path),
-    priority: sitemapPriority(path),
-  }));
+  const staticEntries: MetadataRoute.Sitemap = SITEMAP_PATHS.flatMap((path) =>
+    localizedEntries(base, {
+      path,
+      lastModified,
+      changeFrequency: sitemapChangeFrequency(path),
+      priority: sitemapPriority(path),
+    }),
+  );
 
   const projectEntries = await collectProjectEntries(base, lastModified);
 

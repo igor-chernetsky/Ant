@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { resolveAppBaseUrl } from '@/lib/app-base-url';
+import { localeAlternates, localizePath } from '@/lib/locale-path';
 import {
   getClientAgreement,
   getContractorAgreement,
@@ -144,16 +145,18 @@ export function marketingPageMetadata(options: {
   locale?: Locale;
 }): Metadata {
   const { title, description, path, locale = DEFAULT_LOCALE } = options;
+  const canonical = localizePath(path, locale);
   return {
     title,
     description,
     alternates: {
-      canonical: path,
+      canonical,
+      languages: localeAlternates(path),
     },
     openGraph: {
       title,
       description,
-      url: path,
+      url: canonical,
       type: 'website',
       images: [openGraphImage()],
       ...openGraphLocales(locale),
@@ -237,16 +240,18 @@ export function projectPageMetadata(options: {
   locale?: Locale;
 }): Metadata {
   const { title, description, path, locale = DEFAULT_LOCALE } = options;
+  const canonical = localizePath(path, locale);
   return {
     title,
     description,
     alternates: {
-      canonical: path,
+      canonical,
+      languages: localeAlternates(path),
     },
     openGraph: {
       title,
       description,
-      url: path,
+      url: canonical,
       type: 'website',
       images: [openGraphImage()],
       ...openGraphLocales(locale),

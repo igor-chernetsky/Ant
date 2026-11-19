@@ -5,6 +5,7 @@ import {
   NEGOTIATED_LOCALE_HEADER,
   negotiateLocaleFromAcceptLanguage,
 } from '@/lib/locale-negotiation';
+import { localeFromPathname, stripLocalePrefix } from '@/lib/locale-path';
 
 /**
  * Two jobs, in order:
@@ -68,6 +69,39 @@ function resolveCanonicalHost(): string | null {
   }
 }
 
+/**
+ * Serve `/th/...` and `/ru/...` as the same routes, rendered in that language.
+ *
+ * Search engines cannot switch a cookie, so the language has to exist in the URL
+ * for Thai and Russian pages to be indexable. The prefix is rewritten away (not
+ * redirected): one route tree serves all locales, `resolveServerLocale` reads the
+ * negotiated header, and the cookie is persisted so the visitor keeps the language
+ * when they navigate to an unprefixed link.
+ */
+function withLocaleFromPath(request: NextRequest): NextResponse | null {
+  const locale = localeFromPathname(request.nextUrl.pathname);
+  if (!locale) {
+    return null;
+  }
+
+  const url = request.nextUrl.clone();
+  url.pathname = stripLocalePrefix(request.nextUrl.pathname);
+
+  const headers = new Headers(request.headers);
+  headers.set(NEGOTIATED_LOCALE_HEADER, locale);
+
+  const response = NextResponse.rewrite(url, { request: { headers } });
+  response.cookies.set({
+    name: LOCALE_COOKIE,
+    value: locale,
+    path: '/',
+    sameSite: 'lax',
+    maxAge: LOCALE_COOKIE_MAX_AGE_SECONDS,
+    secure: request.nextUrl.protocol === 'https:',
+  });
+  return response;
+}
+
 function withNegotiatedLocale(request: NextRequest): NextResponse {
   // An explicit choice in the language switcher always wins.
   const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
@@ -116,6 +150,11 @@ export function middleware(request: NextRequest): NextResponse {
   // API responses carry their own locale header from the caller.
   if (request.nextUrl.pathname.startsWith('/api/')) {
     return NextResponse.next();
+  }
+
+  const localized = withLocaleFromPath(request);
+  if (localized) {
+    return localized;
   }
 
   return withNegotiatedLocale(request);

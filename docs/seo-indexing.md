@@ -42,10 +42,44 @@ after a session refresh), an invite flow, or a caller who might still own the
 project. This replaced a 200 response with a client-side "not found" screen,
 which search engines treat as a soft 404.
 
+## Localised URLs (`/th`, `/ru`) and hreflang
+
+Language used to live only in the `ant_locale` cookie, so a crawler — which sends
+no cookie — always got English and the Thai and Russian pages never entered the
+index. Non-default locales now have a real URL as well:
+
+| Locale | URL |
+|--------|-----|
+| English (default) | `https://www.builthai.com/for-clients` |
+| Thai | `https://www.builthai.com/th/for-clients` |
+| Russian | `https://www.builthai.com/ru/for-clients` |
+
+- `lib/locale-path.ts` — the only place that builds those paths
+  (`localizePath`, `localeFromPathname`, `stripLocalePrefix`, `localeAlternates`).
+- `middleware.ts` **rewrites** the prefix away (`/th/for-clients` → `/for-clients`),
+  sets the negotiated-locale request header so the server render is Thai, and
+  persists the `ant_locale` cookie. One route tree serves all locales; nothing is
+  duplicated and nothing redirects.
+- Canonical and `openGraph.url` follow the URL locale
+  (`marketingPageMetadata`, `projectPageMetadata`, the home page's
+  `generateMetadata`), and `alternates.languages` lists `en`, `th`, `ru` plus
+  `x-default` (English) for every page.
+- The sitemap lists each page three times — once per locale — and annotates every
+  entry with the same absolute `hreflang` map, so any variant leads to the others.
+- The language switcher navigates to the localised URL (`router.replace`), because
+  the path prefix outranks the cookie on the server.
+
+Still open: internal links keep their unprefixed `href`, so after navigation the
+cookie carries the language and the URL does not. Crawlers are unaffected (they
+follow the sitemap and hreflang), but a shared link from a Thai user points at the
+English URL.
+
 ## Known follow-ups (not done yet)
 
 - Marketing pages still render per request because the root layout reads the
   locale cookie; making them static/ISR would cut TTFB and crawl cost.
-- The CSVs exported so far (`report/Metadata.csv`, `report/Non-critical issues.csv`)
-  were empty, so the URL-level lists for the 2 × 404, 2 × duplicate-without-canonical,
-  1 × blocked-by-robots and 3 × redirect entries are still unknown.
+- The CSVs exported from Search Console still carry counts per reason, not URLs, so
+  the URL-level lists for the 2 × 404, 2 × duplicate-without-canonical,
+  1 × blocked-by-robots and 3 × redirect entries are unknown. Export the issue page
+  itself ("Table.csv" with a `URL` column) to act on them.
+- Internal links do not carry the locale prefix (see above).

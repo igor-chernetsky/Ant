@@ -1,12 +1,14 @@
 'use client';
 
 import Image from 'next/image';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import {
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
   type Locale,
 } from '@/lib/i18n';
+import { localizePath, stripLocalePrefix } from '@/lib/locale-path';
 import { useTranslation } from '@/components/LocaleProvider';
 
 const LOCALE_FLAG_ASSETS: Record<Locale, string> = {
@@ -30,6 +32,8 @@ function LocaleFlag({ locale, size = 20 }: { locale: Locale; size?: number }) {
 
 export function LanguageSwitcher() {
   const { locale, setLocale, t } = useTranslation();
+  const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
@@ -59,8 +63,19 @@ export function LanguageSwitcher() {
 
   const selectLocale = (next: Locale) => {
     setOpen(false);
-    if (next !== locale) {
-      void setLocale(next);
+    if (next === locale) {
+      return;
+    }
+    /**
+     * The URL carries the locale for English/Thai/Russian (`/`, `/th/…`, `/ru/…`),
+     * so switching has to move to the other URL: the path prefix wins over the
+     * cookie on the server render.
+     */
+    const basePath = stripLocalePrefix(pathname || '/');
+    const target = localizePath(basePath, next);
+    void setLocale(next);
+    if (target !== pathname) {
+      router.replace(target);
     }
   };
 

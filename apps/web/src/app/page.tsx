@@ -7,15 +7,26 @@ import { PUBLIC_PROJECTS_PAGE_SIZE } from '@/lib/public-projects';
 import { resolveServerLocale } from '@/lib/server-locale';
 import { isGuestRequest } from '@/lib/guest-request';
 import { GuestHero } from '@/components/GuestHero';
+import { localeAlternates, localizePath } from '@/lib/locale-path';
 
 /**
  * The home page also hosts the faceted project search (`/?tag=…&region=…`).
  * Canonicalising to `/` consolidates those variants; title/description come
  * from the root layout, which localises them.
+ *
+ * The canonical follows the URL locale (`/`, `/th`, `/ru`) and every variant links
+ * to the other two through `hreflang`, so the Thai page indexes as Thai instead of
+ * consolidating into the English one.
  */
-export const metadata: Metadata = {
-  alternates: { canonical: '/' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveServerLocale();
+  return {
+    alternates: {
+      canonical: localizePath('/', locale),
+      languages: localeAlternates('/'),
+    },
+  };
+}
 
 export default async function HomePage() {
   // Ask the API for the same language the page is rendered in, otherwise the
