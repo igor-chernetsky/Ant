@@ -21,11 +21,13 @@ import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
 import { IntakeWizard } from '@/components/IntakeWizard';
 import { ProjectHero, ProjectHeroSidebar } from '@/components/ProjectHero';
+import { ProjectNextStepBanner } from '@/components/ProjectNextStepBanner';
 import { ProjectBriefCard } from '@/components/ProjectBriefCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
 import { InviteFromDirectoryModal } from '@/components/InviteFromDirectoryModal';
 import { ClientContractPanel } from '@/components/ClientContractPanel';
+import { resolveProjectNextStep } from '@/lib/project-next-step';
 import { ProgressClaimsPanel } from '@/components/ProgressClaimsPanel';
 import { DefectsPanel } from '@/components/DefectsPanel';
 import {
@@ -127,6 +129,7 @@ export function ProjectDetailPageClient({
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
   const [docCategory, setDocCategory] = useState<DocumentCategory>('blueprint');
   const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
@@ -539,10 +542,8 @@ export function ProjectDetailPageClient({
     openSignUpToPublish();
   };
 
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file || !projectId) return;
+  const uploadDocumentFile = async (file: File) => {
+    if (!projectId) return;
 
     const contentType = guessContentType(file);
     if (!contentType) {
@@ -575,6 +576,25 @@ export function ProjectDetailPageClient({
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    await uploadDocumentFile(file);
+  };
+
+  /**
+   * Dropping a file on the documents card uploads it the same way the picker does;
+   * a plan is usually already on the desktop when the client fills the project in.
+   */
+  const handleDocumentDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setDragActive(false);
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    await uploadDocumentFile(file);
   };
 
   const handleDownload = async (doc: ProjectDocument) => {
@@ -703,6 +723,21 @@ export function ProjectDetailPageClient({
     Boolean(me && isAdminUser(me) && project) &&
     (project?.status === 'in_tender' || project?.status === 'clarification');
   const showAdminDelete = Boolean(me && isAdminUser(me) && project);
+  /**
+   * One "what now" answer for the owner, so the page order matters less: answer the
+   * questions, get the estimate, publish, then follow the contract.
+   */
+  const nextStep =
+    project && canManageWorkspace
+      ? resolveProjectNextStep({
+          status: project.status,
+          intakeCompleted: project.brief?.ai?.intake?.status === 'completed',
+          hasEstimate: Boolean(estimate),
+          isOwner: canManageWorkspace,
+          isGuestOwner,
+        })
+      : null;
+  const documentsReady = documents.length > 0;
 
   const handleDelete = async () => {
     if (!projectId || !project) return;
@@ -831,6 +866,16 @@ export function ProjectDetailPageClient({
                 }
               />
 
+              {nextStep && (
+                <ProjectNextStepBanner
+                  step={nextStep}
+                  onSignUp={openSignUpToPublish}
+                  onOpenProposals={() =>
+                    router.push(`/projects/${projectId}/bids`)
+                  }
+                />
+              )}
+
               {project.guestInviteAccess && (
                 <section className="card guest-invite-notice">
                   <p>{t('projectDetail.guestInviteNotice')}</p>
@@ -846,92 +891,14 @@ export function ProjectDetailPageClient({
                 </section>
               )}
 
-              <section className="card">
-                <div className="doc-section-header">
-                  <div className="doc-section-intro">
-                    <h2 className="section-title">{t('documents.title')}</h2>
-                    <p className="muted doc-hint">
-                      {canActAsOwner
-                        ? t('documents.ownerHint', {
-                            maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
-                          })
-                        : t('documents.publicHint')}
-                    </p>
-                  </div>
-                  {canActAsOwner && (
-                    <div className="doc-upload-row">
-                      <label>
-                        {t('documents.category')}
-                        <select
-                          value={docCategory}
-                          onChange={(e) =>
-                            setDocCategory(e.target.value as DocumentCategory)
-                          }
-                          disabled={uploading}
-                        >
-                          {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {formatDocumentCategory(opt.value)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="sr-only"
-                        accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.zip"
-                        onChange={handleFileChange}
-                        disabled={uploading}
-                      />
-                      <button
-                        type="button"
-                        className="primary"
-                        disabled={uploading}
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        {uploading
-                          ? t('common.uploading')
-                          : t('documents.uploadFile')}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {documents.length === 0 ? (
-                  <p className="muted">{t('documents.empty')}</p>
-                ) : (
-                  <>
-                    <div className="doc-tiles-grid">
-                      {documents.map((doc) => (
-                        <DocumentTile
-                          key={doc.id}
-                          projectId={projectId}
-                          document={doc}
-                          publicView={
-                            (authState !== 'authenticated' && !isGuestOwner) ||
-                            isAdminViewer
-                          }
-                          scopePackages={packagesByDocumentId.get(doc.id) ?? []}
-                          insight={insightByDocumentId.get(doc.id)}
-                          showDelete={showDocDelete}
-                          deleting={deletingDocId === doc.id}
-                          formatDateTime={formatDateTime}
-                          onDownload={() => void handleDownload(doc)}
-                          onDelete={() => void handleDeleteDocument(doc)}
-                        />
-                      ))}
-                    </div>
-                    <OrphanScopePackages packages={orphanPackages} />
-                  </>
-                )}
-              </section>
-
               {intakeActive && (
-                <IntakeWizard
-                  project={project}
-                  onUpdated={(updated) => setProject(updated)}
-                />
+                <div id="project-intake">
+                  <IntakeWizard
+                    project={project}
+                    hasDocuments={documentsReady}
+                    onUpdated={(updated) => setProject(updated)}
+                  />
+                </div>
               )}
 
               {showAdminInvite && (
@@ -998,9 +965,9 @@ export function ProjectDetailPageClient({
               )}
 
               {showEstimateTenderDuo && (
-                <div className="project-detail-duo">
+                <div className="project-detail-duo project-detail-duo--stacked">
                   {canManageWorkspace && estimate && (
-                    <section className="card estimate-card">
+                    <section className="card estimate-card" id="project-estimate">
                       <div className="estimate-header">
                         <div className="estimate-header-main">
                           <h2 className="section-title">
@@ -1096,11 +1063,13 @@ export function ProjectDetailPageClient({
                   )}
 
                   {showTender && (
-                    <TenderSummaryCard
-                      projectId={projectId}
-                      project={project}
-                      onUpdated={setProject}
-                    />
+                    <div id="project-tender">
+                      <TenderSummaryCard
+                        projectId={projectId}
+                        project={project}
+                        onUpdated={setProject}
+                      />
+                    </div>
                   )}
 
                   {showGuestPublishWall && (
@@ -1121,12 +1090,127 @@ export function ProjectDetailPageClient({
                 </div>
               )}
 
+              <section className="card" id="project-documents">
+                <div className="doc-section-header">
+                  <div className="doc-section-intro">
+                    <h2 className="section-title">{t('documents.title')}</h2>
+                    <p className="muted doc-hint">
+                      {canActAsOwner
+                        ? t('documents.ownerHint', {
+                            maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
+                          })
+                        : t('documents.publicHint')}
+                    </p>
+                  </div>
+                  {canActAsOwner && (
+                    <div className="doc-upload-row">
+                      <label>
+                        {t('documents.category')}
+                        <select
+                          value={docCategory}
+                          onChange={(e) =>
+                            setDocCategory(e.target.value as DocumentCategory)
+                          }
+                          disabled={uploading}
+                        >
+                          {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {formatDocumentCategory(opt.value)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="sr-only"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                        onChange={handleFileChange}
+                        disabled={uploading}
+                      />
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={uploading}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploading
+                          ? t('common.uploading')
+                          : t('documents.uploadFile')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {documents.length === 0 ? (
+                  canActAsOwner ? (
+                    <div
+                      className={`doc-dropzone${dragActive ? ' doc-dropzone--active' : ''}`}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        setDragActive(true);
+                      }}
+                      onDragLeave={() => setDragActive(false)}
+                      onDrop={(event) => void handleDocumentDrop(event)}
+                    >
+                      <p className="doc-dropzone-title">
+                        {t('documents.dropHint')}
+                      </p>
+                      <p className="muted doc-dropzone-types">
+                        {t('documents.uploadTypes')} {'\u00b7'}{' '}
+                        {t('projectDetail.maxFileSize', {
+                          maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
+                        })}
+                      </p>
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={uploading}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploading
+                          ? t('common.uploading')
+                          : t('documents.uploadFile')}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="muted">{t('documents.empty')}</p>
+                  )
+                ) : (
+                  <>
+                    <div className="doc-tiles-grid">
+                      {documents.map((doc) => (
+                        <DocumentTile
+                          key={doc.id}
+                          projectId={projectId}
+                          document={doc}
+                          publicView={
+                            (authState !== 'authenticated' && !isGuestOwner) ||
+                            isAdminViewer
+                          }
+                          scopePackages={packagesByDocumentId.get(doc.id) ?? []}
+                          insight={insightByDocumentId.get(doc.id)}
+                          showDelete={showDocDelete}
+                          deleting={deletingDocId === doc.id}
+                          formatDateTime={formatDateTime}
+                          onDownload={() => void handleDownload(doc)}
+                          onDelete={() => void handleDeleteDocument(doc)}
+                        />
+                      ))}
+                    </div>
+                    <OrphanScopePackages packages={orphanPackages} />
+                  </>
+                )}
+              </section>
+
               {isOwner && isContractProjectStatus(project.status) && (
-                <ClientContractPanel
+                <div id="project-contract">
+                  <ClientContractPanel
                   projectId={projectId}
                   project={project}
-                  onProjectUpdated={setProject}
-                />
+                    onProjectUpdated={setProject}
+                  />
+                </div>
               )}
 
               {isClaimsProjectStatus(project.status) &&

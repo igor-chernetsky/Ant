@@ -17,9 +17,19 @@ import {
 interface IntakeWizardProps {
   project: Project;
   onUpdated: (project: Project) => void;
+  /**
+   * Whether the project already has uploaded documents. The "upload documents
+   * first" callout is only useful while the list is empty — otherwise it is a wall
+   * of text above every question.
+   */
+  hasDocuments?: boolean;
 }
 
-export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
+export function IntakeWizard({
+  project,
+  onUpdated,
+  hasDocuments = false,
+}: IntakeWizardProps) {
   const { t } = useTranslation();
   const { formatTagLabel } = useAppFormatters();
   const intake = project.brief?.ai?.intake;
@@ -154,10 +164,12 @@ export function IntakeWizard({ project, onUpdated }: IntakeWizardProps) {
       <h2 className="section-title">{t('intake.title')}</h2>
       <p className="muted intake-intro">{t('intake.intro')}</p>
 
-      <div className="intake-docs-notice" role="note">
-        <p className="intake-docs-notice-title">{t('intake.uploadDocsTitle')}</p>
-        <p className="intake-docs-notice-text">{t('intake.uploadDocsText')}</p>
-      </div>
+      {!hasDocuments && (
+        <div className="intake-docs-notice" role="note">
+          <p className="intake-docs-notice-title">{t('intake.uploadDocsTitle')}</p>
+          <p className="intake-docs-notice-text">{t('intake.uploadDocsText')}</p>
+        </div>
+      )}
 
       <IntakeProgressBar progress={progress} />
 

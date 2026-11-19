@@ -5150,6 +5150,73 @@ pre {
   color: var(--text);
 }
 
+/* Create-project form: sections, a location skeleton and a phone-friendly action row. */
+.create-project-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.create-project-section-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.create-project-advanced {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+}
+
+.create-project-advanced-summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.create-project-advanced[open] .create-project-advanced-summary {
+  margin-bottom: 0.75rem;
+}
+
+.create-project-location-skeleton {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.skeleton-field {
+  display: block;
+  height: 2.55rem;
+  border-radius: 10px;
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.16) 0%,
+    rgba(148, 163, 184, 0.34) 50%,
+    rgba(148, 163, 184, 0.16) 100%
+  );
+  background-size: 200% 100%;
+  animation: create-project-skeleton-sweep 1.4s ease-in-out infinite;
+}
+
+.skeleton-field--wide {
+  grid-column: 1 / -1;
+}
+
+@keyframes create-project-skeleton-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 @media (max-width: 640px) {
   .create-project-modal {
     max-height: calc(100dvh - 1rem);
@@ -5159,6 +5226,21 @@ pre {
     .create-project-modal {
       max-height: calc(100vh - 1rem);
     }
+  }
+
+  /* One tap target per row on a phone: the primary action gets the full width. */
+  .create-project-actions {
+    flex-direction: column-reverse;
+  }
+
+  .create-project-actions > button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-field {
+    animation: none;
   }
 }
 
@@ -5471,11 +5553,7 @@ pre {
   align-self: stretch;
 }
 
-@media (max-width: 959px) {
-  .project-detail-sidebar {
-    order: -1;
-  }
-}
+/* On narrow screens the sidebar follows the page: the hero must come first. */
 
 .project-stage-rail {
   margin-bottom: 1rem;
@@ -16235,3 +16313,87 @@ main.product-tour-page {
   }
 }
 
+/* Next-step banner: the one place that answers "what do I do now". */
+.project-next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  flex-wrap: wrap;
+  border-color: rgba(37, 99, 235, 0.35);
+  background: linear-gradient(
+    135deg,
+    rgba(239, 246, 255, 0.9) 0%,
+    rgba(248, 250, 252, 0.9) 100%
+  );
+}
+
+.project-next-step-body {
+  min-width: 0;
+  flex: 1 1 22rem;
+}
+
+.project-next-step-progress {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.project-next-step-text {
+  margin: 0.35rem 0 0;
+}
+
+.project-next-step > button {
+  flex: 0 0 auto;
+}
+
+/* The estimate keeps the full width; the tender follows it. */
+.project-detail-duo--stacked {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Upload target for an empty documents card. */
+.doc-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  margin-top: 0.75rem;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.6);
+  text-align: center;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.doc-dropzone--active {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.doc-dropzone-title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.doc-dropzone-types {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .project-next-step {
+    align-items: stretch;
+  }
+
+  .project-next-step > button {
+    width: 100%;
+  }
+}
