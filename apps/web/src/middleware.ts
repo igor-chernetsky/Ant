@@ -4,6 +4,7 @@ import { DEFAULT_LOCALE, LOCALE_COOKIE } from '@/lib/i18n/locales';
 import {
   NEGOTIATED_LOCALE_HEADER,
   negotiateLocaleFromAcceptLanguage,
+  PATH_LOCALE_HEADER,
 } from '@/lib/locale-negotiation';
 import { localeFromPathname, stripLocalePrefix } from '@/lib/locale-path';
 
@@ -74,8 +75,8 @@ function resolveCanonicalHost(): string | null {
  *
  * Search engines cannot switch a cookie, so the language has to exist in the URL
  * for Thai and Russian pages to be indexable. The prefix is rewritten away (not
- * redirected): one route tree serves all locales, `resolveServerLocale` reads the
- * negotiated header, and the cookie is persisted so the visitor keeps the language
+ * redirected): one route tree serves all locales, `resolveServerLocale` gives the
+ * URL locale priority, and the cookie is persisted so the visitor keeps the language
  * when they navigate to an unprefixed link.
  */
 function withLocaleFromPath(request: NextRequest): NextResponse | null {
@@ -88,7 +89,9 @@ function withLocaleFromPath(request: NextRequest): NextResponse | null {
   url.pathname = stripLocalePrefix(request.nextUrl.pathname);
 
   const headers = new Headers(request.headers);
-  headers.set(NEGOTIATED_LOCALE_HEADER, locale);
+  // The URL locale is authoritative — the cookie is only a fallback for unprefixed
+  // links, so it must not override what the address bar says.
+  headers.set(PATH_LOCALE_HEADER, locale);
 
   const response = NextResponse.rewrite(url, { request: { headers } });
   response.cookies.set({

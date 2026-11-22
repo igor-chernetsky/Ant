@@ -1,7 +1,10 @@
 import { cookies, headers } from 'next/headers';
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE } from '@/lib/i18n/locales';
 import type { Locale } from '@/lib/i18n/locales';
-import { NEGOTIATED_LOCALE_HEADER } from '@/lib/locale-negotiation';
+import {
+  NEGOTIATED_LOCALE_HEADER,
+  PATH_LOCALE_HEADER,
+} from '@/lib/locale-negotiation';
 
 export function localeFromCookieValue(
   value: string | null | undefined,
@@ -12,21 +15,34 @@ export function localeFromCookieValue(
 /**
  * Locale for server-rendered metadata, copy and JSON-LD.
  *
- * The app keeps a single URL per page and switches language through the
- * `ant_locale` cookie, so a crawler that sends no cookie and no usable
- * `Accept-Language` always gets {@link DEFAULT_LOCALE}.
+ * Order matters, and the URL wins:
  *
- * Order: an explicit cookie choice, then the locale the middleware negotiated
- * for this very request (a first visit has no cookie yet), then the default.
+ * 1. the locale encoded in the path (`/th`, `/ru`) — it is what the visitor or a
+ *    crawler asked for, and `hreflang`/canonical promise exactly that language;
+ * 2. the `ant_locale` cookie — an explicit choice from the language switcher, which
+ *    also covers unprefixed links and the `?tag=` search URLs;
+ * 3. the locale the middleware negotiated from `Accept-Language` for this very
+ *    request (a first visit has no cookie yet);
+ * 4. the default.
+ *
+ * The cookie used to come first, and that let a stale cookie flip a Thai URL back
+ * to English: the switcher updated the dropdown and the cookie, the address bar
+ * still said `/th`, and the server rendered the old language.
  */
 export async function resolveServerLocale(): Promise<Locale> {
+  const headerStore = await headers();
+
+  const fromPath = headerStore.get(PATH_LOCALE_HEADER);
+  if (fromPath && isLocale(fromPath)) {
+    return fromPath;
+  }
+
   const cookieStore = await cookies();
   const fromCookie = cookieStore.get(LOCALE_COOKIE)?.value;
   if (fromCookie && isLocale(fromCookie)) {
     return fromCookie;
   }
 
-  const headerStore = await headers();
   const negotiated = headerStore.get(NEGOTIATED_LOCALE_HEADER);
   if (negotiated && isLocale(negotiated)) {
     return negotiated;

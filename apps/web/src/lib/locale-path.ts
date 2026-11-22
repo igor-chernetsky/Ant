@@ -82,4 +82,15 @@ export function pathnameLocalePrefix(pathname: string): string {
   return locale ? localePrefix(locale) : '';
 }
 
+/**
+ * Where the language switcher should send the visitor.
+ *
+ * The same page in another language is a different URL (`/th/...`, `/ru/...`), so
+ * switching is a navigation, not just a state change:
+ * `switchLocalePath('/th/for-clients', 'ru')` → `/ru/for-clients`.
+ */
+export function switchLocalePath(pathname: string, locale: Locale): string {
+  return localizePath(stripLocalePrefix(pathname || '/'), locale);
+}
+
 export { LOCALE_SEGMENTS };

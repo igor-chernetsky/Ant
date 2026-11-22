@@ -56,30 +56,32 @@ export function LocaleProvider({
       return;
     }
 
+    /**
+     * The cookie is this browser's latest explicit choice, so it outranks the
+     * stored profile: while a `PATCH /me/locale` is in flight the profile still
+     * holds the previous language, and applying it here would flip the interface
+     * back a moment after the visitor switched.
+     */
+    const cookieLocale = readLocaleCookie();
+    if (cookieLocale) {
+      setLocaleState(cookieLocale);
+
+      if (me && cookieLocale !== me.preferredLocale) {
+        void updatePreferredLocale(cookieLocale)
+          .then((result) => {
+            setMe({ ...me, preferredLocale: result.preferredLocale });
+          })
+          .catch(() => {
+            // keep the cookie/UI locale even if profile sync fails
+          });
+      }
+      return;
+    }
+
     if (me?.preferredLocale && isLocale(me.preferredLocale)) {
       setLocaleState(me.preferredLocale);
       writeLocaleCookie(me.preferredLocale);
-      return;
     }
-
-    const cookieLocale = readLocaleCookie();
-    if (!cookieLocale) {
-      return;
-    }
-
-    setLocaleState(cookieLocale);
-
-    if (!me) {
-      return;
-    }
-
-    void updatePreferredLocale(cookieLocale)
-      .then((result) => {
-        setMe({ ...me, preferredLocale: result.preferredLocale });
-      })
-      .catch(() => {
-        // keep cookie/UI locale even if profile sync fails
-      });
   }, [ready, me?.preferredLocale, me?.id]);
 
   useEffect(() => {

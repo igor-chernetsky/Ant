@@ -1,14 +1,15 @@
 'use client';
 
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import {
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
+  writeLocaleCookie,
   type Locale,
 } from '@/lib/i18n';
-import { localizePath, stripLocalePrefix } from '@/lib/locale-path';
+import { switchLocalePath } from '@/lib/locale-path';
 import { useTranslation } from '@/components/LocaleProvider';
 
 const LOCALE_FLAG_ASSETS: Record<Locale, string> = {
@@ -31,8 +32,7 @@ function LocaleFlag({ locale, size = 20 }: { locale: Locale; size?: number }) {
 }
 
 export function LanguageSwitcher() {
-  const { locale, setLocale, t } = useTranslation();
-  const router = useRouter();
+  const { locale, t } = useTranslation();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -66,17 +66,20 @@ export function LanguageSwitcher() {
     if (next === locale) {
       return;
     }
+
     /**
-     * The URL carries the locale for English/Thai/Russian (`/`, `/th/…`, `/ru/…`),
-     * so switching has to move to the other URL: the path prefix wins over the
-     * cookie on the server render.
+     * Switching language means switching to another URL (`/`, `/th/…`, `/ru/…`),
+     * and the server decides the language from that URL plus the cookie. Doing both
+     * through the client router — a refresh of the current route plus a replace to
+     * the new one — started two navigations whose order was not guaranteed, and the
+     * refresh could repaint the old page after the new one had landed. That is the
+     * "dropdown changed, page did not" bug.
+     *
+     * A document navigation has no such race and no stale router-cache entry: the
+     * cookie is written first, so the very first server render already uses it.
      */
-    const basePath = stripLocalePrefix(pathname || '/');
-    const target = localizePath(basePath, next);
-    void setLocale(next);
-    if (target !== pathname) {
-      router.replace(target);
-    }
+    writeLocaleCookie(next);
+    window.location.assign(switchLocalePath(pathname || '/', next));
   };
 
   return (

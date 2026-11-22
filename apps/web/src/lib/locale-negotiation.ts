@@ -12,6 +12,16 @@ import {
  */
 export const NEGOTIATED_LOCALE_HEADER = 'x-ant-locale-negotiated';
 
+/**
+ * Request header carrying the locale encoded in the URL (`/th/...`, `/ru/...`).
+ *
+ * This one is authoritative: a visitor who chose Thai and then landed on a stale
+ * `ant_locale` cookie must still get Thai on the Thai URL, and a crawler must get
+ * the language the URL promises — otherwise the page's `hreflang` canonical says
+ * one thing and the content says another.
+ */
+export const PATH_LOCALE_HEADER = 'x-ant-locale-path';
+
 type WeightedTag = { tag: string; quality: number; order: number };
 
 function parseWeightedTags(header: string): WeightedTag[] {
