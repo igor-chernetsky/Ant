@@ -159,7 +159,6 @@ export function ProjectDetailPageClient({
   );
   /** Path the guest clicked while holding an unclaimed project. */
   const [leavePrompt, setLeavePrompt] = useState<string | null>(null);
-  const [leavingDraft, setLeavingDraft] = useState(false);
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const loadDocuments = useCallback(
@@ -518,23 +517,21 @@ export function ProjectDetailPageClient({
     };
   }, [isGuestOwner, project, projectId]);
 
-  const handleGuestLeave = async () => {
+  /**
+   * Leaving keeps the draft on purpose.
+   *
+   * A guest project already lives for 24 hours (`guestExpiresAt`), and that window
+   * is what lets the team see what a potential client was describing in
+   * Admin → Projects (guest filter) and lets the visitor come back in the same
+   * browser. The old code deleted the draft when no estimate existed yet, which made
+   * every abandoned attempt invisible — exactly what we want to review.
+   */
+  const handleGuestLeave = () => {
     const target = leavePrompt;
-    if (!target || leavingDraft) return;
+    if (!target) return;
 
-    setLeavingDraft(true);
-    try {
-      if (!estimate) {
-        // Nothing has been calculated yet: remove the draft, as confirmed.
-        await deleteProject(projectId).catch(() => {
-          // Already gone or expired — leaving must still work.
-        });
-      }
-    } finally {
-      setLeavingDraft(false);
-      setLeavePrompt(null);
-      router.push(target);
-    }
+    setLeavePrompt(null);
+    router.push(target);
   };
 
   const handleGuestLeaveRegister = () => {
@@ -1362,9 +1359,8 @@ export function ProjectDetailPageClient({
       <GuestDraftLeaveDialog
         isOpen={leavePrompt != null}
         hasEstimate={estimate != null}
-        busy={leavingDraft}
         onRegister={handleGuestLeaveRegister}
-        onLeave={() => void handleGuestLeave()}
+        onLeave={handleGuestLeave}
         onStay={() => setLeavePrompt(null)}
       />
       {confirmDialog}

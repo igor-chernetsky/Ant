@@ -4174,6 +4174,35 @@ pre {
   gap: 0.65rem;
 }
 
+/* Leave dialog: three short answers stay on one row. */
+.guest-leave-dialog {
+  max-width: 520px;
+}
+
+.guest-leave-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.guest-leave-actions > button {
+  min-width: 0;
+  width: 100%;
+  padding: 0.6rem 0.5rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 400px) {
+  .guest-leave-actions > button {
+    font-size: 0.82rem;
+    padding: 0.55rem 0.35rem;
+  }
+}
+
 .confirm-dialog-actions .primary,
 .confirm-dialog-actions .secondary,
 .confirm-dialog-actions .danger {

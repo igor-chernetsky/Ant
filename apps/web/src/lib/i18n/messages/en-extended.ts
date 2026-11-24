@@ -200,13 +200,12 @@ export const enExtended = {
       "Create an account to publish this project. Everything you filled in is saved.",
     leaveTitle: "Leave this project without registering?",
     leaveMessageDraft:
-      "The project belongs to this browser only and has not been saved to an account yet. If you leave now, the draft will be deleted.",
+      "The project belongs to this browser only and has not been saved to an account yet. If you leave, it stays available for up to 24 hours — our team can review it, and you can come back in this browser.",
     leaveMessageWithEstimate:
-      "The estimate is ready, so the draft is kept for 24 hours — but without a registered account you will not be able to find it afterwards.",
-    leaveStay: "Stay on the project",
-    leaveConfirmDelete: "Leave and delete",
-    leaveConfirmKeep: "Leave anyway",
+      "The estimate is ready and the project stays available for 24 hours. Without an account you will not be able to find it afterwards.",
+    leaveStay: "Stay",
     leaveRegister: "Register",
+    leaveConfirm: "Leave",
   },
   projectHero: {
     projectsBreadcrumb: "Projects",

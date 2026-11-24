@@ -8,15 +8,15 @@ import { useTranslation } from '@/components/LocaleProvider';
 export interface GuestDraftLeaveDialogProps {
   isOpen: boolean;
   /**
-   * An estimate has already been calculated. Leaving keeps the draft for its
-   * remaining 24 hours instead of deleting it, because the AI calculation behind
-   * it is not free.
+   * An estimate has already been calculated. It only changes the wording: leaving
+   * never deletes the project — the draft stays for the rest of its 24 hours in
+   * both cases, so the team can see what the visitor was asking for.
    */
   hasEstimate: boolean;
   busy?: boolean;
   /** Continue to registration — keeps the project. */
   onRegister: () => void;
-  /** Leave the project page. Deletes the draft when there is no estimate yet. */
+  /** Leave the project page. The draft is kept, not deleted. */
   onLeave: () => void;
   /** Stay on the project. */
   onStay: () => void;
@@ -25,9 +25,10 @@ export interface GuestDraftLeaveDialogProps {
 /**
  * Shown when a guest with an unclaimed project clicks a link to another page.
  *
- * The draft exists only behind the guest cookie, so leaving without registering
- * gives it up: deleted when nothing has been calculated yet, kept for the rest of
- * its 24 hours when an estimate already exists.
+ * Leaving no longer throws the draft away: it lives for its full 24 hours whatever
+ * the visitor does, so an abandoned attempt is still visible to the team in
+ * Admin → Projects (guest filter) and the visitor can come back in the same browser.
+ * Only an explicit delete from the project's danger zone removes it early.
  */
 export function GuestDraftLeaveDialog({
   isOpen,
@@ -89,18 +90,16 @@ export function GuestDraftLeaveDialog({
           </p>
         </div>
 
-        <div className="confirm-dialog-actions">
+        {/* One row on purpose: three short answers (stay / leave / register) used to
+            wrap into two rows and the primary action jumped between lines. */}
+        <div className="confirm-dialog-actions guest-leave-actions">
           <button type="button" className="secondary" disabled={busy} onClick={onStay}>
             {t('guestProject.leaveStay')}
           </button>
-          <button type="button" className="danger" disabled={busy} onClick={onLeave}>
+          <button type="button" className="ghost" disabled={busy} onClick={onLeave}>
             <BusyLabel
               busy={busy}
-              idle={
-                hasEstimate
-                  ? t('guestProject.leaveConfirmKeep')
-                  : t('guestProject.leaveConfirmDelete')
-              }
+              idle={t('guestProject.leaveConfirm')}
               busyText={t('common.pleaseWait')}
             />
           </button>
