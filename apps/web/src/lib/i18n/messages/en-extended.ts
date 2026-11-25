@@ -1597,6 +1597,8 @@ export const enExtended = {
     proposal_one: "proposal",
     proposal_other: "proposals",
     andProposals: " and {count} {proposals}",
+    inviteNeedsPublish: "Publish the project first — contractors can only be invited once the tender is open.",
+    inviteTenderClosed: "Invites are closed: the tender is no longer accepting participants.",
   },
   bidsPage: {
     loading: "Loading bids…",

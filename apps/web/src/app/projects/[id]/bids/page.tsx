@@ -146,6 +146,12 @@ export default function ProjectBidsPage() {
   const ballparkMid = project?.estimate?.totals.midAmount ?? null;
   const projectHref = `/projects/${projectId}`;
   const tenderAwarded = tender?.status === 'awarded';
+  /** The API accepts invites only while the tender is open or in clarification. */
+  const tenderCanInvite =
+    tender?.status === 'open' || tender?.status === 'draft';
+  const inviteDisabledReason = tenderCanInvite
+    ? undefined
+    : t('tenderCard.inviteTenderClosed');
 
   const displayBids = useMemo(() => {
     if (!tender) return [];
@@ -374,10 +380,17 @@ export default function ProjectBidsPage() {
                                 <button
                                   type="button"
                                   className="secondary"
+                                  disabled={!tenderCanInvite}
+                                  title={inviteDisabledReason}
                                   onClick={() => setInviteModalOpen(true)}
                                 >
                                   {t('tenderCard.inviteFromDirectory')}
                                 </button>
+                                {inviteDisabledReason ? (
+                                  <p className="muted contractor-coverage-invite-hint">
+                                    {inviteDisabledReason}
+                                  </p>
+                                ) : null}
                               </div>
                             )}
                         </>
@@ -402,9 +415,12 @@ export default function ProjectBidsPage() {
                                 : 'contractor'
                             }
                             alwaysSuggestInvite
-                            onInviteFromDirectory={() =>
-                              setInviteModalOpen(true)
+                            onInviteFromDirectory={
+                              tenderCanInvite
+                                ? () => setInviteModalOpen(true)
+                                : undefined
                             }
+                            inviteDisabledReason={inviteDisabledReason}
                           />
                         </div>
                       )}

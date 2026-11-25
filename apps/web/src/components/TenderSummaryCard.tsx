@@ -193,6 +193,22 @@ export function TenderSummaryCard({
     collectingQuestions ||
     ((tender?.bids.length ?? 0) === 0 && !winnerSelected);
   const registryInviteCount = coverage?.registryInviteCount ?? 0;
+  /**
+   * Invites are only accepted by the API while the tender is open or in
+   * clarification ("Invites are only available during tender publication or
+   * clarification"). Before publishing there is no tender row at all, so the button
+   * used to be visible and then fail — it now stays visible but disabled, with the
+   * reason spelled out.
+   */
+  const canInviteFromDirectory =
+    Boolean(tender) &&
+    (tender?.status === 'open' || tender?.status === 'draft') &&
+    !winnerSelected;
+  const inviteDisabledReason = canInviteFromDirectory
+    ? undefined
+    : tender
+      ? t('tenderCard.inviteTenderClosed')
+      : t('tenderCard.inviteNeedsPublish');
   // Low-match CTA is shown inside ContractorCoverageNotice; stale empty
   // tenders also get an invite block below.
   const showDirectoryInviteBlock =
@@ -284,7 +300,10 @@ export function TenderSummaryCard({
               refreshKey={coverageRefreshKey}
               audience={audience}
               alwaysSuggestInvite={isTenderBeginning}
-              onInviteFromDirectory={() => setInviteModalOpen(true)}
+              onInviteFromDirectory={
+                canInviteFromDirectory ? () => setInviteModalOpen(true) : undefined
+              }
+              inviteDisabledReason={inviteDisabledReason}
               onCoverageLoaded={setCoverage}
             />
             <div className="tender-publish-row">
@@ -434,7 +453,10 @@ export function TenderSummaryCard({
                 refreshKey={coverageRefreshKey}
                 audience={audience}
                 alwaysSuggestInvite={isTenderBeginning}
-                onInviteFromDirectory={() => setInviteModalOpen(true)}
+                onInviteFromDirectory={
+                canInviteFromDirectory ? () => setInviteModalOpen(true) : undefined
+              }
+              inviteDisabledReason={inviteDisabledReason}
                 onCoverageLoaded={setCoverage}
               />
               <div className="tender-publish-row">
@@ -491,7 +513,10 @@ export function TenderSummaryCard({
                   refreshKey={coverageRefreshKey}
                   audience={audience}
                   alwaysSuggestInvite={isTenderBeginning}
-                  onInviteFromDirectory={() => setInviteModalOpen(true)}
+                  onInviteFromDirectory={
+                canInviteFromDirectory ? () => setInviteModalOpen(true) : undefined
+              }
+              inviteDisabledReason={inviteDisabledReason}
                   onCoverageLoaded={setCoverage}
                 />
               )}
@@ -530,7 +555,10 @@ export function TenderSummaryCard({
                 refreshKey={coverageRefreshKey}
                 audience={audience}
                 alwaysSuggestInvite={isTenderBeginning}
-                onInviteFromDirectory={() => setInviteModalOpen(true)}
+                onInviteFromDirectory={
+                canInviteFromDirectory ? () => setInviteModalOpen(true) : undefined
+              }
+              inviteDisabledReason={inviteDisabledReason}
                 onCoverageLoaded={setCoverage}
               />
             )}

@@ -6,6 +6,7 @@ import {
   type ContractorCoveragePreview,
 } from '@/lib/tendering';
 import { useTranslation } from '@/components/LocaleProvider';
+import { resolveCoverageInvite } from '@/lib/coverage-invite-state';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { DIRECTORY_INVITE_LOW_MATCH_THRESHOLD, DIRECTORY_INVITE_HIDE_TRADE_LIST_THRESHOLD } from '@/lib/directory-invite-suggest';
 
@@ -20,6 +21,13 @@ interface ContractorCoverageNoticeProps {
   /** Always show registry invite CTA (clarification / tender start). */
   alwaysSuggestInvite?: boolean;
   onInviteFromDirectory?: () => void;
+  /**
+   * Set when the invite action exists but the project cannot send one yet (for
+   * example the tender has not been published). The button stays visible but
+   * disabled, with the reason as its hint — better than a visible button that
+   * fails with "Invites are only available during tender publication".
+   */
+  inviteDisabledReason?: string;
   onCoverageLoaded?: (coverage: ContractorCoveragePreview | null) => void;
 }
 
@@ -38,6 +46,7 @@ export function ContractorCoverageNotice({
   audience = 'contractor',
   alwaysSuggestInvite = false,
   onInviteFromDirectory,
+  inviteDisabledReason,
   onCoverageLoaded,
 }: ContractorCoverageNoticeProps) {
   const { t } = useTranslation();
@@ -116,10 +125,19 @@ export function ContractorCoverageNotice({
   const lowMatchInvite =
     coverage.suggestInviteFromDirectory === true ||
     coverage.contractorCount <= DIRECTORY_INVITE_LOW_MATCH_THRESHOLD;
-  const showInvite = Boolean(
-    onInviteFromDirectory &&
-      (alwaysSuggestInvite || isDesign || lowMatchInvite),
-  );
+  /**
+   * The handler is present whenever an invite is possible *in principle*; the API
+   * only accepts it while the tender is open or in clarification, so a reason turns
+   * the button into a disabled, self-explaining one instead of a failing action.
+   */
+  const invite = resolveCoverageInvite({
+    hasHandler: Boolean(onInviteFromDirectory),
+    alwaysSuggestInvite,
+    isDesign,
+    lowMatchInvite,
+    disabledReason: inviteDisabledReason,
+  });
+  const showInvite = invite.visible;
   const showTradeList =
     coverage.projectTags.length > 0 &&
     coverage.contractorCount < DIRECTORY_INVITE_HIDE_TRADE_LIST_THRESHOLD;
@@ -139,10 +157,15 @@ export function ContractorCoverageNotice({
       <button
         type="button"
         className="secondary"
+        disabled={!invite.enabled}
+        title={inviteDisabledReason}
         onClick={() => onInviteFromDirectory?.()}
       >
         {t('tenderCard.inviteFromDirectory')}
       </button>
+      {invite.hint ? (
+        <p className="muted contractor-coverage-invite-hint">{invite.hint}</p>
+      ) : null}
     </div>
   ) : null;
 

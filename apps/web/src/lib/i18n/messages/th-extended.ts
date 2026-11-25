@@ -1596,6 +1596,8 @@ export const thExtended = {
     proposal_one: "ข้อเสนอ",
     proposal_other: "ข้อเสนอ",
     andProposals: " และ {count} {proposals}",
+    inviteNeedsPublish: "เผยแพร่โครงการก่อน — เชิญผู้รับเหมาได้หลังจากเปิดการประกาศเท่านั้น",
+    inviteTenderClosed: "ปิดรับเชิญแล้ว: การประกาศไม่รับผู้เข้าร่วมอีก",
   },
   bidsPage: {
     loading: "กำลังโหลดข้อเสนอ…",

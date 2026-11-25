@@ -1603,6 +1603,8 @@ export const ruExtended = {
     proposal_one: "предложение",
     proposal_other: "предложений",
     andProposals: " и {count} {proposals}",
+    inviteNeedsPublish: "Сначала опубликуйте проект — приглашать подрядчиков можно только после открытия тендера.",
+    inviteTenderClosed: "Приглашения закрыты: тендер больше не принимает участников.",
   },
   bidsPage: {
     loading: "Загрузка ставок…",

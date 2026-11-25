@@ -13061,6 +13061,13 @@ select:disabled {
   color: #334155;
 }
 
+/* Invite button that is visible but not usable yet (tender not published). */
+.contractor-coverage-invite-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 .contractor-coverage-invite {
   display: flex;
   flex-direction: column;
