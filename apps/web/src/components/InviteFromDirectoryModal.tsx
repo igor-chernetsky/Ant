@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '@/components/LocaleProvider';
+import { InviteSentNotice } from '@/components/InviteSentNotice';
 import {
   fetchDirectoryEntries,
   inviteDirectoryEntriesToTender,
@@ -216,10 +217,14 @@ export function InviteFromDirectoryModal({
       ]);
       const sent = results.filter((r) => r.emailSent).length;
       setSuccess(
-        t('directory.inviteSent', {
-          count: String(results.length),
-          sent: String(sent),
-        }),
+        sent > 0
+          ? t('directory.inviteSent', {
+              count: String(results.length),
+              sent: String(sent),
+            })
+          : t('directory.inviteCreatedNoEmail', {
+              count: String(results.length),
+            }),
       );
       setSelected(new Set());
     } catch (err: unknown) {
@@ -329,7 +334,6 @@ export function InviteFromDirectoryModal({
           )}
 
           {error && <p className="error">{error}</p>}
-          {success && <p className="muted">{success}</p>}
           {!isAdmin && (
             <p className="muted">
               {t('directory.inviteMaxHint', {
@@ -457,25 +461,28 @@ export function InviteFromDirectoryModal({
           </div>
         </div>
 
-        <div className="publish-tender-modal-footer row">
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy || !manualEmail.trim()}
-            onClick={() => void handleManualInvite()}
-          >
-            {t('directory.sendManualInvite')}
-          </button>
-          <button
-            type="button"
-            className="primary"
-            disabled={busy || selectedCount === 0}
-            onClick={() => void handleInviteSelected()}
-          >
-            {busy
-              ? t('directory.sending')
-              : t('directory.sendInvites', { count: String(selectedCount) })}
-          </button>
+        <div className="publish-tender-modal-footer invite-directory-footer">
+          {success ? <InviteSentNotice message={success} /> : null}
+          <div className="row">
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy || !manualEmail.trim()}
+              onClick={() => void handleManualInvite()}
+            >
+              {t('directory.sendManualInvite')}
+            </button>
+            <button
+              type="button"
+              className="primary"
+              disabled={busy || selectedCount === 0}
+              onClick={() => void handleInviteSelected()}
+            >
+              {busy
+                ? t('directory.sending')
+                : t('directory.sendInvites', { count: String(selectedCount) })}
+            </button>
+          </div>
         </div>
       </div>
     </div>,

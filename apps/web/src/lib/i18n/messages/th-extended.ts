@@ -819,7 +819,7 @@ export const thExtended = {
     inviteMaxHint:
       "เชิญได้สูงสุด {designers} ผู้ออกแบบ และ {contractors} ผู้รับเหมา สำหรับรายการนี้: ไม่เกิน {max} {kind}",
     inviteMaxReached: "เลือกได้ไม่เกิน {max} {kind}",
-    inviteSent: "สร้างคำเชิญ {count} รายการ ส่งอีเมลแล้ว {sent}",
+    inviteSent: "ส่งอีเมลเชิญแล้ว {sent} จาก {count}",
     manualInviteTitle: "เชิญทางอีเมล",
     emailPlaceholder: "อีเมล",
     namePlaceholder: "ชื่อ (ไม่บังคับ)",
@@ -828,6 +828,7 @@ export const thExtended = {
     sending: "กำลังส่ง…",
     manualInviteSent: "ส่งอีเมลคำเชิญแล้ว",
     manualInviteSavedNoEmail: "สร้างคำเชิญแล้ว แต่ยังไม่ส่งอีเมล (ยังไม่ได้ตั้งค่า SMTP)",
+    inviteCreatedNoEmail: "สร้างคำเชิญแล้ว {count} รายการ แต่ไม่ได้ส่งอีเมล (ยังไม่ตั้งค่า SMTP)",
   },
   emailVerified: {
     successTitle: "ยืนยันอีเมลแล้ว",
@@ -1399,6 +1400,7 @@ export const thExtended = {
     questionChanged: "คำถามเปลี่ยนระหว่างที่คุณตอบ (เช่น หลังอัปโหลดไฟล์) กรุณาลองอีกครั้ง",
     submitIntakeFailed: "ส่ง intake ไม่สำเร็จ",
     submitAnswerFailed: "ส่งคำตอบไม่สำเร็จ",
+    processingHint: "ปกติใช้เวลาน้อยกว่าหนึ่งนาที ไม่ต้องปิดหน้านี้",
   },
   amendments: {
     title: "การแก้ไขของลูกค้า",

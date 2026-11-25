@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
 import type { Project } from '@/lib/projects';
 import { fetchProject } from '@/lib/projects';
 import {
@@ -57,6 +58,12 @@ export function IntakeWizard({
 
   const progress = getIntakeProgress(intake);
   const showSubmit = intake.status === 'ready_to_submit' && !question;
+  /**
+   * The final submit runs the estimate calculation, which calls the model and can
+   * take a minute. A disabled button alone looked like a frozen page, so the whole
+   * screen now shows the standard spinner overlay until the request settles.
+   */
+  const calculatingEstimate = submitting && showSubmit;
   const canSkip = question != null && question.type !== 'info';
   const showCustom =
     question != null &&
@@ -250,6 +257,12 @@ export function IntakeWizard({
       )}
 
       {error && <p className="form-error">{error}</p>}
+
+      <LoadingOverlay
+        isOpen={calculatingEstimate}
+        label={t('intake.processing')}
+        hint={t('intake.processingHint')}
+      />
     </section>
   );
 }

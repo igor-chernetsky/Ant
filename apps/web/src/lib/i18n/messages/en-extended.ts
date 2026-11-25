@@ -820,7 +820,7 @@ export const enExtended = {
     inviteMaxHint:
       "You can invite up to {designers} designers and {contractors} contractors. For this list: up to {max} {kind}.",
     inviteMaxReached: "Select at most {max} {kind}.",
-    inviteSent: "Invites created for {count}. Emails sent: {sent}.",
+    inviteSent: "Invitation email sent to {sent} of {count}.",
     manualInviteTitle: "Invite by email",
     emailPlaceholder: "Email",
     namePlaceholder: "Name (optional)",
@@ -829,6 +829,7 @@ export const enExtended = {
     sending: "Sending…",
     manualInviteSent: "Invitation email sent.",
     manualInviteSavedNoEmail: "Invitation created, but email was not sent (SMTP not configured).",
+    inviteCreatedNoEmail: "Invitations created for {count}, but emails were not sent (SMTP is not configured).",
   },
   emailVerified: {
     successTitle: "Email verified",
@@ -1400,6 +1401,7 @@ export const enExtended = {
     questionChanged: "The question changed while you were answering (e.g. after uploading a file). Please try again.",
     submitIntakeFailed: "Failed to submit intake",
     submitAnswerFailed: "Failed to submit answer",
+    processingHint: "Usually under a minute. Keep this page open.",
   },
   amendments: {
     title: "Client amendments",

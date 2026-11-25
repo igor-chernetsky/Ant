@@ -826,7 +826,7 @@ export const ruExtended = {
     inviteMaxHint:
       "Можно пригласить до {designers} дизайнеров и {contractors} подрядчиков. Для этого списка: не больше {max} ({kind}).",
     inviteMaxReached: "Можно выбрать не больше {max} ({kind}).",
-    inviteSent: "Создано приглашений: {count}. Писем отправлено: {sent}.",
+    inviteSent: "Приглашение отправлено: {sent} из {count}.",
     manualInviteTitle: "Пригласить по email",
     emailPlaceholder: "Email",
     namePlaceholder: "Имя (необязательно)",
@@ -835,6 +835,7 @@ export const ruExtended = {
     sending: "Отправка…",
     manualInviteSent: "Приглашение отправлено на email.",
     manualInviteSavedNoEmail: "Приглашение создано, но письмо не отправлено (SMTP не настроен).",
+    inviteCreatedNoEmail: "Приглашения созданы для {count}, но письма не отправлены (SMTP не настроен).",
   },
   emailVerified: {
     successTitle: "Email подтверждён",
@@ -1406,6 +1407,7 @@ export const ruExtended = {
     questionChanged: "Вопрос изменился, пока вы отвечали (например, после загрузки файла). Попробуйте снова.",
     submitIntakeFailed: "Не удалось отправить данные",
     submitAnswerFailed: "Не удалось отправить ответ",
+    processingHint: "Обычно меньше минуты. Страницу можно не закрывать.",
   },
   amendments: {
     title: "Правки заказчика",

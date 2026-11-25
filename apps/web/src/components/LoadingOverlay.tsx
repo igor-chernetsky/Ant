@@ -9,6 +9,11 @@ export interface LoadingOverlayProps {
   isOpen: boolean;
   /** What is happening, announced to screen readers and shown under the spinner. */
   label?: string;
+  /**
+   * Optional second line, e.g. how long it usually takes. Long requests feel much
+   * shorter when the UI admits that they take a while.
+   */
+  hint?: string;
 }
 
 /**
@@ -20,7 +25,7 @@ export interface LoadingOverlayProps {
  * the request is already in flight and the caller keeps the trigger disabled until
  * it settles.
  */
-export function LoadingOverlay({ isOpen, label }: LoadingOverlayProps) {
+export function LoadingOverlay({ isOpen, label, hint }: LoadingOverlayProps) {
   const { t } = useTranslation();
   const resolvedLabel = label ?? t('common.pleaseWait');
 
@@ -49,6 +54,7 @@ export function LoadingOverlay({ isOpen, label }: LoadingOverlayProps) {
       >
         <AntSpinner size="lg" label={resolvedLabel} />
         <p className="loading-overlay-label">{resolvedLabel}</p>
+        {hint ? <p className="muted loading-overlay-hint">{hint}</p> : null}
       </div>
     </div>,
     document.body,

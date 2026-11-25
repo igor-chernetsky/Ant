@@ -7594,6 +7594,13 @@ pre {
   font-weight: 600;
 }
 
+.loading-overlay-hint {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  max-width: 30ch;
+}
+
 .estimate-questions-preview-title {
   margin: 0;
   font-size: 0.95rem;
@@ -13954,6 +13961,34 @@ button.header-nav-link,
 .directory-invite-meta {
   display: block;
   font-size: 0.9rem;
+}
+
+/* "Invitation email sent" confirmation, next to the invite buttons. */
+.invite-directory-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.6rem;
+}
+
+.invite-sent-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.invite-sent-banner-icon {
+  flex: 0 0 auto;
+  font-weight: 700;
 }
 
 .directory-manual-invite {
