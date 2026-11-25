@@ -16,7 +16,6 @@ import {
 
 const SETTINGS_ID = 'default';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
-const DEFAULT_BROADCAST_FROM = 'hello@builthai.com';
 const MAX_SUBJECT_LEN = 200;
 const MAX_HTML_LEN = 2_000_000;
 const MAX_BROADCAST_ATTACHMENTS = 5;
@@ -181,13 +180,10 @@ export class PlatformSettingsService {
     const text = htmlToPlainText(html);
     const attachments = this.normalizeBroadcastAttachments(body.attachments);
 
-    const from =
-      this.config.get<string>('SMTP_BROADCAST_FROM')?.trim() ||
-      DEFAULT_BROADCAST_FROM;
-    const fromName =
-      this.config.get<string>('SMTP_BROADCAST_FROM_NAME')?.trim() ||
-      this.config.get<string>('SMTP_FROM_NAME')?.trim() ||
-      'BuilTHAI';
+    // Same address as every other outreach email: normalised and validated by the
+    // mail service, so a typo cannot become From/Reply-To here either.
+    const from = this.mail.outreachFrom();
+    const fromName = this.mail.outreachFromName();
 
     const sent = await this.mail.send({
       to,
