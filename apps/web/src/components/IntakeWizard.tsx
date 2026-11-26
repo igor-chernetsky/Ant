@@ -256,13 +256,16 @@ export function IntakeWizard({
   };
 
   /** One progress line instead of "Question 1 of ~5 · 0 answered · 10%". */
+  const remaining = Math.max(0, progress.estimatedTotal - progress.step);
   const progressLabel = progress.isComplete
     ? t('intake.progressAllAnswered')
     : progress.onQuestion
-      ? t('intake.progressQuestionShort', {
-          current: progress.step,
-          remaining: Math.max(0, progress.estimatedTotal - progress.step),
-        })
+      ? remaining <= 1
+        ? t('intake.progressLastQuestion')
+        : t('intake.progressQuestionShort', {
+            current: progress.step,
+            remaining,
+          })
       : t('intake.progressAnsweredCount', { answered: progress.answered });
 
   const renderQuestionBody = (target: IntakeQuestion) => (

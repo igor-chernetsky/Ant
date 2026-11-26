@@ -270,11 +270,36 @@ export function ProjectHero({
   }, [menuOpen]);
   const descriptionLong = descriptionClipped;
 
+  /**
+   * V2: measuring once after mount missed the clamp on mobile (fonts and layout had
+   * not settled and rotating the phone changed the width), so "Show more" never
+   * appeared and the rest of the text was unreachable. Re-measure on resize.
+   */
   useEffect(() => {
-    if (descriptionExpanded) return;
     const element = descriptionRef.current;
     if (!element) return;
-    setDescriptionClipped(element.scrollHeight - element.clientHeight > 2);
+
+    const measure = () => {
+      if (descriptionExpanded) {
+        setDescriptionClipped(true);
+        return;
+      }
+      setDescriptionClipped(element.scrollHeight - element.clientHeight > 2);
+    };
+
+    measure();
+    const observer =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(measure)
+        : null;
+    observer?.observe(element);
+    window.addEventListener('resize', measure);
+    document.fonts?.ready.then(measure).catch(() => undefined);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
   }, [project.description, descriptionExpanded]);
 
   const chips = [
@@ -554,14 +579,28 @@ export function ProjectHero({
             (isDesignTrack && Boolean(project.linkedProjectId))) && (
             <div className="project-hero-design-actions">
               {showDesignHint ? (
-                <p
-                  className={`muted project-hero-design-hint${
-                    isNewBuild ? ' project-hero-design-hint--new-build' : ''
-                  }`}
-                  title={t('designPermits.convertTooltip')}
-                >
-                  {t(designConvertHintKey)}
-                </p>
+                canConvert ? (
+                  <button
+                    type="button"
+                    className={`text-link project-hero-design-hint${
+                      isNewBuild ? ' project-hero-design-hint--new-build' : ''
+                    }`}
+                    title={t('designPermits.convertTooltip')}
+                    disabled={converting || saving}
+                    onClick={() => void handleConvert()}
+                  >
+                    {t(designConvertHintKey)}
+                  </button>
+                ) : (
+                  <p
+                    className={`muted project-hero-design-hint${
+                      isNewBuild ? ' project-hero-design-hint--new-build' : ''
+                    }`}
+                    title={t('designPermits.convertTooltip')}
+                  >
+                    {t(designConvertHintKey)}
+                  </p>
+                )
               ) : null}
               {isDesignTrack && project.linkedProjectId ? (
                 <p className="muted project-hero-design-hint">

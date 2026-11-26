@@ -219,15 +219,18 @@ export class ProjectsService {
       isHidden: project.isHidden,
 
       readinessScore: project.readinessScore,
-      readinessGaps: describeReadinessGaps({
-        title: project.title,
-        description: project.description,
-        projectType: project.projectType,
-        propertyType: project.propertyType,
-        district: project.district,
-        tagCount: project.tags.length,
-        brief: (project.briefJson ?? {}) as unknown as ProjectBriefV1,
-      }),
+      readinessGaps: describeReadinessGaps(
+        {
+          title: project.title,
+          description: project.description,
+          projectType: project.projectType,
+          propertyType: project.propertyType,
+          district: project.district,
+          tagCount: project.tags.length,
+          brief: (project.briefJson ?? {}) as unknown as ProjectBriefV1,
+        },
+        { hasEstimate: estimate != null },
+      ),
 
       linkedProjectId: project.linkedProjectId ?? null,
       linkKind: project.linkKind ?? 'none',

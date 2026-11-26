@@ -52,6 +52,7 @@ export const enExtended = {
     confidence: "confidence",
     next: "Next",
     back: "Back",
+    somethingWentWrong: "Something went wrong. Please try again.",
   },
   homePage: {
     heroClientTitle: "I need work done",
@@ -182,7 +183,7 @@ export const enExtended = {
     newBuildDesignHint:
       "New construction usually needs design drawings and permits first. Consider choosing Design & Permits so you can tender for a designer, then continue to construction.",
     switchToDesignTrack: "Switch to Design & Permits",
-    descriptionHint: "The more concrete the description, the tighter the estimate: what to do, area, materials, current condition.",
+    descriptionHint: "The estimate is only as accurate as this description: what to do, area, materials, current condition.",
     sectionBasics: "About the project",
     sectionDetails: "Details",
     sectionLocation: "Location",
@@ -1067,6 +1068,8 @@ export const enExtended = {
     },
     contractPeriodPending: "Select both dates",
     scheduleInvalid: "The finish date is before the start date.",
+    enterEmployerName: "Enter the employer's legal name.",
+    enterEmployerAddress: "Enter the employer's address.",
   },
   clarification: {
     loadingForm: "Loading clarification form…",
@@ -1194,7 +1197,7 @@ export const enExtended = {
     emptyNationwide: "No areas selected — matches projects in any location.",
     region: "Region",
     area: "Area",
-    areaHint: "Optional — narrower zone within the region",
+    areaHint: "Narrower zone within the region",
     locationNote: "Location note",
     locationNoteHint: "Optional — landmark, BTS station, subdistrict, etc.",
     locationNotePlaceholder: "e.g. near BTS Thong Lo",
@@ -1361,6 +1364,9 @@ export const enExtended = {
     deleteProjectFailed: "Failed to delete project",
     maxFileSize: "up to {maxMb} MB",
     moreActions: "More: amendments, delete",
+    dangerZoneTitle: "Danger zone",
+    hideProject: "Hide project",
+    hideProjectHint: "Hidden projects leave your list until you show them again. Nothing is deleted.",
   },
   documents: {
     title: "Documents",
@@ -1434,6 +1440,7 @@ export const enExtended = {
     editingAnswer: "Editing an earlier answer. Saving updates the brief but keeps your place in the questions.",
     saveAnswer: "Save answer",
     yourAnswers: "Your answers",
+    progressLastQuestion: "Last question",
   },
   amendments: {
     title: "Client amendments",
@@ -1547,6 +1554,10 @@ export const enExtended = {
     confidenceHigh: "High confidence",
     confidenceMedium: "Medium confidence",
     confidenceLow: "Low confidence",
+    otherAnswerPlaceholder: "Or pick one above, or type your own answer…",
+    lineActionsAria: "Line actions",
+    lineRemoved: "Line removed: {description}",
+    undoRemove: "Undo",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",

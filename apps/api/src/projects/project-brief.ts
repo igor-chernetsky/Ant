@@ -136,14 +136,24 @@ export type ReadinessGap =
   | 'scope'
   | 'intake';
 
-export function describeReadinessGaps(input: ReadinessInput): ReadinessGap[] {
+export type ReadinessGapContext = {
+  /** An estimate already priced the scope, so "scope details" is no longer a gap. */
+  hasEstimate?: boolean;
+};
+
+export function describeReadinessGaps(
+  input: ReadinessInput,
+  context: ReadinessGapContext = {},
+): ReadinessGap[] {
   const gaps: ReadinessGap[] = [];
   if (!input.description || input.description.trim().length < 20) {
     gaps.push('description');
   }
   if (!input.district?.trim()) gaps.push('district');
   if (input.tagCount === 0) gaps.push('tags');
-  if ((input.brief.packages?.length ?? 0) === 0) gaps.push('scope');
+  const scopeKnown =
+    context.hasEstimate === true || (input.brief.packages?.length ?? 0) > 0;
+  if (!scopeKnown) gaps.push('scope');
   if (isIntakeInProgress(input.brief)) gaps.push('intake');
   return gaps;
 }

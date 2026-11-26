@@ -80,13 +80,28 @@ function parseEstimateMeta(raw: unknown): EstimateMeta {
   if (!Array.isArray(questions)) {
     return { improvementQuestions: [] };
   }
-  return {
-    improvementQuestions: questions
-      .filter((q): q is string => typeof q === 'string')
-      .map((q) => q.trim())
-      .filter(Boolean)
-      .slice(0, 5),
-  };
+  const improvementQuestions = questions
+    .filter((q): q is string => typeof q === 'string')
+    .map((q) => q.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+
+  /** E3: options are stored next to the questions, aligned by index. */
+  const rawOptions = (raw as { improvementQuestionOptions?: unknown })
+    .improvementQuestionOptions;
+  const improvementQuestionOptions = Array.isArray(rawOptions)
+    ? improvementQuestions.map((_, index) => {
+        const row = rawOptions[index];
+        if (!Array.isArray(row)) return [];
+        return row
+          .filter((option): option is string => typeof option === 'string')
+          .map((option) => option.trim())
+          .filter(Boolean)
+          .slice(0, 5);
+      })
+    : undefined;
+
+  return { improvementQuestions, improvementQuestionOptions };
 }
 
 @Injectable()
@@ -117,10 +132,15 @@ export class EstimatesService {
     refinementAnswers: EstimateRefinementAnswer[] = [],
   ): EstimateResponse {
     const meta = parseEstimateMeta(record.metaJson);
-    const improvementQuestions = filterImprovementQuestionsAgainstAnswers(
+    const keptQuestions = filterImprovementQuestionsAgainstAnswers(
       meta.improvementQuestions,
       refinementAnswers.map((row) => row.question),
     );
+    const improvementQuestions = keptQuestions;
+    const improvementQuestionOptions = keptQuestions.map((prompt) => {
+      const index = meta.improvementQuestions.indexOf(prompt);
+      return index >= 0 ? (meta.improvementQuestionOptions?.[index] ?? []) : [];
+    });
     return {
       id: record.id,
       projectId: record.projectId,
@@ -131,6 +151,7 @@ export class EstimatesService {
       confidence: adjustEstimateConfidence(record.confidence),
       disclaimer: sanitizeDesignFeeDisclaimer(record.disclaimer),
       improvementQuestions,
+      improvementQuestionOptions,
       refinementAnswers,
       createdAt: record.createdAt.toISOString(),
     };
@@ -571,6 +592,7 @@ export class EstimatesService {
 
     const meta: EstimateMeta = {
       improvementQuestions: result.improvementQuestions,
+      improvementQuestionOptions: result.improvementQuestionOptions,
     };
 
     const record = await this.prisma.estimate.create({

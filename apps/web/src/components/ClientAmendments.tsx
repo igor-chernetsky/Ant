@@ -191,7 +191,9 @@ export function ClientAmendments({ project, onUpdated }: ClientAmendmentsProps) 
       {loading ? (
         <p className="muted">{t('amendments.loading')}</p>
       ) : amendments.length === 0 ? (
-        <p className="muted">{t('amendments.empty')}</p>
+        <p className="muted client-amendments-empty">
+          {t('amendments.empty')}
+        </p>
       ) : (
         <ul className="amendment-list">
           {amendments.map((amendment) => (

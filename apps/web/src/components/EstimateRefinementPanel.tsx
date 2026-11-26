@@ -136,11 +136,51 @@ export function EstimateRefinementPanel({
           </p>
           <form className="estimate-refine-form" onSubmit={handleSubmit}>
             {questions.map((question, index) => (
-              <label
+              <div
                 key={`${estimate.id}-${index}-${question}`}
                 className="estimate-refine-field"
               >
                 <span>{question}</span>
+                {/**
+                 * E3: the model sends 2–4 concrete answers, so the client taps a card
+                 * instead of writing into an empty textarea. The field stays for the
+                 * cases where none of the options fit.
+                 */}
+                {(estimate.improvementQuestionOptions?.[index]?.length ?? 0) >
+                  0 && (
+                  <div
+                    className="estimate-refine-options"
+                    role="radiogroup"
+                    aria-label={question}
+                  >
+                    {estimate.improvementQuestionOptions?.[index]?.map(
+                      (option) => {
+                        const active = answers[question] === option;
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            tabIndex={active ? 0 : -1}
+                            className={`estimate-refine-option${
+                              active ? ' estimate-refine-option--active' : ''
+                            }`}
+                            disabled={submitting}
+                            onClick={() =>
+                              setAnswers((prev) => ({
+                                ...prev,
+                                [question]: option,
+                              }))
+                            }
+                          >
+                            {option}
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                )}
                 <textarea
                   rows={2}
                   value={answers[question] ?? ''}
@@ -151,9 +191,13 @@ export function EstimateRefinementPanel({
                       [question]: event.target.value,
                     }))
                   }
-                  placeholder={t('estimateSection.answerPlaceholder')}
+                  placeholder={
+                    (estimate.improvementQuestionOptions?.[index]?.length ?? 0) > 0
+                      ? t('estimateSection.otherAnswerPlaceholder')
+                      : t('estimateSection.answerPlaceholder')
+                  }
                 />
-              </label>
+              </div>
             ))}
             {error && <p className="form-error">{error}</p>}
             <button

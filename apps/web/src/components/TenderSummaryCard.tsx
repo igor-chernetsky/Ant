@@ -17,6 +17,7 @@ import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { ContractorCoverageNotice } from '@/components/ContractorCoverageNotice';
 import { HelpTip } from '@/components/help/HelpTip';
 import { PublishTenderPackageModal } from '@/components/PublishTenderPackageModal';
+import { canPublishTenderNow } from '@/components/PublishTenderButton';
 import { InviteFromDirectoryModal } from '@/components/InviteFromDirectoryModal';
 import {
   applicationsDeadlineFromTender,
@@ -300,25 +301,31 @@ export function TenderSummaryCard({
               }
               onCoverageLoaded={setCoverage}
             />
-            <div className="tender-publish-row">
-              <button
-                type="button"
-                className="primary"
-                disabled={busy || !canPublish}
-                onClick={() => void handleCreate()}
-              >
-                {structuredQa
-                  ? t('tenderCard.publishForClarification')
-                  : t('tenderCard.publishForBids')}
-              </button>
-              {registryInviteCount > 0 ? (
-                <span className="tender-registry-invite-note">
-                  {t('tenderCard.registryInviteCount', {
-                    count: registryInviteCount,
-                  })}
-                </span>
-              ) : null}
-            </div>
+            {/**
+             * V4: before publishing the CTA lives in the estimate card and in the
+             * sidebar; three identical buttons on one screen read as a bug.
+             */}
+            {!canPublishTenderNow(project) && (
+              <div className="tender-publish-row">
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy || !canPublish}
+                  onClick={() => void handleCreate()}
+                >
+                  {structuredQa
+                    ? t('tenderCard.publishForClarification')
+                    : t('tenderCard.publishForBids')}
+                </button>
+                {registryInviteCount > 0 ? (
+                  <span className="tender-registry-invite-note">
+                    {t('tenderCard.registryInviteCount', {
+                      count: registryInviteCount,
+                    })}
+                  </span>
+                ) : null}
+              </div>
+            )}
             {!canPublish && (
               <p className="muted tender-hint">
                 {t('tenderCard.completeIntakeHint')}

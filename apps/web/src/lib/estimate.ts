@@ -34,6 +34,8 @@ export interface BallparkEstimate {
   confidence: number;
   disclaimer: string;
   improvementQuestions?: string[];
+  /** E3: suggested answers per question, aligned by index. */
+  improvementQuestionOptions?: string[][];
   refinementAnswers?: EstimateRefinementAnswer[];
   createdAt: string;
   adjustments?: {

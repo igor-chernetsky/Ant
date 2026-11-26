@@ -52,6 +52,7 @@ export const thExtended = {
     confidence: "ความมั่นใจ",
     next: "ถัดไป",
     back: "ย้อนกลับ",
+    somethingWentWrong: "มีบางอย่างผิดพลาด กรุณาลองอีกครั้ง",
   },
   homePage: {
     heroClientTitle: "ฉันต้องการรีโนเวทหรือก่อสร้าง",
@@ -183,7 +184,7 @@ export const thExtended = {
     newBuildDesignHint:
       "งานก่อสร้างใหม่มักต้องมีแบบและใบอนุญาตก่อน ลองเลือก Design & Permits เพื่อประมูลหาผู้ออกแบบ แล้วค่อยไปก่อสร้างต่อ",
     switchToDesignTrack: "เปลี่ยนเป็น Design & Permits",
-    descriptionHint: "ยิ่งอธิบายชัดเจน ราคาประเมินยิ่งแม่นยำ: งานที่ทำ พื้นที่ วัสดุ สภาพปัจจุบัน",
+    descriptionHint: "ประมาณจะแม่นยำเท่าที่คำอธิบายละเอียด: ทำอะไร พื้นที่ วัสดุ สภาพปัจจุบัน",
     sectionBasics: "เกี่ยวกับโครงการ",
     sectionDetails: "รายละเอียด",
     sectionLocation: "ทำเล",
@@ -1066,6 +1067,8 @@ export const thExtended = {
     },
     contractPeriodPending: "เลือกทั้งสองวัน",
     scheduleInvalid: "วันสิ้นสุดก่อนวันเริ่ม",
+    enterEmployerName: "กรอกชื่อนิติบุคคลผู้จ้าง",
+    enterEmployerAddress: "กรอกที่อยู่ผู้จ้าง",
   },
   clarification: {
     loadingForm: "กำลังโหลดแบบฟอร์มชี้แจง…",
@@ -1193,9 +1196,9 @@ export const thExtended = {
     emptyNationwide: "ยังไม่ได้เลือกพื้นที่ — ตรงกับโครงการทุกสถานที่",
     region: "ภูมิภาค",
     area: "พื้นที่",
-    areaHint: "ไม่บังคับ — โซนย่อยภายในภูมิภาค",
+    areaHint: "โซนย่อยภายในภูมิภาค",
     locationNote: "หมายเหตุสถานที่",
-    locationNoteHint: "ไม่บังคับ — จุดสังเกต สถานี BTS ตำบล ฯลฯ",
+    locationNoteHint: "จุดสังเกต สถานี BTS ตำบล ฯลฯ",
     locationNotePlaceholder: "เช่น ใกล้ BTS ทองหล่อ",
   },
   tags: {
@@ -1360,6 +1363,9 @@ export const thExtended = {
     deleteProjectFailed: "ลบโครงการไม่สำเร็จ",
     maxFileSize: "ไม่เกิน {maxMb} MB",
     moreActions: "เพิ่มเติม: การแก้ไข ลบ",
+    dangerZoneTitle: "พื้นที่อันตราย",
+    hideProject: "ซ่อนโครงการ",
+    hideProjectHint: "โครงการที่ซ่อนจะไม่อยู่ในรายการจนกว่าคุณจะเปิดขึ้นมาอีกครั้ง ไม่มีการลบข้อมูล",
   },
   documents: {
     title: "เอกสาร",
@@ -1433,6 +1439,7 @@ export const thExtended = {
     editingAnswer: "คุณกำลังแก้คำตอบที่ตอบไปแล้ว การบันทึกจะอัปเดตข้อมูล แต่จะอยู่คำถามเดิม",
     saveAnswer: "บันทึกคำตอบ",
     yourAnswers: "คำตอบของคุณ",
+    progressLastQuestion: "คำถามสุดท้าย",
   },
   amendments: {
     title: "การแก้ไขของลูกค้า",
@@ -1546,6 +1553,10 @@ export const thExtended = {
     confidenceHigh: "ความมั่นใจสูง",
     confidenceMedium: "ความมั่นใจปานกลาง",
     confidenceLow: "ความมั่นใจต่ำ",
+    otherAnswerPlaceholder: "เลือกจากด้านบน หรือพิมพ์คำตอบของคุณ…",
+    lineActionsAria: "การกระทำกับรายการ",
+    lineRemoved: "ลบรายการแล้ว: {description}",
+    undoRemove: "เอาคืน",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",

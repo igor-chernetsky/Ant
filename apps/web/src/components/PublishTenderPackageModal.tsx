@@ -121,6 +121,8 @@ export function PublishTenderPackageModal({
    * 10% retention and 24 months of warranty and never need the full field set.
    */
   const [showTermsFields, setShowTermsFields] = useState(false);
+  /** V3: red marks appear only after the first failed Next, not on a fresh step. */
+  const [detailsAttempted, setDetailsAttempted] = useState(false);
 
   const isDesign = project.projectType === 'design';
   const isClarificationPublish = mode === 'create' && structuredQa;
@@ -140,6 +142,7 @@ export function PublishTenderPackageModal({
     setStep(1);
     setSubjectSameAsScope(true);
     setShowTermsFields(false);
+    setDetailsAttempted(false);
     if (isClarificationPublish) {
       return;
     }
@@ -273,11 +276,20 @@ export function PublishTenderPackageModal({
       !hasCompleteEmployerLegalDetails(preview.contractTerms)
     ) {
       /**
-       * The legal details have their own step now, so nothing is hidden: say what is
-       * missing and focus the first empty field.
+       * V3: the same sentence used to appear three times (top of the step, under the
+       * fields and in the footer). Now the field carries its own message and the step
+       * summary only appears when more than one field is empty.
        */
-      const firstMissing = missingEmployerLegalFields(preview.contractTerms)[0];
-      setError(t('contractTerms.employerLegalRequired'));
+      setDetailsAttempted(true);
+      const missing = missingEmployerLegalFields(preview.contractTerms);
+      const firstMissing = missing[0];
+      setError(
+        missing.length > 1
+          ? t('tenderCard.requiredLegalFields', {
+              count: String(missing.length),
+            })
+          : null,
+      );
       /** Ids live on the "Your details" step, so focus lands on the right input. */
       const fieldIdByField: Record<string, string> = {
         employerName: 'bid-terms-employer-name',
@@ -300,6 +312,7 @@ export function PublishTenderPackageModal({
 
   const goBack = () => {
     setError(null);
+    setDetailsAttempted(false);
     setStep((current) => Math.max(1, current - 1));
   };
 
@@ -585,21 +598,23 @@ export function PublishTenderPackageModal({
 
                 {detailsStep > 0 && step === detailsStep && (
                   <>
-                    {missingEmployerLegalFields(preview.contractTerms).length >
-                      0 && (
-                      <p className="publish-required-status" role="status">
-                        <span aria-hidden>⚠</span>{' '}
-                        {t('tenderCard.requiredLegalFields', {
-                          count: String(
-                            missingEmployerLegalFields(preview.contractTerms)
-                              .length,
-                          ),
-                        })}
-                      </p>
-                    )}
+                    {detailsAttempted &&
+                      missingEmployerLegalFields(preview.contractTerms).length >
+                        1 && (
+                        <p className="publish-required-status" role="status">
+                          <span aria-hidden>⚠</span>{' '}
+                          {t('tenderCard.requiredLegalFields', {
+                            count: String(
+                              missingEmployerLegalFields(preview.contractTerms)
+                                .length,
+                            ),
+                          })}
+                        </p>
+                      )}
                     <EmployerLegalFields
                       value={preview.contractTerms}
                       disabled={busy}
+                      showInvalid={detailsAttempted}
                       onChange={(contractTerms) =>
                         setPreview((current) => ({
                           ...current,
@@ -659,6 +674,11 @@ export function PublishTenderPackageModal({
             {error && <p className="form-error">{error}</p>}
           </div>
 
+          {error && step > 1 ? (
+            <p className="form-error publish-footer-error" role="alert">
+              {error}
+            </p>
+          ) : null}
           <div className="publish-tender-modal-footer row publish-footer">
             <button
               type="button"
@@ -668,11 +688,6 @@ export function PublishTenderPackageModal({
             >
               {t('common.cancel')}
             </button>
-            {error && step > 1 ? (
-              <p className="form-error publish-footer-error" role="alert">
-                {error}
-              </p>
-            ) : null}
             <div className="publish-footer-main">
               {step > 1 && (
                 <button

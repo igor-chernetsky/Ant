@@ -530,15 +530,18 @@ export class ProjectLocalizationService implements OnModuleInit {
       regionCode: project.regionCode,
       status: project.status,
       isHidden: project.isHidden,
-      readinessGaps: describeReadinessGaps({
-        title: project.title,
-        description: project.description,
-        projectType: project.projectType,
-        propertyType: project.propertyType,
-        district: project.district,
-        tagCount: project.tags.length,
-        brief: (project.briefJson ?? {}) as unknown as ProjectBriefV1,
-      }),
+      readinessGaps: describeReadinessGaps(
+        {
+          title: project.title,
+          description: project.description,
+          projectType: project.projectType,
+          propertyType: project.propertyType,
+          district: project.district,
+          tagCount: project.tags.length,
+          brief: (project.briefJson ?? {}) as unknown as ProjectBriefV1,
+        },
+        { hasEstimate: Boolean(estimate) },
+      ),
       readinessScore: project.readinessScore,
       linkedProjectId: project.linkedProjectId ?? null,
       linkKind: project.linkKind ?? 'none',
@@ -1148,6 +1151,22 @@ export class ProjectLocalizationService implements OnModuleInit {
           )) ?? question,
       ),
     );
+    /** E3: the suggested answers are translated with the question they belong to. */
+    const improvementQuestionOptions = estimate.improvementQuestionOptions
+      ? await Promise.all(
+          estimate.improvementQuestionOptions.map(async (options, index) =>
+            Promise.all(
+              (options ?? []).map(
+                async (option, optionIndex) =>
+                  (await readText(
+                    `estimate.improvementQuestion.${index}.option.${optionIndex}`,
+                    option,
+                  )) ?? option,
+              ),
+            ),
+          ),
+        )
+      : undefined;
     const refinementAnswers = await Promise.all(
       (estimate.refinementAnswers ?? []).map(async (row, index) => {
         const question =
@@ -1169,6 +1188,9 @@ export class ProjectLocalizationService implements OnModuleInit {
       disclaimer,
       lines,
       improvementQuestions,
+      ...(improvementQuestionOptions
+        ? { improvementQuestionOptions }
+        : {}),
       refinementAnswers,
     };
   }

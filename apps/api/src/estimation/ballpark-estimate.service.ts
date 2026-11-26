@@ -143,7 +143,7 @@ Return JSON: { lines, totals, confidence, disclaimer, improvementQuestions }.
 Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lineMin, lineMax }.
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
 confidence: number 0–1 reflecting how complete and certain the priced scope is.
-improvementQuestions: 0–5 short questions (in ${lang}) that would most improve confidence if answered. Empty array when confidence is already high or nothing material is missing.
+improvementQuestions: 0–5 items (in ${lang}) that would most improve confidence if answered, each { prompt, options } — prompt is one short question, options are 2–4 short concrete answers the client can pick (empty array when the question is truly open). Empty array when confidence is already high or nothing material is missing.
 CRITICAL: Intake answers (the client already stated these) and estimateRefinementQa are confirmed facts — do not ask about them again, not even as "exact requirements".
 CRITICAL: Do not repeat or rephrase questions already answered in estimateRefinementQa. If a topic+space was already covered (e.g. office finishing, warehouse lighting, plumbing), do not ask again with wording like "exact requirements" or "additional requirements". Prefer a genuinely new gap only; otherwise return [].
 Do NOT invent priced scope for unanswered gaps — put that uncertainty into improvementQuestions and keep confidence lower.
@@ -505,25 +505,61 @@ ${scopeRules}`;
      * against the full narrative (which includes intake answers).
      */
     const wetPointsRelevant = wetPointsInScope(narrative, input.projectType);
-    const rawImprovementQuestions = Array.isArray(raw.improvementQuestions)
+    /**
+     * E3: the model may answer with plain strings (older prompt) or with
+     * { prompt, options } objects; both are accepted, and the options travel with the
+     * question so the UI can render cards instead of an empty textarea.
+     */
+    const parsedQuestions: Array<{ prompt: string; options: string[] }> = Array.isArray(
+      raw.improvementQuestions,
+    )
       ? raw.improvementQuestions
-          .filter((q): q is string => typeof q === 'string')
-          .map((q) => q.trim().slice(0, 280))
-          .filter((q) => q.length > 0)
-          .filter(
-            (q) =>
-              !landscapingOrCivilAmenityOnly ||
-              !BUILDING_SHELL_IMPROVEMENT_QUESTION_PATTERN.test(q),
-          )
-          .filter(
-            (q) => wetPointsRelevant || !WET_POINTS_QUESTION_PATTERN.test(q),
-          )
+          .map((entry) => {
+            if (typeof entry === 'string') {
+              return { prompt: entry, options: [] as string[] };
+            }
+            if (entry && typeof entry === 'object') {
+              const prompt =
+                typeof (entry as { prompt?: unknown }).prompt === 'string'
+                  ? (entry as { prompt: string }).prompt
+                  : '';
+              const rawOptions = (entry as { options?: unknown }).options;
+              const options = Array.isArray(rawOptions)
+                ? rawOptions
+                    .filter((option): option is string => typeof option === 'string')
+                    .map((option) => option.trim().slice(0, 120))
+                    .filter((option) => option.length > 0)
+                    .slice(0, 5)
+                : [];
+              return { prompt, options };
+            }
+            return { prompt: '', options: [] as string[] };
+          })
+          .filter((entry) => entry.prompt.trim().length > 0)
       : [];
-    const improvementQuestions = filterImprovementQuestionsAgainstAnswers(
+
+    const rawImprovementQuestions = parsedQuestions
+      .map((entry) => entry.prompt.trim().slice(0, 280))
+      .filter((q) => q.length > 0)
+      .filter(
+        (q) =>
+          !landscapingOrCivilAmenityOnly ||
+          !BUILDING_SHELL_IMPROVEMENT_QUESTION_PATTERN.test(q),
+      )
+      .filter(
+        (q) => wetPointsRelevant || !WET_POINTS_QUESTION_PATTERN.test(q),
+      );
+    const keptImprovementQuestions = filterImprovementQuestionsAgainstAnswers(
       rawImprovementQuestions,
       answeredQuestions,
       answeredValues,
     ).slice(0, 5);
+    const improvementQuestions = keptImprovementQuestions;
+    // Options follow their question through the filter (it drops repeats).
+    const improvementQuestionOptions = keptImprovementQuestions.map((prompt) => {
+      const match = parsedQuestions.find((entry) => entry.prompt === prompt);
+      return match?.options ?? [];
+    });
 
     const rawConfidence =
       typeof raw.confidence === 'number'
@@ -537,6 +573,7 @@ ${scopeRules}`;
       disclaimer: String(raw.disclaimer ?? DISCLAIMER).slice(0, 2000),
       provider: 'openai',
       improvementQuestions,
+      improvementQuestionOptions,
     };
   }
 

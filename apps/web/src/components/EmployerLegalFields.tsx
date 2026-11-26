@@ -10,6 +10,8 @@ interface EmployerLegalFieldsProps {
   disabled?: boolean;
   /** Ids are shared with the contract-terms fields so focus on error still works. */
   idPrefix?: string;
+  /** Marks appear only after the first failed attempt, not on a fresh form. */
+  showInvalid?: boolean;
 }
 
 /**
@@ -23,16 +25,32 @@ export function EmployerLegalFields({
   onChange,
   disabled = false,
   idPrefix = 'bid-terms',
+  showInvalid = false,
 }: EmployerLegalFieldsProps) {
   const { t } = useTranslation();
   const missing = missingEmployerLegalFields(value);
   const set = (key: keyof BidContractTerms, next: string) =>
     onChange({ ...value, [key]: next.trim() === '' ? undefined : next });
 
-  const fieldProps = (key: 'employerName' | 'employerAddress') => ({
-    'data-invalid': missing.includes(key) ? 'true' : undefined,
-    'aria-invalid': missing.includes(key) ? true : undefined,
-  });
+  const fieldProps = (key: 'employerName' | 'employerAddress') => {
+    const invalid = showInvalid && missing.includes(key);
+    return {
+      'data-invalid': invalid ? 'true' : undefined,
+      'aria-invalid': invalid ? true : undefined,
+      'aria-describedby': invalid ? `${idPrefix}-${key}-error` : undefined,
+    };
+  };
+
+  const fieldError = (key: 'employerName' | 'employerAddress') =>
+    showInvalid && missing.includes(key) ? (
+      <span className="form-error" id={`${idPrefix}-${key}-error`} role="alert">
+        {t(
+          key === 'employerName'
+            ? 'contractTerms.enterEmployerName'
+            : 'contractTerms.enterEmployerAddress',
+        )}
+      </span>
+    ) : null;
 
   return (
     <div className="publish-employer-fields">
@@ -50,6 +68,7 @@ export function EmployerLegalFields({
           onChange={(e) => set('employerName', e.target.value)}
           {...fieldProps('employerName')}
         />
+        {fieldError('employerName')}
       </label>
       <label>
         {t('contractTerms.employerAddress')}
@@ -62,6 +81,7 @@ export function EmployerLegalFields({
           onChange={(e) => set('employerAddress', e.target.value)}
           {...fieldProps('employerAddress')}
         />
+        {fieldError('employerAddress')}
       </label>
       <label>
         {t('contractTerms.employerRegistrationNo')}

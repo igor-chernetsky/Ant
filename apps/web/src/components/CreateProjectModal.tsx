@@ -503,9 +503,11 @@ export function CreateProjectModal({
             </h3>
 
             <label>
-              {t('createProject.titleLabel')}
-              <span className="required-mark" aria-hidden>
-                *
+              <span className="field-label">
+                {t('createProject.titleLabel')}
+                <span className="required-mark" aria-hidden>
+                  *
+                </span>
               </span>
               <input
                 type="text"
@@ -535,8 +537,9 @@ export function CreateProjectModal({
             </label>
 
             <label>
-              {t('createProject.descriptionLabel')}
-              <span className="field-optional">{t('createProject.optional')}</span>
+              <span className="field-label">
+                {t('createProject.descriptionLabel')}
+              </span>
               <textarea
                 value={description}
                 onChange={(e) => {

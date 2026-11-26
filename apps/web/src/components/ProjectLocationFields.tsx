@@ -50,7 +50,6 @@ export function ProjectLocationFields({
         </label>
         <label>
           {t('location.area')}
-          <span className="field-optional">{t('createProject.optional')}</span>
           <select
             value={areaSlug}
             disabled={disabled || areas.length === 0}

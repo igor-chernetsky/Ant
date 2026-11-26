@@ -755,23 +755,89 @@ export function filterEstimateLines(input: {
  * Same-trade paraphrases (e.g. window replacement + installation) otherwise
  * double-count the same catalog band in ballpark totals.
  */
+/**
+ * N6: this used to merge every line of a trade into one row and join the
+ * descriptions with "; ". A roof repair therefore came back as a single "Roofing"
+ * line ("Demolition…; Replacement…; Repair of flashing…"), which hid the individual
+ * works and made the per-line share meaningless.
+ *
+ * Now only genuine duplicates (same trade, same description) are dropped; distinct
+ * works of the same trade stay separate lines with their own ranges.
+ */
 export function dedupeSameTradeLines(lines: EstimateLine[]): EstimateLine[] {
-  const groups = new Map<string, EstimateLine[]>();
-  const order: string[] = [];
+  const seen = new Set<string>();
+  const result: EstimateLine[] = [];
 
   for (const line of lines) {
     const trade = line.trade.trim();
     if (!trade) {
       continue;
     }
-    if (!groups.has(trade)) {
-      order.push(trade);
-      groups.set(trade, []);
+    const key = `${trade.toLowerCase()}::${normalizeLineDescription(line.description)}`;
+    if (seen.has(key)) {
+      continue;
     }
-    groups.get(trade)!.push(line);
+    seen.add(key);
+    result.push({ ...line, trade });
   }
 
-  return order.map((trade) => mergeSameTradeGroup(groups.get(trade)!));
+  return result;
+}
+
+function normalizeLineDescription(description: string): string {
+  return description
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+}
+
+/**
+ * Falls back to splitting an already-concatenated description ("Repair tiles;
+ * replace flashing; clean gutters") into separate priced rows, so the table shows
+ * the works even when the model returned them in one cell. The total range is kept:
+ * each part gets an equal share and the last one absorbs the rounding remainder.
+ */
+export function splitConcatenatedEstimateLines(
+  lines: EstimateLine[],
+): EstimateLine[] {
+  const result: EstimateLine[] = [];
+
+  for (const line of lines) {
+    const parts = line.description
+      .split(';')
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0);
+
+    if (parts.length < 2) {
+      result.push(line);
+      continue;
+    }
+
+    const share = 1 / parts.length;
+    let allocatedMin = 0;
+    let allocatedMax = 0;
+
+    parts.forEach((part, index) => {
+      const isLast = index === parts.length - 1;
+      const lineMin = isLast
+        ? Math.max(0, line.lineMin - allocatedMin)
+        : Math.round(line.lineMin * share);
+      const lineMax = isLast
+        ? Math.max(lineMin, line.lineMax - allocatedMax)
+        : Math.round(line.lineMax * share);
+      allocatedMin += lineMin;
+      allocatedMax += lineMax;
+
+      result.push({
+        ...line,
+        description: part.charAt(0).toUpperCase() + part.slice(1),
+        lineMin,
+        lineMax,
+      });
+    });
+  }
+
+  return result;
 }
 
 function mergeSameTradeGroup(group: EstimateLine[]): EstimateLine {
@@ -1954,9 +2020,11 @@ export function finalizeEstimateLines(input: {
     narrative: input.narrative,
     projectType: input.projectType,
   });
-  return dismissTinyEstimateLines(anchored, {
-    allowTinyShare: input.allowTinyShare,
-  });
+  return splitConcatenatedEstimateLines(
+    dismissTinyEstimateLines(anchored, {
+      allowTinyShare: input.allowTinyShare,
+    }),
+  );
 }
 
 export function buildEstimateUserContext(input: {

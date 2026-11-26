@@ -24,7 +24,10 @@ import { ProjectNextStepBanner } from '@/components/ProjectNextStepBanner';
 import { ProjectBriefCard } from '@/components/ProjectBriefCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
-import { PublishTenderButton } from '@/components/PublishTenderButton';
+import {
+  PublishTenderButton,
+  canPublishTenderNow,
+} from '@/components/PublishTenderButton';
 import { InviteFromDirectoryModal } from '@/components/InviteFromDirectoryModal';
 import { ClientContractPanel } from '@/components/ClientContractPanel';
 import { resolveProjectNextStep } from '@/lib/project-next-step';
@@ -64,6 +67,8 @@ import {
   canDeleteDocument,
   canManageProjectLifecycle,
   type Project,
+  hideProject,
+  unhideProject,
 } from '@/lib/projects';
 import { ProjectLifecyclePanel } from '@/components/ProjectLifecyclePanel';
 import { ProjectCompletionBanner } from '@/components/ProjectCompletionBanner';
@@ -584,6 +589,30 @@ export function ProjectDetailPageClient({
   };
 
   /** D1: re-file a document after upload instead of asking before it. */
+  /** S4: hide and delete are the two danger actions, so they sit together. */
+  const handleToggleHidden = async () => {
+    if (!project) return;
+    try {
+      if (project.isHidden) {
+        const updated = await unhideProject(projectId);
+        setProject(updated);
+        return;
+      }
+      const confirmed = await confirm({
+        title: t('confirm.hideProjectTitle'),
+        message: t('confirm.hideProjectMessage'),
+        confirmLabel: t('projectDetail.hideProject'),
+        cancelLabel: t('common.cancel'),
+        tone: 'danger',
+      });
+      if (!confirmed) return;
+      const updated = await hideProject(projectId);
+      setProject(updated);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('common.somethingWentWrong'));
+    }
+  };
+
   const handleCategoryChange = async (
     documentId: string,
     category: DocumentCategory,
@@ -864,14 +893,16 @@ export function ProjectDetailPageClient({
                 />
               )}
 
-              <p className="project-mobile-cta">
-                <PublishTenderButton
-                  projectId={projectId}
-                  project={project}
-                  className="primary project-mobile-cta-button"
-                  onPublished={() => void loadProjectView()}
-                />
-              </p>
+              {canPublishTenderNow(project) && (
+                <p className="project-mobile-cta">
+                  <PublishTenderButton
+                    projectId={projectId}
+                    project={project}
+                    className="primary project-mobile-cta-button"
+                    onPublished={() => void loadProjectView()}
+                  />
+                </p>
+              )}
 
               <p className="project-mobile-status">
                 <span className="project-mobile-status-item">
@@ -1331,24 +1362,43 @@ export function ProjectDetailPageClient({
                     onUpdated={(updated) => setProject(updated)}
                   />
                 )}
-                {showDelete && (
+                {(showDelete || canManageWorkspace) && (
                   <div className="project-more-danger">
                     <h3 className="section-title">
-                      {t('projectDetail.deleteProjectTitle')}
+                      {t('projectDetail.dangerZoneTitle')}
                     </h3>
-                    <p className="muted">
-                      {t('projectDetail.deleteProjectHint')}
-                    </p>
-                    <button
-                      type="button"
-                      className="danger-outline"
-                      disabled={deleting}
-                      onClick={() => void handleDelete()}
-                    >
-                      {deleting
-                        ? t('common.pleaseWait')
-                        : t('projectDetail.deleteProject')}
-                    </button>
+                    {/* S4: hide and delete together, both as outline buttons. */}
+                    {canManageWorkspace && (
+                      <>
+                        <p className="muted">{t('projectDetail.hideProjectHint')}</p>
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => void handleToggleHidden()}
+                        >
+                          {project.isHidden
+                            ? t('lifecycle.showAgain')
+                            : t('projectDetail.hideProject')}
+                        </button>
+                      </>
+                    )}
+                    {showDelete && (
+                      <>
+                        <p className="muted">
+                          {t('projectDetail.deleteProjectHint')}
+                        </p>
+                        <button
+                          type="button"
+                          className="danger-outline"
+                          disabled={deleting}
+                          onClick={() => void handleDelete()}
+                        >
+                          {deleting
+                            ? t('common.pleaseWait')
+                            : t('projectDetail.deleteProject')}
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </details>
@@ -1372,14 +1422,16 @@ export function ProjectDetailPageClient({
                       : null
                   }
                 />
-                <div className="project-sidebar-publish">
-                  <PublishTenderButton
-                    projectId={projectId}
-                    project={project}
-                    className="primary project-sidebar-publish-cta"
-                    onPublished={() => void loadProjectView()}
-                  />
-                </div>
+                {canPublishTenderNow(project) && (
+                  <div className="project-sidebar-publish">
+                    <PublishTenderButton
+                      projectId={projectId}
+                      project={project}
+                      className="primary project-sidebar-publish-cta"
+                      onPublished={() => void loadProjectView()}
+                    />
+                  </div>
+                )}
                 {brief && <ProjectBriefCard brief={brief} compact />}
                 {showLifecycle && (
                   <ProjectLifecyclePanel

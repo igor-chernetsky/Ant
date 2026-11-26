@@ -17486,15 +17486,11 @@ input[data-invalid='true'] {
 }
 
 /* C5: property/work type as chips, two fields per row on desktop. */
+/* One field per row: chips need the full width to stay readable. */
 .create-project-chips-row {
   display: grid;
-  gap: 0.9rem;
-}
-
-@media (min-width: 720px) {
-  .create-project-chips-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
 }
 
 .create-project-chips-field {
@@ -17626,17 +17622,22 @@ input[data-invalid='true'] {
   gap: 0.3rem;
 }
 
-/* H6: the rail stays under the header and its stages are links. */
-.project-hero-stage {
-  position: sticky;
-  top: 0;
-  z-index: 15;
+/* H6: on desktop the rail stays under the header and its stages are links. */
+@media (min-width: 1024px) {
+  .project-hero-stage {
+    position: sticky;
+    top: 0;
+    z-index: 15;
+  }
 }
 
+/* V1: marker above the label — inline layout put the connector line through the
+   text and read as strikethrough. */
 .project-stage-rail-link {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
   color: inherit;
   text-decoration: none;
   border-radius: 8px;
@@ -17660,4 +17661,223 @@ input[data-invalid='true'] {
   border-radius: 6px;
   border: 1px solid var(--border-strong);
   background: #fff;
+}
+
+/* V12: the menu trigger keeps the brand focus colour instead of the browser default. */
+.project-hero-menu-trigger:focus-visible,
+.icon-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* S1: the desktop status is a dot + label, not a pill that reads as an input. */
+.project-hero-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-start;
+  width: auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.project-hero-status::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: 0 0 auto;
+}
+
+/* V6: on a phone the estimate header stacks so the amount keeps the full width. */
+@media (max-width: 640px) {
+  .estimate-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+
+  .estimate-confidence-badge {
+    align-self: flex-start;
+  }
+
+  .estimate-total {
+    font-size: 1.75rem;
+  }
+}
+
+/* V10: a single long chip must not stretch across the whole field. */
+.create-project-chip {
+  flex: 0 1 auto;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+/* V3: an invalid field keeps a red ring even while focused. */
+input[data-invalid='true']:focus,
+input[data-invalid='true']:focus-visible,
+select[data-invalid='true']:focus,
+textarea[data-invalid='true']:focus {
+  border-color: var(--danger);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 28%, transparent);
+}
+
+/* V3: the footer error sits above the row, so the buttons stay on one line. */
+.publish-footer-error {
+  margin: 0 0 -0.25rem;
+}
+
+/* V7: keep the mobile status strip pinned while the page scrolls. */
+@media (max-width: 1023px) {
+  .project-mobile-status {
+    position: sticky;
+    position: -webkit-sticky;
+    top: 0;
+  }
+}
+
+/* Q-details: a chevron instead of the native triangle, matching the create modal. */
+.intake-answers > summary,
+.estimate-refine-details > summary,
+.estimate-refine-history > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.intake-answers > summary::-webkit-details-marker,
+.estimate-refine-details > summary::-webkit-details-marker,
+.estimate-refine-history > summary::-webkit-details-marker {
+  display: none;
+}
+
+.intake-answers > summary::before,
+.estimate-refine-details > summary::before,
+.estimate-refine-history > summary::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 150ms ease;
+  flex: 0 0 auto;
+}
+
+.intake-answers[open] > summary::before,
+.estimate-refine-details[open] > summary::before,
+.estimate-refine-history[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+/* E3: option cards in "Improve estimate confidence". */
+.estimate-refine-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.15rem 0 0.1rem;
+}
+
+.estimate-refine-option {
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.88rem;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.estimate-refine-option:hover {
+  border-color: var(--accent);
+}
+
+.estimate-refine-option--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
+.estimate-refine-option:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* E5: a line menu instead of a bare ×, plus an undo toast. */
+.estimate-line-menu {
+  position: relative;
+}
+
+.estimate-line-menu-trigger {
+  list-style: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.1rem 0.35rem;
+}
+
+.estimate-line-menu-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.estimate-line-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.25rem);
+  z-index: 20;
+  display: grid;
+  min-width: 11rem;
+  padding: 0.3rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.estimate-line-menu-item {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--danger);
+  cursor: pointer;
+}
+
+.estimate-line-menu-item:hover {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.estimate-undo-toast {
+  position: sticky;
+  bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 10px;
+  background: #1f2937;
+  color: #fff;
+  font-size: 0.88rem;
+}
+
+.estimate-undo-toast .text-link {
+  color: #93c5fd;
+  font-weight: 600;
 }

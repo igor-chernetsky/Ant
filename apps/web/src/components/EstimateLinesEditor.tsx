@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
@@ -99,6 +99,20 @@ export function EstimateLinesEditor({
   const [lineMinInput, setLineMinInput] = useState('');
   /** The add-line form is behind a button: it used to push the table off screen. */
   const [addOpen, setAddOpen] = useState(false);
+  /** E5: the last removed line, offer Undo instead of a silent disappearance. */
+  const [undoEntry, setUndoEntry] = useState<{
+    kind: 'excluded' | 'added';
+    trade: string;
+    description: string;
+    lineMin: number;
+    lineMax: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!undoEntry) return;
+    const timer = window.setTimeout(() => setUndoEntry(null), 8000);
+    return () => window.clearTimeout(timer);
+  }, [undoEntry]);
   const [lineMaxInput, setLineMaxInput] = useState('');
 
   const editable = (estimate.editable ?? false) && !readOnly;
@@ -171,6 +185,13 @@ export function EstimateLinesEditor({
     if (!editable || busy) return;
     const key = lineKey(line);
     if (added.some((item) => lineKey(item) === key)) {
+      setUndoEntry({
+        kind: 'added',
+        trade: line.trade,
+        description: line.description,
+        lineMin: line.lineMin,
+        lineMax: line.lineMax,
+      });
       void persist(
         excluded,
         mapAddedForSave(added.filter((item) => lineKey(item) !== key)),
@@ -193,10 +214,45 @@ export function EstimateLinesEditor({
       if (!confirmed) return;
     }
 
+    setUndoEntry({
+      kind: 'excluded',
+      trade: line.trade,
+      description: line.description,
+      lineMin: line.lineMin,
+      lineMax: line.lineMax,
+    });
     void persist(
       [...excluded, { trade: line.trade, description: line.description }],
       mapAddedForSave(added),
     );
+  };
+
+  /** E5: undo puts the line back without touching the other adjustments. */
+  const handleUndoRemove = () => {
+    if (!undoEntry || busy) return;
+    if (undoEntry.kind === 'excluded') {
+      void persist(
+        excluded.filter(
+          (item) =>
+            !(
+              item.trade === undoEntry.trade &&
+              item.description === undoEntry.description
+            ),
+        ),
+        mapAddedForSave(added),
+      );
+    } else {
+      void persist(excluded, [
+        ...mapAddedForSave(added),
+        {
+          trade: undoEntry.trade,
+          description: undoEntry.description,
+          lineMin: undoEntry.lineMin,
+          lineMax: undoEntry.lineMax,
+        },
+      ]);
+    }
+    setUndoEntry(null);
   };
 
   const handleTradeChange = (trade: string) => {
@@ -338,15 +394,33 @@ export function EstimateLinesEditor({
                   </span>
                 )}
                 {editable && (
-                  <button
-                    type="button"
-                    className="icon-button estimate-line-remove"
-                    aria-label={t('estimateSection.removeLineAria')}
-                    disabled={busy}
-                    onClick={() => handleRemoveLine(line)}
-                  >
-                    ×
-                  </button>
+                  <details className="estimate-line-menu">
+                    <summary
+                      className="icon-button estimate-line-menu-trigger"
+                      aria-label={t('estimateSection.lineActionsAria')}
+                      title={t('estimateSection.lineActionsAria')}
+                    >
+                      ⋯
+                    </summary>
+                    <div className="estimate-line-menu-list" role="menu">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="estimate-line-menu-item"
+                        disabled={busy}
+                        onClick={(event) => {
+                          (
+                            event.currentTarget.closest(
+                              'details',
+                            ) as HTMLDetailsElement | null
+                          )?.removeAttribute('open');
+                          void handleRemoveLine(line);
+                        }}
+                      >
+                        {t('estimateSection.removeLineAria')}
+                      </button>
+                    </div>
+                  </details>
                 )}
               </span>
             </div>
@@ -472,6 +546,24 @@ export function EstimateLinesEditor({
             )}
           </div>
         </section>
+      )}
+
+      {undoEntry && (
+        <div className="estimate-undo-toast" role="status">
+          <span>
+            {t('estimateSection.lineRemoved', {
+              description: undoEntry.description,
+            })}
+          </span>
+          <button
+            type="button"
+            className="text-link"
+            disabled={busy}
+            onClick={handleUndoRemove}
+          >
+            {t('estimateSection.undoRemove')}
+          </button>
+        </div>
       )}
 
       {error && (

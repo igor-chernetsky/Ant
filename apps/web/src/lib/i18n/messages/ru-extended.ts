@@ -52,6 +52,7 @@ export const ruExtended = {
     confidence: "уверенность",
     next: "Далее",
     back: "Назад",
+    somethingWentWrong: "Что-то пошло не так. Попробуйте ещё раз.",
   },
   homePage: {
     heroClientTitle: "Мне нужен ремонт или стройка",
@@ -183,7 +184,7 @@ export const ruExtended = {
     newBuildDesignHint:
       "Для нового строительства обычно сначала нужны проект и разрешения. Выберите Design & Permits, чтобы найти проектировщика, а к строительству перейти позже.",
     switchToDesignTrack: "Перейти к Design & Permits",
-    descriptionHint: "Чем конкретнее описание, тем точнее смета: что делаем, площадь, материалы, состояние.",
+    descriptionHint: "Смета точна настолько, насколько подробно описание: что делать, площадь, материалы, состояние.",
     sectionBasics: "О проекте",
     sectionDetails: "Детали",
     sectionLocation: "Локация",
@@ -1073,6 +1074,8 @@ export const ruExtended = {
     },
     contractPeriodPending: "Укажите обе даты",
     scheduleInvalid: "Дата завершения раньше даты начала.",
+    enterEmployerName: "Укажите юридическое название заказчика.",
+    enterEmployerAddress: "Укажите адрес заказчика.",
   },
   clarification: {
     loadingForm: "Загрузка формы уточнений…",
@@ -1200,9 +1203,9 @@ export const ruExtended = {
     emptyNationwide: "Зоны не выбраны — подходит для проектов в любой локации.",
     region: "Регион",
     area: "Район",
-    areaHint: "Необязательно — более узкая зона в регионе",
+    areaHint: "Более узкая зона в регионе",
     locationNote: "Примечание к месту",
-    locationNoteHint: "Необязательно — ориентир, станция BTS, подрайон и т.д.",
+    locationNoteHint: "Ориентир, станция BTS, подрайон и т.д.",
     locationNotePlaceholder: "напр. рядом с BTS Thong Lo",
   },
   tags: {
@@ -1367,6 +1370,9 @@ export const ruExtended = {
     deleteProjectFailed: "Не удалось удалить проект",
     maxFileSize: "до {maxMb} МБ",
     moreActions: "Ещё: изменения, удаление",
+    dangerZoneTitle: "Опасная зона",
+    hideProject: "Скрыть проект",
+    hideProjectHint: "Скрытые проекты уходят из списка, пока вы их не вернёте. Ничего не удаляется.",
   },
   documents: {
     title: "Документы",
@@ -1440,6 +1446,7 @@ export const ruExtended = {
     editingAnswer: "Вы редактируете ранее данный ответ. Сохранение обновит описание, а место в вопросах останется тем #6е.",
     saveAnswer: "Сохранить ответ",
     yourAnswers: "Ваши ответы",
+    progressLastQuestion: "Последний вопрос",
   },
   amendments: {
     title: "Правки заказчика",
@@ -1553,6 +1560,10 @@ export const ruExtended = {
     confidenceHigh: "Высокая уверенность",
     confidenceMedium: "Средняя уверенность",
     confidenceLow: "Низкая уверенность",
+    otherAnswerPlaceholder: "Можно выбрать вариант выше или написать свой ответ…",
+    lineActionsAria: "Действия со строкой",
+    lineRemoved: "Строка удалена: {description}",
+    undoRemove: "Вернуть",
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",

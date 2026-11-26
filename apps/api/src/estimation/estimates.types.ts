@@ -24,6 +24,11 @@ export interface EstimateRefinementAnswer {
 
 export interface EstimateMeta {
   improvementQuestions: string[];
+  /**
+   * E3: suggested answers for each question, same order. The refine panel shows them
+   * as option cards so the client does not have to type "concrete tiles" by hand.
+   */
+  improvementQuestionOptions?: string[][];
 }
 
 export interface BallparkEstimateResult {
@@ -33,6 +38,7 @@ export interface BallparkEstimateResult {
   disclaimer: string;
   provider: 'openai' | 'fallback';
   improvementQuestions: string[];
+  improvementQuestionOptions?: string[][];
 }
 
 export interface EstimateResponse {
@@ -45,6 +51,7 @@ export interface EstimateResponse {
   confidence: number;
   disclaimer: string;
   improvementQuestions: string[];
+  improvementQuestionOptions?: string[][];
   refinementAnswers: EstimateRefinementAnswer[];
   createdAt: string;
   /** Client exclusions/additions applied to the latest AI estimate. */
