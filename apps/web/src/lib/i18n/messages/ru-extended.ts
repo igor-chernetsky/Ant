@@ -235,6 +235,9 @@ export const ruExtended = {
     editProjectTypeHint:
       "Тип проекта / работ можно менять до публикации тендера.",
     editKpHint: "Согласованные КП сохраняют название и описание на момент подачи.",
+    moreActions: "Другие действия",
+    showMore: "Показать полностью",
+    showLess: "Свернуть",
   },
   clarificationMode: {
     open_chat: "Открытый чат",
@@ -930,6 +933,7 @@ export const ruExtended = {
       tradeRequired: "Для каждой строки нужен вид работ",
       breakdownMismatch: "Промежуточный итог не совпадает с общей суммой. Проверьте расчёты.",
     },
+    tradeCustom: "Другая работа…",
   },
   contractTerms: {
     sectionTitle: "Коммерческое предложение",
@@ -1053,6 +1057,8 @@ export const ruExtended = {
       clientSuppliedLabel: "Материалы заказчика",
       clientSuppliedValue: "Часть материалов и отделки поставляет заказчик; подрядчик выполняет только монтаж, если иное не указано в смете.",
     },
+    contractPeriodPending: "Укажите даты начала и завершения",
+    scheduleInvalid: "Дата завершения раньше даты начала.",
   },
   clarification: {
     loadingForm: "Загрузка формы уточнений…",
@@ -1273,6 +1279,8 @@ export const ruExtended = {
     requestCompletionMessage:
       "Клиенту будет отправлен запрос подтвердить, что работы закончены. Проект закроется только после его подтверждения.",
     requestCompletionLabel: "Запросить завершение",
+    hideProjectTitle: "Скрыть проект?",
+    hideProjectMessage: "Он исчезнет из публичного списка и от подрядчиков. Вернуть можно в любой момент.",
   },
   platformFees: {
     signTitle: "Авторизация подписания договора",
@@ -1344,6 +1352,7 @@ export const ruExtended = {
     deleteDocumentFailed: "Не удалось удалить документ",
     deleteProjectFailed: "Не удалось удалить проект",
     maxFileSize: "до {maxMb} МБ",
+    moreActions: "Ещё: изменения, перевод в проект, удаление",
   },
   documents: {
     title: "Документы",
@@ -1387,8 +1396,8 @@ export const ruExtended = {
   intake: {
     title: "Несколько вопросов — и смета",
     intro: "ИИ проанализировал проект и предложил теги. Ответьте на несколько вопросов, чтобы подрядчики получили точный объём. Можно пропустить или ввести свой ответ.",
-    uploadDocsTitle: "Сначала загрузите документы",
-    uploadDocsText: "Добавьте все планы этажей и фото в разделе «Документы» выше, прежде чем завершить сбор данных.",
+    uploadDocsTitle: "Планы и фото уточняют смету",
+    uploadDocsText: "Добавить планы и фото можно в разделе «Документы» ниже — ИИ смотрит их, чтобы уточнить объём. Это необязательно: сначала можно ответить на вопросы.",
     improvedDescription: "Описание, улучшенное ИИ",
     suggestedTags: "Предложенные теги",
     allAnswered: "Ответы сохранены. Нажмите — посчитаем ориентировочную смету по вашему объёму. Это занимает около минуты.",
@@ -1408,6 +1417,14 @@ export const ruExtended = {
     submitIntakeFailed: "Не удалось отправить данные",
     submitAnswerFailed: "Не удалось отправить ответ",
     processingHint: "Обычно меньше минуты. Страницу можно не закрывать.",
+    progressQuestionShort: "Вопрос {current} · осталось ещё около {remaining}",
+    skippedAnswer: "Пропущен",
+    back: "Назад",
+    backToCurrent: "Вернуться к текущему вопросу",
+    reviewNote: "Вы уже ответили на этот вопрос. Редактирование ответов появится позже.",
+    editingAnswer: "Вы редактируете ранее данный ответ. Сохранение обновит описание, а место в вопросах останется тем #6е.",
+    saveAnswer: "Сохранить ответ",
+    yourAnswers: "Ваши ответы",
   },
   amendments: {
     title: "Правки заказчика",
@@ -1514,7 +1531,7 @@ export const ruExtended = {
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
-    convertButton: "Перевести в DESIGN & PERMITS",
+    convertButton: "Перевести в «Проект и разрешения»",
     viewLinkedConstruction: "Открыть сохранённую строительную карточку",
     convertHint:
       "Этот объект строительства или модернизации можно перевести в тендер Design & Permits.",
@@ -1607,6 +1624,19 @@ export const ruExtended = {
     andProposals: " и {count} {proposals}",
     inviteNeedsPublish: "Сначала опубликуйте проект — приглашать подрядчиков можно только после открытия тендера.",
     inviteTenderClosed: "Приглашения закрыты: тендер больше не принимает участников.",
+    publishSteps: "Шаги публикации",
+    stepTender: "Тендер",
+    stepTerms: "Условия договора",
+    stepReview: "Проверка",
+    scopeRequired: "Опишите объём работ, прежде чем продолжить.",
+    sameAsScope: "Как в объёме работ",
+    reviewTitle: "Готово к публикации",
+    reviewHint: "Проверьте сводку. Можно вернуться и изменить любое поле.",
+    defaultCostBreakdownTitle: "Строки работ",
+    termsSummary: "Стандартные условия: удержание {retention}%, гарантия {warranty} мес., аванс {advance}%.",
+    customizeTerms: "Изменить условия",
+    hideTermsFields: "Скрыть поля условий",
+    requiredLegalFields: "Обязательно: заполнить {count} юр. поля",
   },
   bidsPage: {
     loading: "Загрузка ставок…",

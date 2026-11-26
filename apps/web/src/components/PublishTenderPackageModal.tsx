@@ -9,6 +9,7 @@ import { useTranslation } from '@/components/LocaleProvider';
 import {
   contractTermsFromProject,
   hasCompleteEmployerLegalDetails,
+  missingEmployerLegalFields,
   type ContractTermsProjectContext,
 } from '@/lib/contract-terms-fields';
 import {
@@ -93,6 +94,18 @@ export function PublishTenderPackageModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [portalReady, setPortalReady] = useState(false);
+  /**
+   * The form used to be ~25 fields in one scroll. It is now three steps: the tender
+   * itself, the contract terms, then a review before publishing.
+   */
+  const [step, setStep] = useState(1);
+  /** Subject of contract mirrors the scope until the client edits it. */
+  const [subjectSameAsScope, setSubjectSameAsScope] = useState(true);
+  /**
+   * Contract terms start collapsed as a summary of the defaults: most clients keep
+   * 10% retention and 24 months of warranty and never need the full field set.
+   */
+  const [showTermsFields, setShowTermsFields] = useState(false);
 
   const isDesign = project.projectType === 'design';
   const isClarificationPublish = mode === 'create' && structuredQa;
@@ -109,6 +122,9 @@ export function PublishTenderPackageModal({
 
     setDeadline(initialDeadline);
     setError(null);
+    setStep(1);
+    setSubjectSameAsScope(true);
+    setShowTermsFields(false);
     if (isClarificationPublish) {
       return;
     }
@@ -220,6 +236,32 @@ export function PublishTenderPackageModal({
     }
   };
 
+  const stepCount = isClarificationPublish ? 2 : 3;
+
+  const goNext = () => {
+    setError(null);
+    if (step === 1 && !isClarificationPublish && !preview.scopeSummary.trim()) {
+      setError(t('tenderCard.scopeRequired'));
+      return;
+    }
+    if (
+      step === 2 &&
+      !isClarificationPublish &&
+      !hasCompleteEmployerLegalDetails(preview.contractTerms)
+    ) {
+      // Surface the required legal fields on the terms step instead of failing on
+      // publish, after the client has already scrolled through everything.
+      setError(t('contractTerms.employerLegalRequired'));
+      return;
+    }
+    setStep((current) => Math.min(stepCount, current + 1));
+  };
+
+  const goBack = () => {
+    setError(null);
+    setStep((current) => Math.max(1, current - 1));
+  };
+
   const busy = loading || submitting;
   const title =
     mode === 'create'
@@ -277,6 +319,30 @@ export function PublishTenderPackageModal({
           className="publish-tender-modal-form"
           onSubmit={(e) => void handleSubmit(e)}
         >
+          {!loading && (
+            <ol className="publish-steps" aria-label={t('tenderCard.publishSteps')}>
+              {[
+                t('tenderCard.stepTender'),
+                ...(isClarificationPublish ? [] : [t('tenderCard.stepTerms')]),
+                t('tenderCard.stepReview'),
+              ].map((label, index) => {
+                const number = index + 1;
+                return (
+                  <li
+                    key={label}
+                    className={`publish-step${
+                      number === step ? ' publish-step--active' : ''
+                    }${number < step ? ' publish-step--done' : ''}`}
+                    aria-current={number === step ? 'step' : undefined}
+                  >
+                    <span className="publish-step-number">{number}</span>
+                    <span className="publish-step-label">{label}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
           <div className="publish-tender-modal-body modal-form">
             {loading ? (
               <p className="muted contract-signing-loading">
@@ -288,117 +354,244 @@ export function PublishTenderPackageModal({
               </p>
             ) : (
               <>
-                <TenderApplicationsDeadlineFields
-                  idPrefix="publish-package-deadline"
-                  value={deadline}
-                  disabled={busy}
-                  onChange={setDeadline}
-                />
-
-                {isClarificationPublish && (
-                  <p className="muted publish-clarification-hint">
-                    {t(
-                      isDesign
-                        ? 'tenderCard.modalClarificationPublishHintDesign'
-                        : 'tenderCard.modalClarificationPublishHint',
-                    )}
-                  </p>
-                )}
-
-                {!isClarificationPublish && (
+                {step === 1 && (
                   <>
-                    <label>
-                      {t('tenderCard.scope')}
-                      <span className="field-hint muted">
-                        {t('tenderCard.scopeHint')}
-                      </span>
-                      <textarea
-                        rows={3}
-                        disabled={busy}
-                        value={preview.scopeSummary}
-                        onChange={(e) =>
-                          setPreview((current) => ({
-                            ...current,
-                            scopeSummary: e.target.value,
-                          }))
-                        }
-                      />
-                    </label>
+                    <TenderApplicationsDeadlineFields
+                      idPrefix="publish-package-deadline"
+                      value={deadline}
+                      disabled={busy}
+                      onChange={setDeadline}
+                    />
 
-                    {(structuredQa || preview.clarificationSummary) && (
-                      <label>
-                        {t('tenderCard.clarificationSummary')}
-                        <span className="field-hint muted">
-                          {t(
-                            isDesign
-                              ? 'tenderCard.clarificationSummaryHintDesign'
-                              : 'tenderCard.clarificationSummaryHint',
-                          )}
-                        </span>
-                        <textarea
-                          rows={4}
+                    {isClarificationPublish && (
+                      <p className="muted publish-clarification-hint">
+                        {t(
+                          isDesign
+                            ? 'tenderCard.modalClarificationPublishHintDesign'
+                            : 'tenderCard.modalClarificationPublishHint',
+                        )}
+                      </p>
+                    )}
+
+                    {!isClarificationPublish && (
+                      <>
+                        <label>
+                          {t('tenderCard.scope')}
+                          <span className="field-hint muted">
+                            {t('tenderCard.scopeHint')}
+                          </span>
+                          <textarea
+                            rows={3}
+                            disabled={busy}
+                            value={preview.scopeSummary}
+                            onChange={(e) =>
+                              setPreview((current) => ({
+                                ...current,
+                                scopeSummary: e.target.value,
+                                contractTerms: subjectSameAsScope
+                                  ? {
+                                      ...current.contractTerms,
+                                      subjectOfContract: e.target.value,
+                                    }
+                                  : current.contractTerms,
+                              }))
+                            }
+                          />
+                        </label>
+
+                        {(structuredQa || preview.clarificationSummary) && (
+                          <label>
+                            {t('tenderCard.clarificationSummary')}
+                            <span className="field-hint muted">
+                              {t(
+                                isDesign
+                                  ? 'tenderCard.clarificationSummaryHintDesign'
+                                  : 'tenderCard.clarificationSummaryHint',
+                              )}
+                            </span>
+                            <textarea
+                              rows={4}
+                              disabled={busy}
+                              value={preview.clarificationSummary ?? ''}
+                              onChange={(e) =>
+                                setPreview((current) => ({
+                                  ...current,
+                                  clarificationSummary: e.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                        )}
+
+                        <CostBreakdownTemplateEditor
+                          items={preview.defaultCostBreakdown}
                           disabled={busy}
-                          value={preview.clarificationSummary ?? ''}
-                          onChange={(e) =>
+                          isDesign={isDesign}
+                          onChange={(defaultCostBreakdown) =>
                             setPreview((current) => ({
                               ...current,
-                              clarificationSummary: e.target.value,
+                              defaultCostBreakdown,
                             }))
                           }
                         />
-                      </label>
+                      </>
                     )}
-
-                    <CostBreakdownTemplateEditor
-                      items={preview.defaultCostBreakdown}
-                      disabled={busy}
-                      isDesign={isDesign}
-                      onChange={(defaultCostBreakdown) =>
-                        setPreview((current) => ({
-                          ...current,
-                          defaultCostBreakdown,
-                        }))
-                      }
-                    />
-
-                    <label>
-                      {t('tenderCard.subjectOfContract')}
-                      <span className="field-hint muted">
-                        {t('tenderCard.subjectOfContractHint')}
-                      </span>
-                      <textarea
-                        rows={2}
-                        disabled={busy}
-                        value={preview.contractTerms.subjectOfContract ?? ''}
-                        onChange={(e) =>
-                          setPreview((current) => ({
-                            ...current,
-                            contractTerms: {
-                              ...current.contractTerms,
-                              subjectOfContract: e.target.value,
-                            },
-                          }))
-                        }
-                      />
-                    </label>
-
-                    <BidContractTermsFields
-                      value={preview.contractTerms}
-                      onChange={(contractTerms) =>
-                        setPreview((current) => ({
-                          ...current,
-                          contractTerms,
-                        }))
-                      }
-                      audience="client"
-                      projectTitle={project.title}
-                      projectDistrict={project.district}
-                      disabled={busy}
-                      hideSubjectOfContract
-                      requireEmployerLegal
-                      isDesign={project.projectType === 'design'}
-                    />
                   </>
+                )}
+
+                {step === 2 && !isClarificationPublish && (
+                  <>
+                    <div className="publish-subject-field">
+                      <div className="publish-subject-header">
+                        <span className="publish-field-label">
+                          {t('tenderCard.subjectOfContract')}
+                        </span>
+                        <label className="publish-same-scope">
+                          <input
+                            type="checkbox"
+                            checked={subjectSameAsScope}
+                            disabled={busy}
+                            onChange={(e) => {
+                              const same = e.target.checked;
+                              setSubjectSameAsScope(same);
+                              if (same) {
+                                setPreview((current) => ({
+                                  ...current,
+                                  contractTerms: {
+                                    ...current.contractTerms,
+                                    subjectOfContract: current.scopeSummary,
+                                  },
+                                }));
+                              }
+                            }}
+                          />
+                          <span>{t('tenderCard.sameAsScope')}</span>
+                        </label>
+                      </div>
+                      {!subjectSameAsScope && (
+                        <textarea
+                          rows={3}
+                          disabled={busy}
+                          value={preview.contractTerms.subjectOfContract ?? ''}
+                          onChange={(e) =>
+                            setPreview((current) => ({
+                              ...current,
+                              contractTerms: {
+                                ...current.contractTerms,
+                                subjectOfContract: e.target.value,
+                              },
+                            }))
+                          }
+                        />
+                      )}
+                    </div>
+
+                    {showTermsFields ? (
+                      <>
+                        {missingEmployerLegalFields(preview.contractTerms).length >
+                          0 && (
+                          <p className="muted publish-required-hint">
+                            {t('tenderCard.requiredLegalFields', {
+                              count: String(
+                                missingEmployerLegalFields(
+                                  preview.contractTerms,
+                                ).length,
+                              ),
+                            })}
+                          </p>
+                        )}
+                        <BidContractTermsFields
+                          value={preview.contractTerms}
+                          onChange={(contractTerms) =>
+                            setPreview((current) => ({
+                              ...current,
+                              contractTerms,
+                            }))
+                          }
+                          audience="client"
+                          projectTitle={project.title}
+                          projectDistrict={project.district}
+                          disabled={busy}
+                          hideSubjectOfContract
+                          requireEmployerLegal
+                          isDesign={project.projectType === 'design'}
+                        />
+                        <button
+                          type="button"
+                          className="text-link"
+                          disabled={busy}
+                          onClick={() => setShowTermsFields(false)}
+                        >
+                          {t('tenderCard.hideTermsFields')}
+                        </button>
+                      </>
+                    ) : (
+                      <div className="publish-terms-summary">
+                        <p className="muted">
+                          {t('tenderCard.termsSummary', {
+                            retention: String(
+                              preview.contractTerms.retentionPercent ?? 10,
+                            ),
+                            warranty: String(
+                              preview.contractTerms.defectNotificationMonths ?? 24,
+                            ),
+                            advance: String(
+                              preview.contractTerms.advancePaymentPercent ?? 0,
+                            ),
+                          })}
+                        </p>
+                        <button
+                          type="button"
+                          className="secondary"
+                          disabled={busy}
+                          onClick={() => setShowTermsFields(true)}
+                        >
+                          {missingEmployerLegalFields(preview.contractTerms)
+                            .length > 0
+                            ? t('tenderCard.requiredLegalFields', {
+                                count: String(
+                                  missingEmployerLegalFields(
+                                    preview.contractTerms,
+                                  ).length,
+                                ),
+                              })
+                            : t('tenderCard.customizeTerms')}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {step === stepCount && (
+                  <div className="publish-review">
+                    <h3 className="publish-review-title">
+                      {t('tenderCard.reviewTitle')}
+                    </h3>
+                    <p className="muted">{t('tenderCard.reviewHint')}</p>
+                    <dl className="publish-review-list">
+                      <div>
+                        <dt>{t('tenderCard.scope')}</dt>
+                        <dd>{preview.scopeSummary.trim() || t('common.dash')}</dd>
+                      </div>
+                      {!isClarificationPublish && (
+                        <div>
+                          <dt>{t('tenderCard.defaultCostBreakdownTitle')}</dt>
+                          <dd>
+                            {preview.defaultCostBreakdown.filter((item) =>
+                              item.trade.trim(),
+                            ).length || t('common.dash')}
+                          </dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt>{t('tenderCard.subjectOfContract')}</dt>
+                        <dd>
+                          {preview.contractTerms.subjectOfContract?.trim() ||
+                            t('common.dash')}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
                 )}
               </>
             )}
@@ -406,23 +599,7 @@ export function PublishTenderPackageModal({
             {error && <p className="form-error">{error}</p>}
           </div>
 
-          <div className="publish-tender-modal-footer row">
-            <button
-              type="submit"
-              className="primary"
-              disabled={busy || loading}
-              aria-busy={submitting}
-            >
-              <BusyLabel
-                busy={submitting}
-                idle={
-                  mode === 'create'
-                    ? t('tenderCard.publishTender')
-                    : t('tenderCard.openTender')
-                }
-                busyText={t('tenderCard.publishing')}
-              />
-            </button>
+          <div className="publish-tender-modal-footer row publish-footer">
             <button
               type="button"
               className="secondary"
@@ -431,6 +608,45 @@ export function PublishTenderPackageModal({
             >
               {t('common.cancel')}
             </button>
+            <div className="publish-footer-main">
+              {step > 1 && (
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={busy}
+                  onClick={goBack}
+                >
+                  {t('common.back')}
+                </button>
+              )}
+              {step < stepCount ? (
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy}
+                  onClick={goNext}
+                >
+                  {t('common.next')}
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className="primary"
+                  disabled={busy}
+                  aria-busy={submitting}
+                >
+                  <BusyLabel
+                    busy={submitting}
+                    idle={
+                      mode === 'create'
+                        ? t('tenderCard.publishTender')
+                        : t('tenderCard.openTender')
+                    }
+                    busyText={t('tenderCard.publishing')}
+                  />
+                </button>
+              )}
+            </div>
           </div>
         </form>
       </div>

@@ -1,40 +1,18 @@
 'use client';
 
 import { useTranslation } from '@/components/LocaleProvider';
+import {
+  PROJECT_STAGES,
+  projectStageIndex,
+} from '@/lib/project-stages';
 
-const STAGES = [
-  {
-    id: 'setup',
-    statuses: ['draft', 'intake', 'ready_for_estimate'],
-  },
-  {
-    id: 'estimate',
-    statuses: ['estimated'],
-  },
-  {
-    id: 'tender',
-    statuses: ['clarification', 'in_tender'],
-  },
-  {
-    id: 'award',
-    statuses: ['awarded'],
-  },
-  {
-    id: 'delivery',
-    statuses: ['active', 'completed'],
-  },
-] as const;
+const STAGES = PROJECT_STAGES;
 
 interface ProjectStageRailProps {
   status: string;
 }
 
-function stageIndexForStatus(status: string): number {
-  const index = STAGES.findIndex((stage) =>
-    (stage.statuses as readonly string[]).includes(status),
-  );
-  return index >= 0 ? index : 0;
-}
+const stageIndexForStatus = projectStageIndex;
 
 export function ProjectStageRail({ status }: ProjectStageRailProps) {
   const { t } = useTranslation();

@@ -235,6 +235,9 @@ export const thExtended = {
     editProjectTypeHint:
       "เปลี่ยนประเภทโครงการ / งานได้จนกว่าจะเผยแพร่ประกวดราคา",
     editKpHint: "ข้อเสนอเชิงพาณิชย์ที่ยืนยันแล้วจะคงชื่อและคำอธิบาย ณ เวลาที่ส่งไว้",
+    moreActions: "การกระทำอื่น ๆ",
+    showMore: "ดูทั้งหมด",
+    showLess: "ย่อเล็ง",
   },
   clarificationMode: {
     open_chat: "แชทเปิด",
@@ -923,6 +926,7 @@ export const thExtended = {
       tradeRequired: "แต่ละรายการต้องมีงานช่าง",
       breakdownMismatch: "ยอดรวมรายละเอียดไม่ตรงกับยอดรวม กรุณาตรวจสอบการคำนวณ",
     },
+    tradeCustom: "งานอื่น ๆ…",
   },
   contractTerms: {
     sectionTitle: "เอกสารข้อเสนอเชิงพาณิชย์",
@@ -1046,6 +1050,8 @@ export const thExtended = {
       clientSuppliedLabel: "วัสดุที่ลูกค้าจัดหา",
       clientSuppliedValue: "วัสดุและงานตกแต่งบางส่วนลูกค้าเป็นผู้จัดหา ผู้รับเหมาติดตั้งเท่านั้น เว้นแต่ระบุไว้เป็นอย่างอื่นใน BOQ",
     },
+    contractPeriodPending: "กำหนดวันเริ่มและสิ้นสุด",
+    scheduleInvalid: "วันสิ้นสุดก่อนวันเริ่ม",
   },
   clarification: {
     loadingForm: "กำลังโหลดแบบฟอร์มชี้แจง…",
@@ -1266,6 +1272,8 @@ export const thExtended = {
     requestCompletionMessage:
       "ระบบจะส่งคำขอให้ลูกค้ายืนยันว่างานเสร็จแล้ว โครงการจะปิดเมื่อลูกค้ายืนยันเท่านั้น",
     requestCompletionLabel: "ขอปิดโครงการ",
+    hideProjectTitle: "ซ่อนโครงการนี้?",
+    hideProjectMessage: "โครงการจะหายจากรายการสาธารณะและจากผู้รับเหมา แสดงกลับได้ทุกเวลา",
   },
   platformFees: {
     signTitle: "ขออนุญาตลงนามสัญญา",
@@ -1337,6 +1345,7 @@ export const thExtended = {
     deleteDocumentFailed: "ลบเอกสารไม่สำเร็จ",
     deleteProjectFailed: "ลบโครงการไม่สำเร็จ",
     maxFileSize: "ไม่เกิน {maxMb} MB",
+    moreActions: "เพิ่มเติม: การแก้ไข แปลงเป็นโครงการออกแบบ ลบ",
   },
   documents: {
     title: "เอกสาร",
@@ -1380,8 +1389,8 @@ export const thExtended = {
   intake: {
     title: "ตอบอีกไม่กี่ข้อ แล้วรับราคาประเมิน",
     intro: "AI วิเคราะห์โครงการของคุณและแนะนำแท็ก ตอบคำถามสองสามข้อเพื่อให้ผู้รับเหมาได้รับขอบเขตที่ถูกต้อง คุณสามารถข้ามหรือใส่คำตอบเองได้",
-    uploadDocsTitle: "อัปโหลดเอกสารก่อน",
-    uploadDocsText: "เพิ่มแบบแปลนชั้นและรูปภาพทั้งหมดในส่วนเอกสารด้านบนก่อนทำ intake ให้เสร็จ",
+    uploadDocsTitle: "แบบแผนและรูปภาพช่วยให้ราคาประเมินแม่นยำขึ้น",
+    uploadDocsText: "เพิ่มแบบแผนและรูปภาพได้ในส่วน«เอกสาร»ด้านล่าง — AI จะอ่านเพื่อปรับขอบเขตงานให้ชัดเจนขึ้น ไม่บังคับ ตอบคำถามก่อนได้",
     improvedDescription: "คำอธิบายที่ปรับปรุงโดย AI",
     suggestedTags: "แท็กที่แนะนำ",
     allAnswered: "บันทึกคำตอบแล้ว จะประเมินราคาเบื้องต้นตามขอบเขตงาน ใช้เวลาประมาณหนึ่งนาที",
@@ -1401,6 +1410,14 @@ export const thExtended = {
     submitIntakeFailed: "ส่ง intake ไม่สำเร็จ",
     submitAnswerFailed: "ส่งคำตอบไม่สำเร็จ",
     processingHint: "ปกติใช้เวลาน้อยกว่าหนึ่งนาที ไม่ต้องปิดหน้านี้",
+    progressQuestionShort: "คำถามที่ {current} · อีกประมาณ {remaining} ข้อ",
+    skippedAnswer: "ข้าม",
+    back: "ย้อนกลับ",
+    backToCurrent: "กลับไปคำถามปัจจุบัน",
+    reviewNote: "คุณตอบคำถามนี้แล้ว การแก้ไขคำตอบจะมีในภายหลัง",
+    editingAnswer: "คุณกำลังแก้คำตอบที่ตอบไปแล้ว การบันทึกจะอัปเดตข้อมูล แต่จะอยู่คำถามเดิม",
+    saveAnswer: "บันทึกคำตอบ",
+    yourAnswers: "คำตอบของคุณ",
   },
   amendments: {
     title: "การแก้ไขของลูกค้า",
@@ -1507,7 +1524,7 @@ export const thExtended = {
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
-    convertButton: "แปลงเป็น DESIGN & PERMITS",
+    convertButton: "แปลงเป็น «ออกแบบและขออนุญาต»",
     viewLinkedConstruction: "เปิดการ์ดงานก่อสร้างที่บันทึกไว้",
     convertHint:
       "โครงการก่อสร้างหรือปรับปรุงนี้สามารถแปลงเป็นการประมูล Design & Permits ได้",
@@ -1600,6 +1617,19 @@ export const thExtended = {
     andProposals: " และ {count} {proposals}",
     inviteNeedsPublish: "เผยแพร่โครงการก่อน — เชิญผู้รับเหมาได้หลังจากเปิดการประกาศเท่านั้น",
     inviteTenderClosed: "ปิดรับเชิญแล้ว: การประกาศไม่รับผู้เข้าร่วมอีก",
+    publishSteps: "ขั้นตอนการเผยแพร่",
+    stepTender: "การประกาศ",
+    stepTerms: "เงื่อนไขสัญญา",
+    stepReview: "ตรวจสอบ",
+    scopeRequired: "กรุณาอธิบายขอบเขตงานก่อนดำเนินการต่อ",
+    sameAsScope: "เหมือนขอบเขตงาน",
+    reviewTitle: "พร้อมเผยแพร่",
+    reviewHint: "ตรวจสอบสรุป สามารถกลับไปแก้ไขได้ก่อนเผยแพร่",
+    defaultCostBreakdownTitle: "รายการงาน",
+    termsSummary: "เงื่อนไขมาตรฐาน: หักรักสา {retention}% รับประกัน {warranty} เดือน เงินล่วงหน้า {advance}%",
+    customizeTerms: "แก้เงื่อนไข",
+    hideTermsFields: "ซ่อนช่องเงื่อนไข",
+    requiredLegalFields: "จำเป็น: ยังว่าง {count} ช่องทางกฎหมาย",
   },
   bidsPage: {
     loading: "กำลังโหลดข้อเสนอ…",

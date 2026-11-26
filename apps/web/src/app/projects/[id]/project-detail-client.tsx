@@ -832,6 +832,16 @@ export function ProjectDetailPageClient({
                 />
               )}
 
+              <p className="project-mobile-status">
+                <span>{canManageWorkspace ? project.status : ''}</span>
+                {estimate ? (
+                  <span>
+                    <strong>{formatThb(estimate.totals.midAmount)}</strong>
+                  </span>
+                ) : null}
+                <span>{t('projectHero.readyPercent', { n: project.readinessScore })}</span>
+              </p>
+
               <ProjectHero
                 project={project}
                 estimateMidAmountThb={
@@ -863,15 +873,21 @@ export function ProjectDetailPageClient({
                 }
               />
 
-              {nextStep && (
-                <ProjectNextStepBanner
-                  step={nextStep}
-                  onSignUp={openSignUpToPublish}
-                  onOpenProposals={() =>
-                    router.push(`/projects/${projectId}/bids`)
-                  }
-                />
-              )}
+              {/* One "what now" banner, and only where the page itself has no CTA:
+                  the wizard owns "answer questions", the estimate card owns "get the
+                  estimate", the tender card owns "publish". */}
+              {nextStep &&
+                (nextStep.key === 'signup' ||
+                  nextStep.key === 'waiting' ||
+                  nextStep.key === 'contract') && (
+                  <ProjectNextStepBanner
+                    step={nextStep}
+                    onSignUp={openSignUpToPublish}
+                    onOpenProposals={() =>
+                      router.push(`/projects/${projectId}/bids`)
+                    }
+                  />
+                )}
 
               {project.guestInviteAccess && (
                 <section className="card guest-invite-notice">
@@ -952,13 +968,6 @@ export function ProjectDetailPageClient({
                       : t('admin.completeProjectButton')}
                   </button>
                 </section>
-              )}
-
-              {isOwner && (
-                <ClientAmendments
-                  project={project}
-                  onUpdated={(updated) => setProject(updated)}
-                />
               )}
 
               {showEstimateTenderDuo && (
@@ -1100,42 +1109,14 @@ export function ProjectDetailPageClient({
                     </p>
                   </div>
                   {canActAsOwner && (
-                    <div className="doc-upload-row">
-                      <label>
-                        {t('documents.category')}
-                        <select
-                          value={docCategory}
-                          onChange={(e) =>
-                            setDocCategory(e.target.value as DocumentCategory)
-                          }
-                          disabled={uploading}
-                        >
-                          {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {formatDocumentCategory(opt.value)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="sr-only"
-                        accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.zip"
-                        onChange={handleFileChange}
-                        disabled={uploading}
-                      />
-                      <button
-                        type="button"
-                        className="primary"
-                        disabled={uploading}
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        {uploading
-                          ? t('common.uploading')
-                          : t('documents.uploadFile')}
-                      </button>
-                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="sr-only"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                      onChange={handleFileChange}
+                      disabled={uploading}
+                    />
                   )}
                 </div>
 
@@ -1159,9 +1140,25 @@ export function ProjectDetailPageClient({
                           maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
                         })}
                       </p>
+                      <label className="doc-dropzone-category">
+                        {t('documents.category')}
+                        <select
+                          value={docCategory}
+                          onChange={(e) =>
+                            setDocCategory(e.target.value as DocumentCategory)
+                          }
+                          disabled={uploading}
+                        >
+                          {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {formatDocumentCategory(opt.value)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                       <button
                         type="button"
-                        className="primary"
+                        className="secondary"
                         disabled={uploading}
                         onClick={() => fileInputRef.current?.click()}
                       >
@@ -1175,6 +1172,36 @@ export function ProjectDetailPageClient({
                   )
                 ) : (
                   <>
+                    {canActAsOwner && (
+                      <div className="doc-upload-row doc-upload-row--compact">
+                        <label>
+                          {t('documents.category')}
+                          <select
+                            value={docCategory}
+                            onChange={(e) =>
+                              setDocCategory(e.target.value as DocumentCategory)
+                            }
+                            disabled={uploading}
+                          >
+                            {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {formatDocumentCategory(opt.value)}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button
+                          type="button"
+                          className="secondary"
+                          disabled={uploading}
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          {uploading
+                            ? t('common.uploading')
+                            : t('documents.uploadFile')}
+                        </button>
+                      </div>
+                    )}
                     <div className="doc-tiles-grid">
                       {documents.map((doc) => (
                         <DocumentTile
@@ -1241,22 +1268,38 @@ export function ProjectDetailPageClient({
                   />
                 )}
 
-              {showDelete && (
-                <section className="card danger-zone">
-                  <h2 className="section-title">{t('projectDetail.deleteProjectTitle')}</h2>
-                  <p className="muted">{t('projectDetail.deleteProjectHint')}</p>
-                  <button
-                    type="button"
-                    className="danger"
-                    disabled={deleting}
-                    onClick={() => void handleDelete()}
-                  >
-                    {deleting
-                      ? t('common.pleaseWait')
-                      : t('projectDetail.deleteProject')}
-                  </button>
-                </section>
-              )}
+              <details className="card project-more">
+                <summary className="project-more-summary">
+                  {t('projectDetail.moreActions')}
+                </summary>
+                {isOwner && (
+                  <ClientAmendments
+                    project={project}
+                    onUpdated={(updated) => setProject(updated)}
+                  />
+                )}
+                {showDelete && (
+                  <div className="project-more-danger">
+                    <h3 className="section-title">
+                      {t('projectDetail.deleteProjectTitle')}
+                    </h3>
+                    <p className="muted">
+                      {t('projectDetail.deleteProjectHint')}
+                    </p>
+                    <button
+                      type="button"
+                      className="danger"
+                      disabled={deleting}
+                      onClick={() => void handleDelete()}
+                    >
+                      {deleting
+                        ? t('common.pleaseWait')
+                        : t('projectDetail.deleteProject')}
+                    </button>
+                  </div>
+                )}
+              </details>
+
             </div>
 
             <aside className="project-detail-sidebar">

@@ -114,6 +114,11 @@ export function BidContractTermsFields({
     });
   };
 
+  const scheduleInvalid =
+    Boolean(value.worksStartDate) &&
+    Boolean(value.worksFinishDate) &&
+    String(value.worksFinishDate) < String(value.worksStartDate);
+
   const contractPeriodDays = calendarDaysBetween(
     value.worksStartDate,
     value.worksFinishDate,
@@ -234,24 +239,22 @@ export function BidContractTermsFields({
               }
             />
           </label>
-          <label className="bid-proposal-field">
+          <div className="bid-proposal-field bid-proposal-field--computed">
             <span className="field-label">
               {t('contractTerms.contractPeriodDays')}
             </span>
-            <input
-              type="text"
-              readOnly
-              disabled
-              value={
-                contractPeriodDays != null
-                  ? t('contractTerms.contractPeriodDaysValue', {
-                      days: contractPeriodDays,
-                    })
-                  : ''
-              }
-              placeholder={t('contractTerms.contractPeriodDaysPlaceholder')}
-            />
-          </label>
+            {/* Computed text, not a disabled input that looks like a broken field. */}
+            <p className="bid-proposal-computed-value">
+              {contractPeriodDays != null
+                ? t('contractTerms.contractPeriodDaysValue', {
+                    days: contractPeriodDays,
+                  })
+                : t('contractTerms.contractPeriodPending')}
+            </p>
+            {scheduleInvalid && (
+              <p className="form-error">{t('contractTerms.scheduleInvalid')}</p>
+            )}
+          </div>
         </div>
 
         <div className="bid-proposal-form-row bid-proposal-form-row--triple">

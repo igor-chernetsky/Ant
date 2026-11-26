@@ -10,6 +10,7 @@ import {
   type Project,
 } from '@/lib/projects';
 import { AnalyticsEvents, trackEvent } from '@/lib/analytics';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 interface ProjectLifecyclePanelProps {
   project: Project;
@@ -38,6 +39,7 @@ export function ProjectLifecyclePanel({
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   const refreshProject = async () => {
     onUpdated(await fetchProject(project.id));
@@ -113,14 +115,24 @@ export function ProjectLifecyclePanel({
               type="button"
               className="secondary"
               disabled={busy}
-              onClick={() => void runAction(async () => {
+              onClick={() => void (async () => {
+                const confirmed = await confirm({
+                  title: t('confirm.hideProjectTitle'),
+                  message: t('confirm.hideProjectMessage'),
+                  confirmLabel: t('lifecycle.hideProject'),
+                  cancelLabel: t('common.cancel'),
+                  tone: 'danger',
+                });
+                if (!confirmed) return;
+                await runAction(async () => {
                 const updated = await hideProject(project.id);
                 trackEvent(AnalyticsEvents.hideProject, {
                   project_id: project.id,
                   status: updated.status,
                 });
                 onUpdated(updated);
-              })}
+                });
+              })()}
             >
               {busy ? t('lifecycle.hiding') : t('lifecycle.hideProject')}
             </button>
@@ -151,6 +163,7 @@ export function ProjectLifecyclePanel({
       </div>
 
       {error && <p className="form-error">{error}</p>}
+      {confirmDialog}
     </section>
   );
 }

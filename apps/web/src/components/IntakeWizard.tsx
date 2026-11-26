@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
-import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
 import type { Project } from '@/lib/projects';
 import { fetchProject } from '@/lib/projects';
@@ -19,11 +18,24 @@ interface IntakeWizardProps {
   project: Project;
   onUpdated: (project: Project) => void;
   /**
-   * Whether the project already has uploaded documents. The "upload documents
-   * first" callout is only useful while the list is empty — otherwise it is a wall
-   * of text above every question.
+   * Whether the project already has uploaded documents. The "upload documents"
+   * callout is only useful while the list is empty — otherwise it is a wall of text
+   * above every question.
    */
   hasDocuments?: boolean;
+}
+
+/**
+ * One answered question, kept client-side.
+ *
+ * The server stores only the current question, so going back to an earlier answer
+ * needs the question definition itself — it is sent along when the answer is edited.
+ */
+interface AnswerRecord {
+  question: IntakeQuestion;
+  value?: string | string[];
+  customText?: string;
+  skipped: boolean;
 }
 
 export function IntakeWizard({
@@ -32,7 +44,6 @@ export function IntakeWizard({
   hasDocuments = false,
 }: IntakeWizardProps) {
   const { t } = useTranslation();
-  const { formatTagLabel } = useAppFormatters();
   const intake = project.brief?.ai?.intake;
   const question = intake?.currentQuestion
     ? sanitizeIntakeQuestion(intake.currentQuestion)
@@ -43,6 +54,9 @@ export function IntakeWizard({
   const [customText, setCustomText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<AnswerRecord[]>([]);
+  /** Non-null while editing an already answered question. */
+  const [editIndex, setEditIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setTextValue('');
@@ -50,6 +64,7 @@ export function IntakeWizard({
     setMultiValues([]);
     setCustomText('');
     setError(null);
+    setEditIndex(null);
   }, [question?.id]);
 
   if (!intake || intake.status === 'completed') {
@@ -64,17 +79,73 @@ export function IntakeWizard({
    * screen now shows the standard spinner overlay until the request settles.
    */
   const calculatingEstimate = submitting && showSubmit;
-  const canSkip = question != null && question.type !== 'info';
-  const showCustom =
-    question != null &&
-    (question.type === 'single' || question.type === 'multi');
+
+  const editing = editIndex != null ? history[editIndex] ?? null : null;
+  const activeQuestion = editing ? editing.question : question;
+
+  const canSkip = activeQuestion != null && activeQuestion.type !== 'info';
+  const isChoice =
+    activeQuestion != null &&
+    (activeQuestion.type === 'single' || activeQuestion.type === 'multi');
   const isOtherSelected =
     singleValue === INTAKE_OTHER_OPTION_ID ||
     multiValues.includes(INTAKE_OTHER_OPTION_ID);
+  /** The free-text field only appears once "Other" is picked. */
+  const showOtherInput = isChoice && isOtherSelected;
+
+  /** Value sent to the API for the current form state. */
+  const buildValue = (
+    target: IntakeQuestion,
+    skipped: boolean,
+  ): string | string[] | undefined => {
+    if (target.type === 'info') return '';
+    if (skipped) return undefined;
+    if (target.type === 'text') return textValue;
+    if (target.type === 'single') {
+      return singleValue || (customText.trim() ? INTAKE_OTHER_OPTION_ID : '');
+    }
+    if (
+      customText.trim() &&
+      !multiValues.includes(INTAKE_OTHER_OPTION_ID)
+    ) {
+      return [...multiValues, INTAKE_OTHER_OPTION_ID];
+    }
+    return multiValues;
+  };
+
+  const wantsCustomText = (target: IntakeQuestion): boolean =>
+    (target.type === 'single' &&
+      (singleValue === INTAKE_OTHER_OPTION_ID || !!customText.trim())) ||
+    (target.type === 'multi' &&
+      (multiValues.includes(INTAKE_OTHER_OPTION_ID) || !!customText.trim()));
+
+  const loadAnswerIntoState = (record: AnswerRecord) => {
+    const { question: target, value, customText: custom } = record;
+    setTextValue(target.type === 'text' && typeof value === 'string' ? value : '');
+    setSingleValue(
+      target.type === 'single' && typeof value === 'string' ? value : '',
+    );
+    setMultiValues(
+      target.type === 'multi' && Array.isArray(value) ? value : [],
+    );
+    setCustomText(custom ?? '');
+    setError(null);
+  };
+
+  const openEdit = (index: number) => {
+    const record = history[index];
+    if (!record) return;
+    setEditIndex(index);
+    loadAnswerIntoState(record);
+  };
 
   const handleSubmitAnswer = async (event: FormEvent) => {
     event.preventDefault();
-    if (!question) return;
+    if (!activeQuestion) return;
+    if (editIndex != null) {
+      await saveEdit(activeQuestion);
+      return;
+    }
     await sendAnswer(false);
   };
 
@@ -83,46 +154,64 @@ export function IntakeWizard({
     await sendAnswer(true);
   };
 
+  const saveEdit = async (target: IntakeQuestion) => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const value = buildValue(target, false);
+      const custom = wantsCustomText(target) ? customText.trim() : undefined;
+      const updated = await submitIntakeAnswer(project.id, {
+        questionId: target.id,
+        // Editing a past answer: the server no longer stores its definition.
+        question: target,
+        value,
+        customText: custom,
+      });
+      setHistory((current) =>
+        current.map((record, index) =>
+          index === editIndex
+            ? { ...record, value, customText: custom, skipped: false }
+            : record,
+        ),
+      );
+      setEditIndex(null);
+      onUpdated(updated);
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('intake.submitAnswerFailed'),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const sendAnswer = async (skipped: boolean) => {
     if (!question) return;
 
     setError(null);
     setSubmitting(true);
     try {
-      let value: string | string[] | undefined;
-      if (question.type === 'info') {
-        value = '';
-      } else if (skipped) {
-        value = undefined;
-      } else if (question.type === 'text') {
-        value = textValue;
-      } else if (question.type === 'single') {
-        value =
-          singleValue ||
-          (customText.trim() ? INTAKE_OTHER_OPTION_ID : '');
-      } else {
-        value = multiValues;
-        if (
-          customText.trim() &&
-          !multiValues.includes(INTAKE_OTHER_OPTION_ID)
-        ) {
-          value = [...multiValues, INTAKE_OTHER_OPTION_ID];
-        }
-      }
-
-      const wantsCustom =
-        (question.type === 'single' &&
-          (singleValue === INTAKE_OTHER_OPTION_ID || !!customText.trim())) ||
-        (question.type === 'multi' &&
-          (multiValues.includes(INTAKE_OTHER_OPTION_ID) || !!customText.trim()));
+      const value = buildValue(question, skipped);
+      const custom = wantsCustomText(question) ? customText.trim() : undefined;
 
       const updated = await submitIntakeAnswer(project.id, {
         questionId: question.id,
         skipped,
         value,
-        customText:
-          !skipped && wantsCustom ? customText.trim() : undefined,
+        customText: skipped ? undefined : custom,
       });
+
+      if (question.type !== 'info') {
+        setHistory((current) => [
+          ...current,
+          {
+            question,
+            value,
+            customText: skipped ? undefined : custom,
+            skipped,
+          },
+        ]);
+      }
       onUpdated(updated);
     } catch (err: unknown) {
       const message =
@@ -166,78 +255,263 @@ export function IntakeWizard({
     );
   };
 
+  /** One progress line instead of "Question 1 of ~5 · 0 answered · 10%". */
+  const progressLabel = progress.isComplete
+    ? t('intake.progressAllAnswered')
+    : progress.onQuestion
+      ? t('intake.progressQuestionShort', {
+          current: progress.step,
+          remaining: Math.max(0, progress.estimatedTotal - progress.step),
+        })
+      : t('intake.progressAnsweredCount', { answered: progress.answered });
+
+  const renderQuestionBody = (target: IntakeQuestion) => (
+    <div className="intake-question">
+      <h3 className="intake-question-title">{target.prompt}</h3>
+
+      {target.type === 'info' && (
+        <p className="intake-info-note muted">{t('intake.infoNote')}</p>
+      )}
+
+      {target.type === 'text' && (
+        <textarea
+          value={textValue}
+          onChange={(e) => setTextValue(e.target.value)}
+          placeholder={target.placeholder ?? t('intake.yourAnswer')}
+          rows={3}
+        />
+      )}
+
+      {target.type === 'single' && (
+        <div className="intake-options">
+          {(target.options ?? []).map((option) => (
+            <label
+              key={option.id}
+              className={`intake-option-card${
+                singleValue === option.id ? ' intake-option-card--selected' : ''
+              }`}
+            >
+              <input
+                type="radio"
+                name={`q-${target.id}`}
+                value={option.id}
+                checked={singleValue === option.id}
+                onChange={() => setSingleValue(option.id)}
+              />
+              <span className="intake-option-label">{option.label}</span>
+              <span className="intake-option-check" aria-hidden>
+                ✓
+              </span>
+            </label>
+          ))}
+          <label
+            className={`intake-option-card${
+              isOtherSelected ? ' intake-option-card--selected' : ''
+            }`}
+          >
+            <input
+              type="radio"
+              name={`q-${target.id}`}
+              value={INTAKE_OTHER_OPTION_ID}
+              checked={singleValue === INTAKE_OTHER_OPTION_ID}
+              onChange={() => setSingleValue(INTAKE_OTHER_OPTION_ID)}
+            />
+            <span className="intake-option-label">
+              {t('intake.otherDescribe')}
+            </span>
+            <span className="intake-option-check" aria-hidden>
+              ✓
+            </span>
+          </label>
+        </div>
+      )}
+
+      {target.type === 'multi' && (
+        <div className="intake-options">
+          {(target.options ?? []).map((option) => (
+            <label
+              key={option.id}
+              className={`intake-option-card${
+                multiValues.includes(option.id)
+                  ? ' intake-option-card--selected'
+                  : ''
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={multiValues.includes(option.id)}
+                onChange={() => toggleMulti(option.id)}
+              />
+              <span className="intake-option-label">{option.label}</span>
+              <span className="intake-option-check" aria-hidden>
+                ✓
+              </span>
+            </label>
+          ))}
+          <label
+            className={`intake-option-card${
+              isOtherSelected ? ' intake-option-card--selected' : ''
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={multiValues.includes(INTAKE_OTHER_OPTION_ID)}
+              onChange={() => toggleMulti(INTAKE_OTHER_OPTION_ID)}
+            />
+            <span className="intake-option-label">
+              {t('intake.otherDescribe')}
+            </span>
+            <span className="intake-option-check" aria-hidden>
+              ✓
+            </span>
+          </label>
+        </div>
+      )}
+
+      {showOtherInput && (
+        <input
+          type="text"
+          className="intake-custom-input"
+          value={customText}
+          onChange={(e) => setCustomText(e.target.value)}
+          placeholder={t('intake.yourAnswer')}
+        />
+      )}
+    </div>
+  );
+
   return (
-    <section className="card intake-card">
+    <section className="card intake-card" id="intake">
       <h2 className="section-title">{t('intake.title')}</h2>
       <p className="muted intake-intro">{t('intake.intro')}</p>
 
       {!hasDocuments && (
         <div className="intake-docs-notice" role="note">
-          <p className="intake-docs-notice-title">{t('intake.uploadDocsTitle')}</p>
+          <p className="intake-docs-notice-title">
+            {t('intake.uploadDocsTitle')}
+          </p>
           <p className="intake-docs-notice-text">{t('intake.uploadDocsText')}</p>
         </div>
       )}
 
-      <IntakeProgressBar progress={progress} />
-
-      {project.brief?.ai?.improvedDescription && (
-        <div className="intake-improved">
-          <h3 className="intake-subtitle">{t('intake.improvedDescription')}</h3>
-          <p>{project.brief.ai.improvedDescription}</p>
+      <div className="intake-progress-block" aria-live="polite">
+        <div className="intake-progress-header">
+          <span className="intake-progress-label">{progressLabel}</span>
         </div>
-      )}
-
-      {project.tags.length > 0 && (
-        <div className="intake-tags">
-          <h3 className="intake-subtitle">{t('intake.suggestedTags')}</h3>
-          <div className="tag-list">
-            {project.tags.map((tag) => (
-              <span
-                key={tag.slug}
-                className={`tag-pill ${tag.source === 'ai' ? 'tag-pill-ai' : 'tag-pill-client'}`}
-              >
-                {formatTagLabel(tag.slug, tag.label)}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {question && (
-        <form className="intake-form" onSubmit={handleSubmitAnswer}>
-          <QuestionFields
-            question={question}
-            textValue={textValue}
-            singleValue={singleValue}
-            multiValues={multiValues}
-            customText={customText}
-            showCustom={!!showCustom}
-            isOtherSelected={isOtherSelected}
-            onTextChange={setTextValue}
-            onSingleChange={setSingleValue}
-            onToggleMulti={toggleMulti}
-            onCustomTextChange={setCustomText}
+        <div
+          className="intake-progress-track"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progress.percent}
+          aria-label={progressLabel}
+        >
+          <div
+            className={`intake-progress-fill${progress.isComplete ? ' intake-progress-fill-complete' : ''}`}
+            style={{ width: `${progress.percent}%` }}
           />
+        </div>
+      </div>
+
+      {editing && (
+        <p className="intake-review-note muted">{t('intake.editingAnswer')}</p>
+      )}
+
+      {activeQuestion && (
+        <form className="intake-form" onSubmit={handleSubmitAnswer}>
+          {submitting && editIndex == null ? (
+            <div className="intake-question-skeleton" aria-hidden>
+              <span className="skeleton-field" />
+              <span className="skeleton-field" />
+              <span className="skeleton-field skeleton-field--short" />
+            </div>
+          ) : (
+            renderQuestionBody(activeQuestion)
+          )}
+
           <div className="intake-actions">
-            {canSkip && (
-              <button
-                type="button"
-                className="secondary"
-                disabled={submitting}
-                onClick={() => void handleSkip()}
-              >
-                {t('intake.skip')}
-              </button>
+            {editIndex != null ? (
+              <>
+                <button
+                  type="button"
+                  className="ghost"
+                  disabled={submitting}
+                  onClick={() => setEditIndex(null)}
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  className="primary"
+                  disabled={submitting}
+                >
+                  {submitting ? t('common.saving') : t('intake.saveAnswer')}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="ghost intake-back"
+                  disabled={submitting || history.length === 0}
+                  onClick={() => openEdit(history.length - 1)}
+                >
+                  {t('intake.back')}
+                </button>
+                <div className="intake-actions-main">
+                  {canSkip && (
+                    <button
+                      type="button"
+                      className="text-link intake-skip"
+                      disabled={submitting}
+                      onClick={() => void handleSkip()}
+                    >
+                      {t('intake.skip')}
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="primary"
+                    disabled={submitting}
+                  >
+                    {submitting
+                      ? t('common.saving')
+                      : activeQuestion.type === 'info'
+                        ? t('intake.continue')
+                        : t('intake.next')}
+                  </button>
+                </div>
+              </>
             )}
-            <button type="submit" className="primary" disabled={submitting}>
-              {submitting
-                ? t('common.saving')
-                : question.type === 'info'
-                  ? t('intake.continue')
-                  : t('intake.next')}
-            </button>
           </div>
         </form>
+      )}
+
+      {editIndex == null && history.length > 0 && (
+        <details className="intake-answers">
+          <summary className="intake-answers-summary">
+            {t('intake.yourAnswers')}
+          </summary>
+          <ul className="intake-answers-list">
+            {history.map((record, index) => (
+              <li key={`${record.question.id}-${index}`}>
+                <span className="intake-answers-prompt">
+                  {record.question.prompt}
+                </span>
+                <span className="intake-answers-value">
+                  {describeRecord(record, t)}
+                </span>
+                <button
+                  type="button"
+                  className="text-link"
+                  onClick={() => openEdit(index)}
+                >
+                  {t('common.edit')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
 
       {showSubmit && (
@@ -245,7 +519,7 @@ export function IntakeWizard({
           <p className="muted">{t('intake.allAnswered')}</p>
           <button
             type="button"
-            className="primary"
+            className="primary intake-final-cta"
             disabled={submitting}
             onClick={() => void handleFinalSubmit()}
           >
@@ -267,181 +541,27 @@ export function IntakeWizard({
   );
 }
 
-function IntakeProgressBar({
-  progress,
-}: {
-  progress: ReturnType<typeof getIntakeProgress>;
-}) {
-  const { t } = useTranslation();
-
-  // Built here so the label follows the interface language, like every other
-  // string on the page, instead of being produced by the progress helper.
-  const label = progress.isComplete
-    ? t('intake.progressAllAnswered')
-    : progress.onQuestion
-      ? t('intake.progressQuestion', {
-          current: progress.step,
-          total: progress.estimatedTotal,
-        })
-      : t('intake.progressAnsweredCount', { answered: progress.answered });
-
-  return (
-    <div className="intake-progress-block" aria-live="polite">
-      <div className="intake-progress-header">
-        <span className="intake-progress-label">{label}</span>
-        <span className="intake-progress-percent muted">{progress.percent}%</span>
-      </div>
-      <div
-        className="intake-progress-track"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={progress.percent}
-        aria-label={label}
-      >
-        <div
-          className={`intake-progress-fill${progress.isComplete ? ' intake-progress-fill-complete' : ''}`}
-          style={{ width: `${progress.percent}%` }}
-        />
-      </div>
-      {!progress.isComplete && (
-        <p className="intake-progress-hint muted">
-          {t('intake.progressAnswered', {
-            answered: progress.answered,
-            total: progress.estimatedTotal,
-          })}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function QuestionFields({
-  question,
-  textValue,
-  singleValue,
-  multiValues,
-  customText,
-  showCustom,
-  isOtherSelected,
-  onTextChange,
-  onSingleChange,
-  onToggleMulti,
-  onCustomTextChange,
-}: {
-  question: IntakeQuestion;
-  textValue: string;
-  singleValue: string;
-  multiValues: string[];
-  customText: string;
-  showCustom: boolean;
-  isOtherSelected: boolean;
-  onTextChange: (v: string) => void;
-  onSingleChange: (v: string) => void;
-  onToggleMulti: (id: string) => void;
-  onCustomTextChange: (v: string) => void;
-}) {
-  const { t } = useTranslation();
-  const visibleOptions = question.options ?? [];
-
-  return (
-    <fieldset className="intake-question">
-      <legend>{question.prompt}</legend>
-
-      {question.type === 'info' && (
-        <p className="intake-info-note muted">{t('intake.infoNote')}</p>
-      )}
-
-      {question.type === 'text' && (
-        <textarea
-          value={textValue}
-          onChange={(e) => onTextChange(e.target.value)}
-          placeholder={question.placeholder ?? t('intake.yourAnswer')}
-          rows={3}
-        />
-      )}
-
-      {question.type === 'single' && (
-        <>
-          {visibleOptions.map((option) => (
-            <label key={option.id} className="intake-option">
-              <input
-                type="radio"
-                name={`q-${question.id}`}
-                value={option.id}
-                checked={singleValue === option.id}
-                onChange={() => onSingleChange(option.id)}
-              />
-              {option.label}
-            </label>
-          ))}
-          {showCustom && (
-            <div className="intake-other-block">
-              <label className="intake-option">
-                <input
-                  type="radio"
-                  name={`q-${question.id}`}
-                  value={INTAKE_OTHER_OPTION_ID}
-                  checked={singleValue === INTAKE_OTHER_OPTION_ID}
-                  onChange={() => onSingleChange(INTAKE_OTHER_OPTION_ID)}
-                />
-                {t('intake.otherDescribe')}
-              </label>
-              <input
-                type="text"
-                className="intake-custom-input"
-                value={customText}
-                onChange={(e) => {
-                  onCustomTextChange(e.target.value);
-                  if (singleValue !== INTAKE_OTHER_OPTION_ID) {
-                    onSingleChange(INTAKE_OTHER_OPTION_ID);
-                  }
-                }}
-                placeholder={t('intake.yourAnswer')}
-              />
-            </div>
-          )}
-        </>
-      )}
-
-      {question.type === 'multi' && (
-        <>
-          {visibleOptions.map((option) => (
-            <label key={option.id} className="intake-option">
-              <input
-                type="checkbox"
-                checked={multiValues.includes(option.id)}
-                onChange={() => onToggleMulti(option.id)}
-              />
-              {option.label}
-            </label>
-          ))}
-          {showCustom && (
-            <div className="intake-other-block">
-              <label className="intake-option">
-                <input
-                  type="checkbox"
-                  checked={multiValues.includes(INTAKE_OTHER_OPTION_ID)}
-                  onChange={() => onToggleMulti(INTAKE_OTHER_OPTION_ID)}
-                />
-                {t('intake.otherDescribe')}
-              </label>
-              <input
-                type="text"
-                className="intake-custom-input"
-                value={customText}
-                onChange={(e) => {
-                  onCustomTextChange(e.target.value);
-                  if (!multiValues.includes(INTAKE_OTHER_OPTION_ID)) {
-                    onToggleMulti(INTAKE_OTHER_OPTION_ID);
-                  }
-                }}
-                placeholder={t('intake.yourAnswer')}
-              />
-            </div>
-          )}
-        </>
-      )}
-    </fieldset>
-  );
+/** Human readable value of a recorded answer, for the "Your answers" list. */
+function describeRecord(
+  record: AnswerRecord,
+  t: (key: string) => string,
+): string {
+  if (record.skipped) return t('intake.skippedAnswer');
+  const { question, value, customText } = record;
+  if (question.type === 'text') return String(value ?? '') || t('common.dash');
+  if (question.type === 'single') {
+    if (value === INTAKE_OTHER_OPTION_ID) return customText || t('common.dash');
+    return (
+      question.options?.find((option) => option.id === value)?.label ??
+      t('common.dash')
+    );
+  }
+  const selected = Array.isArray(value) ? value : [];
+  const labels = (question.options ?? [])
+    .filter((option) => selected.includes(option.id))
+    .map((option) => option.label);
+  if (selected.includes(INTAKE_OTHER_OPTION_ID) && customText) {
+    labels.push(customText);
+  }
+  return labels.join(', ') || t('common.dash');
 }

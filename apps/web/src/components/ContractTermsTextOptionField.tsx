@@ -75,6 +75,16 @@ export function ContractTermsTextOptionField({
     onChange(option.value);
   };
 
+  /**
+   * One control instead of "select + textarea" side by side: the textarea only
+   * appears for custom text, while a chosen template is shown as a preview line with
+   * an "Edit" action.
+   */
+  const editingCustom =
+    !hasTemplates ||
+    selectValue === CONTRACT_TERMS_CUSTOM_OPTION_ID ||
+    !displayValue.trim();
+
   const handleTextChange = (next: string) => {
     if (
       matchContractTermsOptionId(next, options) ===
@@ -142,24 +152,37 @@ export function ContractTermsTextOptionField({
         </select>
       )}
 
-      {multiline ? (
-        <textarea
-          id={inputId}
-          rows={rows}
-          disabled={disabled}
-          value={displayValue}
-          placeholder={customPlaceholder}
-          onChange={(event) => handleTextChange(event.target.value)}
-        />
+      {editingCustom ? (
+        multiline ? (
+          <textarea
+            id={inputId}
+            rows={rows}
+            disabled={disabled}
+            value={displayValue}
+            placeholder={customPlaceholder}
+            onChange={(event) => handleTextChange(event.target.value)}
+          />
+        ) : (
+          <input
+            id={inputId}
+            type="text"
+            disabled={disabled}
+            value={displayValue}
+            placeholder={customPlaceholder}
+            onChange={(event) => handleTextChange(event.target.value)}
+          />
+        )
       ) : (
-        <input
-          id={inputId}
-          type="text"
-          disabled={disabled}
-          value={displayValue}
-          placeholder={customPlaceholder}
-          onChange={(event) => handleTextChange(event.target.value)}
-        />
+        <div className="contract-terms-text-option-preview">
+          <p className="muted">{displayValue}</p>
+          <button
+            type="button"
+            className="text-link"
+            onClick={() => setForceCustom(true)}
+          >
+            {t('common.edit')}
+          </button>
+        </div>
       )}
     </div>
   );

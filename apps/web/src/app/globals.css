@@ -4076,11 +4076,12 @@ pre {
 
 .section-title {
   margin: 0 0 0.75rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--steel-600);
+  font-size: 1.15rem;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text);
 }
 
 .feature-list {
@@ -4447,20 +4448,137 @@ pre {
 }
 
 .intake-question {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
   margin: 0;
   display: grid;
-  gap: 0.55rem;
-  background: #f8fafc;
+  gap: 0.7rem;
 }
 
-.intake-question legend {
-  padding: 0 0.25rem;
-  font-size: 1rem;
-  font-weight: 500;
+/* The prompt is a heading above the options, not a <legend> that overlaps the frame. */
+.intake-question-title {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  font-weight: 600;
   color: var(--text);
+}
+
+.intake-options {
+  display: grid;
+  gap: 0.5rem;
+}
+
+/* Whole row is the click target: 48px tall, clear selected state. */
+.intake-option-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 48px;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.intake-option-card:hover {
+  border-color: var(--accent);
+}
+
+.intake-option-card input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.intake-option-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.intake-option-check {
+  flex: 0 0 auto;
+  opacity: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.intake-option-card--selected {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.intake-option-card--selected .intake-option-check {
+  opacity: 1;
+}
+
+.intake-option-card:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* "Back" review of an already answered question. */
+.intake-review {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.7);
+}
+
+.intake-review-note {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.intake-review-answer {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.intake-question-skeleton {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.skeleton-field--short {
+  width: 55%;
+}
+
+.intake-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.intake-actions-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.intake-skip {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.35rem;
+}
+
+/* Desktop primary actions are auto width; only the phone gets full-width CTAs. */
+.intake-final-cta {
+  width: auto;
 }
 
 .intake-option {
@@ -5479,13 +5597,18 @@ pre {
   color: var(--text);
 }
 
+/* Status and readiness are read-only facts; a white box with a border made them
+   look like inputs. Tinted badges read as status. */
 .project-hero-status {
-  background: #fff;
-  border: 1px solid var(--border);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent-hover);
 }
 
 .project-hero-readiness {
-  background: #fff;
+  background: var(--glass-bg-dense);
+  border: 1px solid var(--border);
+  color: var(--muted);
 }
 
 .project-hero-tags {
@@ -7899,6 +8022,9 @@ input:not([type='checkbox']):not([type='radio']):not([type='file']):not(
   ):not([type='hidden']),
 textarea,
 select {
+  /* Without border-box `width: 100%` plus padding pushes fields past the card. */
+  box-sizing: border-box;
+  max-width: 100%;
   border: 1px solid var(--border-strong);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.52);
@@ -16467,4 +16593,475 @@ main.product-tour-page {
   .project-next-step > button {
     width: 100%;
   }
+}
+
+@media (max-width: 640px) {
+  .intake-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .intake-actions-main {
+    margin-left: 0;
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .intake-actions-main .primary,
+  .intake-final-cta {
+    width: 100%;
+  }
+}
+
+/* Publish form: three steps instead of one 25-field scroll. */
+.publish-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 1.1rem;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0.75rem 1.25rem;
+  list-style: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.publish-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.publish-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.publish-step--active {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.publish-step--active .publish-step-number {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.publish-step--done .publish-step-number {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.publish-subject-field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.publish-subject-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.publish-field-label {
+  font-weight: 600;
+}
+
+.publish-same-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.publish-review {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.publish-review-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.publish-review-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.publish-review-list div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 30%) minmax(0, 1fr);
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.publish-review-list dt {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.publish-review-list dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Cancel on the left, Back/Next (or Publish) on the right — same as other modals. */
+.publish-footer {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.publish-footer-main {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .publish-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .publish-footer-main {
+    margin-left: 0;
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .publish-footer-main .primary,
+  .publish-footer-main .ghost,
+  .publish-footer > .secondary {
+    width: 100%;
+  }
+
+  .publish-review-list div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.2rem;
+  }
+}
+
+/* "Your answers": a compact, editable recap under the wizard. */
+.intake-answers {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.6rem 0.9rem;
+}
+
+.intake-answers-summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.intake-answers-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.intake-answers-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.intake-answers-prompt {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.intake-answers-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .intake-answers-list li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .intake-answers-value {
+    grid-column: 1 / -1;
+  }
+}
+
+/* H6: the stage rail stays compact so it does not eat the header. */
+.project-stage-rail {
+  padding: 0.5rem 0.75rem;
+}
+
+/* S2: the map is only useful with a precise area; keep it small. */
+.project-hero-map {
+  max-height: 160px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+/* S3: compact status strip for narrow screens (hidden on desktop). */
+.project-mobile-status {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .project-mobile-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.9rem;
+    align-items: center;
+    margin: 0 0 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--glass-bg-dense);
+    font-size: 0.85rem;
+  }
+
+  .project-mobile-status strong {
+    font-weight: 700;
+  }
+}
+
+/* D1: one upload control per state. */
+.doc-upload-row--compact {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.75rem;
+}
+
+.doc-dropzone-category {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: left;
+}
+
+/* S4: destructive actions sit inside the collapsed "More" block. */
+.project-more-danger {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.project-more-summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.project-hero-location-line {
+  margin: 0.5rem 0 0;
+}
+
+/* H4: facts as one text row with icons; dates join it in a lighter style. */
+.project-hero-meta-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-top: 0.6rem;
+}
+
+.project-hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.project-hero-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.project-hero-meta-row .project-hero-timestamps {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+/* H2: header actions live behind a small menu instead of competing buttons. */
+.project-hero-menu {
+  position: relative;
+  margin-left: auto;
+}
+
+.project-hero-menu-trigger {
+  list-style: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.35rem 0.55rem;
+}
+
+.project-hero-menu-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.project-hero-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 20;
+  display: grid;
+  min-width: 15rem;
+  padding: 0.35rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-dense, #fff);
+  box-shadow: var(--shadow-md, 0 10px 30px rgba(15, 35, 60, 0.18));
+}
+
+.project-hero-menu-item {
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.project-hero-menu-item:hover {
+  background: var(--accent-muted);
+}
+
+/* P2/P3: collapsed default terms and a template preview instead of duplicate inputs. */
+.publish-terms-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.7);
+}
+
+.publish-terms-summary p {
+  margin: 0;
+  flex: 1 1 16rem;
+}
+
+.contract-terms-text-option-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding: 0.55rem 0.7rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.6);
+}
+
+.contract-terms-text-option-preview p {
+  margin: 0;
+  flex: 1 1 16rem;
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+}
+
+/* H3: the description is one block, clamped until the reader asks for more. */
+.project-hero-lead--clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.project-hero-lead-toggle {
+  margin-top: 0.35rem;
+}
+
+/* P6: a computed value is text, not a disabled field. */
+.bid-proposal-computed-value {
+  margin: 0.35rem 0 0;
+  padding: 0.55rem 0.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* P5: catalogue select, growing description and an icon-only delete. */
+.bid-line-item-trade {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.bid-line-item-description {
+  min-width: 0;
+  field-sizing: content;
+  min-height: 2.5rem;
+  max-height: 10rem;
+  resize: vertical;
+}
+
+.bid-line-item-remove {
+  align-self: start;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* G1: buttons are auto width on desktop; only the phone stretches the step CTA. */
+@media (min-width: 768px) {
+  .primary,
+  .secondary,
+  .ghost,
+  .danger {
+    width: auto;
+  }
+}
+
+/* G2: the documents card uploads with a secondary button — publishing is the only
+   primary action on that screen. */
+.doc-dropzone .primary,
+.doc-upload-row--compact .secondary {
+  /* keep the dropzone CTA visually distinct without competing with publish */
+}
+
+/* G6: secondary text must clear WCAG AA on the light background. */
+:root {
+  --muted: #5b6472;
+}
+
+.publish-required-hint {
+  margin: 0;
+  font-size: 0.88rem;
 }

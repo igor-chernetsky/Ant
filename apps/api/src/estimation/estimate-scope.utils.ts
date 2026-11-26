@@ -558,7 +558,16 @@ export function buildEstimateScopeRules(
   return lines.map((line) => `- ${line}`).join('\n');
 }
 
+/**
+ * Roof details that are routinely filed under "structural" or "finishing" by the
+ * model: flashing, gutters, downpipes, chimneys, eaves. They are roofing work, and a
+ * repair of a couple of details must not read as a building-wide structural job.
+ */
+const ROOF_DETAIL_PATTERN =
+  /(?:\b(?:roof|roofing|flashing|gutters?|downpipes?|downspouts?|chimneys?|eaves?|soffits?|ridge|roof\s*leak|leaking\s*roof)\b)|(?:кровл|крыш|желоб|водосток|дымоход|дымар|карниз)|(?:หลังคา|รางน้ำ|ท่อน้ำฝน|ปล่องไฟ|ชายคา)/i;
+
 const TRADE_KEYWORD_MAP: Array<{ pattern: RegExp; trade: string }> = [
+  { pattern: ROOF_DETAIL_PATTERN, trade: 'roofing' },
   { pattern: ELEVATOR_PATTERN, trade: 'structural' },
   { pattern: /\b(pool|swimming|бассейн)\b/i, trade: 'structural' },
   // Installed devices get their own catalog trade; they must be matched before
@@ -619,7 +628,7 @@ const TRADE_KEYWORD_MAP: Array<{ pattern: RegExp; trade: string }> = [
       /\b(ceilings?|false\s*ceiling|suspended\s*ceiling|потолк|ฝ้าเพดาน)\b/i,
     trade: 'ceilings',
   },
-  { pattern: /\b(roof|roofing|кровл|крыш)\b/i, trade: 'roofing' },
+  { pattern: ROOF_DETAIL_PATTERN, trade: 'roofing' },
   {
     pattern:
       /\b(electric|wiring|lighting|свет|освещ|электро|электрик|проводк|светильник|underwater\s*light)\b/i,
@@ -658,6 +667,17 @@ const TRADE_KEYWORD_MAP: Array<{ pattern: RegExp; trade: string }> = [
 
 export function mapLineToCatalogTrade(line: EstimateLine): EstimateLine | null {
   const trade = line.trade.trim().toLowerCase().replace(/\s+/g, '-');
+
+  /**
+   * The early return below trusted the model's own trade slug, so a line it filed as
+   * "structural" with the description "Repair of flashing around the chimney" stayed
+   * structural forever. The description is the evidence: when it names a roof detail,
+   * the line is roofing regardless of the slug the model picked.
+   */
+  if (trade !== 'roofing' && ROOF_DETAIL_PATTERN.test(line.description)) {
+    return { ...line, trade: 'roofing', description: line.description };
+  }
+
   if (ALLOWED_ESTIMATE_TRADES.has(trade)) {
     return { ...line, trade };
   }

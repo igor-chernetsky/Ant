@@ -7,6 +7,8 @@
  * card that performs it.
  */
 
+import { projectStageNumber, PROJECT_STAGE_TOTAL } from '@/lib/project-stages';
+
 export type ProjectNextStepKey =
   | 'signup'
   | 'intake'
@@ -31,12 +33,11 @@ export interface ProjectNextStep {
   key: ProjectNextStepKey;
   /** Element the CTA scrolls to; `null` when the step opens a modal instead. */
   targetId: string | null;
-  /** Position in the four client steps, for "Step 2 of 4". */
+  /** 1-based stage number on the header rail ("Stage 2 of 5"). */
   step: number;
   total: number;
 }
 
-const TOTAL_STEPS = 4;
 
 const TENDER_STATUSES = new Set(['in_tender', 'clarification', 'pending']);
 const CONTRACT_STATUSES = new Set(['awarded', 'active']);
@@ -57,24 +58,24 @@ export function resolveProjectNextStep(
   }
 
   if (CONTRACT_STATUSES.has(status)) {
-    return { key: 'contract', targetId: 'project-contract', step: 4, total: TOTAL_STEPS };
+    return { key: 'contract', targetId: 'project-contract', step: projectStageNumber(status), total: PROJECT_STAGE_TOTAL };
   }
 
   if (TENDER_STATUSES.has(status)) {
-    return { key: 'waiting', targetId: 'project-tender', step: 4, total: TOTAL_STEPS };
+    return { key: 'waiting', targetId: 'project-tender', step: projectStageNumber(status), total: PROJECT_STAGE_TOTAL };
   }
 
   if (isGuestOwner) {
-    return { key: 'signup', targetId: null, step: 1, total: TOTAL_STEPS };
+    return { key: 'signup', targetId: null, step: projectStageNumber(status), total: PROJECT_STAGE_TOTAL };
   }
 
   if (hasEstimate || status === 'estimated') {
-    return { key: 'publish', targetId: 'project-tender', step: 3, total: TOTAL_STEPS };
+    return { key: 'publish', targetId: 'project-tender', step: projectStageNumber(status), total: PROJECT_STAGE_TOTAL };
   }
 
   if (!intakeCompleted || status === 'draft' || status === 'intake') {
-    return { key: 'intake', targetId: 'project-intake', step: 1, total: TOTAL_STEPS };
+    return { key: 'intake', targetId: 'project-intake', step: projectStageNumber(status), total: PROJECT_STAGE_TOTAL };
   }
 
-  return { key: 'estimate', targetId: 'project-intake', step: 2, total: TOTAL_STEPS };
+  return { key: 'estimate', targetId: 'project-intake', step: projectStageNumber(status), total: PROJECT_STAGE_TOTAL };
 }

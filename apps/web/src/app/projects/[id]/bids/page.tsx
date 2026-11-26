@@ -149,9 +149,7 @@ export default function ProjectBidsPage() {
   /** The API accepts invites only while the tender is open or in clarification. */
   const tenderCanInvite =
     tender?.status === 'open' || tender?.status === 'draft';
-  const inviteDisabledReason = tenderCanInvite
-    ? undefined
-    : t('tenderCard.inviteTenderClosed');
+  /* No invite button when the tender cannot accept participants (see T1). */
 
   const displayBids = useMemo(() => {
     if (!tender) return [];
@@ -370,7 +368,8 @@ export default function ProjectBidsPage() {
                           ))}
                         </ul>
                           {project?.projectType === 'design' &&
-                            !tenderAwarded && (
+                            !tenderAwarded &&
+                            tenderCanInvite && (
                               <div className="tender-actions-block">
                                 <p className="muted tender-hint">
                                   {t(
@@ -380,17 +379,10 @@ export default function ProjectBidsPage() {
                                 <button
                                   type="button"
                                   className="secondary"
-                                  disabled={!tenderCanInvite}
-                                  title={inviteDisabledReason}
                                   onClick={() => setInviteModalOpen(true)}
                                 >
                                   {t('tenderCard.inviteFromDirectory')}
                                 </button>
-                                {inviteDisabledReason ? (
-                                  <p className="muted contractor-coverage-invite-hint">
-                                    {inviteDisabledReason}
-                                  </p>
-                                ) : null}
                               </div>
                             )}
                         </>
@@ -420,7 +412,6 @@ export default function ProjectBidsPage() {
                                 ? () => setInviteModalOpen(true)
                                 : undefined
                             }
-                            inviteDisabledReason={inviteDisabledReason}
                           />
                         </div>
                       )}

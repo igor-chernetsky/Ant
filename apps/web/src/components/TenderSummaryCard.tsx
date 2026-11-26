@@ -204,11 +204,6 @@ export function TenderSummaryCard({
     Boolean(tender) &&
     (tender?.status === 'open' || tender?.status === 'draft') &&
     !winnerSelected;
-  const inviteDisabledReason = canInviteFromDirectory
-    ? undefined
-    : tender
-      ? t('tenderCard.inviteTenderClosed')
-      : t('tenderCard.inviteNeedsPublish');
   // Low-match CTA is shown inside ContractorCoverageNotice; stale empty
   // tenders also get an invite block below.
   const showDirectoryInviteBlock =
@@ -303,7 +298,6 @@ export function TenderSummaryCard({
               onInviteFromDirectory={
                 canInviteFromDirectory ? () => setInviteModalOpen(true) : undefined
               }
-              inviteDisabledReason={inviteDisabledReason}
               onCoverageLoaded={setCoverage}
             />
             <div className="tender-publish-row">
@@ -456,7 +450,6 @@ export function TenderSummaryCard({
                 onInviteFromDirectory={
                 canInviteFromDirectory ? () => setInviteModalOpen(true) : undefined
               }
-              inviteDisabledReason={inviteDisabledReason}
                 onCoverageLoaded={setCoverage}
               />
               <div className="tender-publish-row">
@@ -516,7 +509,6 @@ export function TenderSummaryCard({
                   onInviteFromDirectory={
                 canInviteFromDirectory ? () => setInviteModalOpen(true) : undefined
               }
-              inviteDisabledReason={inviteDisabledReason}
                   onCoverageLoaded={setCoverage}
                 />
               )}
@@ -558,7 +550,6 @@ export function TenderSummaryCard({
                 onInviteFromDirectory={
                 canInviteFromDirectory ? () => setInviteModalOpen(true) : undefined
               }
-              inviteDisabledReason={inviteDisabledReason}
                 onCoverageLoaded={setCoverage}
               />
             )}

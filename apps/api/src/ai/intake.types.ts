@@ -63,6 +63,14 @@ export interface SubmitAnswerDto {
   skipped?: boolean;
   value?: string | string[];
   customText?: string;
+  /**
+   * Definition of an already answered question the client is editing.
+   *
+   * Only the current question is persisted on the intake, so when the client goes
+   * back to an earlier answer the question text and options come from the browser —
+   * and the server still validates the new value against them.
+   */
+  question?: IntakeQuestion;
 }
 
 /** Reserved option id — user supplies customText */

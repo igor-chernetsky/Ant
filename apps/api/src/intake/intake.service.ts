@@ -206,6 +206,59 @@ export class IntakeService {
 
     const current = sanitizeIntakeQuestion(rawCurrent);
 
+    /**
+     * Editing an earlier answer: the question is no longer stored on the intake (only
+     * `currentQuestion` is), so the client sends its definition and we validate the
+     * new value against it. The current question stays where it is, so the visitor
+     * returns to it after saving.
+     */
+    const editingPastAnswer = intake.answers.some(
+      (answer) => answer.questionId === dto.questionId,
+    );
+
+    if (editingPastAnswer) {
+      if (!dto.question) {
+        throw new BadRequestException(
+          'Editing an earlier answer requires the question definition',
+        );
+      }
+
+      const pastQuestion = sanitizeIntakeQuestion(dto.question);
+      if (pastQuestion.id !== dto.questionId) {
+        throw new BadRequestException('Question id does not match its definition');
+      }
+
+      const parsedPast = this.parseAnswer(pastQuestion, dto);
+      const answers = intake.answers.map((answer) =>
+        answer.questionId === dto.questionId
+          ? {
+              ...answer,
+              value: parsedPast.value,
+              skipped: parsedPast.skipped,
+              customText: parsedPast.customText,
+              answeredAt: new Date().toISOString(),
+            }
+          : answer,
+      );
+
+      const updatedIntake: IntakeState = { ...intake, answers };
+      const updatedBrief = this.mergeBrief(project.briefJson, {
+        ai: {
+          ...brief.ai,
+          intake: updatedIntake,
+        },
+      });
+
+      await this.prisma.project.update({
+        where: { id: projectId },
+        data: {
+          briefJson: updatedBrief as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      return this.projectsService.getForViewer(viewer, projectId, viewerLocale);
+    }
+
     if (dto.questionId !== current.id) {
       throw new BadRequestException(
         'Answer does not match the current question. Refresh the page and try again.',

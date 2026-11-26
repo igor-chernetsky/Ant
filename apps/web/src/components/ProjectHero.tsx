@@ -118,12 +118,20 @@ export function ProjectHeroSidebar({
           )}
         </div>
       )}
-      {project.locationRegionSlug ? (
+      {/**
+       * A map pinned to "whole region" points at an arbitrary spot and adds nothing;
+       * show the location as text instead, and a small map only with a real area.
+       */}
+      {project.locationRegionSlug && project.locationAreaSlug ? (
         <ProjectLocationMap
           regionSlug={project.locationRegionSlug}
           areaSlug={project.locationAreaSlug}
           caption={project.district}
         />
+      ) : project.locationRegionSlug ? (
+        <p className="muted project-hero-location-line">
+          {project.district || project.locationRegionSlug}
+        </p>
       ) : null}
     </aside>
   );
@@ -194,12 +202,22 @@ export function ProjectHero({
     editing,
   ]);
 
+  /**
+   * Facts as a single text row with icons, not brand-coloured pills: pills read as
+   * filters, and the region code ("TH") next to "Bangkok" added nothing.
+   */
+  /**
+   * The description is the one place the project story lives (the wizard no longer
+   * repeats it). Long text is clamped to four lines with an explicit "Show more".
+   */
+  const descriptionLong = (project.description?.length ?? 0) > 240;
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+
   const chips = [
-    formatProjectType(project.projectType),
-    formatPropertyType(project.propertyType),
-    project.district,
-    project.regionCode,
-  ].filter((value) => value && value !== t('common.dash'));
+    { icon: '🔧', label: formatProjectType(project.projectType) },
+    { icon: '🏠', label: formatPropertyType(project.propertyType) },
+    { icon: '📍', label: project.district },
+  ].filter((chip) => chip.label && chip.label !== t('common.dash'));
 
   const handleSave = async (event: FormEvent) => {
     event.preventDefault();
@@ -373,18 +391,72 @@ export function ProjectHero({
               <div className="project-hero-title-row">
                 <h1 id="project-hero-title">{project.title}</h1>
                 {completionAction}
-                {canEditCard && (
-                  <button
-                    type="button"
-                    className="ghost project-hero-edit-trigger"
-                    onClick={() => setEditing(true)}
-                  >
-                    {t('projectHero.editCard')}
-                  </button>
+                {(canEditCard || canConvert) && (
+                  <details className="project-hero-menu">
+                    <summary
+                      className="icon-button project-hero-menu-trigger"
+                      aria-label={t('projectHero.moreActions')}
+                      title={t('projectHero.moreActions')}
+                    >
+                      ⋯
+                    </summary>
+                    <div className="project-hero-menu-list">
+                      {canEditCard && (
+                        <button
+                          type="button"
+                          className="project-hero-menu-item"
+                          onClick={(event) => {
+                            (event.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
+                            setEditing(true);
+                          }}
+                        >
+                          {t('projectHero.editCard')}
+                        </button>
+                      )}
+                      {canConvert && (
+                        <button
+                          type="button"
+                          className="project-hero-menu-item"
+                          disabled={converting || saving}
+                          title={t('designPermits.convertTooltip')}
+                          onClick={(event) => {
+                            (event.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
+                            void handleConvert();
+                          }}
+                        >
+                          {converting
+                            ? t('common.saving')
+                            : t('designPermits.convertButton')}
+                        </button>
+                      )}
+                    </div>
+                  </details>
                 )}
               </div>
               {project.description ? (
-                <p className="project-hero-lead">{project.description}</p>
+                <>
+                  <p
+                    className={`project-hero-lead${
+                      descriptionExpanded ? '' : ' project-hero-lead--clamped'
+                    }`}
+                    id="project-hero-description"
+                  >
+                    {project.description}
+                  </p>
+                  {descriptionLong && (
+                    <button
+                      type="button"
+                      className="text-link project-hero-lead-toggle"
+                      aria-expanded={descriptionExpanded}
+                      aria-controls="project-hero-description"
+                      onClick={() => setDescriptionExpanded((open) => !open)}
+                    >
+                      {descriptionExpanded
+                        ? t('projectHero.showLess')
+                        : t('projectHero.showMore')}
+                    </button>
+                  )}
+                </>
               ) : (
                 <p className="project-hero-lead project-hero-lead-muted">
                   {t('projectHero.noDescription')}
@@ -393,7 +465,8 @@ export function ProjectHero({
             </>
           )}
 
-          {(canConvert || showDesignHint || showNextConstructionHint) && (
+          {(showDesignHint || showNextConstructionHint ||
+            (isDesignTrack && Boolean(project.linkedProjectId))) && (
             <div className="project-hero-design-actions">
               {showDesignHint ? (
                 <p
@@ -404,19 +477,6 @@ export function ProjectHero({
                 >
                   {t(designConvertHintKey)}
                 </p>
-              ) : null}
-              {canConvert ? (
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={() => void handleConvert()}
-                  disabled={converting || saving}
-                  title={t('designPermits.convertTooltip')}
-                >
-                  {converting
-                    ? t('common.saving')
-                    : t('designPermits.convertButton')}
-                </button>
               ) : null}
               {isDesignTrack && project.linkedProjectId ? (
                 <p className="muted project-hero-design-hint">
@@ -438,21 +498,25 @@ export function ProjectHero({
             </div>
           )}
 
-          {chips.length > 0 && (
-            <ul
-              className="project-hero-chips"
-              aria-label={t('projectHero.highlightsAria')}
-            >
-              {chips.map((chip) => (
-                <li key={chip}>{chip}</li>
-              ))}
-            </ul>
-          )}
-          <p className="muted project-hero-timestamps">
-            {t('projectHero.created')} {formatDateTime(project.createdAt)}
-            {' · '}
-            {t('projectHero.updated')} {formatDateTime(project.updatedAt)}
-          </p>
+          <div className="project-hero-meta-row">
+            {chips.length > 0 && (
+              <ul
+                className="project-hero-chips"
+                aria-label={t('projectHero.highlightsAria')}
+              >
+                {chips.map((chip) => (
+                  <li key={chip.label}>
+                    <span aria-hidden>{chip.icon}</span> {chip.label}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="muted project-hero-timestamps">
+              {t('projectHero.created')} {formatDateTime(project.createdAt)}
+              {' · '}
+              {t('projectHero.updated')} {formatDateTime(project.updatedAt)}
+            </p>
+          </div>
 
           {stageStatus ? (
             <div className="project-hero-stage">

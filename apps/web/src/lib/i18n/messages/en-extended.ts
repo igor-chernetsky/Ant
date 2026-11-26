@@ -234,6 +234,9 @@ export const enExtended = {
     editProjectTypeHint:
       "You can change Project/Work type until the project is published for tender.",
     editKpHint: "Agreed commercial proposals keep the title and description from when they were submitted.",
+    moreActions: "More actions",
+    showMore: "Show more",
+    showLess: "Show less",
   },
   clarificationMode: {
     open_chat: "Open chat",
@@ -924,6 +927,7 @@ export const enExtended = {
       tradeRequired: "Each cost line needs a trade",
       breakdownMismatch: "Breakdown subtotal does not match the total. Please check your calculations.",
     },
+    tradeCustom: "Other trade…",
   },
   contractTerms: {
     sectionTitle: "Commercial proposal document",
@@ -1047,6 +1051,8 @@ export const enExtended = {
       clientSuppliedLabel: "Client-supplied materials",
       clientSuppliedValue: "Certain fixtures and finishes are supplied by the Employer; the Contractor provides installation only unless stated otherwise in the BOQ.",
     },
+    contractPeriodPending: "Set the start and finish dates",
+    scheduleInvalid: "The finish date is before the start date.",
   },
   clarification: {
     loadingForm: "Loading clarification form…",
@@ -1267,6 +1273,8 @@ export const enExtended = {
     requestCompletionMessage:
       "Ask the client to confirm that the work is finished. The project will close only after they confirm.",
     requestCompletionLabel: "Request completion",
+    hideProjectTitle: "Hide this project?",
+    hideProjectMessage: "It disappears from the public list and from contractors. You can show it again at any time.",
   },
   platformFees: {
     signTitle: "Authorize contract signing",
@@ -1338,6 +1346,7 @@ export const enExtended = {
     deleteDocumentFailed: "Failed to delete document",
     deleteProjectFailed: "Failed to delete project",
     maxFileSize: "up to {maxMb} MB",
+    moreActions: "More: amendments, convert to design, delete",
   },
   documents: {
     title: "Documents",
@@ -1381,8 +1390,8 @@ export const enExtended = {
   intake: {
     title: "A few questions, then your estimate",
     intro: "AI analyzed your project and suggested tags. Answer a few questions so contractors receive an accurate scope. You can skip or enter your own answer when needed.",
-    uploadDocsTitle: "Upload documents first",
-    uploadDocsText: "Add all floor plans and photos in the Documents section above before you complete intake.",
+    uploadDocsTitle: "Plans and photos make the estimate more precise",
+    uploadDocsText: "You can add floor plans and photos in the Documents section below — the AI reads them to sharpen the scope. It is optional; answer the questions first if you prefer.",
     improvedDescription: "AI-improved description",
     suggestedTags: "Suggested tags",
     allAnswered: "Answers saved. We'll calculate a ballpark estimate for your scope — takes about a minute.",
@@ -1402,6 +1411,14 @@ export const enExtended = {
     submitIntakeFailed: "Failed to submit intake",
     submitAnswerFailed: "Failed to submit answer",
     processingHint: "Usually under a minute. Keep this page open.",
+    progressQuestionShort: "Question {current} · about {remaining} more",
+    skippedAnswer: "Skipped",
+    back: "Back",
+    backToCurrent: "Back to the current question",
+    reviewNote: "You already answered this. Editing answers is coming soon.",
+    editingAnswer: "Editing an earlier answer. Saving updates the brief but keeps your place in the questions.",
+    saveAnswer: "Save answer",
+    yourAnswers: "Your answers",
   },
   amendments: {
     title: "Client amendments",
@@ -1508,7 +1525,7 @@ export const enExtended = {
   },
   designPermits: {
     trackLabel: "DESIGN & PERMITS",
-    convertButton: "Convert to DESIGN & PERMITS",
+    convertButton: "Convert to Design & Permits",
     viewLinkedConstruction: "Open saved construction snapshot",
     convertHint:
       "This construction or modernization project can be converted into a Design & Permits tender.",
@@ -1601,6 +1618,19 @@ export const enExtended = {
     andProposals: " and {count} {proposals}",
     inviteNeedsPublish: "Publish the project first — contractors can only be invited once the tender is open.",
     inviteTenderClosed: "Invites are closed: the tender is no longer accepting participants.",
+    publishSteps: "Publishing steps",
+    stepTender: "Tender",
+    stepTerms: "Contract terms",
+    stepReview: "Review",
+    scopeRequired: "Describe the scope before continuing.",
+    sameAsScope: "Same as scope",
+    reviewTitle: "Ready to publish",
+    reviewHint: "Check the summary. You can go back and change anything before publishing.",
+    defaultCostBreakdownTitle: "Trade lines",
+    termsSummary: "Standard terms: {retention}% retention, {warranty} months warranty, {advance}% advance payment.",
+    customizeTerms: "Customize terms",
+    hideTermsFields: "Hide the term fields",
+    requiredLegalFields: "Required: {count} legal fields still empty",
   },
   bidsPage: {
     loading: "Loading bids…",

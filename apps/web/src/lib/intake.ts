@@ -71,6 +71,11 @@ export interface IntakeAnswerPayload {
   skipped?: boolean;
   value?: string | string[];
   customText?: string;
+  /**
+   * Definition of an already answered question (sent only when the client edits an
+   * earlier answer — the server keeps just the current question).
+   */
+  question?: IntakeQuestion;
 }
 
 export function isIntakeActive(project: Project): boolean {
