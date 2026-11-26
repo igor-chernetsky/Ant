@@ -616,6 +616,52 @@ export class DocumentsService {
     return this.buildDownloadResponse(doc, variant);
   }
 
+  /**
+   * D1: the category is picked per file after upload, so the dropzone no longer asks
+   * for it before the file is even chosen.
+   */
+  async updateCategory(
+    projectId: string,
+    documentId: string,
+    category: DocumentCategory,
+    userId: string,
+  ): Promise<DocumentResponse> {
+    return this.updateCategoryForViewer(
+      userViewer(userId),
+      projectId,
+      documentId,
+      category,
+    );
+  }
+
+  async updateCategoryForViewer(
+    viewer: ProjectViewer,
+    projectId: string,
+    documentId: string,
+    category: DocumentCategory,
+  ): Promise<DocumentResponse> {
+    await this.assertProjectOwnerViewer(projectId, viewer);
+
+    const doc = await this.prisma.document.findFirst({
+      where: {
+        id: documentId,
+        projectId,
+        status: { not: DocumentStatus.deleted },
+      },
+    });
+
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+
+    const updated = await this.prisma.document.update({
+      where: { id: documentId },
+      data: { category },
+    });
+
+    return this.toResponse(updated);
+  }
+
   async deleteDocument(
     projectId: string,
     documentId: string,

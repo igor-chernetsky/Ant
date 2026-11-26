@@ -291,6 +291,14 @@ export function IntakeWizard({
                 singleValue === option.id ? ' intake-option-card--selected' : ''
               }`}
             >
+              <span
+                className={`intake-option-indicator intake-option-indicator--radio${
+                  singleValue === option.id
+                    ? ' intake-option-indicator--on'
+                    : ''
+                }`}
+                aria-hidden
+              />
               <input
                 type="radio"
                 name={`q-${target.id}`}
@@ -299,9 +307,6 @@ export function IntakeWizard({
                 onChange={() => setSingleValue(option.id)}
               />
               <span className="intake-option-label">{option.label}</span>
-              <span className="intake-option-check" aria-hidden>
-                ✓
-              </span>
             </label>
           ))}
           <label
@@ -309,6 +314,14 @@ export function IntakeWizard({
               isOtherSelected ? ' intake-option-card--selected' : ''
             }`}
           >
+            <span
+              className={`intake-option-indicator intake-option-indicator--radio${
+                singleValue === INTAKE_OTHER_OPTION_ID
+                  ? ' intake-option-indicator--on'
+                  : ''
+              }`}
+              aria-hidden
+            />
             <input
               type="radio"
               name={`q-${target.id}`}
@@ -318,9 +331,6 @@ export function IntakeWizard({
             />
             <span className="intake-option-label">
               {t('intake.otherDescribe')}
-            </span>
-            <span className="intake-option-check" aria-hidden>
-              ✓
             </span>
           </label>
         </div>
@@ -337,15 +347,20 @@ export function IntakeWizard({
                   : ''
               }`}
             >
+              <span
+                className={`intake-option-indicator intake-option-indicator--box${
+                  multiValues.includes(option.id)
+                    ? ' intake-option-indicator--on'
+                    : ''
+                }`}
+                aria-hidden
+              />
               <input
                 type="checkbox"
                 checked={multiValues.includes(option.id)}
                 onChange={() => toggleMulti(option.id)}
               />
               <span className="intake-option-label">{option.label}</span>
-              <span className="intake-option-check" aria-hidden>
-                ✓
-              </span>
             </label>
           ))}
           <label
@@ -353,6 +368,14 @@ export function IntakeWizard({
               isOtherSelected ? ' intake-option-card--selected' : ''
             }`}
           >
+            <span
+              className={`intake-option-indicator intake-option-indicator--box${
+                multiValues.includes(INTAKE_OTHER_OPTION_ID)
+                  ? ' intake-option-indicator--on'
+                  : ''
+              }`}
+              aria-hidden
+            />
             <input
               type="checkbox"
               checked={multiValues.includes(INTAKE_OTHER_OPTION_ID)}
@@ -360,9 +383,6 @@ export function IntakeWizard({
             />
             <span className="intake-option-label">
               {t('intake.otherDescribe')}
-            </span>
-            <span className="intake-option-check" aria-hidden>
-              ✓
             </span>
           </label>
         </div>
@@ -385,7 +405,7 @@ export function IntakeWizard({
       <h2 className="section-title">{t('intake.title')}</h2>
       <p className="muted intake-intro">{t('intake.intro')}</p>
 
-      {!hasDocuments && (
+      {!hasDocuments && !showSubmit && (
         <div className="intake-docs-notice" role="note">
           <p className="intake-docs-notice-title">
             {t('intake.uploadDocsTitle')}
@@ -495,15 +515,17 @@ export function IntakeWizard({
           <ul className="intake-answers-list">
             {history.map((record, index) => (
               <li key={`${record.question.id}-${index}`}>
-                <span className="intake-answers-prompt">
-                  {record.question.prompt}
-                </span>
-                <span className="intake-answers-value">
-                  {describeRecord(record, t)}
-                </span>
+                <div className="intake-answers-text">
+                  <span className="intake-answers-prompt">
+                    {record.question.prompt}
+                  </span>
+                  <span className="intake-answers-value">
+                    {describeRecord(record, t)}
+                  </span>
+                </div>
                 <button
                   type="button"
-                  className="text-link"
+                  className="text-link intake-answers-edit"
                   onClick={() => openEdit(index)}
                 >
                   {t('common.edit')}

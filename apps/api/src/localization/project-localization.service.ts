@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import type { IntakeQuestion } from '../ai/intake.types';
 import type { ProjectBriefV1 } from '../projects/project-brief';
+import { describeReadinessGaps } from '../projects/project-brief';
 import type { ProjectResponse } from '../projects/projects.types';
 import type { EstimateResponse } from '../estimation/estimates.types';
 import {
@@ -529,6 +530,15 @@ export class ProjectLocalizationService implements OnModuleInit {
       regionCode: project.regionCode,
       status: project.status,
       isHidden: project.isHidden,
+      readinessGaps: describeReadinessGaps({
+        title: project.title,
+        description: project.description,
+        projectType: project.projectType,
+        propertyType: project.propertyType,
+        district: project.district,
+        tagCount: project.tags.length,
+        brief: (project.briefJson ?? {}) as unknown as ProjectBriefV1,
+      }),
       readinessScore: project.readinessScore,
       linkedProjectId: project.linkedProjectId ?? null,
       linkKind: project.linkKind ?? 'none',

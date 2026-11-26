@@ -64,6 +64,11 @@ type BallparkGenerateInput = {
   clarificationSummary?: string | null;
   scopeSummary?: string | null;
   estimateRefinementQa?: Array<{ question: string; answer: string }>;
+  /**
+   * Values the client already gave in the intake wizard. They are known facts, so a
+   * follow-up question about the same topic ("which tile brand?") is a repeat.
+   */
+  intakeAnswers?: string[];
   allowTinyLineShare?: boolean;
   clientScopePreferences?: ClientEstimateScopePreferences;
   anomalyFeedback?: EstimateLineShareAnomaly[];
@@ -139,6 +144,7 @@ Each line: { trade, description, quantity, unit, unitPriceMin, unitPriceMax, lin
 totals: { minAmount, maxAmount, midAmount, currency: "THB" }.
 confidence: number 0–1 reflecting how complete and certain the priced scope is.
 improvementQuestions: 0–5 short questions (in ${lang}) that would most improve confidence if answered. Empty array when confidence is already high or nothing material is missing.
+CRITICAL: Intake answers (the client already stated these) and estimateRefinementQa are confirmed facts — do not ask about them again, not even as "exact requirements".
 CRITICAL: Do not repeat or rephrase questions already answered in estimateRefinementQa. If a topic+space was already covered (e.g. office finishing, warehouse lighting, plumbing), do not ask again with wording like "exact requirements" or "additional requirements". Prefer a genuinely new gap only; otherwise return [].
 Do NOT invent priced scope for unanswered gaps — put that uncertainty into improvementQuestions and keep confidence lower.
 When regenerating with previousEstimate and/or estimateRefinementQa, retain still-confirmed trades/lines unless answers change them; never drop confirmed scope.
@@ -480,9 +486,15 @@ ${scopeRules}`;
     }).map(normalizeLineAmounts);
 
     const totals = computeTotals(lines);
+    /**
+     * E3: filter against the intake answers as well as the refinement QA. Before this
+     * the model happily asked for the tile brand again after the client had already
+     * answered "concrete tiles, match existing colour".
+     */
     const answeredQuestions = (input.estimateRefinementQa ?? []).map(
       (row) => row.question,
     );
+    const answeredValues = input.intakeAnswers ?? [];
     const landscapingOrCivilAmenityOnly = isLandscapingOrCivilAmenityNarrative(
       [input.title, input.description ?? ''].join(' '),
     );
@@ -510,6 +522,7 @@ ${scopeRules}`;
     const improvementQuestions = filterImprovementQuestionsAgainstAnswers(
       rawImprovementQuestions,
       answeredQuestions,
+      answeredValues,
     ).slice(0, 5);
 
     const rawConfidence =

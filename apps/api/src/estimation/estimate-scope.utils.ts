@@ -2463,9 +2463,18 @@ function sharesImprovementTopic(a: string, b: string): boolean {
  * Drop improvement questions that repeat already-answered topics,
  * including paraphrases ("exact requirements", "additional…", etc.).
  */
+/**
+ * A question that asks for a specification ("which brand", "what colour") is a repeat
+ * when the client already gave that specification in an answer, even when the wording
+ * differs — "Which tile brand?" vs "Concrete tiles, match existing colour".
+ */
+const SPECIFICATION_INTENT_PATTERN =
+  /\b(which|what|whats|type|kind|brand|make|colour|color|size|material|finish|model)\b|како[йеия]|бренд|марк|цвет|размер|материал|ยี่ห้อ|สี|ขนาด|ชนิด/i;
+
 export function filterImprovementQuestionsAgainstAnswers(
   candidates: string[],
   answeredQuestions: string[],
+  answeredValues: string[] = [],
 ): string[] {
   if (candidates.length === 0) {
     return [];
@@ -2479,6 +2488,12 @@ export function filterImprovementQuestionsAgainstAnswers(
   const answeredTokens = answeredQuestions
     .map((q) => ({ question: q, tokens: improvementQuestionTokens(q) }))
     .filter((row) => row.tokens.size > 0);
+  const answeredValueTokens = answeredValues
+    .map((value) => ({
+      value,
+      tokens: improvementQuestionTokens(value),
+    }))
+    .filter((row) => row.tokens.size > 0);
 
   const kept: string[] = [];
   const keptTokens: Array<Set<string>> = [];
@@ -2489,6 +2504,22 @@ export function filterImprovementQuestionsAgainstAnswers(
 
     const lower = question.toLowerCase();
     if (answeredExact.has(lower)) continue;
+
+    /**
+     * Intake answers are facts, not questions: compare against them by topic. Two
+     * shared terms, or one shared term in a "which/what" question, means the topic is
+     * already answered.
+     */
+    const questionTokensForValues = improvementQuestionTokens(question);
+    const coveredByAnswer = answeredValueTokens.some((row) => {
+      let shared = 0;
+      for (const token of questionTokensForValues) {
+        if (row.tokens.has(token) && token.length >= 4) shared += 1;
+      }
+      if (shared === 0) return false;
+      return shared >= 2 || SPECIFICATION_INTENT_PATTERN.test(question);
+    });
+    if (coveredByAnswer) continue;
 
     const tokens = improvementQuestionTokens(question);
     const overlapsAnswered = answeredTokens.some((row) => {

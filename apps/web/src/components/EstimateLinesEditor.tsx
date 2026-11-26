@@ -36,6 +36,17 @@ type AddedLinePayload = AddedLineRef & {
 
 const MAX_LINE_AMOUNT_THB = 500_000_000;
 
+/**
+ * Splits "Repair roof; replace gutters; seal flashing" into separate points. Only for
+ * reading: the estimate keeps one line and one amount.
+ */
+function splitLineDescription(description: string): string[] {
+  return description
+    .split(/;|\u2022|\n/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+}
+
 function lineKey(line: Pick<EstimateLine, 'trade' | 'description'>): string {
   return `${line.trade}::${line.description}`;
 }
@@ -86,6 +97,8 @@ export function EstimateLinesEditor({
   const [selectedTrade, setSelectedTrade] = useState('');
   const [addedDescription, setAddedDescription] = useState('');
   const [lineMinInput, setLineMinInput] = useState('');
+  /** The add-line form is behind a button: it used to push the table off screen. */
+  const [addOpen, setAddOpen] = useState(false);
   const [lineMaxInput, setLineMaxInput] = useState('');
 
   const editable = (estimate.editable ?? false) && !readOnly;
@@ -249,6 +262,16 @@ export function EstimateLinesEditor({
     return null;
   }
 
+  /** Rough share of the ballpark, so a 12× spread is visible per line. */
+  const totalMid = Number(estimate.totals?.midAmount ?? 0);
+  const shareOfTotalFor = (lineMin: number, lineMax: number): number | null => {
+    if (!Number.isFinite(totalMid) || totalMid <= 0) return null;
+    const mid = (lineMin + lineMax) / 2;
+    if (!Number.isFinite(mid) || mid <= 0) return null;
+    const percent = Math.round((mid / totalMid) * 100);
+    return percent > 0 && percent <= 100 ? percent : null;
+  };
+
   const parsedMin = parseThbInput(lineMinInput);
   const parsedMax = parseThbInput(lineMaxInput);
   const showPreview =
@@ -259,36 +282,89 @@ export function EstimateLinesEditor({
 
   return (
     <div className="estimate-lines-editor">
-      <ul className="estimate-lines">
-        {estimate.lines.map((line, index) => (
-          <li key={`${line.trade}-${index}`} className="estimate-line">
-            <div>
-              <strong>{line.description}</strong>
-              <span className="muted estimate-line-trade">
-                {formatTagLabel(line.trade, line.trade)}
+      {/* E5: a table — work type, what is included, price range — instead of a
+          two-column list that fell apart as soon as descriptions got long. */}
+      <div
+        className="estimate-table"
+        role="table"
+        aria-label={t('estimateSection.linesAria')}
+      >
+        <div className="estimate-table-head" role="row">
+          <span role="columnheader">{t('estimateSection.columnWork')}</span>
+          <span role="columnheader">{t('estimateSection.columnDescription')}</span>
+          <span role="columnheader" className="estimate-table-amount">
+            {t('estimateSection.columnAmount')}
+          </span>
+        </div>
+        {estimate.lines.map((line, index) => {
+          /**
+           * N6: the estimator sometimes returns several works in one line, joined by
+           * ";". Show them as a bulleted list so the line can be read and compared
+           * with the others — the amounts are untouched.
+           */
+          const points = splitLineDescription(line.description);
+          const shareOfTotal = shareOfTotalFor(line.lineMin, line.lineMax);
+          return (
+            <div
+              key={`${line.trade}-${index}`}
+              className="estimate-table-row"
+              role="row"
+            >
+              <span role="cell" className="estimate-table-trade">
+                <span className="tag-pill tag-pill--trade">
+                  {formatTagLabel(line.trade, line.trade)}
+                </span>
+              </span>
+              <span role="cell" className="estimate-table-description">
+                {points.length > 1 ? (
+                  <ul className="estimate-table-points">
+                    {points.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <strong>{line.description}</strong>
+                )}
+              </span>
+              <span role="cell" className="estimate-table-amount">
+                <span className="estimate-line-amount">
+                  {formatThb(line.lineMin)} – {formatThb(line.lineMax)}
+                </span>
+                {shareOfTotal != null && (
+                  <span className="muted estimate-line-share">
+                    {t('estimateSection.shareOfTotal', {
+                      percent: String(shareOfTotal),
+                    })}
+                  </span>
+                )}
+                {editable && (
+                  <button
+                    type="button"
+                    className="icon-button estimate-line-remove"
+                    aria-label={t('estimateSection.removeLineAria')}
+                    disabled={busy}
+                    onClick={() => handleRemoveLine(line)}
+                  >
+                    ×
+                  </button>
+                )}
               </span>
             </div>
-            <div className="estimate-line-actions">
-              <span className="estimate-line-amount">
-                {formatThb(line.lineMin)} – {formatThb(line.lineMax)}
-              </span>
-              {editable && (
-                <button
-                  type="button"
-                  className="icon-button estimate-line-remove"
-                  aria-label={t('estimateSection.removeLineAria')}
-                  disabled={busy}
-                  onClick={() => handleRemoveLine(line)}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
+          );
+        })}
+      </div>
 
-      {editable && (
+      {editable && !addOpen && (
+        <button
+          type="button"
+          className="secondary estimate-lines-add-toggle"
+          onClick={() => setAddOpen(true)}
+        >
+          {t('estimateSection.addWorkButton')}
+        </button>
+      )}
+
+      {editable && addOpen && (
         <section className="estimate-lines-add-panel" aria-labelledby="estimate-add-line-title">
           <div className="estimate-lines-add-header">
             <h4 id="estimate-add-line-title" className="estimate-lines-add-title">

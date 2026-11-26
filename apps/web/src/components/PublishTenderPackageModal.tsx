@@ -4,8 +4,10 @@ import { FormEvent, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AntSpinner, BusyLabel } from '@/components/AntSpinner';
 import { BidContractTermsFields } from '@/components/BidContractTermsFields';
+import { EmployerLegalFields } from '@/components/EmployerLegalFields';
 import { CostBreakdownTemplateEditor } from '@/components/CostBreakdownTemplateEditor';
 import { useTranslation } from '@/components/LocaleProvider';
+import { useSession } from '@/components/SessionProvider';
 import {
   contractTermsFromProject,
   hasCompleteEmployerLegalDetails,
@@ -84,6 +86,19 @@ export function PublishTenderPackageModal({
   onPublished,
 }: PublishTenderPackageModalProps) {
   const { t } = useTranslation();
+  const { me } = useSession();
+  /**
+   * P7: the employer's legal details are usually the client's own profile data, so
+   * they are prefilled and the "Your details" step is one glance and Next.
+   */
+  const withProfileDetails = (terms: BidContractTerms): BidContractTerms => ({
+    ...terms,
+    employerName:
+      terms.employerName?.trim() ||
+      me?.companyName?.trim() ||
+      me?.displayName?.trim() ||
+      undefined,
+  });
   const [preview, setPreview] = useState<TenderPublishPreview>(() =>
     emptyPreview(project, t),
   );
@@ -137,10 +152,12 @@ export function PublishTenderPackageModal({
         if (cancelled) return;
         setPreview({
           ...data,
-          contractTerms: contractTermsFromProject({
-            contractTerms: data.contractTerms,
-            project: buildProjectContext(project),
-          }),
+          contractTerms: withProfileDetails(
+            contractTermsFromProject({
+              contractTerms: data.contractTerms,
+              project: buildProjectContext(project),
+            }),
+          ),
           defaultCostBreakdown:
             data.defaultCostBreakdown.length > 0
               ? data.defaultCostBreakdown
@@ -148,7 +165,11 @@ export function PublishTenderPackageModal({
         });
       } catch (err: unknown) {
         if (cancelled) return;
-        setPreview(emptyPreview(project, t));
+        const fallback = emptyPreview(project, t);
+        setPreview({
+          ...fallback,
+          contractTerms: withProfileDetails(fallback.contractTerms),
+        });
         setError(
           err instanceof Error
             ? err.message
@@ -236,7 +257,9 @@ export function PublishTenderPackageModal({
     }
   };
 
-  const stepCount = isClarificationPublish ? 2 : 3;
+  /** Tender → Contract terms → Your details → Review (2 steps for clarification). */
+  const stepCount = isClarificationPublish ? 2 : 4;
+  const detailsStep = isClarificationPublish ? 0 : 3;
 
   const goNext = () => {
     setError(null);
@@ -245,13 +268,31 @@ export function PublishTenderPackageModal({
       return;
     }
     if (
-      step === 2 &&
-      !isClarificationPublish &&
+      detailsStep > 0 &&
+      step === detailsStep &&
       !hasCompleteEmployerLegalDetails(preview.contractTerms)
     ) {
-      // Surface the required legal fields on the terms step instead of failing on
-      // publish, after the client has already scrolled through everything.
+      /**
+       * The legal details have their own step now, so nothing is hidden: say what is
+       * missing and focus the first empty field.
+       */
+      const firstMissing = missingEmployerLegalFields(preview.contractTerms)[0];
       setError(t('contractTerms.employerLegalRequired'));
+      /** Ids live on the "Your details" step, so focus lands on the right input. */
+      const fieldIdByField: Record<string, string> = {
+        employerName: 'bid-terms-employer-name',
+        employerAddress: 'bid-terms-employer-address',
+        employerRegistrationNo: 'bid-terms-employer-registration',
+      };
+      if (firstMissing) {
+        window.setTimeout(() => {
+          const element = document.getElementById(
+            fieldIdByField[firstMissing] ?? 'bid-terms-employer-name',
+          );
+          element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          (element as HTMLInputElement | null)?.focus({ preventScroll: true });
+        }, 60);
+      }
       return;
     }
     setStep((current) => Math.min(stepCount, current + 1));
@@ -323,7 +364,9 @@ export function PublishTenderPackageModal({
             <ol className="publish-steps" aria-label={t('tenderCard.publishSteps')}>
               {[
                 t('tenderCard.stepTender'),
-                ...(isClarificationPublish ? [] : [t('tenderCard.stepTerms')]),
+                ...(isClarificationPublish
+                  ? []
+                  : [t('tenderCard.stepTerms'), t('tenderCard.stepDetails')]),
                 t('tenderCard.stepReview'),
               ].map((label, index) => {
                 const number = index + 1;
@@ -442,32 +485,30 @@ export function PublishTenderPackageModal({
                 {step === 2 && !isClarificationPublish && (
                   <>
                     <div className="publish-subject-field">
-                      <div className="publish-subject-header">
-                        <span className="publish-field-label">
-                          {t('tenderCard.subjectOfContract')}
-                        </span>
-                        <label className="publish-same-scope">
-                          <input
-                            type="checkbox"
-                            checked={subjectSameAsScope}
-                            disabled={busy}
-                            onChange={(e) => {
-                              const same = e.target.checked;
-                              setSubjectSameAsScope(same);
-                              if (same) {
-                                setPreview((current) => ({
-                                  ...current,
-                                  contractTerms: {
-                                    ...current.contractTerms,
-                                    subjectOfContract: current.scopeSummary,
-                                  },
-                                }));
-                              }
-                            }}
-                          />
-                          <span>{t('tenderCard.sameAsScope')}</span>
-                        </label>
-                      </div>
+                      <span className="publish-field-label">
+                        {t('tenderCard.subjectOfContract')}
+                      </span>
+                      <label className="publish-same-scope">
+                        <input
+                          type="checkbox"
+                          checked={subjectSameAsScope}
+                          disabled={busy}
+                          onChange={(e) => {
+                            const same = e.target.checked;
+                            setSubjectSameAsScope(same);
+                            if (same) {
+                              setPreview((current) => ({
+                                ...current,
+                                contractTerms: {
+                                  ...current.contractTerms,
+                                  subjectOfContract: current.scopeSummary,
+                                },
+                              }));
+                            }
+                          }}
+                        />
+                        <span>{t('tenderCard.sameAsScope')}</span>
+                      </label>
                       {!subjectSameAsScope && (
                         <textarea
                           rows={3}
@@ -488,19 +529,8 @@ export function PublishTenderPackageModal({
 
                     {showTermsFields ? (
                       <>
-                        {missingEmployerLegalFields(preview.contractTerms).length >
-                          0 && (
-                          <p className="muted publish-required-hint">
-                            {t('tenderCard.requiredLegalFields', {
-                              count: String(
-                                missingEmployerLegalFields(
-                                  preview.contractTerms,
-                                ).length,
-                              ),
-                            })}
-                          </p>
-                        )}
                         <BidContractTermsFields
+                          idPrefix="bid-terms"
                           value={preview.contractTerms}
                           onChange={(contractTerms) =>
                             setPreview((current) => ({
@@ -513,7 +543,7 @@ export function PublishTenderPackageModal({
                           projectDistrict={project.district}
                           disabled={busy}
                           hideSubjectOfContract
-                          requireEmployerLegal
+                          hideEmployerLegal
                           isDesign={project.projectType === 'design'}
                         />
                         <button
@@ -546,19 +576,37 @@ export function PublishTenderPackageModal({
                           disabled={busy}
                           onClick={() => setShowTermsFields(true)}
                         >
-                          {missingEmployerLegalFields(preview.contractTerms)
-                            .length > 0
-                            ? t('tenderCard.requiredLegalFields', {
-                                count: String(
-                                  missingEmployerLegalFields(
-                                    preview.contractTerms,
-                                  ).length,
-                                ),
-                              })
-                            : t('tenderCard.customizeTerms')}
+                          {t('tenderCard.customizeTerms')}
                         </button>
                       </div>
                     )}
+                  </>
+                )}
+
+                {detailsStep > 0 && step === detailsStep && (
+                  <>
+                    {missingEmployerLegalFields(preview.contractTerms).length >
+                      0 && (
+                      <p className="publish-required-status" role="status">
+                        <span aria-hidden>⚠</span>{' '}
+                        {t('tenderCard.requiredLegalFields', {
+                          count: String(
+                            missingEmployerLegalFields(preview.contractTerms)
+                              .length,
+                          ),
+                        })}
+                      </p>
+                    )}
+                    <EmployerLegalFields
+                      value={preview.contractTerms}
+                      disabled={busy}
+                      onChange={(contractTerms) =>
+                        setPreview((current) => ({
+                          ...current,
+                          contractTerms,
+                        }))
+                      }
+                    />
                   </>
                 )}
 
@@ -573,6 +621,18 @@ export function PublishTenderPackageModal({
                         <dt>{t('tenderCard.scope')}</dt>
                         <dd>{preview.scopeSummary.trim() || t('common.dash')}</dd>
                       </div>
+                      {!isClarificationPublish && (
+                        <div>
+                          <dt>{t('tenderCard.stepDetails')}</dt>
+                          <dd>
+                            {preview.contractTerms.employerName?.trim() ||
+                              t('common.dash')}
+                            {preview.contractTerms.employerAddress?.trim()
+                              ? ` · ${preview.contractTerms.employerAddress.trim()}`
+                              : ''}
+                          </dd>
+                        </div>
+                      )}
                       {!isClarificationPublish && (
                         <div>
                           <dt>{t('tenderCard.defaultCostBreakdownTitle')}</dt>
@@ -608,6 +668,11 @@ export function PublishTenderPackageModal({
             >
               {t('common.cancel')}
             </button>
+            {error && step > 1 ? (
+              <p className="form-error publish-footer-error" role="alert">
+                {error}
+              </p>
+            ) : null}
             <div className="publish-footer-main">
               {step > 1 && (
                 <button

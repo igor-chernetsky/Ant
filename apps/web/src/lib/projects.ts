@@ -126,6 +126,8 @@ export interface Project {
   status: string;
   isHidden: boolean;
   readinessScore: number;
+  /** What still keeps the project from 100% (from the API). */
+  readinessGaps?: string[];
   linkedProjectId?: string | null;
   linkKind?: 'none' | 'design_active' | 'construction_pending';
   designFeePercent?: number | null;

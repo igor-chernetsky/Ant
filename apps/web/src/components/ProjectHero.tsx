@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useState, type ReactNode } from 'react';
+import { FormEvent, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from '@/components/LocaleProvider';
 import { ProjectLocationMap } from '@/components/ProjectLocationMap';
 import { ProjectStageRail } from '@/components/ProjectStageRail';
@@ -66,9 +66,35 @@ export function ProjectHeroSidebar({
           : formatProjectStatus(project.status)}
       </span>
       <div className="project-hero-aside-metrics">
-        <span className="readiness-badge readiness-badge-lg project-hero-readiness">
-          {t('projectHero.readyPercent', { n: project.readinessScore })}
-        </span>
+        <div className="project-readiness">
+          <div className="project-readiness-head">
+            <span className="project-readiness-label">
+              {t('projectHero.readyPercent', { n: project.readinessScore })}
+            </span>
+            {project.readinessGaps?.[0] && (
+              <span className="project-readiness-gap">
+                {t('projectHero.readinessMissing', {
+                  item: t(`projectHero.gap_${project.readinessGaps[0]}`),
+                })}
+              </span>
+            )}
+          </div>
+          <div
+            className="project-readiness-track"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={project.readinessScore}
+            aria-label={t('projectHero.readyPercent', {
+              n: project.readinessScore,
+            })}
+          >
+            <div
+              className="project-readiness-fill"
+              style={{ width: `${Math.min(100, Math.max(0, project.readinessScore))}%` }}
+            />
+          </div>
+        </div>
         {typeof estimateMidAmountThb === 'number' && estimateMidAmountThb > 0 && (
           <p className="project-hero-meta">
             {isDesignTrack
@@ -84,11 +110,7 @@ export function ProjectHeroSidebar({
             </span>
           </p>
         )}
-        {typeof estimateMidAmountThb === 'number' && estimateMidAmountThb > 0 && (
-          <p className="project-hero-meta muted project-hero-ballpark-note">
-            {t('projectHero.ballparkExcludesAdjustments')}
-          </p>
-        )}
+
       </div>
       {showTags && tags.length > 0 && (
         <div className="project-hero-tags">
@@ -210,8 +232,50 @@ export function ProjectHero({
    * The description is the one place the project story lives (the wizard no longer
    * repeats it). Long text is clamped to four lines with an explicit "Show more".
    */
-  const descriptionLong = (project.description?.length ?? 0) > 240;
+  /**
+   * "Show more" only when the text is actually clipped. A character threshold showed
+   * the button for short descriptions that fit on screen.
+   */
+  const descriptionRef = useRef<HTMLParagraphElement | null>(null);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [descriptionClipped, setDescriptionClipped] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+  /**
+   * A menu that stays open on Esc, on an outside click or after scrolling covers the
+   * heading — close it on all three and give focus back to the trigger.
+   */
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    const onPointerDown = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) close();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        close();
+        menuTriggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [menuOpen]);
+  const descriptionLong = descriptionClipped;
+
+  useEffect(() => {
+    if (descriptionExpanded) return;
+    const element = descriptionRef.current;
+    if (!element) return;
+    setDescriptionClipped(element.scrollHeight - element.clientHeight > 2);
+  }, [project.description, descriptionExpanded]);
 
   const chips = [
     { icon: '🔧', label: formatProjectType(project.projectType) },
@@ -392,45 +456,65 @@ export function ProjectHero({
                 <h1 id="project-hero-title">{project.title}</h1>
                 {completionAction}
                 {(canEditCard || canConvert) && (
-                  <details className="project-hero-menu">
-                    <summary
+                  <div className="project-hero-menu" ref={menuRef}>
+                    <button
+                      type="button"
                       className="icon-button project-hero-menu-trigger"
                       aria-label={t('projectHero.moreActions')}
                       title={t('projectHero.moreActions')}
+                      aria-haspopup="menu"
+                      aria-expanded={menuOpen}
+                      aria-controls="project-hero-menu-list"
+                      ref={menuTriggerRef}
+                      onClick={() => setMenuOpen((open) => !open)}
                     >
                       ⋯
-                    </summary>
-                    <div className="project-hero-menu-list">
-                      {canEditCard && (
-                        <button
-                          type="button"
-                          className="project-hero-menu-item"
-                          onClick={(event) => {
-                            (event.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
-                            setEditing(true);
-                          }}
-                        >
-                          {t('projectHero.editCard')}
-                        </button>
-                      )}
-                      {canConvert && (
-                        <button
-                          type="button"
-                          className="project-hero-menu-item"
-                          disabled={converting || saving}
-                          title={t('designPermits.convertTooltip')}
-                          onClick={(event) => {
-                            (event.currentTarget.closest('details') as HTMLDetailsElement | null)?.removeAttribute('open');
-                            void handleConvert();
-                          }}
-                        >
-                          {converting
-                            ? t('common.saving')
-                            : t('designPermits.convertButton')}
-                        </button>
-                      )}
-                    </div>
-                  </details>
+                    </button>
+                    {menuOpen && (
+                      <div
+                        className="project-hero-menu-list"
+                        id="project-hero-menu-list"
+                        role="menu"
+                        onKeyDown={(event) => {
+                          if (event.key === 'Escape') {
+                            event.preventDefault();
+                            setMenuOpen(false);
+                          }
+                        }}
+                      >
+                        {canEditCard && (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="project-hero-menu-item"
+                            onClick={() => {
+                              setMenuOpen(false);
+                              setEditing(true);
+                            }}
+                          >
+                            {t('projectHero.editCard')}
+                          </button>
+                        )}
+                        {canConvert && (
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="project-hero-menu-item"
+                            disabled={converting || saving}
+                            title={t('designPermits.convertTooltip')}
+                            onClick={() => {
+                              setMenuOpen(false);
+                              void handleConvert();
+                            }}
+                          >
+                            {converting
+                              ? t('common.saving')
+                              : t('designPermits.convertButton')}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
               {project.description ? (
@@ -440,6 +524,7 @@ export function ProjectHero({
                       descriptionExpanded ? '' : ' project-hero-lead--clamped'
                     }`}
                     id="project-hero-description"
+                    ref={descriptionRef}
                   >
                     {project.description}
                   </p>

@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { ProjectLocationFields } from '@/components/ProjectLocationFields';
 import { useTranslation } from '@/components/LocaleProvider';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import { isSessionExpiredError } from '@/lib/auth-client';
 import {
@@ -117,6 +118,8 @@ export function CreateProjectModal({
     Partial<Record<CreateProjectField, CreateProjectFieldError>>
   >({});
   const [creating, setCreating] = useState(false);
+  /** Which stage of the 8–10 s creation the overlay is describing. */
+  const [creatingStep, setCreatingStep] = useState(0);
 
   /** Blocks a second submit before `creating` is on screen (double click). */
   const submitLocked = useRef(false);
@@ -124,8 +127,20 @@ export function CreateProjectModal({
   const touchedRef = useRef(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const propertySelectRef = useRef<HTMLSelectElement>(null);
+  const propertyGroupRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!creating) {
+      setCreatingStep(0);
+      return;
+    }
+    const timer = window.setInterval(
+      () => setCreatingStep((step) => Math.min(step + 1, 2)),
+      3000,
+    );
+    return () => window.clearInterval(timer);
+  }, [creating]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -326,7 +341,7 @@ export function CreateProjectModal({
       if (target === 'title') {
         titleInputRef.current?.focus();
       } else if (target === 'propertyType') {
-        propertySelectRef.current?.focus();
+        propertyGroupRef.current?.focus();
       }
       return;
     }
@@ -337,7 +352,7 @@ export function CreateProjectModal({
     // what lets the compiler narrow `propertyType` to PropertyType below.
     if (!propertyType) {
       submitLocked.current = false;
-      propertySelectRef.current?.focus();
+      propertyGroupRef.current?.focus();
       return;
     }
 
@@ -489,6 +504,9 @@ export function CreateProjectModal({
 
             <label>
               {t('createProject.titleLabel')}
+              <span className="required-mark" aria-hidden>
+                *
+              </span>
               <input
                 type="text"
                 ref={titleInputRef}
@@ -518,6 +536,7 @@ export function CreateProjectModal({
 
             <label>
               {t('createProject.descriptionLabel')}
+              <span className="field-optional">{t('createProject.optional')}</span>
               <textarea
                 value={description}
                 onChange={(e) => {
@@ -582,64 +601,118 @@ export function CreateProjectModal({
               {t('createProject.sectionDetails')}
             </h3>
 
-            <label>
-              {t('createProject.propertyTypeLabel')}
-              <select
-                ref={propertySelectRef}
-                value={propertyType}
-                onChange={(e) => {
-                  markTouched();
-                  setPropertyType(e.target.value as PropertyType | '');
-                  if (fieldErrors.propertyType) {
-                    setFieldErrors((current) => {
-                      const { propertyType: _omit, ...rest } = current;
-                      return rest;
-                    });
-                  }
-                }}
-                aria-invalid={propertyTypeError ? true : undefined}
-                aria-describedby={
-                  propertyTypeError ? 'create-project-property-error' : undefined
-                }
-                required
+            {/* C5: chips instead of a dropdown — every option is visible at once. */}
+            <div className="create-project-chips-row">
+              <div
+                className="create-project-chips-field"
+                ref={propertyGroupRef}
+                tabIndex={-1}
               >
-                <option value="" disabled>
-                  {t('createProject.selectPropertyType')}
-                </option>
-                {PROPERTY_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {t(propertyTypeFilterI18nKey(option.value))}
-                  </option>
-                ))}
-              </select>
-              {propertyTypeError && (
-                <span
-                  className="form-error"
-                  id="create-project-property-error"
-                  role="alert"
-                >
-                  {propertyTypeError}
+                <span className="field-label" id="create-project-property-label">
+                  {t('createProject.propertyTypeLabel')}
+                  <span className="required-mark" aria-hidden>
+                    *
+                  </span>
                 </span>
-              )}
-            </label>
-
-            {projectTrack === 'construction' && (
-              <label>
-                {t('createProject.projectTypeLabel')}
-                <select
-                  value={projectType}
-                  onChange={(e) =>
-                    setProjectType(e.target.value as ProjectType)
+                <div
+                  className="create-project-chips"
+                  role="radiogroup"
+                  aria-labelledby="create-project-property-label"
+                  aria-invalid={propertyTypeError ? true : undefined}
+                  aria-describedby={
+                    propertyTypeError
+                      ? 'create-project-property-error'
+                      : undefined
                   }
+                  onKeyDown={(event) => {
+                    const next = radioValueForKey(
+                      PROPERTY_TYPE_OPTIONS.map((option) => option.value),
+                      propertyType,
+                      event.key,
+                    );
+                    if (!next) return;
+                    event.preventDefault();
+                    markTouched();
+                    setPropertyType(next);
+                  }}
                 >
-                  {CONSTRUCTION_PROJECT_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {formatProjectType(option.value)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+                  {PROPERTY_TYPE_OPTIONS.map((option) => {
+                    const active = propertyType === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={active}
+                        tabIndex={active ? 0 : -1}
+                        className={`create-project-chip${
+                          active ? ' create-project-chip--active' : ''
+                        }`}
+                        onClick={() => {
+                          markTouched();
+                          setPropertyType(option.value);
+                          if (fieldErrors.propertyType) {
+                            setFieldErrors((current) => {
+                              const { propertyType: _omit, ...rest } = current;
+                              return rest;
+                            });
+                          }
+                        }}
+                      >
+                        {t(propertyTypeFilterI18nKey(option.value))}
+                      </button>
+                    );
+                  })}
+                </div>
+                {propertyTypeError && (
+                  <span
+                    className="form-error"
+                    id="create-project-property-error"
+                    role="alert"
+                  >
+                    {propertyTypeError}
+                  </span>
+                )}
+              </div>
+
+              {projectTrack === 'construction' && (
+                <div className="create-project-chips-field">
+                  <span
+                    className="field-label"
+                    id="create-project-worktype-label"
+                  >
+                    {t('createProject.projectTypeLabel')}
+                  </span>
+                  <div
+                    className="create-project-chips"
+                    role="radiogroup"
+                    aria-labelledby="create-project-worktype-label"
+                  >
+                    {CONSTRUCTION_PROJECT_TYPE_OPTIONS.map((option) => {
+                      const active = projectType === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          tabIndex={active ? 0 : -1}
+                          className={`create-project-chip${
+                            active ? ' create-project-chip--active' : ''
+                          }`}
+                          onClick={() => {
+                            markTouched();
+                            setProjectType(option.value);
+                          }}
+                        >
+                          {formatProjectType(option.value)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {projectTrack === 'construction' && projectType === 'new_build' && (
               <div className="create-project-design-hint" role="note">
@@ -788,6 +861,18 @@ export function CreateProjectModal({
         </form>
       </div>
       {dialog}
+      {/* C7: creating takes 8–10 s; say what is happening instead of freezing. */}
+      <LoadingOverlay
+        isOpen={creating}
+        label={t(
+          creatingStep === 0
+            ? 'createProject.stepCreate'
+            : creatingStep === 1
+              ? 'createProject.stepAnalyze'
+              : 'createProject.stepQuestions',
+        )}
+        hint={t('createProject.creatingHint')}
+      />
     </div>,
     document.body,
   );

@@ -16,7 +16,6 @@ import { EstimateQuestionsPreview } from '@/components/EstimateQuestionsPreview'
 import { GuestDraftLeaveDialog } from '@/components/GuestDraftLeaveDialog';
 import { resolveGuardedNavigation } from '@/lib/guest-leave-guard';
 import { AnalyticsEvents, trackLandingEvent } from '@/lib/analytics';
-import { EstimateConfidenceRing } from '@/components/EstimateConfidenceRing';
 import { isAmendableProjectStatus } from '@/lib/amendments';
 import { ContractorProjectPanel } from '@/components/ContractorProjectPanel';
 import { IntakeWizard } from '@/components/IntakeWizard';
@@ -25,6 +24,7 @@ import { ProjectNextStepBanner } from '@/components/ProjectNextStepBanner';
 import { ProjectBriefCard } from '@/components/ProjectBriefCard';
 import { SiteHeader } from '@/components/SiteHeader';
 import { TenderSummaryCard } from '@/components/TenderSummaryCard';
+import { PublishTenderButton } from '@/components/PublishTenderButton';
 import { InviteFromDirectoryModal } from '@/components/InviteFromDirectoryModal';
 import { ClientContractPanel } from '@/components/ClientContractPanel';
 import { resolveProjectNextStep } from '@/lib/project-next-step';
@@ -41,6 +41,7 @@ import { isTenderEligibleProjectStatus } from '@/lib/tendering';
 import {
   DOCUMENT_CATEGORY_OPTIONS,
   deleteProjectDocument,
+  updateProjectDocumentCategory,
   fetchProjectDocuments,
   fetchPublicProjectDocuments,
   getDocumentDownloadUrl,
@@ -117,7 +118,8 @@ export function ProjectDetailPageClient({
   const searchParams = useSearchParams();
   const router = useRouter();
   const { t } = useTranslation();
-  const { formatDocumentCategory } = useAppFormatters();
+  const { formatDocumentCategory, formatProjectStatus } =
+    useAppFormatters();
   const { me, ready: sessionReady, refreshSession, signOut } = useSession();
   const projectId = params.id;
   const inviteToken = searchParams.get('invite');
@@ -127,7 +129,13 @@ export function ProjectDetailPageClient({
   const [authState, setAuthState] = useState<AuthState>('loading');
   const [project, setProject] = useState<Project | null>(initialProject);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
-  const [docCategory, setDocCategory] = useState<DocumentCategory>('blueprint');
+  /** Id of the document whose category is being saved. */
+  const [categorySavingId, setCategorySavingId] = useState<string | null>(null);
+  /**
+   * D1: no category before upload. Files go in as "other" and the tile lets the client
+   * re-file them — one decision, made when the file is already visible.
+   */
+  const [docCategory] = useState<DocumentCategory>('other');
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -575,6 +583,30 @@ export function ProjectDetailPageClient({
     }
   };
 
+  /** D1: re-file a document after upload instead of asking before it. */
+  const handleCategoryChange = async (
+    documentId: string,
+    category: DocumentCategory,
+  ) => {
+    setCategorySavingId(documentId);
+    try {
+      const updated = await updateProjectDocumentCategory(
+        projectId,
+        documentId,
+        category,
+      );
+      setDocuments((current) =>
+        current.map((doc) => (doc.id === documentId ? updated : doc)),
+      );
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : t('documents.updateFailed'),
+      );
+    } finally {
+      setCategorySavingId(null);
+    }
+  };
+
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -832,14 +864,33 @@ export function ProjectDetailPageClient({
                 />
               )}
 
+              <p className="project-mobile-cta">
+                <PublishTenderButton
+                  projectId={projectId}
+                  project={project}
+                  className="primary project-mobile-cta-button"
+                  onPublished={() => void loadProjectView()}
+                />
+              </p>
+
               <p className="project-mobile-status">
-                <span>{canManageWorkspace ? project.status : ''}</span>
+                <span className="project-mobile-status-item">
+                  <span
+                    className="project-mobile-status-dot"
+                    aria-hidden
+                  />
+                  {formatProjectStatus(project.status)}
+                </span>
                 {estimate ? (
-                  <span>
-                    <strong>{formatThb(estimate.totals.midAmount)}</strong>
+                  <span className="project-mobile-status-item">
+                    ~{formatThb(estimate.totals.midAmount)}
                   </span>
                 ) : null}
-                <span>{t('projectHero.readyPercent', { n: project.readinessScore })}</span>
+                <span className="project-mobile-status-item">
+                  {t('projectHero.readyPercent', {
+                    n: project.readinessScore,
+                  })}
+                </span>
               </p>
 
               <ProjectHero
@@ -981,21 +1032,39 @@ export function ProjectDetailPageClient({
                               ? t('estimateSection.designTitle')
                               : t('estimateSection.title')}
                           </h2>
-                          <p className="estimate-range">
-                            {formatThb(estimate.totals.minAmount)} –{' '}
-                            {formatThb(estimate.totals.maxAmount)}
-                          </p>
-                          <p className="muted estimate-meta">
-                            {t('estimateSection.midpoint')}{' '}
+                          {/* E6: the number the client came for is the headline,
+                              not a muted "midpoint" badge under the range. */}
+                          <p className="estimate-total">
                             {formatThb(estimate.totals.midAmount)}
+                          </p>
+                          <p className="muted estimate-range-line">
+                            {t('estimateSection.rangeLabel', {
+                              min: formatThb(estimate.totals.minAmount),
+                              max: formatThb(estimate.totals.maxAmount),
+                            })}
                           </p>
                           <p className="muted estimate-meta estimate-excludes-note">
                             {t('projectHero.ballparkExcludesAdjustments')}
                           </p>
                         </div>
-                        <EstimateConfidenceRing
-                          confidence={estimate.confidence}
-                        />
+                        {/* E6: a labelled badge instead of a percentage ring. */}
+                        <span
+                          className={`estimate-confidence-badge${
+                            isLowEstimateConfidence(estimate.confidence)
+                              ? ' estimate-confidence-badge--low'
+                              : estimate.confidence >= 0.75
+                                ? ' estimate-confidence-badge--high'
+                                : ''
+                          }`}
+                        >
+                          {t(
+                            estimate.confidence >= 0.75
+                              ? 'estimateSection.confidenceHigh'
+                              : isLowEstimateConfidence(estimate.confidence)
+                                ? 'estimateSection.confidenceLow'
+                                : 'estimateSection.confidenceMedium',
+                          )}
+                        </span>
                       </div>
                       {isLowEstimateConfidence(estimate.confidence) && (
                         <aside
@@ -1063,8 +1132,18 @@ export function ProjectDetailPageClient({
                         />
                       )}
                       <p className="muted estimate-disclaimer">
-                        {estimate.disclaimer}
+                        <span aria-hidden>ⓘ</span> {estimate.disclaimer}
                       </p>
+                      {/* E2: the action the whole page is about, next to the number. */}
+                      {canManageWorkspace && (
+                        <div className="estimate-publish-cta">
+                          <PublishTenderButton
+                            projectId={projectId}
+                            project={project}
+                            onPublished={() => void loadProjectView()}
+                          />
+                        </div>
+                      )}
                     </section>
                   )}
 
@@ -1140,22 +1219,6 @@ export function ProjectDetailPageClient({
                           maxMb: MAX_UPLOAD_BYTES / (1024 * 1024),
                         })}
                       </p>
-                      <label className="doc-dropzone-category">
-                        {t('documents.category')}
-                        <select
-                          value={docCategory}
-                          onChange={(e) =>
-                            setDocCategory(e.target.value as DocumentCategory)
-                          }
-                          disabled={uploading}
-                        >
-                          {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {formatDocumentCategory(opt.value)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
                       <button
                         type="button"
                         className="secondary"
@@ -1174,22 +1237,6 @@ export function ProjectDetailPageClient({
                   <>
                     {canActAsOwner && (
                       <div className="doc-upload-row doc-upload-row--compact">
-                        <label>
-                          {t('documents.category')}
-                          <select
-                            value={docCategory}
-                            onChange={(e) =>
-                              setDocCategory(e.target.value as DocumentCategory)
-                            }
-                            disabled={uploading}
-                          >
-                            {DOCUMENT_CATEGORY_OPTIONS.map((opt) => (
-                              <option key={opt.value} value={opt.value}>
-                                {formatDocumentCategory(opt.value)}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
                         <button
                           type="button"
                           className="secondary"
@@ -1216,6 +1263,12 @@ export function ProjectDetailPageClient({
                           insight={insightByDocumentId.get(doc.id)}
                           showDelete={showDocDelete}
                           deleting={deletingDocId === doc.id}
+                          onCategoryChange={
+                            showDocDelete
+                              ? (next) => void handleCategoryChange(doc.id, next)
+                              : undefined
+                          }
+                          categorySaving={categorySavingId === doc.id}
                           formatDateTime={formatDateTime}
                           onDownload={() => void handleDownload(doc)}
                           onDelete={() => void handleDeleteDocument(doc)}
@@ -1288,7 +1341,7 @@ export function ProjectDetailPageClient({
                     </p>
                     <button
                       type="button"
-                      className="danger"
+                      className="danger-outline"
                       disabled={deleting}
                       onClick={() => void handleDelete()}
                     >
@@ -1319,6 +1372,14 @@ export function ProjectDetailPageClient({
                       : null
                   }
                 />
+                <div className="project-sidebar-publish">
+                  <PublishTenderButton
+                    projectId={projectId}
+                    project={project}
+                    className="primary project-sidebar-publish-cta"
+                    onPublished={() => void loadProjectView()}
+                  />
+                </div>
                 {brief && <ProjectBriefCard brief={brief} compact />}
                 {showLifecycle && (
                   <ProjectLifecyclePanel

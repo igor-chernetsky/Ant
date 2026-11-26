@@ -50,6 +50,7 @@ export function ProjectLocationFields({
         </label>
         <label>
           {t('location.area')}
+          <span className="field-optional">{t('createProject.optional')}</span>
           <select
             value={areaSlug}
             disabled={disabled || areas.length === 0}
@@ -67,7 +68,6 @@ export function ProjectLocationFields({
       </div>
       <label>
         {t('location.locationNote')}
-        <span className="field-hint muted">{t('location.locationNoteHint')}</span>
         <input
           type="text"
           value={note}
@@ -75,6 +75,8 @@ export function ProjectLocationFields({
           placeholder={t('location.locationNotePlaceholder')}
           onChange={(e) => onNoteChange(e.target.value)}
         />
+        {/* C3: helper text always below the field, as for the area. */}
+        <span className="field-hint muted">{t('location.locationNoteHint')}</span>
       </label>
     </>
   );

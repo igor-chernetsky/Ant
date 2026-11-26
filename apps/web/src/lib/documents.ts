@@ -115,6 +115,34 @@ export async function completeDocumentUpload(
   return response.json() as Promise<ProjectDocument>;
 }
 
+/**
+ * D1: the category is chosen per file after upload, so the tile can fix a mis-filed
+ * document without re-uploading it.
+ */
+export async function updateProjectDocumentCategory(
+  projectId: string,
+  documentId: string,
+  category: DocumentCategory,
+): Promise<ProjectDocument> {
+  const response = await fetchWithAuth(
+    `/api/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(documentId)}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category }),
+    },
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      message?: string;
+    } | null;
+    throw new Error(body?.message ?? 'Failed to update the document category');
+  }
+
+  return (await response.json()) as ProjectDocument;
+}
+
 export async function deleteProjectDocument(
   projectId: string,
   documentId: string,

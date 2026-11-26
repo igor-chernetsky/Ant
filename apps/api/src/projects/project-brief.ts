@@ -118,7 +118,7 @@ export function buildInitialBrief(input: {
   };
 }
 
-export function computeReadinessScore(input: {
+interface ReadinessInput {
   title: string;
   description?: string | null;
   projectType: ProjectType;
@@ -126,7 +126,34 @@ export function computeReadinessScore(input: {
   district?: string | null;
   tagCount: number;
   brief: ProjectBriefV1;
-}): number {
+}
+
+/** Checklist keys the sidebar shows as "what is missing". */
+export type ReadinessGap =
+  | 'description'
+  | 'district'
+  | 'tags'
+  | 'scope'
+  | 'intake';
+
+export function describeReadinessGaps(input: ReadinessInput): ReadinessGap[] {
+  const gaps: ReadinessGap[] = [];
+  if (!input.description || input.description.trim().length < 20) {
+    gaps.push('description');
+  }
+  if (!input.district?.trim()) gaps.push('district');
+  if (input.tagCount === 0) gaps.push('tags');
+  if ((input.brief.packages?.length ?? 0) === 0) gaps.push('scope');
+  if (isIntakeInProgress(input.brief)) gaps.push('intake');
+  return gaps;
+}
+
+function isIntakeInProgress(brief: ProjectBriefV1): boolean {
+  const status = brief.ai?.intake?.status;
+  return status === 'awaiting_answers' || status === 'ready_to_submit';
+}
+
+export function computeReadinessScore(input: ReadinessInput): number {
   let score = 0;
 
   if (input.title.trim().length >= 3) score += 15;
@@ -139,7 +166,29 @@ export function computeReadinessScore(input: {
   if (input.brief.summary && input.brief.summary.length >= 30) score += 10;
   if ((input.brief.packages?.length ?? 0) >= 1) score += 10;
 
-  return Math.min(100, score);
+  score = Math.min(100, score);
+
+  /**
+   * S1: while the intake is running, unanswered questions are the main unknown, yet
+   * the checklist alone reported "90% ready" on a project with zero answers. Reserve
+   * 30 points for intake progress and scale the rest, so nothing reaches 100% until
+   * the questions are answered.
+   */
+  const intake = input.brief.ai?.intake;
+  if (intake && isIntakeInProgress(input.brief)) {
+    const answered = intake.answers.filter(
+      (answer) => !answer.skipped || String(answer.value ?? '').trim() !== '',
+    ).length;
+    const asked = Math.max(
+      intake.askedQuestionIds?.length ?? answered,
+      answered,
+      1,
+    );
+    const progress = Math.min(1, answered / asked);
+    score = Math.round(score * 0.7 + progress * 30);
+  }
+
+  return Math.max(0, Math.min(100, score));
 }
 
 export function suggestTagSlugsFromText(text: string): string[] {

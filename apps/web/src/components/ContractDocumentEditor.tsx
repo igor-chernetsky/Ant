@@ -423,7 +423,7 @@ export function ContractDocumentEditor({
             <div className="addendum-regen-group">
               <label className="addendum-regen-locale">
                 <span className="addendum-regen-locale-label">
-                  {t('contractPanel.documentLanguage')}
+                  {t('addenda.documentLanguage')}
                 </span>
                 <select
                   value={regenLocale}

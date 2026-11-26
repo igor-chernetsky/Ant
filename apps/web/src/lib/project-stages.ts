@@ -30,3 +30,15 @@ export function projectStageNumber(status: string): number {
 }
 
 export const PROJECT_STAGE_TOTAL = PROJECT_STAGES.length;
+
+/**
+ * H6: each stage points at the card that fulfils it, so the rail is a navigation
+ * control instead of decoration.
+ */
+export const PROJECT_STAGE_ANCHORS: Record<ProjectStageId, string> = {
+  setup: 'project-intake',
+  estimate: 'project-estimate',
+  tender: 'project-tender',
+  award: 'project-contract',
+  delivery: 'project-documents',
+};

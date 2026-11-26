@@ -33,6 +33,7 @@ export function EstimateRefinementPanel({
   const { t } = useTranslation();
   const questions = estimate.improvementQuestions ?? [];
   const history = estimate.refinementAnswers ?? [];
+
   const canRefine = REFINE_STATUSES.has(project.status) && questions.length > 0;
   const highlightLowConfidence =
     canRefine && isLowEstimateConfidence(estimate.confidence);
@@ -43,6 +44,10 @@ export function EstimateRefinementPanel({
   const [recalcDiff, setRecalcDiff] = useState<EstimateRecalcDiff | null>(null);
   const [recalcBaseline, setRecalcBaseline] =
     useState<BallparkEstimate | null>(null);
+  /** Nothing to recalculate until at least one answer is typed. */
+  const hasAnyAnswer = Object.values(answers).some(
+    (value) => value.trim().length > 0,
+  );
 
   useEffect(() => {
     setAnswers({});
@@ -117,8 +122,10 @@ export function EstimateRefinementPanel({
       )}
 
       {canRefine && (
-        <details className="estimate-refine-details" open>
-          <summary>{t('estimateSection.refineTitle')}</summary>
+        <details className="estimate-refine-details">
+          <summary>
+            {t('estimateSection.refineTitle')} ({questions.length})
+          </summary>
           {highlightLowConfidence && (
             <p className="estimate-refine-boost-hint" role="status">
               {t('estimateSection.refineBoostHint')}
@@ -151,8 +158,8 @@ export function EstimateRefinementPanel({
             {error && <p className="form-error">{error}</p>}
             <button
               type="submit"
-              className="btn btn-primary"
-              disabled={submitting}
+              className="secondary estimate-refine-submit"
+              disabled={submitting || !hasAnyAnswer}
             >
               {submitting
                 ? t('estimateSection.refining')

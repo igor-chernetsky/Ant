@@ -55,6 +55,8 @@ export interface ProjectResponse {
   status: string;
   isHidden: boolean;
   readinessScore: number;
+  /** What still keeps the project from 100% — shown next to the readiness bar. */
+  readinessGaps: string[];
   linkedProjectId: string | null;
   linkKind: 'none' | 'design_active' | 'construction_pending';
   designFeePercent: number | null;

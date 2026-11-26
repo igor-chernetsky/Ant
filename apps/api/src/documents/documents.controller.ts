@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -18,6 +19,7 @@ import { DocumentsService } from './documents.service';
 import {
   parseDocumentDownloadVariant,
   PresignUploadDto,
+  UpdateDocumentDto,
 } from './documents.types';
 
 @Controller('v1/projects/:projectId/documents')
@@ -91,6 +93,22 @@ export class DocumentsController {
       user.id,
       parseDocumentDownloadVariant(variant),
       this.viewerOptions(req),
+    );
+  }
+
+  @Patch(':documentId')
+  async update(
+    @Req() req: Request & { user: JwtPayload },
+    @Param('projectId') projectId: string,
+    @Param('documentId') documentId: string,
+    @Body() body: UpdateDocumentDto,
+  ) {
+    const user = await this.resolveUser(req);
+    return this.documentsService.updateCategory(
+      projectId,
+      documentId,
+      body.category,
+      user.id,
     );
   }
 

@@ -5,7 +5,9 @@ import { DocumentInsightCollapsible } from '@/components/DocumentInsightCollapsi
 import { useTranslation } from '@/components/LocaleProvider';
 import { useAppFormatters } from '@/hooks/useAppFormatters';
 import {
+  DOCUMENT_CATEGORY_OPTIONS,
   formatFileSize,
+  type DocumentCategory,
   type ProjectDocument,
 } from '@/lib/documents';
 import { isImageDocument } from '@/lib/document-images';
@@ -35,6 +37,9 @@ interface DocumentTileProps {
   insight?: DocumentInsight;
   showDelete?: boolean;
   deleting?: boolean;
+  /** D1: lets the owner re-file the document after upload. */
+  onCategoryChange?: (category: DocumentCategory) => void;
+  categorySaving?: boolean;
   onDownload: () => void;
   onDelete?: () => void;
   formatDateTime: (iso: string) => string;
@@ -81,6 +86,8 @@ export function DocumentTile({
   insight,
   showDelete = false,
   deleting = false,
+  onCategoryChange,
+  categorySaving = false,
   onDownload,
   onDelete,
   formatDateTime,
@@ -90,6 +97,24 @@ export function DocumentTile({
   const isImage = isImageDocument(document);
   const ext = fileExtension(document.originalName);
   const category = formatDocumentCategory(document.category);
+  const categoryControl = onCategoryChange ? (
+    <label className="doc-tile-category-edit">
+      <span className="sr-only">{t('documents.category')}</span>
+      <select
+        value={document.category}
+        disabled={categorySaving}
+        onChange={(e) =>
+          onCategoryChange(e.target.value as DocumentCategory)
+        }
+      >
+        {DOCUMENT_CATEGORY_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {formatDocumentCategory(option.value)}
+          </option>
+        ))}
+      </select>
+    </label>
+  ) : null;
   const hasAnalysis = Boolean(insight) || scopePackages.length > 0;
 
   return (
@@ -123,7 +148,7 @@ export function DocumentTile({
       </figcaption>
 
       <p className="muted doc-tile-meta">
-        {category}
+        {categoryControl ?? category}
         {' · '}
         {formatFileSize(document.sizeBytes)}
         {document.uploadedAt && ` · ${formatDateTime(document.uploadedAt)}`}

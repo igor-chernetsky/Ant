@@ -47,15 +47,11 @@ export function ProjectBriefCard({
       ]
     : [];
 
-  const intakeAnswers = brief.ai?.intake?.answers ?? [];
-
   const hasBody =
-    Boolean(brief.summary) ||
     propertyItems.length > 0 ||
     designItems.length > 0 ||
     Boolean(brief.constraints) ||
-    Boolean(brief.ai?.missingFields?.length) ||
-    intakeAnswers.length > 0;
+    Boolean(brief.ai?.missingFields?.length);
 
   if (!hasBody) return null;
 
@@ -64,8 +60,6 @@ export function ProjectBriefCard({
       className={`card project-brief-card${compact ? ' project-brief-card--compact' : ''}`}
     >
       <h2 className="section-title">{t('brief.title')}</h2>
-
-      {brief.summary && <p className="brief-lead">{brief.summary}</p>}
 
       {propertyItems.length > 0 && (
         <div className="brief-subsection">
@@ -77,7 +71,14 @@ export function ProjectBriefCard({
       {designItems.length > 0 && (
         <div className="brief-subsection">
           <h3 className="brief-subsection-title">{t('brief.designPlans')}</h3>
-          <MetaSpecGrid items={designItems} className="brief-meta" />
+          <dl className="brief-compact-list">
+            {designItems.map((item) => (
+              <div key={item.label}>
+                <dt>{item.label}</dt>
+                <dd>{item.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       )}
 
@@ -107,31 +108,7 @@ export function ProjectBriefCard({
         </div>
       )}
 
-      {intakeAnswers.length > 0 && (
-        <details className="brief-subsection brief-intake-answers">
-          <summary className="brief-subsection-title">
-            {t('brief.intakeAnswers')}
-          </summary>
-          <ul className="brief-answer-list">
-            {intakeAnswers.map((answer) => {
-              const value = Array.isArray(answer.value)
-                ? answer.value.join(', ')
-                : String(answer.value ?? '');
-              const text = answer.skipped
-                ? t('brief.answerSkipped')
-                : [value, answer.customText].filter(Boolean).join(' — ');
-              return (
-                <li key={`${answer.questionId}-${answer.answeredAt}`}>
-                  <span className="brief-answer-question">
-                    {answer.questionId.replaceAll('_', ' ').replaceAll('-', ' ')}
-                  </span>
-                  <span className="brief-answer-value">{text || t('common.dash')}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </details>
-      )}
+
     </section>
   );
 }

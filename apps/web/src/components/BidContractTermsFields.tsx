@@ -47,6 +47,13 @@ interface BidContractTermsFieldsProps {
   isDesign?: boolean;
   /** Mark employer legal name/address as required (client publish). */
   requireEmployerLegal?: boolean;
+  /** Prefix for the employer field ids, so the caller can focus the first invalid one. */
+  idPrefix?: string;
+  /**
+   * Hide the employer legal block: the publish form asks for it on its own "Your
+   * details" step instead of burying it among twenty commercial terms.
+   */
+  hideEmployerLegal?: boolean;
   /** Mark contractor/designer legal fields as required (supply submit). */
   requireSupplyLegal?: boolean;
 }
@@ -63,6 +70,8 @@ export function BidContractTermsFields({
   showSectionHeader = true,
   isDesign = false,
   requireEmployerLegal = false,
+  idPrefix = 'bid-terms',
+  hideEmployerLegal = false,
   requireSupplyLegal = false,
 }: BidContractTermsFieldsProps) {
   const { t } = useTranslation();
@@ -244,7 +253,13 @@ export function BidContractTermsFields({
               {t('contractTerms.contractPeriodDays')}
             </span>
             {/* Computed text, not a disabled input that looks like a broken field. */}
-            <p className="bid-proposal-computed-value">
+            <p
+              className={`bid-proposal-computed-value${
+                contractPeriodDays != null
+                  ? ''
+                  : ' bid-proposal-computed-value--empty'
+              }`}
+            >
               {contractPeriodDays != null
                 ? t('contractTerms.contractPeriodDaysValue', {
                     days: contractPeriodDays,
@@ -431,7 +446,7 @@ export function BidContractTermsFields({
           </>
         )}
 
-        {!isCounterOffer && (
+        {!isCounterOffer && !hideEmployerLegal && (
           <>
         <p className="tag-section-label bid-contract-terms-legal-label">
           {t(
@@ -440,12 +455,23 @@ export function BidContractTermsFields({
               : 'contractTerms.employerLegalDetails',
           )}
         </p>
-        <label>
+        <label id={`${idPrefix}-employer-legal`}>
           {t('contractTerms.employerLegalName')}
           <input
+            id={`${idPrefix}-employer-name`}
             type="text"
             required={requireEmployerLegal}
             disabled={fieldDisabled('employerName')}
+            data-invalid={
+              requireEmployerLegal && String(value.employerName ?? '').trim() === ''
+                ? 'true'
+                : undefined
+            }
+            aria-invalid={
+              requireEmployerLegal && String(value.employerName ?? '').trim() === ''
+                ? true
+                : undefined
+            }
             value={value.employerName ?? ''}
             onChange={(e) => set('employerName', e.target.value)}
           />
@@ -453,9 +479,20 @@ export function BidContractTermsFields({
         <label>
           {t('contractTerms.employerAddress')}
           <input
+            id={`${idPrefix}-employer-address`}
             type="text"
             required={requireEmployerLegal}
             disabled={fieldDisabled('employerAddress')}
+            data-invalid={
+              requireEmployerLegal && String(value.employerAddress ?? '').trim() === ''
+                ? 'true'
+                : undefined
+            }
+            aria-invalid={
+              requireEmployerLegal && String(value.employerAddress ?? '').trim() === ''
+                ? true
+                : undefined
+            }
             value={value.employerAddress ?? ''}
             onChange={(e) => set('employerAddress', e.target.value)}
           />
@@ -463,6 +500,7 @@ export function BidContractTermsFields({
         <label>
           {t('contractTerms.employerRegistrationNo')}
           <input
+            id={`${idPrefix}-employer-registration`}
             type="text"
             disabled={fieldDisabled('employerRegistrationNo')}
             value={value.employerRegistrationNo ?? ''}

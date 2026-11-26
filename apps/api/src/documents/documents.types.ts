@@ -1,6 +1,11 @@
 import { DocumentCategory } from '@prisma/client';
 import { BadRequestException } from '@nestjs/common';
 
+/** Body of `PATCH /v1/projects/:projectId/documents/:documentId`. */
+export interface UpdateDocumentDto {
+  category: DocumentCategory;
+}
+
 export interface PresignUploadDto {
   fileName: string;
   contentType: string;

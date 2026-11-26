@@ -503,6 +503,16 @@ export class EstimatesService {
       question: row.question,
       answer: row.answer,
     }));
+    /** Intake answers are confirmed facts: questions about them are repeats. */
+    const intakeAnswers = (brief.ai?.intake?.answers ?? [])
+      .flatMap((answer) => {
+        const values = Array.isArray(answer.value)
+          ? answer.value
+          : [answer.value];
+        return [...values, answer.customText ?? ''];
+      })
+      .map((value) => String(value ?? '').trim())
+      .filter((value) => value.length > 2);
 
     const previousEstimate = await this.prisma.estimate.findFirst({
       where: { projectId },
@@ -538,6 +548,7 @@ export class EstimatesService {
       clarificationSummary: project.clarificationSummary,
       scopeSummary: project.scopeSummary,
       estimateRefinementQa,
+      intakeAnswers,
       allowTinyLineShare: project.projectType === ProjectType.design,
       clientScopePreferences,
     });

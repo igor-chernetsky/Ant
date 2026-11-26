@@ -16829,20 +16829,39 @@ main.product-tour-page {
 
 @media (max-width: 1023px) {
   .project-mobile-status {
+    /* S3: sticks under the header while the page scrolls. */
+    position: sticky;
+    top: 0;
+    z-index: 25;
     display: flex;
     flex-wrap: wrap;
     gap: 0.35rem 0.9rem;
     align-items: center;
-    margin: 0 0 0.5rem;
+    margin: 0 0 0.6rem;
     padding: 0.5rem 0.75rem;
     border-radius: 10px;
     border: 1px solid var(--border);
-    background: var(--glass-bg-dense);
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(15, 35, 60, 0.06);
     font-size: 0.85rem;
   }
 
-  .project-mobile-status strong {
-    font-weight: 700;
+  .project-mobile-status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 600;
+  }
+
+  .project-mobile-status-item:first-child {
+    text-transform: none;
+  }
+
+  .project-mobile-status-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--accent);
   }
 }
 
@@ -16937,14 +16956,15 @@ main.product-tour-page {
   position: absolute;
   right: 0;
   top: calc(100% + 0.35rem);
-  z-index: 20;
+  z-index: 30;
   display: grid;
   min-width: 15rem;
   padding: 0.35rem;
   border-radius: 12px;
   border: 1px solid var(--border-strong);
-  background: var(--surface-dense, #fff);
-  box-shadow: var(--shadow-md, 0 10px 30px rgba(15, 35, 60, 0.18));
+  /* Opaque: a translucent panel let the heading show through the items. */
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .project-hero-menu-item {
@@ -17064,4 +17084,580 @@ main.product-tour-page {
 .publish-required-hint {
   margin: 0;
   font-size: 0.88rem;
+}
+
+/* N4: "Show more" is a text link, not a grey button. */
+.project-hero-lead-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  font-size: 0.88rem;
+}
+
+/* N5: five-stage rail on a phone becomes one compact line with a segmented bar. */
+.project-stage-compact {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.project-stage-compact-progress {
+  color: var(--muted);
+}
+
+.project-stage-compact-label {
+  font-weight: 600;
+}
+
+.project-stage-compact-bar {
+  display: inline-flex;
+  flex: 1 1 auto;
+  gap: 3px;
+  min-width: 4rem;
+}
+
+.project-stage-compact-segment {
+  flex: 1 1 0;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-strong);
+}
+
+.project-stage-compact-segment--done {
+  background: var(--accent);
+}
+
+@media (max-width: 639px) {
+  .project-stage-rail-list {
+    display: none;
+  }
+
+  .project-stage-compact {
+    display: flex;
+  }
+}
+
+/* N2: the invalid legal fields are visibly invalid, and the error is next to the
+   buttons as well as in the body. */
+input[data-invalid='true'] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.publish-footer-error {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+/* N8: the required-fields hint is status text, the button is the action. */
+.publish-required-status {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+/* N9: an empty computed value is muted text, not a bold heading. */
+.bid-proposal-computed-value {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.bid-proposal-computed-value--empty {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* S5: design facts as a compact key-value list. */
+.brief-compact-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.brief-compact-list div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 45%) minmax(0, 1fr);
+  gap: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.brief-compact-list dt {
+  color: var(--muted);
+}
+
+.brief-compact-list dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* E4: the recalculate button is not a full-width primary. */
+.estimate-refine-submit {
+  width: auto;
+}
+
+@media (max-width: 640px) {
+  .estimate-refine-submit {
+    width: 100%;
+  }
+}
+
+/* E2: publish CTA inside the estimate card. */
+.estimate-publish-cta {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 640px) {
+  .estimate-publish-cta {
+    justify-content: stretch;
+  }
+
+  .estimate-publish-cta > button {
+    width: 100%;
+  }
+}
+
+/* G7: the sidebar keeps the current step and its CTA in view while the page scrolls. */
+/* A panel, not another card: the sidebar already stacks cards. */
+.project-sidebar-publish {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 14px;
+  background: var(--surface-dense, #fff);
+  box-shadow: 0 6px 18px rgba(15, 35, 60, 0.08);
+}
+
+.project-sidebar-publish-cta {
+  width: 100%;
+}
+
+/* G7: mobile bottom bar with the step CTA. */
+.project-mobile-cta {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .project-mobile-cta {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    margin: 0;
+    padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
+    background: var(--surface-dense, #fff);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 18px rgba(15, 35, 60, 0.08);
+  }
+
+  .project-mobile-cta-button {
+    width: 100%;
+  }
+
+  /* Leave room for the bar so the last card is not covered. */
+  .page-shell--project .project-detail-primary {
+    padding-bottom: 4.5rem;
+  }
+}
+
+/* E6: the ballpark total is the headline number of the card. */
+.estimate-total {
+  margin: 0.35rem 0 0.15rem;
+  font-size: 2rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.estimate-range-line {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* E5: a three-column table that survives long descriptions. */
+.estimate-table {
+  display: grid;
+  margin: 0 0 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.estimate-table-head,
+.estimate-table-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 20%) minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: start;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.estimate-table-head {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.estimate-table-trade {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.estimate-table-description {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.estimate-table-points {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.estimate-table-amount {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .estimate-table-head {
+    display: none;
+  }
+
+  .estimate-table-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem 0.6rem;
+  }
+
+  .estimate-table-trade {
+    grid-column: 1 / -1;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+}
+
+/* Q13: a visible choice indicator before anything is selected. */
+.intake-option-indicator {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  background: #fff;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.intake-option-indicator--box {
+  border-radius: 5px;
+}
+
+.intake-option-indicator--on {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: inset 0 0 0 3px #fff;
+}
+
+/* Q14: question above the answer, Edit as a link on the right. */
+.intake-answers-list li {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.intake-answers-text {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.intake-answers-edit {
+  align-self: center;
+}
+
+/* E5: trade chip and the line's share of the ballpark. */
+.tag-pill--trade {
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.estimate-line-share {
+  font-size: 0.76rem;
+}
+
+/* E6: confidence as a labelled badge. */
+.estimate-confidence-badge {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  white-space: nowrap;
+}
+
+.estimate-confidence-badge--high {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: color-mix(in srgb, var(--success) 75%, #000);
+}
+
+.estimate-confidence-badge--low {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+}
+
+/* E7: the add-line form hides behind a button. */
+.estimate-lines-add-toggle {
+  width: auto;
+}
+
+/* S4: destructive action is an outline button, not a red block. */
+.danger-outline {
+  width: auto;
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.danger-outline:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+/* G3: the remaining uppercase sub-headings follow the sentence-case rule. */
+.tag-section-label {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* G5: the empty amendments note is not glued to the button. */
+.client-amendments-empty {
+  margin-bottom: 0.75rem;
+}
+
+/* C1: the create-project footer stays in view while the long form scrolls. */
+.create-project-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin: 0.5rem -0.25rem 0;
+  padding: 0.75rem 0.25rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0,
+    #fff 35%
+  );
+  border-top: 1px solid var(--border);
+}
+
+/* C2: the phase switch is a field inside the section, not a white card. */
+.create-project-section .clarification-mode-field {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* C5: property/work type as chips, two fields per row on desktop. */
+.create-project-chips-row {
+  display: grid;
+  gap: 0.9rem;
+}
+
+@media (min-width: 720px) {
+  .create-project-chips-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.create-project-chips-field {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.create-project-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.create-project-chip {
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.create-project-chip:hover {
+  border-color: var(--accent);
+}
+
+.create-project-chip--active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-weight: 600;
+}
+
+/* C4: required and optional marks. */
+.field-optional {
+  margin-left: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.required-mark {
+  margin-left: 0.2rem;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+/* C6: a styled disclosure with a chevron instead of a native triangle. */
+.create-project-advanced-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  list-style: none;
+}
+
+.create-project-advanced-summary::-webkit-details-marker {
+  display: none;
+}
+
+.create-project-advanced-summary::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 150ms ease;
+}
+
+.create-project-advanced[open] .create-project-advanced-summary::before {
+  transform: rotate(45deg);
+}
+
+/* S1: readiness as a bar with the first gap, not a second pill. */
+.project-readiness {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+}
+
+.project-readiness-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.project-readiness-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.project-readiness-gap {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.project-readiness-track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  overflow: hidden;
+}
+
+.project-readiness-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 200ms ease;
+}
+
+/* P7: the employer details step. */
+.publish-employer-fields {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.publish-employer-hint {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.publish-employer-fields label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+/* H6: the rail stays under the header and its stages are links. */
+.project-hero-stage {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+}
+
+.project-stage-rail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 0.15rem 0.3rem;
+  margin: -0.15rem -0.3rem;
+}
+
+.project-stage-rail-link:hover {
+  color: var(--accent-hover);
+}
+
+.project-stage-rail-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* D1: per-file category editing after upload. */
+.doc-tile-category-edit select {
+  padding: 0.15rem 0.3rem;
+  font-size: 0.78rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: #fff;
 }
